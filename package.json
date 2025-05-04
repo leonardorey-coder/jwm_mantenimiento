@@ -1,0 +1,12 @@
+{
+  "name": "hotel-mantenimiento",
+  "version": "1.0.0",
+  "description": "Sistema de registro de mantenimiento de cuartos de hotel",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
