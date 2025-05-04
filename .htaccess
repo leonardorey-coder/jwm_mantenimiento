@@ -1,0 +1,26 @@
+# Habilitar mod_rewrite
+RewriteEngine On
+
+# Si la petición es a un archivo o directorio existente, no hacer nada
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Redirigir todo lo demás a index.php
+RewriteRule ^ index.php [L]
+
+# Forzar el tipo MIME correcto para manifest.json
+<Files "manifest.json">
+  AddType application/manifest+json .json
+</Files>
+
+# Opcional: Asegurar que sw.js se sirva como JavaScript
+<Files "sw.js">
+  AddType application/javascript .js
+</Files>
+
+# Opcional: Reescribir URLs si usas rutas limpias (ajustar si es necesario)
+# RewriteEngine On
+# RewriteCond %{REQUEST_FILENAME} !-f
+# RewriteCond %{REQUEST_FILENAME} !-d
+# RewriteRule ^ index.php [L]
