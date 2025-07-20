@@ -224,7 +224,7 @@ app.get('/api/edificios', (req, res) => {
 
 // Ruta para la página principal
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'hotel_mant.html'));
+    res.sendFile(path.join(__dirname, 'index.php'));
 });
 
 app.listen(PORT, '0.0.0.0', () => {

@@ -170,33 +170,8 @@ function toggleMantenimientos(idCuarto, btnToggle) {
 
 // --- FIN ELIMINACIÓN ---
 
-// Configurar búsqueda en tiempo real
+// Configurar búsqueda en tiempo real - DESHABILITADO
 function configurarBusquedaTiempoReal() {
-    if (buscarCuartoInput) {
-        let temporizador;
-        
-        buscarCuartoInput.addEventListener('input', function() {
-            clearTimeout(temporizador);
-            
-            temporizador = setTimeout(() => {
-                const termino = this.value.trim();
-                
-                // Obtener el formulario de filtro existente y agregar o actualizar el campo de búsqueda
-                const form = document.getElementById('formFiltroEdificio');
-                
-                // Crear o actualizar el campo de búsqueda
-                let inputBusqueda = form.querySelector('input[name="buscar"]');
-                if (!inputBusqueda) {
-                    inputBusqueda = document.createElement('input');
-                    inputBusqueda.type = 'hidden';
-                    inputBusqueda.name = 'buscar';
-                    form.appendChild(inputBusqueda);
-                }
-                inputBusqueda.value = termino;
-                
-                // Enviar el formulario
-                form.submit();
-            }, 500); // Retraso de 500ms para no hacer demasiadas peticiones
-        });
-    }
+    // La búsqueda se maneja ahora en script_index.js
+    console.log('Búsqueda delegada a script_index.js');
 }

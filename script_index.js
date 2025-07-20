@@ -12,6 +12,111 @@ if ('serviceWorker' in navigator) {
 }
 // --- Fin Registro del Service Worker ---
 
+// --- INICIO: Sistema de Audio para Notificaciones ---
+let audioContext = null;
+let alertSound = null;
+let audioEnabled = true;
+
+// Función para inicializar el contexto de audio
+function inicializarAudio() {
+    try {
+        // Crear contexto de audio compatible con diferentes navegadores
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContext();
+        
+        // Cargar el archivo de sonido
+        cargarSonidoAlerta();
+        
+        console.log('Sistema de audio inicializado correctamente');
+        return true;
+    } catch (error) {
+        console.warn('No se pudo inicializar el sistema de audio:', error);
+        audioEnabled = false;
+        return false;
+    }
+}
+
+// Función para cargar el sonido de alerta
+async function cargarSonidoAlerta() {
+    try {
+        const response = await fetch('./sounds/alert.mp3');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const arrayBuffer = await response.arrayBuffer();
+        alertSound = await audioContext.decodeAudioData(arrayBuffer);
+        
+        console.log('Sonido de alerta cargado correctamente');
+    } catch (error) {
+        console.warn('No se pudo cargar el sonido de alerta:', error);
+        audioEnabled = false;
+    }
+}
+
+// Función para reproducir el sonido de alerta
+function reproducirSonidoAlerta() {
+    if (!audioEnabled || !audioContext || !alertSound) {
+        console.log('Audio no disponible, omitiendo sonido');
+        return false;
+    }
+    
+    try {
+        // Reanudar el contexto de audio si está suspendido (requerido por algunos navegadores)
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        
+        // Crear y configurar el source
+        const source = audioContext.createBufferSource();
+        source.buffer = alertSound;
+        
+        // Crear un nodo de ganancia para controlar el volumen
+        const gainNode = audioContext.createGain();
+        gainNode.gain.setValueAtTime(0.7, audioContext.currentTime); // Volumen al 70%
+        
+        // Conectar: source -> gainNode -> destination
+        source.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        // Reproducir
+        source.start(0);
+        
+        console.log('Sonido de alerta reproducido');
+        return true;
+    } catch (error) {
+        console.error('Error al reproducir sonido de alerta:', error);
+        return false;
+    }
+}
+
+// Función alternativa usando HTML5 Audio (fallback)
+function reproducirSonidoAlertaFallback() {
+    try {
+        const audio = new Audio('./sounds/alert.mp3');
+        audio.volume = 0.7;
+        audio.play().then(() => {
+            console.log('Sonido de alerta reproducido (fallback)');
+        }).catch(error => {
+            console.warn('Error al reproducir sonido (fallback):', error);
+        });
+        return true;
+    } catch (error) {
+        console.error('Error en fallback de audio:', error);
+        return false;
+    }
+}
+
+// Función principal para reproducir sonido con fallbacks
+function reproducirSonido() {
+    // Intentar con Web Audio API primero
+    if (!reproducirSonidoAlerta()) {
+        // Si falla, usar HTML5 Audio como fallback
+        reproducirSonidoAlertaFallback();
+    }
+}
+// --- FIN: Sistema de Audio para Notificaciones ---
+
 // --- INICIO: Lógica de filtrado y búsqueda con JavaScript ---
 
 const inputBusqueda = document.getElementById('buscarCuarto');
@@ -148,26 +253,83 @@ let intervaloVerificacionAlertas = null;
 function solicitarPermisoNotificaciones() {
     if (!("Notification" in window)) {
         console.log("Este navegador no soporta notificaciones de escritorio.");
-    } else if (Notification.permission === "granted") {
+        // Aun así, verificar alertas emitidas
+        verificarAlertas();
+        return;
+    } 
+    
+    // Si ya tenemos permiso, iniciamos directamente
+    if (Notification.permission === "granted") {
         console.log("Permiso para notificaciones ya concedido.");
         iniciarVerificacionAlertas(); // Iniciar si ya tenemos permiso
-    } else if (Notification.permission !== "denied") {
-        Notification.requestPermission().then(permission => {
+        return;
+    } 
+    
+    // Si el permiso fue explícitamente denegado
+    if (Notification.permission === "denied") {
+        console.log("Permiso para notificaciones está denegado permanentemente.");
+        // Aun así, verificar alertas emitidas
+        verificarAlertas();
+        return;
+    }
+    
+    // Si el permiso está en estado default (sin decidir)
+    // mostramos un mensaje explicativo antes de solicitar
+    console.log("Solicitando permiso para mostrar notificaciones...");
+    
+    // Podríamos mostrar un mensaje al usuario explicando por qué necesitamos el permiso
+    // antes de solicitarlo, para aumentar la probabilidad de aceptación
+    
+    // Solicitar permiso
+    Notification.requestPermission()
+        .then(permission => {
             if (permission === "granted") {
                 console.log("Permiso para notificaciones concedido.");
-                iniciarVerificacionAlertas(); // Iniciar después de obtener permiso
+                // Mostrar una notificación de prueba opcional
+                setTimeout(() => {
+                    new Notification("Notificaciones Activadas", {
+                        body: "El sistema de alertas de mantenimiento ahora puede notificarte.",
+                        icon: './icons/icon-192x192.png'
+                    });
+                }, 1000);
+                
+                // Iniciar la verificación después de obtener permiso
+                iniciarVerificacionAlertas();
             } else {
                 console.log("Permiso para notificaciones denegado.");
+                // Aun sin permiso, verificar alertas emitidas
+                verificarAlertas();
             }
+        })
+        .catch(error => {
+            console.error("Error al solicitar permiso:", error);
+            // Si hay un error, al menos verificar alertas emitidas
+            verificarAlertas();
         });
-    } else {
-        console.log("Permiso para notificaciones está denegado permanentemente.");
-    }
 }
 
 // 2. Función para mostrar la notificación
-function mostrarNotificacionAlerta(idAlerta, hora, dia, descripcion, cuartoNombre, cuartoId) { // Añadir dia
-    if (Notification.permission !== "granted") return;
+function mostrarNotificacionAlerta(idAlerta, hora, dia, descripcion, cuartoNombre, cuartoId) {
+    // Verificar soporte para notificaciones
+    if (!("Notification" in window)) {
+        console.error("Este navegador no soporta notificaciones.");
+        return;
+    }
+    
+    // Verificar permisos
+    if (Notification.permission !== "granted") {
+        console.error("No hay permiso para mostrar notificaciones.");
+        // Intentar solicitar permiso si está en estado default (no decidido)
+        if (Notification.permission === "default") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    // Intentarlo de nuevo después de obtener el permiso
+                    setTimeout(() => mostrarNotificacionAlerta(idAlerta, hora, dia, descripcion, cuartoNombre, cuartoId), 500);
+                }
+            });
+        }
+        return;
+    }
 
     const ahora = new Date();
     const hoyStr = ahora.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -175,41 +337,86 @@ function mostrarNotificacionAlerta(idAlerta, hora, dia, descripcion, cuartoNombr
     const claveNotificacion = `${hoyStr}-${idAlerta}`;
 
     if (alertasNotificadasHoy.has(claveNotificacion)) {
+        console.log(`Alerta ${idAlerta} ya notificada hoy, ignorando`);
         return; // Ya notificado hoy
     }
 
-    // Incluir día en el título si existe
-    const titulo = `Alerta (${dia ? dia + ' ' : ''}${hora})`;
-    const opciones = {
-        body: `${cuartoNombre}: ${descripcion}`,
-        icon: './icons/icon-192x192.png',
-        tag: `alerta-${idAlerta}`,
-        renotify: true,
-        data: {
-            cuartoId: cuartoId
-        }
-    };
+    try {
+        // Incluir día en el título si existe
+        const offsetMinutos = ahora.getTimezoneOffset();
+        const offsetHoras = Math.abs(Math.floor(offsetMinutos / 60));
+        const offsetResto = Math.abs(offsetMinutos % 60);
+        const offsetSigno = offsetMinutos <= 0 ? '+' : '-';
+        const offsetStr = `UTC${offsetSigno}${offsetHoras.toString().padStart(2, '0')}:${offsetResto.toString().padStart(2, '0')}`;
+        
+        // Título que incluye información de zona horaria local
+        const titulo = `Alerta (${dia ? dia + ' ' : ''}${hora}) - Hora local`;
+        
+        const opciones = {
+            body: `${cuartoNombre}: ${descripcion}`,
+            icon: './icons/icon-192x192.png',
+            badge: './icons/badge-96x96.png', // Añadir un badge para móviles
+            tag: `alerta-${idAlerta}`,
+            requireInteraction: true, // La notificación permanece hasta que el usuario interactúe
+            renotify: true,
+            vibrate: [200, 100, 200], // Patrón de vibración para dispositivos móviles
+            data: {
+                cuartoId: cuartoId,
+                zonaHoraria: offsetStr,
+                timestamp: Date.now()
+            }
+        };
 
-    const notificacion = new Notification(titulo, opciones);
-    alertasNotificadasHoy.add(claveNotificacion);
-    console.log(`Notificación mostrada para alerta ${idAlerta}`);
+        // IMPORTANTE: Creamos una referencia a la notificación y la guardamos
+        const notificacion = new Notification(titulo, opciones);
+        
+        // Marcamos como notificada antes de que termine la función
+        alertasNotificadasHoy.add(claveNotificacion);
+        console.log(`Notificación mostrada para alerta ${idAlerta} en zona horaria ${offsetStr} a las ${ahora.toLocaleTimeString()}`);
 
-    notificacion.onclick = (event) => {
-        console.log("Notificación clickeada", event.notification.data);
-        // Enfocar la ventana/tab si existe
-        window.focus();
-        // Ir al cuarto correspondiente
-        if (event.notification.data && event.notification.data.cuartoId) {
-            scrollToCuarto(event.notification.data.cuartoId);
-        }
-        // Cerrar la notificación
-        event.notification.close();
-    };
+        // Configurar eventos de la notificación
+        notificacion.onclick = (event) => {
+            console.log("Notificación clickeada", event.target.data || "Sin datos");
+            // Enfocar la ventana/tab si existe
+            window.focus();
+            // Ir al cuarto correspondiente
+            scrollToCuarto(cuartoId);
+            // Cerrar la notificación
+            event.target.close();
+        };
+        
+        notificacion.onshow = () => {
+            console.log(`Notificación ${idAlerta} mostrada en pantalla`);
+        };
+        
+        notificacion.onerror = (error) => {
+            console.error(`Error al mostrar notificación ${idAlerta}:`, error);
+        };
+        
+        // Programar un cierre automático después de 30 segundos
+        setTimeout(() => {
+            notificacion.close();
+        }, 30000);
+        
+        return notificacion; // Devolver la referencia a la notificación
+    } catch (error) {
+        console.error("Error al crear notificación:", error);
+    }
 }
-
 
 // 3. Función que verifica las alertas y actualiza emitidas
 function verificarAlertas() {
+    const ahora = new Date();
+    const horaActual = ahora.getHours().toString().padStart(2, '0');
+    const minutoActual = ahora.getMinutes().toString().padStart(2, '0');
+    const horaMinutoActual = `${horaActual}:${minutoActual}`;
+    
+    // Obtenemos la fecha en formato local directamente desde Date
+    const hoyStr = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+    
+    console.log("Verificando alertas:", horaMinutoActual, "- Fecha actual (local):", hoyStr);
+
+    // Verificar permisos de notificación
     if (Notification.permission !== "granted") {
         // Si se deniega el permiso después de iniciar, detener verificaciones
         if (intervaloVerificacionAlertas) {
@@ -217,19 +424,15 @@ function verificarAlertas() {
             intervaloVerificacionAlertas = null;
             console.log("Permiso denegado, deteniendo verificación de alertas.");
         }
+        // Aun así verificar alertas emitidas
+        verificarAlertasEmitidas();
         return;
     }
 
-    const ahora = new Date();
-    const horaActual = ahora.getHours().toString().padStart(2, '0');
-    const minutoActual = ahora.getMinutes().toString().padStart(2, '0');
-    const horaMinutoActual = `${horaActual}:${minutoActual}`;
-    const hoyStr = ahora.toISOString().split('T')[0]; // YYYY-MM-DD en hora local
-    
-    console.log("Verificando alertas:", horaMinutoActual, "- Fecha actual:", hoyStr);
-
     const listaAlertasPanel = document.querySelectorAll('.lista-vista-rutinas .rutina-item');
     let algunaEmitidaNueva = false;
+    let notificacionesMostradas = 0;
+    let alertasActivasHoy = []; // Para almacenar alertas que deben sonar hoy
 
     listaAlertasPanel.forEach(itemAlerta => {
         const horaAlerta = itemAlerta.dataset.horaRaw; // HH:MM
@@ -245,41 +448,123 @@ function verificarAlertas() {
             return; // Continuar con la siguiente alerta
         }
         
-        // Verificación de alerta para hoy o fecha pasada
-        const diaAlertaDate = new Date(diaAlerta + 'T00:00:00');
-        const hoyDate = new Date(hoyStr + 'T00:00:00');
-        
-        // Crear objetos Date completos para la comparación exacta (con hora)
-        const [year, month, day] = diaAlerta.split('-').map(Number);
-        const [alertHour, alertMinute] = horaAlerta.split(':').map(Number);
-        const fechaHoraAlerta = new Date(year, month - 1, day, alertHour, alertMinute, 0);
-        
-        // Fechas iguales (mismo día) - para mostrar notificación puntual
-        const esMismoDia = diaAlertaDate.getTime() === hoyDate.getTime();
-        const esHoraExacta = horaAlerta === horaMinutoActual;
-        
-        // Alerta ya pasó (para agregar a Emitidas Hoy)
-        const alertaYaPaso = fechaHoraAlerta < ahora;
-        
-        console.log(`Evaluando alerta ${idAlerta}: día=${diaAlerta}, hora=${horaAlerta}`, 
-                     `¿Mismo día?: ${esMismoDia}, ¿Hora exacta?: ${esHoraExacta}, ¿Ya pasó?: ${alertaYaPaso}`);
-        
-        // Agregar SOLO a Emitidas Hoy cuando realmente ya pasó la fecha/hora
-        if (alertaYaPaso) {
-            const idEmitida = `emitida-${idAlerta}`;
-            if (!alertasDescartadasHoy.has(idAlerta) && !document.getElementById(idEmitida)) {
-                console.log(`Agregando alerta ${idAlerta} a emitidas (${diaAlerta} ${horaAlerta})`);
-                agregarAlertaEmitida(idAlerta, horaAlerta, diaAlerta, descripcion, cuartoNombre, cuartoId);
-                algunaEmitidaNueva = true;
+        try {
+            // Convertir la fecha/hora de la alerta a un objeto Date en la zona horaria local del cliente
+            const [alertaYear, alertaMonth, alertaDay] = diaAlerta.split('-').map(Number);
+            const [alertaHour, alertaMinute] = horaAlerta.split(':').map(Number);
+            
+            // Crear el objeto Date con la zona horaria local del cliente
+            const fechaHoraAlerta = new Date(alertaYear, alertaMonth - 1, alertaDay, alertaHour, alertaMinute, 0);
+            
+            // Comparación más precisa de fechas y horas
+            const ahoraYear = ahora.getFullYear();
+            const ahoraMonth = ahora.getMonth(); // 0-11
+            const ahoraDay = ahora.getDate();
+            const ahoraHour = ahora.getHours();
+            const ahoraMinute = ahora.getMinutes();
+            
+            const alertYear = fechaHoraAlerta.getFullYear();
+            const alertMonth = fechaHoraAlerta.getMonth(); // 0-11
+            const alertDay = fechaHoraAlerta.getDate();
+            const alertHour = fechaHoraAlerta.getHours();
+            const alertMinute = fechaHoraAlerta.getMinutes();
+            
+            // Verificar si la fecha actual y la de la alerta son el mismo día
+            const esHoy = ahoraYear === alertYear && ahoraMonth === alertMonth && ahoraDay === alertDay;
+            
+            // Verificar si es exactamente la hora y minuto de la alerta (con tolerancia de ±1 minuto)
+            const diferenciaMinutos = Math.abs((ahoraHour * 60 + ahoraMinute) - (alertHour * 60 + alertMinute));
+            const esHoraExacta = diferenciaMinutos <= 1; // Tolerancia de 1 minuto
+            
+            // Verificar si la alerta ya pasó (para agregarla a la lista de emitidas)
+            const alertaYaPaso = fechaHoraAlerta <= ahora;
+            
+            console.log(`Evaluando alerta ${idAlerta}: día=${diaAlerta}, hora=${horaAlerta}`, 
+                         `¿Es hoy?: ${esHoy}, ¿Hora exacta?: ${esHoraExacta}, ¿Ya pasó?: ${alertaYaPaso}`,
+                         `Diferencia minutos: ${diferenciaMinutos}`,
+                         `Fecha alerta: ${alertDay}/${alertMonth+1}/${alertYear}, Fecha actual: ${ahoraDay}/${ahoraMonth+1}/${ahoraYear}`);
+            
+            // Agregar SOLO a Emitidas Hoy cuando es de HOY y ya pasó la hora
+            if (esHoy && alertaYaPaso) {
+                const idEmitida = `emitida-${idAlerta}`;
+                if (!alertasDescartadasHoy.has(idAlerta) && !document.getElementById(idEmitida)) {
+                    console.log(`Agregando alerta ${idAlerta} a emitidas de hoy (${diaAlerta} ${horaAlerta})`);
+                    agregarAlertaEmitida(idAlerta, horaAlerta, diaAlerta, descripcion, cuartoNombre, cuartoId);
+                    algunaEmitidaNueva = true;
+                }
             }
-        }
-        
-        // Mostrar notificación SOLO si es exactamente hoy y la hora actual exacta
-        if (esMismoDia && esHoraExacta) {
-            console.log(`¡NOTIFICANDO alerta ${idAlerta}!`);
-            mostrarNotificacionAlerta(idAlerta, formatTime12Hour(horaAlerta), formatDate(diaAlerta), descripcion, cuartoNombre, cuartoId);
+            
+            // Mostrar notificación y reproducir sonido si es hoy y es la hora exacta
+            if (esHoy && esHoraExacta) {
+                // Verificar si no hemos notificado ya esta alerta hoy
+                const claveNotificacion = `${hoyStr}-${idAlerta}`;
+                if (!alertasNotificadasHoy.has(claveNotificacion)) {
+                    console.log(`¡NOTIFICANDO alerta ${idAlerta} con sonido!`);
+                    
+                    // Agregar a la lista de alertas activas para reproducir sonido
+                    alertasActivasHoy.push({
+                        id: idAlerta,
+                        descripcion: descripcion,
+                        cuartoNombre: cuartoNombre,
+                        cuartoId: cuartoId,
+                        hora: horaAlerta,
+                        dia: diaAlerta
+                    });
+                    
+                    try {
+                        // Marcar como notificada antes de mostrar la notificación
+                        alertasNotificadasHoy.add(claveNotificacion);
+                        
+                        // Usar la función compatible para mostrar notificaciones
+                        const titulo = `🔔 Alerta: ${descripcion.substring(0, 20)}${descripcion.length > 20 ? '...' : ''}`;
+                        const mensaje = `${cuartoNombre}: ${descripcion} - ${formatTime12Hour(horaAlerta)}`;
+                        
+                        // Llamar a la función compatible que maneja diferentes navegadores
+                        mostrarNotificacionCompatible(
+                            titulo,
+                            mensaje,
+                            './icons/icon-192x192.png',
+                            { 
+                                cuartoId: cuartoId,
+                                idAlerta: idAlerta,
+                                diaAlerta: diaAlerta,
+                                horaAlerta: horaAlerta,
+                                conSonido: true // Indicar que debe reproducir sonido
+                            }
+                        );
+                        
+                        console.log(`Notificación enviada para alerta ${idAlerta} - ${new Date().toLocaleTimeString()}`);
+                        notificacionesMostradas++;
+                    } catch (error) {
+                        console.error(`Error al crear notificación para alerta ${idAlerta}:`, error);
+                    }
+                } else {
+                    console.log(`Alerta ${idAlerta} ya fue notificada hoy, omitiendo notificación.`);
+                }
+            }
+        } catch (error) {
+            console.error(`Error al procesar alerta ${idAlerta}:`, error);
         }
     });
+
+    // Reproducir sonido si hay alertas activas
+    if (alertasActivasHoy.length > 0) {
+        console.log(`Reproduciendo sonido para ${alertasActivasHoy.length} alerta(s) activa(s)`);
+        
+        // Reproducir sonido inmediatamente
+        reproducirSonido();
+        
+        // Si hay múltiples alertas, reproducir sonido adicional después de 2 segundos
+        if (alertasActivasHoy.length > 1) {
+            setTimeout(() => {
+                reproducirSonido();
+                console.log('Sonido adicional para múltiples alertas');
+            }, 2000);
+        }
+    }
+
+    // Mostrar un log de resumen
+    console.log(`Verificación de alertas completada: ${notificacionesMostradas} notificaciones mostradas, ${alertasActivasHoy.length} sonidos reproducidos.`);
 
     // Actualizar visibilidad del mensaje si se añadió alguna alerta emitida
     if (algunaEmitidaNueva) {
@@ -352,14 +637,66 @@ function actualizarMensajeEmitidasVacias() {
 // 4. Iniciar la verificación periódica (solo si se concede permiso)
 function iniciarVerificacionAlertas() {
     if (intervaloVerificacionAlertas) return; // Ya iniciado
+    
+    // Forzar la solicitud de permiso si aún no se ha concedido
+    if (Notification.permission === "default") {
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                console.log("Permiso para notificaciones concedido.");
+                // Reiniciar esta función luego de obtener el permiso
+                iniciarVerificacionAlertas();
+            } else {
+                console.log("Permiso para notificaciones denegado.");
+                // Aun sin permiso, verificar alertas emitidas
+                verificarAlertas();
+            }
+        });
+        return; // Salir y esperar el callback del permiso
+    }
+    
     if (Notification.permission === "granted") {
-        console.log("Iniciando verificación periódica de alertas...");
-        verificarAlertas(); // Verificar inmediatamente al iniciar
+        console.log("Iniciando verificación periódica de alertas con notificaciones habilitadas...");
         
-        // Verificar cada minuto (60000ms)
-        intervaloVerificacionAlertas = setInterval(verificarAlertas, 60000);
+        // Verificar inmediatamente al iniciar
+        verificarAlertas(); 
+        
+        // Enviar una notificación de inicio para confirmar que funcionan
+        try {
+            const ahora = new Date();
+            
+            // Usar la función compatible para mostrar la notificación de inicio
+            mostrarNotificacionCompatible(
+                "Sistema de alertas activo", 
+                `Notificaciones activadas - ${ahora.toLocaleDateString()} ${ahora.toLocaleTimeString()}`,
+                './icons/icon-192x192.png'
+            );
+            
+            console.log("Notificación inicial enviada:", ahora.toLocaleString());
+        } catch (e) {
+            console.error("Error al mostrar notificación inicial:", e);
+            // Como respaldo, mostrar una alerta visual
+            crearAlertaVisual("Sistema de alertas activo", "Notificaciones activadas, pero hay un problema con las notificaciones del navegador.");
+        }
+        
+        // Verificar cada minuto exactamente al cambio de minuto
+        const ahora = new Date();
+        const segundosRestantes = 60 - ahora.getSeconds();
+        const milisegundosRestantes = (segundosRestantes * 1000) - ahora.getMilliseconds();
+        
+        // Esperar hasta el próximo minuto exacto para iniciar el intervalo
+        console.log(`Programando próxima verificación en ${segundosRestantes} segundos y ${ahora.getMilliseconds()} ms`);
+        
+        // Primer timeout para alinear con el cambio de minuto
+        setTimeout(() => {
+            console.log("Iniciando intervalo de verificación alineado con minutos exactos");
+            verificarAlertas(); // Verificar en el minuto exacto
+            
+            // Ahora iniciar el intervalo de 60 segundos
+            intervaloVerificacionAlertas = setInterval(verificarAlertas, 60000);
+        }, milisegundosRestantes);
     } else {
         // Si no hay permiso, al menos intentar poblar las emitidas una vez
+        console.log("Verificando alertas emitidas (sin notificaciones)...");
         verificarAlertas();
     }
 }
@@ -433,6 +770,30 @@ function actualizarSeleccionVisual(selectedId) {
 // Asegurarse de que el estado inicial sea correcto al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- INICIO: Inicializar sistema de audio ---
+    // Inicializar el sistema de audio después de una interacción del usuario
+    // (requerido por las políticas de autoplay de los navegadores)
+    const inicializarAudioConInteraccion = () => {
+        inicializarAudio();
+        // Remover los listeners después de la primera interacción
+        document.removeEventListener('click', inicializarAudioConInteraccion);
+        document.removeEventListener('keydown', inicializarAudioConInteraccion);
+        document.removeEventListener('touchstart', inicializarAudioConInteraccion);
+    };
+    
+    // Agregar listeners para la primera interacción del usuario
+    document.addEventListener('click', inicializarAudioConInteraccion);
+    document.addEventListener('keydown', inicializarAudioConInteraccion);
+    document.addEventListener('touchstart', inicializarAudioConInteraccion);
+    
+    // Intentar inicializar inmediatamente (puede fallar por políticas del navegador)
+    try {
+        inicializarAudio();
+    } catch (error) {
+        console.log('Inicialización inmediata de audio falló, esperando interacción del usuario');
+    }
+    // --- FIN: Inicializar sistema de audio ---
+
     // --- INICIO: Cargar alertas descartadas ---
     cargarAlertasDescartadas();
     // --- FIN: Cargar alertas descartadas ---
@@ -440,6 +801,88 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- INICIO: Solicitar permiso para notificaciones ---
     solicitarPermisoNotificaciones(); // Esto llamará a iniciarVerificacionAlertas si hay permiso
     // --- FIN: Solicitar permiso ---
+    
+    // --- INICIO: Verificación inicial de alertas emitidas ---
+    // Verificar inmediatamente al cargar la página
+    verificarAlertasEmitidas();
+    
+    // Configurar verificación periódica de alertas emitidas (cada 30 segundos)
+    // Esto garantiza que las alertas emitidas se actualicen incluso sin interacción del usuario
+    setInterval(verificarAlertasEmitidas, 30000);
+    // --- FIN: Verificación inicial de alertas emitidas ---
+
+    // --- INICIO: Crear botón de prueba de notificaciones ---
+    // Crear el botón solo en modo de desarrollo o si se solicita explícitamente
+    const urlParams = new URLSearchParams(window.location.search);
+    const debugMode = urlParams.has('debug') || false;
+    
+    if (debugMode) {
+        // Ubicar el contenedor adecuado para el botón
+        const container = document.querySelector('.panel-alertas-emitidas h2') || 
+                        document.querySelector('.panel-vista-rutinas h2') ||
+                        document.querySelector('.vista-duo');
+        
+        if (container) {
+            // Crear el botón de prueba
+            const testButton = document.createElement('button');
+            testButton.id = 'btnTestNotificacion';
+            testButton.className = 'boton-test-notificacion';
+            testButton.textContent = 'Probar Notificaciones';
+            testButton.title = 'Haz clic para probar si las notificaciones funcionan';
+            testButton.style.marginLeft = '10px';
+            testButton.style.padding = '3px 8px';
+            testButton.style.fontSize = '0.8em';
+            testButton.style.backgroundColor = '#007bff';
+            testButton.style.color = 'white';
+            testButton.style.border = 'none';
+            testButton.style.borderRadius = '4px';
+            testButton.style.cursor = 'pointer';
+            
+            // Crear botón de prueba de sonido
+            const testSoundButton = document.createElement('button');
+            testSoundButton.id = 'btnTestSonido';
+            testSoundButton.className = 'boton-test-sonido';
+            testSoundButton.textContent = 'Probar Sonido';
+            testSoundButton.title = 'Haz clic para probar el sonido de alerta';
+            testSoundButton.style.marginLeft = '5px';
+            testSoundButton.style.padding = '3px 8px';
+            testSoundButton.style.fontSize = '0.8em';
+            testSoundButton.style.backgroundColor = '#28a745';
+            testSoundButton.style.color = 'white';
+            testSoundButton.style.border = 'none';
+            testSoundButton.style.borderRadius = '4px';
+            testSoundButton.style.cursor = 'pointer';
+            
+            // Añadir evento de clic para notificaciones
+            testButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                testNotificacion();
+            });
+            
+            // Añadir evento de clic para sonido
+            testSoundButton.addEventListener('click', function(e) {
+                e.preventDefault();
+                console.log('Probando sonido de alerta...');
+                if (!audioEnabled) {
+                    inicializarAudio();
+                }
+                reproducirSonido();
+            });
+            
+            // Añadir botones junto al título
+            if (container.tagName === 'H2') {
+                container.parentNode.insertBefore(testButton, container.nextSibling);
+                container.parentNode.insertBefore(testSoundButton, testButton.nextSibling);
+            } else {
+                // Si no hay un título H2, añadirlo en algún lugar visible
+                container.appendChild(testButton);
+                container.appendChild(testSoundButton);
+            }
+            
+            console.log('Botones de prueba de notificaciones y sonido añadidos.');
+        }
+    }
+    // --- FIN: Crear botón de prueba de notificaciones ---
 
     // --- INICIO: Lazy Loading con Intersection Observer ---
     const lazyCuartos = document.querySelectorAll('.cuarto-lazy');
@@ -912,26 +1355,43 @@ function formatTime12Hour(timeString) { // timeString en formato HH:MM
     const ampm = h >= 12 ? 'PM' : 'AM';
     const hour12 = h % 12 || 12; // Convertir 0 a 12
     return `${hour12}:${m.toString().padStart(2, '0')} ${ampm}`;
-} // No contiene texto "Rutina"
+}
 
-// NUEVA función auxiliar para formatear fecha
+// Función auxiliar para formatear fecha
 function formatDate(dateString) { // dateString en formato YYYY-MM-DD
     if (!dateString) return '';
     try {
-        const [year, month, day] = dateString.split('-');
-        // Asegurarse de que los componentes son válidos si es necesario
-        return `${day}/${month}/${year}`;
+        // Crear un objeto Date con la fecha en la zona horaria local del usuario
+        const [year, month, day] = dateString.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        
+        // Obtener los componentes de fecha en la zona horaria local
+        const localDay = fecha.getDate().toString().padStart(2, '0');
+        const localMonth = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        const localYear = fecha.getFullYear();
+        
+        return `${localDay}/${localMonth}/${localYear}`;
     } catch (e) {
+        console.error('Error al formatear fecha:', e);
         return dateString; // Devolver original si hay error
     }
 }
-// NUEVA función auxiliar para formatear fecha corta (DD/MM)
+
+// Función auxiliar para formatear fecha corta (DD/MM)
 function formatDateShort(dateString) { // dateString en formato YYYY-MM-DD
     if (!dateString) return '??/??';
     try {
-        const [year, month, day] = dateString.split('-');
-        return `${day}/${month}`;
+        // Crear un objeto Date con la fecha en la zona horaria local del usuario
+        const [year, month, day] = dateString.split('-').map(Number);
+        const fecha = new Date(year, month - 1, day);
+        
+        // Obtener los componentes de fecha en la zona horaria local
+        const localDay = fecha.getDate().toString().padStart(2, '0');
+        const localMonth = (fecha.getMonth() + 1).toString().padStart(2, '0');
+        
+        return `${localDay}/${localMonth}`;
     } catch (e) {
+        console.error('Error al formatear fecha corta:', e);
         return '??/??';
     }
 }
@@ -948,3 +1408,416 @@ document.addEventListener('DOMContentLoaded', () => {
 // Eliminar funciones antiguas si ya no se usan en ningún lado
 // window.abrirModalEditarMantenimiento = undefined;
 // window.confirmarEliminarMantenimiento = undefined;
+
+// Nueva función para verificar y actualizar alertas emitidas sin recargar la página
+function verificarAlertasEmitidas() {
+    const ahora = new Date();
+    console.log("Verificando alertas emitidas sin recargar la página:", ahora.toLocaleString());
+    
+    const listaAlertasPanel = document.querySelectorAll('.lista-vista-rutinas .rutina-item');
+    let algunaEmitidaNueva = false;
+
+    listaAlertasPanel.forEach(itemAlerta => {
+        const horaAlerta = itemAlerta.dataset.horaRaw; // HH:MM
+        const diaAlerta = itemAlerta.dataset.diaRaw; // YYYY-MM-DD
+        const idAlerta = String(itemAlerta.id.split('-')[1]); // Convertir a string para consistencia
+        const descripcion = itemAlerta.dataset.descripcion;
+        const cuartoNombre = itemAlerta.dataset.cuartoNombre;
+        const cuartoId = itemAlerta.dataset.cuartoId;
+        
+        // Validar que la alerta tenga datos completos
+        if (!diaAlerta || !horaAlerta) {
+            return; // Continuar con la siguiente alerta
+        }
+        
+        // Convertir la fecha/hora de la alerta a un objeto Date en la zona horaria local del cliente
+        const [alertaYear, alertaMonth, alertaDay] = diaAlerta.split('-').map(Number);
+        const [alertaHour, alertaMinute] = horaAlerta.split(':').map(Number);
+        
+        // Crear el objeto Date con la zona horaria local del cliente
+        const fechaHoraAlerta = new Date(alertaYear, alertaMonth - 1, alertaDay, alertaHour, alertaMinute, 0);
+        
+        // Verificar si la alerta ya pasó (para agregarla a la lista de emitidas)
+        const alertaYaPaso = fechaHoraAlerta <= ahora;
+        
+        // Agregar SOLO a Emitidas Hoy cuando realmente ya pasó la fecha/hora
+        if (alertaYaPaso) {
+            const idEmitida = `emitida-${idAlerta}`;
+            if (!alertasDescartadasHoy.has(idAlerta) && !document.getElementById(idEmitida)) {
+                console.log(`Agregando alerta ${idAlerta} a emitidas sin recargar (${diaAlerta} ${horaAlerta})`);
+                agregarAlertaEmitida(idAlerta, horaAlerta, diaAlerta, descripcion, cuartoNombre, cuartoId);
+                algunaEmitidaNueva = true;
+            }
+        }
+    });
+
+    // Actualizar visibilidad del mensaje si se añadió alguna alerta emitida
+    if (algunaEmitidaNueva) {
+        actualizarMensajeEmitidasVacias();
+    }
+    
+    return algunaEmitidaNueva; // Devolver si se agregó alguna nueva
+}
+
+// Función para probar explícitamente las notificaciones
+function testNotificacion() {
+    console.log("Iniciando prueba de notificaciones con sonido...");
+    
+    // Asegurar que el audio esté inicializado
+    if (!audioEnabled) {
+        console.log("Inicializando sistema de audio para la prueba...");
+        inicializarAudio();
+    }
+    
+    // Intentar crear una notificación de prueba
+    const resultado = mostrarNotificacionPrueba();
+    
+    // Si la notificación de prueba falló pero tenemos permisos, mostrar información adicional
+    if (!resultado && Notification.permission === "granted") {
+        console.warn("La notificación de prueba falló a pesar de tener permisos. Intentando diagnosticar...");
+        
+        // Mostrar información del navegador y la plataforma
+        const navegador = navigator.userAgent;
+        const plataforma = navigator.platform;
+        console.log("Navegador:", navegador);
+        console.log("Plataforma:", plataforma);
+        
+        // Verificar si estamos en modo incógnito (solo funciona en algunos navegadores)
+        try {
+            const isIncognito = !window.indexedDB || !window.localStorage;
+            console.log("¿Posible modo incógnito?:", isIncognito);
+        } catch (e) {
+            console.log("No se pudo detectar modo incógnito:", e);
+        }
+        
+        // Mostrar alerta con información relevante
+        alert(`Prueba de notificación fallida a pesar de tener permisos. 
+Navegador: ${navegador.split(' ')[0]}
+Audio habilitado: ${audioEnabled}
+Esto puede deberse a:
+1. Configuración del navegador
+2. Modo incógnito
+3. Restricciones del sistema operativo
+4. Bloqueo por extensiones
+
+Por favor, verifica en la configuración del navegador que las notificaciones estén permitidas para este sitio.`);
+    }
+    
+    // Devolver el resultado para posibles usos futuros
+    return resultado;
+}
+
+// Función para mostrar una notificación inmediata de prueba desde cualquier lugar del código
+function mostrarNotificacionPrueba() {
+    // Verificar soporte para notificaciones
+    if (!("Notification" in window)) {
+        alert("Este navegador no soporta notificaciones de escritorio.");
+        return false;
+    }
+    
+    // Verificar permisos
+    if (Notification.permission !== "granted") {
+        if (Notification.permission === "default") {
+            // Intentar solicitar permiso
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    // Intentarlo de nuevo después de obtener el permiso
+                    setTimeout(mostrarNotificacionPrueba, 500);
+                } else {
+                    alert("Es necesario permitir notificaciones para que funcionen las alertas.");
+                }
+            });
+        } else {
+            alert("Las notificaciones están bloqueadas. Por favor, habilítalas en la configuración del navegador.");
+        }
+        return false;
+    }
+
+    // Si tenemos permiso, mostrar una notificación simple con sonido
+    try {
+        const ahora = new Date();
+        
+        // Reproducir sonido de prueba
+        console.log("Reproduciendo sonido de prueba...");
+        reproducirSonido();
+        
+        const notificacionPrueba = new Notification("🔔 Prueba de Notificación con Sonido", {
+            body: `Notificación de prueba: ${ahora.toLocaleTimeString()}\n¿Escuchaste el sonido de alerta?`,
+            icon: './icons/icon-192x192.png',
+            tag: 'test-notification',
+            requireInteraction: false,
+            renotify: true,
+            silent: false, // Asegurar que no sea silenciosa
+            vibrate: [200, 100, 200] // Vibración para móviles
+        });
+        
+        console.log("Notificación de prueba enviada:", ahora.toLocaleString());
+        
+        // Manejar eventos de la notificación
+        notificacionPrueba.onshow = () => {
+            console.log("Notificación de prueba mostrada correctamente");
+        };
+        
+        notificacionPrueba.onclick = () => {
+            window.focus();
+            notificacionPrueba.close();
+            console.log("Notificación de prueba clickeada");
+            
+            // Reproducir sonido adicional al hacer clic
+            setTimeout(() => {
+                reproducirSonido();
+                console.log("Sonido adicional reproducido al hacer clic");
+            }, 100);
+        };
+        
+        notificacionPrueba.onerror = (error) => {
+            console.error("Error en notificación de prueba:", error);
+            alert("Error al mostrar la notificación de prueba. Consulta la consola del navegador para más detalles.");
+        };
+        
+        // Cerrar automáticamente después de 8 segundos
+        setTimeout(() => {
+            notificacionPrueba.close();
+        }, 8000);
+        
+        return true;
+    } catch (error) {
+        console.error("Error al crear notificación de prueba:", error);
+        alert("Error al crear la notificación de prueba: " + error.message);
+        return false;
+    }
+}
+
+// Función para crear una alerta visual dentro de la página (cuando fallen las notificaciones)
+function crearAlertaVisual(titulo, mensaje) {
+    // Crear div de alerta flotante
+    const alertaDiv = document.createElement('div');
+    alertaDiv.className = 'alerta-visual';
+    alertaDiv.style.position = 'fixed';
+    alertaDiv.style.top = '20px';
+    alertaDiv.style.right = '20px';
+    alertaDiv.style.backgroundColor = '#007bff';
+    alertaDiv.style.color = 'white';
+    alertaDiv.style.padding = '15px';
+    alertaDiv.style.borderRadius = '5px';
+    alertaDiv.style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+    alertaDiv.style.zIndex = '9999';
+    alertaDiv.style.maxWidth = '300px';
+    alertaDiv.style.transition = 'opacity 0.5s ease';
+    alertaDiv.style.cursor = 'pointer';
+    
+    alertaDiv.innerHTML = `
+        <div style="font-weight:bold;margin-bottom:5px;">${titulo}</div>
+        <div>${mensaje}</div>
+    `;
+    
+    // Agregar al body
+    document.body.appendChild(alertaDiv);
+    
+    // Agregar evento de clic para cerrar
+    alertaDiv.addEventListener('click', () => {
+        alertaDiv.style.opacity = '0';
+        setTimeout(() => alertaDiv.remove(), 500);
+    });
+    
+    // Auto-eliminar después de 10 segundos
+    setTimeout(() => {
+        alertaDiv.style.opacity = '0';
+        setTimeout(() => alertaDiv.remove(), 500);
+    }, 10000);
+    
+    return alertaDiv;
+}
+
+// Función especial para mostrar notificaciones compatibles con Brave/Chrome
+function mostrarNotificacionCompatible(titulo, mensaje, icono, datos = {}) {
+    console.log("Intentando mostrar notificación compatible:", titulo);
+    
+    // Reproducir sonido si se indica en los datos
+    if (datos.conSonido) {
+        console.log("Reproduciendo sonido para notificación");
+        reproducirSonido();
+    }
+    
+    // Detectar si es un navegador basado en Chromium (Chrome, Brave, Edge, etc.)
+    const esChromium = /Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor);
+    const esBrave = navigator.brave !== undefined;
+    
+    console.log("Navegador detectado:", 
+        esBrave ? "Brave" : 
+        esChromium ? "Chrome/Chromium" : 
+        "Otro navegador");
+    
+    // Verificar permisos de notificación
+    if (Notification.permission !== "granted") {
+        console.error("No hay permiso para mostrar notificaciones");
+        // Mostrar alerta visual como fallback
+        crearAlertaVisual(titulo, mensaje);
+        return null;
+    }
+    
+    try {
+        // Intentar usar ServiceWorker para notificaciones si está disponible
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            console.log("Intentando notificación vía ServiceWorker");
+            
+            // Crear también una alerta visual para asegurar que el usuario vea algo
+            crearAlertaVisual(titulo, mensaje);
+            
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification(titulo, {
+                    body: mensaje,
+                    icon: icono || './icons/icon-192x192.png',
+                    requireInteraction: true,
+                    vibrate: [200, 100, 200, 100, 200], // Patrón de vibración más notable
+                    silent: false, // Asegurar que no sea silenciosa
+                    data: datos
+                }).then(() => {
+                    console.log("Notificación vía ServiceWorker enviada correctamente");
+                }).catch(error => {
+                    console.error("Error al mostrar notificación vía ServiceWorker:", error);
+                    crearAlertaVisual(titulo, mensaje);
+                });
+            }).catch(error => {
+                console.error("Error con ServiceWorker.ready:", error);
+                crearAlertaVisual(titulo, mensaje);
+            });
+            
+            return true;
+        } else {
+            // Método tradicional para navegadores que no son Chromium o sin ServiceWorker
+            console.log("ServiceWorker no disponible, usando método tradicional");
+            
+            // Mostrar alerta visual como respaldo
+            crearAlertaVisual(titulo, mensaje);
+            
+            // En Chrome/Brave, intentar con tag diferente cada vez
+            const uniqueTag = `notif-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+            
+            // Crear y configurar la notificación
+            const opciones = {
+                body: mensaje,
+                icon: icono || './icons/icon-192x192.png',
+                tag: uniqueTag,
+                requireInteraction: true,
+                renotify: true,  // Importante para Chrome
+                silent: false,   // Asegurar que no sea silenciosa
+                vibrate: [200, 100, 200, 100, 200], // Patrón de vibración más notable
+                data: datos
+            };
+            
+            // Crear la notificación directamente
+            const notificacion = new Notification(titulo, opciones);
+            
+            // Agregar eventos
+            notificacion.onshow = function() {
+                console.log(`Notificación "${titulo}" mostrada en pantalla`);
+            };
+            
+            notificacion.onclick = function() {
+                console.log(`Notificación "${titulo}" clickeada`);
+                window.focus();
+                this.close();
+                
+                // Si hay datos de cuartoId, hacer scroll
+                if (datos && datos.cuartoId) {
+                    scrollToCuarto(datos.cuartoId);
+                }
+            };
+            
+            // Cerrar después de 15 segundos para alertas importantes
+            setTimeout(() => {
+                if (notificacion) notificacion.close();
+            }, 15000);
+            
+            return notificacion;
+        }
+    } catch (error) {
+        console.error("Error al crear notificación compatible:", error);
+        // Mostrar alerta visual como respaldo
+        crearAlertaVisual(titulo, mensaje);
+        return null;
+    }
+}
+
+// Función accesible globalmente para forzar notificaciones desde la consola
+window.forzarNotificacion = function() {
+    console.log("Forzando notificación manual con sonido...");
+    
+    // Asegurar que el audio esté inicializado
+    if (!audioEnabled) {
+        console.log("Inicializando sistema de audio para notificación forzada...");
+        inicializarAudio();
+    }
+    
+    // Verificar permisos
+    if (Notification.permission !== "granted") {
+        alert("No hay permiso para mostrar notificaciones. Por favor, concede el permiso.");
+        
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                setTimeout(window.forzarNotificacion, 500);
+            } else {
+                alert("Se denegó el permiso para notificaciones.");
+            }
+        });
+        
+        return false;
+    }
+    
+    try {
+        const ahora = new Date();
+        
+        // Reproducir sonido inmediatamente
+        console.log("Reproduciendo sonido para notificación forzada...");
+        reproducirSonido();
+        
+        // Usar la nueva función compatible
+        mostrarNotificacionCompatible(
+            "🔔 Notificación forzada manualmente", 
+            `Esta es una notificación de prueba creada manualmente a las ${ahora.toLocaleTimeString()}`,
+            './icons/icon-192x192.png',
+            { conSonido: false } // No reproducir sonido adicional ya que lo hicimos arriba
+        );
+        
+        // También crear una alerta actual sin esperar si hay alertas disponibles
+        const primer_alerta = document.querySelector('.lista-vista-rutinas .rutina-item');
+        if (primer_alerta) {
+            const idAlerta = String(primer_alerta.id.split('-')[1]);
+            const horaAlerta = primer_alerta.dataset.horaRaw;
+            const diaAlerta = primer_alerta.dataset.diaRaw;
+            const descripcion = primer_alerta.dataset.descripcion;
+            const cuartoNombre = primer_alerta.dataset.cuartoNombre;
+            const cuartoId = primer_alerta.dataset.cuartoId;
+            
+            setTimeout(() => {
+                // Reproducir sonido adicional para la segunda notificación
+                reproducirSonido();
+                
+                mostrarNotificacionCompatible(
+                    `🔔 Alerta forzada: ${descripcion.substring(0, 20)}`,
+                    `${cuartoNombre}: ${descripcion} - ${formatTime12Hour(horaAlerta)}`,
+                    './icons/icon-192x192.png',
+                    { 
+                        cuartoId: cuartoId,
+                        conSonido: false // No reproducir sonido adicional ya que lo hicimos arriba
+                    }
+                );
+                
+                console.log(`Notificación de alerta forzada creada para ID ${idAlerta}`);
+            }, 3000); // Esperar 3 segundos entre notificaciones
+        }
+        
+        // Mostrar información de estado del audio
+        console.log(`Estado del sistema de audio:
+- Audio habilitado: ${audioEnabled}
+- Contexto de audio: ${audioContext ? audioContext.state : 'No disponible'}
+- Sonido cargado: ${alertSound ? 'Sí' : 'No'}`);
+        
+        return true;
+    } catch (error) {
+        console.error("Error al crear notificación forzada:", error);
+        alert("Error: " + error.message);
+        return false;
+    }
+};
