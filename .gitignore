@@ -1,0 +1,11 @@
+# Ignorar archivo de configuración con credenciales
+.env
+
+# Ignorar archivos temporales
+*.tmp
+*.log
+*.swp
+
+# Ignorar directorios típicos
+/vendor/
+/node_modules/
