@@ -616,11 +616,17 @@ async function manejarAgregarMantenimiento(event) {
         const resultado = await response.json();
         console.log('Mantenimiento registrado:', resultado);
         
-        // Limpiar formulario
+        // Limpiar formulario y resetear a estado "Avería"
         event.target.reset();
         document.getElementById('tipoHiddenLateral').value = 'normal';
         document.getElementById('switchLabelLateral').textContent = 'Avería';
         document.getElementById('tipoMantenimientoSwitchLateral').checked = false;
+        
+        // Ocultar campos específicos de rutina/alerta
+        const horaContainer = document.getElementById('horaRutinaLateralContainer');
+        const diaContainer = document.getElementById('diaAlertaLateralContainer');
+        if (horaContainer) horaContainer.style.display = 'none';
+        if (diaContainer) diaContainer.style.display = 'none';
         
         // Recargar datos y actualizar toda la interfaz
         await cargarDatos();
