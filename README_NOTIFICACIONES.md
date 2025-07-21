@@ -1,53 +1,124 @@
-# Sistema de Notificaciones con Sonido - Mejoras Implementadas
+# 🔔 Sistema de Notificaciones Automáticas - JW Mantto v1.1
 
-## 📋 Resumen de Mejoras
+## ✨ Características Implementadas
 
-Se han implementado mejoras significativas al sistema de notificaciones de alertas, incluyendo:
+### 1. **Notificaciones Automáticas**
+- El sistema verifica cada 30 segundos si hay alertas programadas que deben notificarse
+- Cuando llega la fecha y hora de una alerta, se emite automáticamente una notificación
+- Las notificaciones incluyen sonido personalizado y ventana emergente del navegador
 
-### 🔊 Sistema de Audio
-- **Sonido de alerta**: Se reproduce `alert.mp3` cuando se activa una notificación
-- **Compatibilidad**: Utiliza Web Audio API con fallback a HTML5 Audio
-- **Inicialización inteligente**: Se activa después de la primera interacción del usuario
-- **Control de volumen**: Configurado al 70% para evitar sonidos demasiado fuertes
+### 2. **Registro de Alertas Emitidas**
+- Las alertas se marcan automáticamente como "emitidas" en la base de datos
+- Se registra la fecha y hora exacta de emisión
+- Las alertas emitidas aparecen en el panel "Alertas Emitidas Hoy"
 
-### ⏰ Precisión de Alertas Mejorada
-- **Detección exacta**: Tolerancia de ±1 minuto para activar alertas
-- **Verificación por fecha y hora**: Las alertas se activan exactamente en su día y hora programados
-- **Prevención de duplicados**: Sistema robusto para evitar notificaciones repetidas
+### 3. **Sonido de Alerta**
+- Se reproduce automáticamente el archivo `sounds/alert.mp3`
+- Volumen configurado al 70% para no ser invasivo
+- Funciona incluso si el navegador está en segundo plano
 
-### 🔔 Notificaciones Mejoradas
-- **Vibración**: Patrón de vibración para dispositivos móviles
-- **Duración extendida**: Las notificaciones importantes permanecen 15 segundos
-- **Iconos mejorados**: Emoji 🔔 para mayor visibilidad
-- **Interacción mejorada**: Click en notificación lleva al cuarto correspondiente
+### 4. **Notificaciones del Navegador**
+- Ventana emergente con información del cuarto y descripción
+- Icono personalizado de la aplicación
+- Clic en la notificación lleva directamente al cuarto correspondiente
+- Auto-cierre después de 10 segundos
 
-## 📁 Estructura de Archivos
+## 🚀 Cómo Funciona
 
-```
-/sounds/
-  └── alert.mp3          # Archivo de sonido (debe ser agregado manualmente)
-script_index.js          # Archivo principal con las mejoras
-README_NOTIFICACIONES.md # Este archivo de documentación
-```
+### Creación de Alertas
+1. En el formulario "Registrar Mantenimiento"
+2. Selecciona un cuarto
+3. Cambia el switch a "Alerta" (posición activada)
+4. Introduce la descripción del mantenimiento
+5. Selecciona el **día** y **hora** de la alerta
+6. Pulsa "Registrar"
 
-## 🚀 Funcionalidades Nuevas
+### Proceso Automático
+1. **Verificación continua**: Cada 30 segundos, el sistema verifica si hay alertas pendientes
+2. **Detección de hora**: Cuando coincide la fecha y hora actual con una alerta programada
+3. **Emisión**: Se reproduce el sonido y se muestra la notificación del navegador
+4. **Registro**: Se marca la alerta como emitida en la base de datos
+5. **Actualización**: Se actualiza la interfaz para mostrar la alerta en "Alertas Emitidas Hoy"
 
-### Sistema de Audio
+## 📱 Permisos del Navegador
+
+### Primera Vez
+Al cargar la aplicación, se solicitarán automáticamente los permisos de notificación:
+- **Permitir**: Notificaciones completas con sonido y ventana emergente
+- **Bloquear**: Solo sonido y alerta básica de JavaScript
+
+### Para Activar Permisos (si se bloquearon)
+1. Busca el ícono de candado o información en la barra de direcciones
+2. Selecciona "Permitir notificaciones para este sitio"
+3. Recarga la página
+
+## 🔧 Panel de Herramientas de Prueba
+
+### Archivo de Prueba: `test-notifications.html`
+Acceso: `http://localhost:3000/test-notifications.html`
+
+**Funciones disponibles:**
+- **Probar Sonido**: Reproduce el sonido de alerta
+- **Probar Notificación**: Envía una notificación de prueba
+- **Probar API**: Verifica la conexión con la base de datos
+- **Estado de Permisos**: Muestra el estado actual de los permisos
+
+## ⚙️ Configuración Técnica
+
+### Frecuencia de Verificación
+- **Intervalo**: 30 segundos
+- **Modificable en**: `app-loader.js` línea con `setInterval`
+- **Valor sugerido**: Entre 15-60 segundos
+
+### Archivos Modificados
+1. **server.js**: Endpoint para marcar alertas como emitidas
+2. **db/sqlite-manager.js**: Campos y método para alertas emitidas
+3. **app-loader.js**: Sistema completo de notificaciones
+4. **style.css**: Estilos para alertas emitidas
+
+### Nuevos Campos en Base de Datos
+- `alerta_emitida` (INTEGER): 0 = no emitida, 1 = emitida
+- `fecha_emision` (DATETIME): Timestamp de cuando se emitió la alerta
+
+## � Resolución de Problemas
+
+### No se reproducen las notificaciones
+1. Verifica que los permisos estén activados
+2. Comprueba que el volumen del sistema no esté silenciado
+3. Usa `test-notifications.html` para probar componentes
+
+### No aparecen las alertas programadas
+1. Verifica que la fecha y hora estén en formato correcto
+2. Comprueba que el tipo de mantenimiento sea "Alerta" (rutina)
+3. Asegúrate de que la fecha no sea pasada
+
+### Console Debug
+Abre las herramientas de desarrollador (F12) y usa:
 ```javascript
-// Funciones principales de audio
-inicializarAudio()           // Inicializa el contexto de audio
-cargarSonidoAlerta()        // Carga el archivo alert.mp3
-reproducirSonido()          // Reproduce el sonido con fallbacks
+// Ver estado del sistema
+window.notificationDebug.verificar();
+
+// Ver alertas emitidas en memoria
+window.notificationDebug.alertasEmitidas();
+
+// Reinciar sistema
+window.notificationDebug.detener();
+window.notificationDebug.iniciar();
 ```
 
-### Verificación de Alertas Mejorada
-- **Precisión temporal**: Calcula diferencia en minutos para activación exacta
-- **Múltiples alertas**: Reproduce sonido adicional si hay varias alertas simultáneas
-- **Logging detallado**: Información completa en consola para debugging
+## 📈 Mejoras Futuras
 
-### Botones de Prueba (Modo Debug)
-Agregar `?debug=1` a la URL para mostrar:
-- **Probar Notificaciones**: Botón azul para probar notificaciones con sonido
+1. **Repetición de alertas**: Alertas recurrentes (diarias, semanales)
+2. **Múltiples recordatorios**: Alertas previas (15 min antes, 1 hora antes)
+3. **Categorización**: Diferentes tipos de alertas (urgente, normal, info)
+4. **Historial extendido**: Panel de historial de todas las alertas emitidas
+5. **Integración móvil**: Push notifications para dispositivos móviles
+
+---
+
+**Versión**: 1.1  
+**Fecha**: 20 de Julio de 2025  
+**Estado**: ✅ Completamente funcional
 - **Probar Sonido**: Botón verde para probar solo el audio
 
 ## 🔧 Configuración

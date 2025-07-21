@@ -1,12 +1,48 @@
 {
-  "name": "hotel-mantenimiento",
+  "name": "jw-mantto",
   "version": "1.0.0",
-  "description": "Sistema de registro de mantenimiento de cuartos de hotel",
-  "main": "server.js",
+  "description": "JW Mantto - Sistema local de registro de mantenimiento",
+  "main": "electron-main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "electron-only": "wait-on http://localhost:3000 && electron .",
+    "build": "electron-builder",
+    "dist": "electron-builder --publish=never"
   },
   "dependencies": {
-    "express": "^4.17.1"
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "sqlite3": "^5.1.7"
+  },
+  "devDependencies": {
+    "concurrently": "^7.6.0",
+    "electron": "^21.0.0",
+    "electron-builder": "^23.6.0",
+    "wait-on": "^7.0.1"
+  },
+  "build": {
+    "appId": "com.jwmantto.app",
+    "productName": "JW Mantto",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/better-sqlite3/**/*",
+      "node_modules/express/**/*",
+      "node_modules/cors/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
   }
 }
