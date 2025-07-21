@@ -179,75 +179,79 @@ function mostrarCuartos() {
     
     listaCuartos.innerHTML = '';
     let procesados = 0;
-    
+
+    // Lazy loading: crear cards vacías y cargar contenido solo cuando entran al viewport
     cuartos.forEach((cuarto, index) => {
         try {
-            console.log(`Procesando cuarto ${index + 1}:`, cuarto);
-            
             const li = document.createElement('li');
             li.className = 'cuarto cuarto-lazy';
             li.id = `cuarto-${cuarto.id}`;
-            
-            // Usar los nombres correctos de los campos según la API
-            const nombreCuarto = cuarto.nombre || `Cuarto ${cuarto.id}`;
-            const edificioNombre = cuarto.edificio || `Edificio ${cuarto.edificio_id}`;
-            
-            li.setAttribute('data-nombre', nombreCuarto.toLowerCase());
-            li.setAttribute('data-edificio-nombre', edificioNombre.toLowerCase());
-            li.setAttribute('data-edificio-id', cuarto.edificio_id);
-            
-            // Contar mantenimientos relacionados
-            const numMantenimientos = mantenimientos ? 
-                mantenimientos.filter(m => m.cuarto_id === cuarto.id).length : 0;
-            
-            console.log(`Cuarto ${nombreCuarto}: ${numMantenimientos} mantenimientos`);
-            
-            // HTML del cuarto
-            li.innerHTML = `
-                <h2>${escapeHtml(nombreCuarto)}</h2>
-                <p class="edificio-cuarto">Edificio: ${escapeHtml(edificioNombre)}</p>
-                ${cuarto.descripcion ? `<p>Última fecha: ${escapeHtml(cuarto.descripcion)}</p>` : ''}
-                <p>Estado: <span class="estado-disponible">Disponible</span></p>
-                <p>Número de averías: <span id="contador-mantenimientos-${cuarto.id}">${numMantenimientos}</span></p>
-                
-                <button class="boton-toggle-mantenimientos" onclick="toggleMantenimientos(${cuarto.id}, this)">Mostrar Mantenimientos</button>
-                
-                <ul class="lista-mantenimientos" id="mantenimientos-${cuarto.id}" style="display: none;">
-                    ${generarMantenimientosHTMLSimple(mantenimientos.filter(m => m.cuarto_id === cuarto.id))}
-                </ul>
-            `;
-            
-            // Agregar evento click para selección única
-            li.addEventListener('click', function(e) {
-                // Solo seleccionar si no se hace click en un botón
-                if (!e.target.closest('button')) {
-                    seleccionarCuarto(cuarto.id);
-                }
-            });
-            
+
+            // Guardar los datos necesarios en dataset para cargar luego
+            li.dataset.nombreCuarto = cuarto.nombre || `Cuarto ${cuarto.id}`;
+            li.dataset.edificioNombre = cuarto.edificio || `Edificio ${cuarto.edificio_id}`;
+            li.dataset.descripcion = cuarto.descripcion || '';
+            li.dataset.cuartoId = cuarto.id;
+            li.dataset.edificioId = cuarto.edificio_id;
+            li.dataset.index = index;
+
+            // Card vacía (placeholder)
+            li.innerHTML = `<div class="card-placeholder" style="height: 120px; background: #f3f3f3; border-radius: 10px;"></div>`;
+
             listaCuartos.appendChild(li);
             procesados++;
-            
         } catch (error) {
             console.error(`Error procesando cuarto ${index}:`, error, cuarto);
         }
     });
-    
-    console.log(`Se procesaron ${procesados} cuartos de ${cuartos.length} total`);
-    console.log('Contenido del container (primeros 300 caracteres):', listaCuartos.innerHTML.substring(0, 300));
-    
-    // Hacer visibles los cuartos después de cargarlos (remover lazy loading)
-    setTimeout(() => {
-        const cuartosLazy = document.querySelectorAll('.cuarto-lazy');
-        cuartosLazy.forEach((cuarto, index) => {
-            setTimeout(() => {
-                cuarto.style.opacity = '1';
-                cuarto.style.transform = 'translateY(0)';
-            }, index * 50); // Animación escalonada
+
+    // IntersectionObserver para cargar el contenido real cuando la card entra al viewport
+    if (window.cuartoObserver) {
+        window.cuartoObserver.disconnect();
+    }
+    window.cuartoObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const li = entry.target;
+                if (!li.dataset.loaded) {
+                    const cuartoId = parseInt(li.dataset.cuartoId);
+                    const nombreCuarto = li.dataset.nombreCuarto;
+                    const edificioNombre = li.dataset.edificioNombre;
+                    const descripcion = li.dataset.descripcion;
+                    const numMantenimientos = mantenimientos ? mantenimientos.filter(m => m.cuarto_id === cuartoId).length : 0;
+                    li.innerHTML = `
+                        <h2>${escapeHtml(nombreCuarto)}</h2>
+                        <p class="edificio-cuarto">Edificio: ${escapeHtml(edificioNombre)}</p>
+                        ${descripcion ? `<p>Última fecha: ${escapeHtml(descripcion)}</p>` : ''}
+                        <p>Estado: <span class="estado-disponible">Disponible</span></p>
+                        <p>Número de averías: <span id="contador-mantenimientos-${cuartoId}">${numMantenimientos}</span></p>
+                        <button class="boton-toggle-mantenimientos" onclick="toggleMantenimientos(${cuartoId}, this)">Mostrar Mantenimientos</button>
+                        <ul class="lista-mantenimientos" id="mantenimientos-${cuartoId}" style="display: none;">
+                            ${generarMantenimientosHTMLSimple(mantenimientos.filter(m => m.cuarto_id === cuartoId))}
+                        </ul>
+                    `;
+                    // Evento de selección
+                    li.addEventListener('click', function(e) {
+                        if (!e.target.closest('button')) {
+                            seleccionarCuarto(cuartoId);
+                        }
+                    });
+                    li.dataset.loaded = '1';
+                    li.classList.remove('cuarto-lazy');
+                    li.style.opacity = '1';
+                    li.style.transform = 'translateY(0)';
+                }
+                observer.unobserve(li);
+            }
         });
-        console.log(`${cuartosLazy.length} cuartos hechos visibles`);
-    }, 100);
-    
+    }, { rootMargin: '100px' });
+
+    // Observar todas las cards
+    document.querySelectorAll('.cuarto-lazy').forEach(li => {
+        window.cuartoObserver.observe(li);
+    });
+
+    console.log(`Se procesaron ${procesados} cuartos de ${cuartos.length} total (lazy)`);
     console.log('=== FIN MOSTRANDO CUARTOS ===');
 }
 
@@ -791,7 +795,7 @@ window.guardarMantenimientoInline = async function(mantenimientoId) {
     const hora = mantenimiento.querySelector('.input-editar-hora')?.value;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/mantenimientos/${mantenimientoId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -825,7 +829,7 @@ window.eliminarMantenimientoInline = async function(mantenimientoId, cuartoId) {
     if (!confirm('¿Está seguro de eliminar este mantenimiento?')) return;
     
     try {
-        const response = await fetch(`${API_BASE_URL}/mantenimientos/${mantenimientoId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
             method: 'DELETE'
         });
         

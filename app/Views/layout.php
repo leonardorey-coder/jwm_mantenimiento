@@ -42,6 +42,8 @@
         <?php echo $content ?? ''; ?>
     </div>
     
-    <script src="script_index.js"></script>
+    <!-- <script src="script_index.js"></script> -->
+    <!-- script_index.js deshabilitado - usando solo app-loader.js -->
+    <script src="app-loader.js"></script>
 </body>
 </html> 
