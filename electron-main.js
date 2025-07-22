@@ -1,0 +1,348 @@
+const { app, BrowserWindow, Menu } = require('electron');
+const path = require('path');
+const { spawn, exec } = require('child_process');
+
+// Mantener referencia global de la ventana
+let mainWindow;
+let serverProcess;
+
+// Función para limpiar procesos previos
+function limpiarProcesosPrevios() {
+    return new Promise((resolve) => {
+        console.log('🧹 Limpiando procesos previos...');
+        
+        // Usar el comando específico para limpiar puerto 3001
+        exec('lsof -ti:3001 | xargs kill -9 2>/dev/null || echo "No hay procesos en puerto 3001"', (error, stdout, stderr) => {
+            if (stdout) console.log(stdout.trim());
+            
+            // Matar procesos de servidor Node.js específicos
+            exec('pkill -f "node.*server.js" 2>/dev/null || echo "No hay procesos de server.js"', (error, stdout, stderr) => {
+                if (stdout) console.log(stdout.trim());
+                
+                console.log('✅ Procesos previos limpiados');
+                setTimeout(resolve, 1000); // Esperar 1 segundo para asegurar limpieza
+            });
+        });
+    });
+}
+
+function createWindow() {
+    console.log('Iniciando aplicación Electron...');
+    
+    // Crear la ventana del navegador
+    mainWindow = new BrowserWindow({
+        width: 1400,
+        height: 900,
+        minWidth: 800,
+        minHeight: 600,
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            enableRemoteModule: false,
+            webSecurity: false // Permitir CORS para localhost
+        },
+        icon: path.join(__dirname, 'icons/icon-512x512.png'),
+        titleBarStyle: 'default',
+        show: true // Mostrar inmediatamente para evitar problemas con ejecutables
+    });
+
+    console.log('Ventana creada, iniciando servidor...');
+
+    // Iniciar el servidor Express
+    startServer();
+
+    // Mostrar ventana cuando esté lista
+    mainWindow.once('ready-to-show', () => {
+        console.log('Ventana lista para mostrar');
+        mainWindow.show();
+        mainWindow.focus(); // Asegurar que la ventana tenga foco
+        
+        // Abrir DevTools solo en desarrollo
+        if (process.env.NODE_ENV === 'development') {
+            mainWindow.webContents.openDevTools();
+        }
+    });
+
+    // Forzar mostrar ventana después de un timeout por si acaso
+    setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+            console.log('Forzando mostrar ventana...');
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    }, 3000);
+
+    // Log de errores de carga
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+        console.error('Error cargando página:', errorCode, errorDescription);
+    });
+
+    mainWindow.webContents.on('did-finish-load', () => {
+        console.log('Página cargada exitosamente');
+    });
+
+    // Emitido cuando la ventana se cierra
+    mainWindow.on('closed', () => {
+        mainWindow = null;
+        if (serverProcess) {
+            console.log('🛑 Cerrando servidor...');
+            serverProcess.kill('SIGTERM');
+            
+            // Si no se cierra en 3 segundos, forzar cierre
+            setTimeout(() => {
+                if (serverProcess && !serverProcess.killed) {
+                    console.log('⚠️ Forzando cierre del servidor...');
+                    serverProcess.kill('SIGKILL');
+                }
+            }, 3000);
+        }
+    });
+
+    // Configurar menú de aplicación
+    const template = [
+        {
+            label: 'Aplicación',
+            submenu: [
+                {
+                    label: 'Acerca de JW Mantto',
+                    click: () => {
+                        const { dialog } = require('electron');
+                        dialog.showMessageBox(mainWindow, {
+                            type: 'info',
+                            title: 'Acerca de JW Mantto',
+                            message: 'JW Mantto v1.1.0',
+                            detail: 'Sistema de Mantenimiento de Cuartos\nJW Marriott'
+                        });
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Recargar',
+                    accelerator: 'CmdOrCtrl+R',
+                    click: () => {
+                        mainWindow.reload();
+                    }
+                },
+                {
+                    label: 'Alternar DevTools',
+                    accelerator: 'F12',
+                    click: () => {
+                        mainWindow.webContents.toggleDevTools();
+                    }
+                },
+                { type: 'separator' },
+                {
+                    label: 'Salir',
+                    accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Ctrl+Q',
+                    click: () => {
+                        app.quit();
+                    }
+                }
+            ]
+        },
+        {
+            label: 'Ver',
+            submenu: [
+                {
+                    label: 'Pantalla Completa',
+                    accelerator: 'F11',
+                    click: () => {
+                        mainWindow.setFullScreen(!mainWindow.isFullScreen());
+                    }
+                },
+                {
+                    label: 'Zoom +',
+                    accelerator: 'CmdOrCtrl+Plus',
+                    click: () => {
+                        const currentZoom = mainWindow.webContents.getZoomFactor();
+                        mainWindow.webContents.setZoomFactor(currentZoom + 0.1);
+                    }
+                },
+                {
+                    label: 'Zoom -',
+                    accelerator: 'CmdOrCtrl+-',
+                    click: () => {
+                        const currentZoom = mainWindow.webContents.getZoomFactor();
+                        mainWindow.webContents.setZoomFactor(currentZoom - 0.1);
+                    }
+                },
+                {
+                    label: 'Zoom Reset',
+                    accelerator: 'CmdOrCtrl+0',
+                    click: () => {
+                        mainWindow.webContents.setZoomFactor(1.0);
+                    }
+                }
+            ]
+        }
+    ];
+
+    const menu = Menu.buildFromTemplate(template);
+    Menu.setApplicationMenu(menu);
+}
+
+function startServer() {
+    console.log('Intentando cargar aplicación...');
+    
+    // Usar puerto dinámico para evitar conflictos
+    const port = process.env.ELECTRON_SERVER_PORT || 3001;
+    
+    // Función para cargar el archivo local como fallback
+    const loadLocalFile = () => {
+        console.log('Cargando archivo local index.html...');
+        const indexPath = path.join(__dirname, 'index.html');
+        console.log('Ruta del archivo:', indexPath);
+        
+        mainWindow.loadFile('index.html').then(() => {
+            console.log('Archivo local cargado exitosamente');
+        }).catch((error) => {
+            console.error('Error cargando archivo local:', error);
+            // Si incluso el archivo local falla, crear una página de error básica
+            const errorHtml = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>JW Mantto - Error de Carga</title>
+                    <style>
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            text-align: center; 
+                            padding: 50px;
+                            background-color: #f5f5f5;
+                        }
+                        .container {
+                            max-width: 600px;
+                            margin: 0 auto;
+                            background: white;
+                            padding: 40px;
+                            border-radius: 10px;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+                        }
+                        .error { color: #d32f2f; margin: 20px 0; }
+                        .info { color: #1976d2; margin-top: 20px; }
+                        button {
+                            background: #3498db;
+                            color: white;
+                            border: none;
+                            padding: 10px 20px;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-size: 16px;
+                        }
+                        button:hover { background: #2980b9; }
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>🏨 JW Mantto</h1>
+                        <h2>Sistema de Mantenimiento</h2>
+                        <div class="error">
+                            <h3>⚠️ Error de Carga</h3>
+                            <p>No se pudo cargar la aplicación correctamente.</p>
+                        </div>
+                        <div class="info">
+                            <p>Por favor, reinicia la aplicación o contacta al administrador del sistema.</p>
+                            <button onclick="location.reload()">🔄 Reintentar</button>
+                        </div>
+                    </div>
+                </body>
+                </html>
+            `;
+            mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`);
+        });
+    };
+
+    // Intentar cargar desde servidor HTTP primero
+    const loadFromServer = () => {
+        console.log(`Cargando aplicación desde http://localhost:${port}`);
+        mainWindow.loadURL(`http://localhost:${port}`).then(() => {
+            console.log('Aplicación cargada desde servidor exitosamente');
+        }).catch((error) => {
+            console.error('Error cargando desde servidor:', error);
+            loadLocalFile();
+        });
+    };
+
+    // Intentar iniciar servidor primero
+    try {
+        const serverPath = path.join(__dirname, 'server.js');
+        console.log('Iniciando servidor desde:', serverPath);
+        
+        serverProcess = spawn('node', [serverPath], {
+            cwd: __dirname,
+            stdio: 'pipe',
+            env: { ...process.env, PORT: port }
+        });
+
+        let serverReady = false;
+        let hasLoaded = false;
+
+        serverProcess.stdout.on('data', (data) => {
+            const output = data.toString();
+            console.log(`Server: ${output}`);
+            
+            // Cuando el servidor esté listo, cargar desde servidor
+            if ((output.includes('Servidor ejecutándose') || output.includes('usando datos mock')) && !serverReady && !hasLoaded) {
+                serverReady = true;
+                hasLoaded = true;
+                setTimeout(() => {
+                    loadFromServer();
+                }, 1500);
+            }
+        });
+
+        serverProcess.stderr.on('data', (data) => {
+            const errorOutput = data.toString();
+            console.error(`Server Error: ${errorOutput}`);
+        });
+
+        serverProcess.on('close', (code) => {
+            console.log(`Server process closed with code ${code}`);
+        });
+
+        serverProcess.on('error', (error) => {
+            console.error('Error iniciando servidor:', error);
+            if (!hasLoaded) {
+                hasLoaded = true;
+                loadLocalFile();
+            }
+        });
+
+        // Timeout de seguridad - si después de 8 segundos no hay servidor, usar archivo local
+        setTimeout(() => {
+            if (!serverReady && !hasLoaded) {
+                console.log('Timeout del servidor, usando archivo local...');
+                hasLoaded = true;
+                loadLocalFile();
+            }
+        }, 8000);
+
+    } catch (error) {
+        console.error('Error al intentar iniciar servidor:', error);
+        loadLocalFile();
+    }
+}
+
+// Este método será llamado cuando Electron haya terminado la inicialización
+app.whenReady().then(async () => {
+    await limpiarProcesosPrevios();
+    createWindow();
+});
+
+// Salir cuando todas las ventanas se cierren
+app.on('window-all-closed', () => {
+    // En macOS, es común que las aplicaciones y su barra de menú permanezcan activas
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+app.on('activate', () => {
+    // En macOS, es común recrear una ventana cuando el ícono del dock se clickea
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+    }
+});
+
+// En este archivo puedes incluir el resto del código específico del proceso principal
+// También puedes ponerlos en archivos separados y requerirlos aquí.
