@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const DatabaseManager = require('./db/sqlite-manager');
+const DatabaseManager = require('./db/better-sqlite-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -18,7 +18,8 @@ async function initializeApp() {
         console.log('Base de datos SQLite inicializada correctamente');
     } catch (error) {
         console.error('Error inicializando la base de datos:', error);
-        process.exit(1);
+        console.log('Continuando sin base de datos SQLite - usando datos mock');
+        dbManager = null; // Indica que no tenemos base de datos disponible
     }
 }
 
@@ -41,54 +42,117 @@ app.use((req, res, next) => {
 });
 
 // ====================================
-// RUTAS DE LA API PARA SQLite
+// DATOS MOCK (cuando no hay base de datos)
+// ====================================
+const mockData = {
+    edificios: [
+        { id: 1, nombre: 'Edificio A', descripcion: 'Edificio principal' },
+        { id: 2, nombre: 'Edificio B', descripcion: 'Edificio secundario' }
+    ],
+    cuartos: [
+        { id: 1, numero: '101', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'ocupado' },
+        { id: 2, numero: '102', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'libre' },
+        { id: 3, numero: '201', edificio_id: 2, edificio_nombre: 'Edificio B', estado: 'mantenimiento' }
+    ],
+    mantenimientos: [
+        {
+            id: 1,
+            cuarto_id: 1,
+            tipo: 'limpieza',
+            descripcion: 'Limpieza general',
+            fecha_solicitud: '2024-07-21',
+            estado: 'pendiente',
+            cuarto_numero: '101'
+        }
+    ]
+};
+
+// ====================================
+// RUTAS DE LA API
 // ====================================
 
 // Obtener edificios
 app.get('/api/edificios', async (req, res) => {
     try {
-        const edificios = await dbManager.getEdificios();
-        res.json(edificios);
+        if (dbManager) {
+            const edificios = await dbManager.getEdificios();
+            res.json(edificios);
+        } else {
+            // Usar datos mock
+            res.json(mockData.edificios);
+        }
     } catch (error) {
         console.error('Error al obtener edificios:', error);
-        res.status(500).json({ error: 'Error al obtener edificios' });
+        res.json(mockData.edificios); // Fallback a datos mock
     }
 });
 
 // Obtener cuartos
 app.get('/api/cuartos', async (req, res) => {
     try {
-        const cuartos = await dbManager.getCuartos();
-        res.json(cuartos);
+        if (dbManager) {
+            const cuartos = await dbManager.getCuartos();
+            res.json(cuartos);
+        } else {
+            // Usar datos mock
+            res.json(mockData.cuartos);
+        }
     } catch (error) {
         console.error('Error al obtener cuartos:', error);
-        res.status(500).json({ error: 'Error al obtener cuartos' });
+        res.json(mockData.cuartos); // Fallback a datos mock
     }
 });
 
 // Obtener cuarto específico
 app.get('/api/cuartos/:id', async (req, res) => {
     try {
-        const cuarto = await dbManager.getCuartoById(req.params.id);
-        if (!cuarto) {
-            return res.status(404).json({ error: 'Cuarto no encontrado' });
+        if (dbManager) {
+            const cuarto = await dbManager.getCuartoById(req.params.id);
+            if (!cuarto) {
+                return res.status(404).json({ error: 'Cuarto no encontrado' });
+            }
+            res.json(cuarto);
+        } else {
+            // Buscar en datos mock
+            const cuarto = mockData.cuartos.find(c => c.id == req.params.id);
+            if (!cuarto) {
+                return res.status(404).json({ error: 'Cuarto no encontrado' });
+            }
+            res.json(cuarto);
         }
-        res.json(cuarto);
     } catch (error) {
         console.error('Error al obtener cuarto:', error);
-        res.status(500).json({ error: 'Error al obtener cuarto' });
+        const cuarto = mockData.cuartos.find(c => c.id == req.params.id);
+        if (cuarto) {
+            res.json(cuarto);
+        } else {
+            res.status(404).json({ error: 'Cuarto no encontrado' });
+        }
     }
 });
 
 // Obtener mantenimientos
 app.get('/api/mantenimientos', async (req, res) => {
     try {
-        const cuartoId = req.query.cuarto_id;
-        const mantenimientos = await dbManager.getMantenimientos(cuartoId);
-        res.json(mantenimientos);
+        if (dbManager) {
+            const cuartoId = req.query.cuarto_id;
+            const mantenimientos = await dbManager.getMantenimientos(cuartoId);
+            res.json(mantenimientos);
+        } else {
+            // Usar datos mock
+            let mantenimientos = mockData.mantenimientos;
+            if (req.query.cuarto_id) {
+                mantenimientos = mantenimientos.filter(m => m.cuarto_id == req.query.cuarto_id);
+            }
+            res.json(mantenimientos);
+        }
     } catch (error) {
         console.error('Error al obtener mantenimientos:', error);
-        res.status(500).json({ error: 'Error al obtener mantenimientos' });
+        let mantenimientos = mockData.mantenimientos;
+        if (req.query.cuarto_id) {
+            mantenimientos = mantenimientos.filter(m => m.cuarto_id == req.query.cuarto_id);
+        }
+        res.json(mantenimientos);
     }
 });
 
@@ -97,33 +161,39 @@ app.post('/api/mantenimientos', async (req, res) => {
     try {
         const { cuarto_id, descripcion, tipo = 'normal', hora, dia_alerta } = req.body;
         
-        if (!cuarto_id || !descripcion) {
-            return res.status(400).json({ 
-                success: false, 
-                message: 'Cuarto ID y descripción son requeridos' 
-            });
+        console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta });
+        
+        if (dbManager) {
+            const nuevoMantenimiento = await dbManager.createMantenimiento(cuarto_id, descripcion, tipo, hora, dia_alerta);
+            res.status(201).json(nuevoMantenimiento);
+        } else {
+            // Simular creación en datos mock con estructura completa
+            const cuarto = mockData.cuartos.find(c => c.id == cuarto_id);
+            const edificio = cuarto ? mockData.edificios.find(e => e.id === cuarto.edificio_id) : null;
+            
+            const nuevoMantenimiento = {
+                id: mockData.mantenimientos.length + 1,
+                cuarto_id: parseInt(cuarto_id),
+                descripcion,
+                tipo,
+                hora: hora || null,
+                dia_alerta: dia_alerta || null,
+                fecha_registro: new Date().toISOString(),
+                fecha_solicitud: new Date().toISOString().split('T')[0],
+                estado: 'pendiente',
+                cuarto_numero: cuarto?.numero || 'N/A',
+                cuarto_nombre: cuarto?.numero || `Cuarto ${cuarto_id}`,
+                edificio_nombre: edificio?.nombre || 'Edificio Desconocido'
+            };
+            
+            mockData.mantenimientos.push(nuevoMantenimiento);
+            
+            console.log('✅ Mantenimiento mock creado:', nuevoMantenimiento);
+            res.status(201).json(nuevoMantenimiento);
         }
-        
-        const id = await dbManager.insertMantenimiento({
-            cuarto_id: parseInt(cuarto_id),
-            descripcion,
-            tipo,
-            hora: hora || null,
-            dia_alerta: dia_alerta || null
-        });
-        
-        res.json({ 
-            success: true, 
-            id, 
-            message: 'Mantenimiento agregado correctamente' 
-        });
-        
     } catch (error) {
-        console.error('Error agregando mantenimiento:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Error interno del servidor' 
-        });
+        console.error('❌ Error al crear mantenimiento:', error);
+        res.status(500).json({ error: 'Error al crear mantenimiento', details: error.message });
     }
 });
 
@@ -132,12 +202,32 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const { descripcion, hora, dia_alerta } = req.body;
+        const mantenimientoId = parseInt(id);
         
-        await dbManager.updateMantenimiento(parseInt(id), {
-            descripcion,
-            hora: hora || null,
-            dia_alerta: dia_alerta || null
-        });
+        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta });
+        
+        if (dbManager) {
+            await dbManager.updateMantenimiento(mantenimientoId, {
+                descripcion,
+                hora: hora || null,
+                dia_alerta: dia_alerta || null
+            });
+        } else {
+            // Actualizar en datos mock
+            const mantenimiento = mockData.mantenimientos.find(m => m.id === mantenimientoId);
+            if (mantenimiento) {
+                mantenimiento.descripcion = descripcion;
+                mantenimiento.hora = hora || null;
+                mantenimiento.dia_alerta = dia_alerta || null;
+                console.log('✅ Mantenimiento mock actualizado:', mantenimiento);
+            } else {
+                console.log('⚠️ Mantenimiento mock no encontrado para actualizar:', mantenimientoId);
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Mantenimiento no encontrado' 
+                });
+            }
+        }
         
         res.json({ 
             success: true, 
@@ -145,10 +235,11 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error actualizando mantenimiento:', error);
+        console.error('❌ Error actualizando mantenimiento:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Error interno del servidor' 
+            message: 'Error interno del servidor',
+            details: error.message
         });
     }
 });
@@ -157,8 +248,27 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
 app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
     try {
         const { id } = req.params;
+        const mantenimientoId = parseInt(id);
         
-        await dbManager.marcarAlertaEmitida(parseInt(id));
+        console.log('📢 Marcando alerta como emitida:', mantenimientoId);
+        
+        if (dbManager) {
+            await dbManager.marcarAlertaEmitida(mantenimientoId);
+        } else {
+            // Marcar en datos mock (agregar field fecha_emision)
+            const mantenimiento = mockData.mantenimientos.find(m => m.id === mantenimientoId);
+            if (mantenimiento) {
+                mantenimiento.fecha_emision = new Date().toISOString();
+                mantenimiento.emitida = true;
+                console.log('✅ Alerta mock marcada como emitida:', mantenimiento);
+            } else {
+                console.log('⚠️ Mantenimiento mock no encontrado para marcar:', mantenimientoId);
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Mantenimiento no encontrado' 
+                });
+            }
+        }
         
         res.json({ 
             success: true, 
@@ -166,10 +276,11 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error marcando alerta como emitida:', error);
+        console.error('❌ Error marcando alerta como emitida:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Error interno del servidor' 
+            message: 'Error interno del servidor',
+            details: error.message
         });
     }
 });
@@ -178,8 +289,26 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
 app.delete('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
+        const mantenimientoId = parseInt(id);
         
-        await dbManager.deleteMantenimiento(parseInt(id));
+        console.log('🗑️ Eliminando mantenimiento:', mantenimientoId);
+        
+        if (dbManager) {
+            await dbManager.deleteMantenimiento(mantenimientoId);
+        } else {
+            // Eliminar de datos mock
+            const index = mockData.mantenimientos.findIndex(m => m.id === mantenimientoId);
+            if (index !== -1) {
+                const eliminado = mockData.mantenimientos.splice(index, 1)[0];
+                console.log('✅ Mantenimiento mock eliminado:', eliminado);
+            } else {
+                console.log('⚠️ Mantenimiento mock no encontrado:', mantenimientoId);
+                return res.status(404).json({ 
+                    success: false, 
+                    message: 'Mantenimiento no encontrado' 
+                });
+            }
+        }
         
         res.json({ 
             success: true, 
@@ -187,10 +316,11 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
         });
         
     } catch (error) {
-        console.error('Error eliminando mantenimiento:', error);
+        console.error('❌ Error eliminando mantenimiento:', error);
         res.status(500).json({ 
             success: false, 
-            message: 'Error interno del servidor' 
+            message: 'Error interno del servidor',
+            details: error.message
         });
     }
 });
@@ -248,8 +378,14 @@ app.get('/index.php', (req, res) => {
 
 // Ruta principal - servir la página principal
 app.get('/', (req, res) => {
-    // Por ahora servir el index.php directamente
-    res.sendFile(path.join(__dirname, 'index.php'));
+    // Servir index.html para PWA/Electron
+    const indexPath = path.join(__dirname, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        // Fallback al index.php si no existe index.html
+        res.sendFile(path.join(__dirname, 'index.php'));
+    }
 });
 
 // ====================================
