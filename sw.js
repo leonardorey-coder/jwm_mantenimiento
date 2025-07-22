@@ -1,12 +1,14 @@
-const CACHE_NAME = 'jwm-mant-cache-v1';
+const CACHE_NAME = 'jwm-mant-cache-v2';
 const urlsToCache = [
-  './index.php', // Cambiado de '/' a ruta explícita relativa
+  './index.html', // Cambiado a HTML
   './style.css',
   './script.js',
+  './app-loader.js', // Añadido app-loader.js
   './logo_high.png',
   './logo_low.png',
   './icons/icon-192x192.png',
-  './icons/icon-512x512.png'
+  './icons/icon-512x512.png',
+  './sounds/alert.mp3' // Añadido sonido
   // No cachear procesar.php, obtener_*.php ni data.json
 ];
 

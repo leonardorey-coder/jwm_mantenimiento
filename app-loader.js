@@ -4,7 +4,7 @@
  */
 
 // URL base de la API local
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3001';
 
 // Variables globales para almacenar datos
 let cuartos = [];
@@ -12,6 +12,41 @@ let mantenimientos = [];
 let edificios = [];
 let intervalosNotificaciones = null;
 let alertasEmitidas = new Set(); // Para evitar duplicados
+
+// Datos mock para modo offline
+const datosOffline = {
+    edificios: [
+        { id: 1, nombre: 'Edificio A', descripcion: 'Edificio principal' },
+        { id: 2, nombre: 'Edificio B', descripcion: 'Edificio secundario' }
+    ],
+    cuartos: [
+        { id: 1, numero: '101', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'ocupado' },
+        { id: 2, numero: '102', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'libre' },
+        { id: 3, numero: '201', edificio_id: 2, edificio_nombre: 'Edificio B', estado: 'mantenimiento' },
+        { id: 4, numero: '202', edificio_id: 2, edificio_nombre: 'Edificio B', estado: 'libre' },
+        { id: 5, numero: '301', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'ocupado' }
+    ],
+    mantenimientos: [
+        {
+            id: 1,
+            cuarto_id: 1,
+            tipo: 'limpieza',
+            descripcion: 'Limpieza general de habitación',
+            fecha_solicitud: '2024-07-21',
+            estado: 'pendiente',
+            cuarto_numero: '101'
+        },
+        {
+            id: 2,
+            cuarto_id: 3,
+            tipo: 'reparacion',
+            descripcion: 'Reparar aire acondicionado',
+            fecha_solicitud: '2024-07-21',
+            estado: 'en_proceso',
+            cuarto_numero: '201'
+        }
+    ]
+};
 
 /**
  * Función que se ejecuta cuando se carga la página
@@ -60,7 +95,29 @@ document.addEventListener('DOMContentLoaded', async function() {
         
     } catch (error) {
         console.error('Error al inicializar la aplicación:', error);
-        mostrarError('Error al cargar la aplicación. Verifique que el servidor local esté funcionando.');
+        console.error('Stack trace:', error.stack);
+        console.error('Error name:', error.name);
+        console.error('Error message:', error.message);
+        
+        // En lugar de mostrar error crítico, intentar continuar con datos básicos
+        console.log('Intentando continuar con recuperación de errores...');
+        try {
+            // Usar datos offline como fallback
+            cuartos = datosOffline.cuartos;
+            edificios = datosOffline.edificios;
+            mantenimientos = datosOffline.mantenimientos;
+            
+            console.log('Datos offline cargados como fallback');
+            mostrarCuartos();
+            mostrarEdificios();
+            cargarCuartosEnSelect();
+            mostrarAlertasYRecientes();
+            
+            mostrarMensaje('Aplicación funcionando en modo offline debido a un error', 'warning');
+        } catch (fallbackError) {
+            console.error('Error en fallback también:', fallbackError);
+            mostrarError('Error al cargar la aplicación. Verifique que el servidor local esté funcionando.');
+        }
     }
 });
 
@@ -97,40 +154,67 @@ function habilitarAudioConInteraccion() {
 async function cargarDatos() {
     try {
         console.log('Iniciando carga de datos desde API...');
+        console.log('API_BASE_URL:', API_BASE_URL);
         
         // Cargar cuartos
-        console.log('Cargando cuartos...');
+        console.log('Cargando cuartos desde:', `${API_BASE_URL}/api/cuartos`);
         const responseCuartos = await fetch(`${API_BASE_URL}/api/cuartos`);
+        console.log('Response cuartos - status:', responseCuartos.status, 'ok:', responseCuartos.ok);
         if (!responseCuartos.ok) {
-            throw new Error(`Error al cargar cuartos: ${responseCuartos.status}`);
+            throw new Error(`Error al cargar cuartos: ${responseCuartos.status} - ${responseCuartos.statusText}`);
         }
         cuartos = await responseCuartos.json();
-        console.log('Cuartos cargados:', cuartos.length, 'ejemplos:', cuartos.slice(0, 3));
+        console.log('Cuartos cargados exitosamente:', cuartos.length, 'ejemplos:', cuartos.slice(0, 2));
         
         // Cargar edificios
-        console.log('Cargando edificios...');
+        console.log('Cargando edificios desde:', `${API_BASE_URL}/api/edificios`);
         const responseEdificios = await fetch(`${API_BASE_URL}/api/edificios`);
+        console.log('Response edificios - status:', responseEdificios.status, 'ok:', responseEdificios.ok);
         if (!responseEdificios.ok) {
-            throw new Error(`Error al cargar edificios: ${responseEdificios.status}`);
+            throw new Error(`Error al cargar edificios: ${responseEdificios.status} - ${responseEdificios.statusText}`);
         }
         edificios = await responseEdificios.json();
-        console.log('Edificios cargados:', edificios.length, 'ejemplos:', edificios);
+        console.log('Edificios cargados exitosamente:', edificios.length, 'ejemplos:', edificios);
         
         // Cargar mantenimientos
-        console.log('Cargando mantenimientos...');
+        console.log('Cargando mantenimientos desde:', `${API_BASE_URL}/api/mantenimientos`);
         const responseMantenimientos = await fetch(`${API_BASE_URL}/api/mantenimientos`);
+        console.log('Response mantenimientos - status:', responseMantenimientos.status, 'ok:', responseMantenimientos.ok);
         if (!responseMantenimientos.ok) {
-            throw new Error(`Error al cargar mantenimientos: ${responseMantenimientos.status}`);
+            throw new Error(`Error al cargar mantenimientos: ${responseMantenimientos.status} - ${responseMantenimientos.statusText}`);
         }
         mantenimientos = await responseMantenimientos.json();
-        console.log('Mantenimientos cargados:', mantenimientos.length, 'ejemplos:', mantenimientos.slice(0, 3));
+        console.log('Mantenimientos cargados exitosamente:', mantenimientos.length, 'ejemplos:', mantenimientos.slice(0, 2));
         
-        console.log('Todos los datos cargados exitosamente');
+        console.log('✅ Todos los datos cargados exitosamente desde API');
         return true;
         
     } catch (error) {
-        console.error('Error cargando datos:', error);
-        throw error;
+        console.error('Error cargando datos desde API:', error);
+        console.log('Usando datos offline...');
+        
+        // Usar datos offline
+        try {
+            cuartos = datosOffline.cuartos;
+            edificios = datosOffline.edificios;
+            mantenimientos = datosOffline.mantenimientos;
+            
+            console.log('Datos offline cargados:', {
+                cuartos: cuartos.length,
+                edificios: edificios.length,
+                mantenimientos: mantenimientos.length
+            });
+            
+            // Mostrar mensaje informativo al usuario
+            setTimeout(() => {
+                mostrarMensaje('Aplicación funcionando en modo offline con datos de ejemplo', 'info');
+            }, 2000);
+            
+            return true;
+        } catch (offlineError) {
+            console.error('Error cargando datos offline:', offlineError);
+            throw new Error('No se pueden cargar datos ni desde API ni desde cache offline');
+        }
     }
 }
 
@@ -151,6 +235,24 @@ function configurarEventos() {
     const formAgregar = document.getElementById('formAgregarMantenimientoLateral');
     if (formAgregar) {
         formAgregar.addEventListener('submit', manejarAgregarMantenimiento);
+    }
+    
+    // Configurar sincronización bidireccional del select de cuartos
+    const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
+    if (selectCuarto) {
+        selectCuarto.addEventListener('change', function() {
+            const cuartoId = this.value;
+            if (cuartoId) {
+                // Seleccionar visualmente el cuarto en la interfaz
+                seleccionarCuartoDesdeSelect(parseInt(cuartoId));
+            } else {
+                // Si no hay selección, remover todas las selecciones
+                const todosLosCuartos = document.querySelectorAll('.cuarto');
+                todosLosCuartos.forEach(cuarto => {
+                    cuarto.classList.remove('cuarto-seleccionado');
+                });
+            }
+        });
     }
 }
 
@@ -188,8 +290,8 @@ function mostrarCuartos() {
             li.id = `cuarto-${cuarto.id}`;
 
             // Guardar los datos necesarios en dataset para cargar luego
-            li.dataset.nombreCuarto = cuarto.nombre || `Cuarto ${cuarto.id}`;
-            li.dataset.edificioNombre = cuarto.edificio || `Edificio ${cuarto.edificio_id}`;
+            li.dataset.nombreCuarto = cuarto.numero || `Cuarto ${cuarto.id}`;
+            li.dataset.edificioNombre = cuarto.edificio_nombre || `Edificio ${cuarto.edificio_id}`;
             li.dataset.descripcion = cuarto.descripcion || '';
             li.dataset.cuartoId = cuarto.id;
             li.dataset.edificioId = cuarto.edificio_id;
@@ -317,7 +419,7 @@ function cargarCuartosEnSelect() {
     // Agrupar cuartos por edificio
     const cuartosPorEdificio = {};
     cuartos.forEach(cuarto => {
-        const edificioNombre = cuarto.edificio || 'Edificio ' + cuarto.edificio_id;
+        const edificioNombre = cuarto.edificio_nombre || 'Edificio ' + cuarto.edificio_id;
         if (!cuartosPorEdificio[edificioNombre]) {
             cuartosPorEdificio[edificioNombre] = [];
         }
@@ -330,11 +432,11 @@ function cargarCuartosEnSelect() {
         optgroup.label = edificioNombre;
         
         cuartosPorEdificio[edificioNombre]
-            .sort((a, b) => a.nombre.localeCompare(b.nombre))
+            .sort((a, b) => a.numero.localeCompare(b.numero))
             .forEach(cuarto => {
                 const option = document.createElement('option');
                 option.value = cuarto.id;
-                option.textContent = cuarto.nombre;
+                option.textContent = cuarto.numero;
                 optgroup.appendChild(option);
             });
         
@@ -352,7 +454,7 @@ function filtrarCuartos() {
     
     const cuartosFiltrados = cuartos.filter(cuarto => {
         // Filtro por nombre de cuarto
-        const coincideNombre = cuarto.nombre.toString().toLowerCase().includes(buscarCuarto);
+        const coincideNombre = cuarto.numero.toString().toLowerCase().includes(buscarCuarto);
         
         // Filtro por avería en mantenimientos
         const coincideAveria = buscarAveria === '' || 
@@ -569,7 +671,7 @@ function mostrarAlertasEmitidas() {
         .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
         .forEach(alerta => {
             const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
-            const nombreCuarto = cuarto ? cuarto.nombre : `Cuarto ${alerta.cuarto_id}`;
+            const nombreCuarto = cuarto ? cuarto.numero : `Cuarto ${alerta.cuarto_id}`;
             
             const li = document.createElement('li');
             li.className = 'alerta-emitida-item';
@@ -577,7 +679,7 @@ function mostrarAlertasEmitidas() {
                 <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
                 <div class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</div>
                 <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
-                <div class="alerta-emision">${alerta.fecha_emision ? formatearHora(alerta.fecha_emision.split(' ')[1] || alerta.fecha_emision) : 'Emitida'}</div>
+                <div class="alerta-emision">${alerta.fecha_emision ? formatearHora(alerta.fecha_emision) : 'Emitida'}</div>
             `;
             listaEmitidas.appendChild(li);
         });
@@ -600,7 +702,33 @@ async function manejarAgregarMantenimiento(event) {
         dia_alerta: formData.get('dia_alerta')
     };
     
+    console.log('📝 Enviando datos de mantenimiento:', datos);
+    
+    // Validaciones básicas en frontend
+    if (!datos.cuarto_id) {
+        mostrarMensaje('Por favor selecciona un cuarto', 'error');
+        return;
+    }
+    
+    if (!datos.descripcion || datos.descripcion.trim() === '') {
+        mostrarMensaje('Por favor ingresa una descripción', 'error');
+        return;
+    }
+    
+    if (datos.tipo === 'rutina') {
+        if (!datos.hora) {
+            mostrarMensaje('La hora es obligatoria para alertas', 'error');
+            return;
+        }
+        if (!datos.dia_alerta) {
+            mostrarMensaje('El día es obligatorio para alertas', 'error');
+            return;
+        }
+    }
+    
     try {
+        console.log('🌐 Enviando request a:', `${API_BASE_URL}/api/mantenimientos`);
+        
         const response = await fetch(`${API_BASE_URL}/api/mantenimientos`, {
             method: 'POST',
             headers: {
@@ -609,12 +737,16 @@ async function manejarAgregarMantenimiento(event) {
             body: JSON.stringify(datos)
         });
         
+        console.log('📡 Response status:', response.status);
+        
         if (!response.ok) {
-            throw new Error('Error al registrar mantenimiento');
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
+            throw new Error(`Error ${response.status}: ${errorText}`);
         }
         
         const resultado = await response.json();
-        console.log('Mantenimiento registrado:', resultado);
+        console.log('✅ Mantenimiento registrado exitosamente:', resultado);
         
         // Limpiar formulario y resetear a estado "Avería"
         event.target.reset();
@@ -647,8 +779,8 @@ async function manejarAgregarMantenimiento(event) {
         mostrarMensaje('Mantenimiento registrado exitosamente', 'success');
         
     } catch (error) {
-        console.error('Error al registrar mantenimiento:', error);
-        mostrarMensaje('Error al registrar mantenimiento', 'error');
+        console.error('❌ Error al registrar mantenimiento:', error);
+        mostrarMensaje(`Error al registrar mantenimiento: ${error.message}`, 'error');
     }
 }
 
@@ -704,11 +836,36 @@ function formatearFechaCorta(fecha) {
  */
 function formatearHora(hora) {
     if (!hora) return '';
-    return new Date('1970-01-01 ' + hora).toLocaleTimeString('es-ES', {
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true
-    });
+    
+    // Si es un timestamp completo (ISO string), extraer solo la hora
+    if (hora.includes('T') || hora.includes('-')) {
+        try {
+            const fecha = new Date(hora);
+            if (isNaN(fecha.getTime())) {
+                return 'Hora inválida';
+            }
+            return fecha.toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch (error) {
+            console.error('Error formateando timestamp:', error, hora);
+            return 'Hora inválida';
+        }
+    }
+    
+    // Si es solo hora (formato HH:mm), usar el comportamiento original
+    try {
+        return new Date('1970-01-01 ' + hora).toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    } catch (error) {
+        console.error('Error formateando hora:', error, hora);
+        return 'Hora inválida';
+    }
 }
 
 /**
@@ -742,6 +899,41 @@ function seleccionarCuarto(cuartoId) {
         }
         
         console.log(`Cuarto ${cuartoId} seleccionado`);
+    }
+}
+
+/**
+ * Seleccionar cuarto desde el select (con scroll automático)
+ */
+function seleccionarCuartoDesdeSelect(cuartoId) {
+    // Remover selección de todos los cuartos
+    const todosLosCuartos = document.querySelectorAll('.cuarto');
+    todosLosCuartos.forEach(cuarto => {
+        cuarto.classList.remove('cuarto-seleccionado');
+    });
+    
+    // Seleccionar el cuarto y hacer scroll hacia él
+    const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
+    if (cuartoSeleccionado) {
+        cuartoSeleccionado.classList.add('cuarto-seleccionado');
+        
+        // Hacer scroll suave hacia el cuarto seleccionado
+        cuartoSeleccionado.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+        });
+        
+        // Añadir efecto visual temporal para destacar el cuarto
+        cuartoSeleccionado.style.transition = 'all 0.3s ease';
+        cuartoSeleccionado.style.transform = 'scale(1.02)';
+        cuartoSeleccionado.style.boxShadow = '0 4px 20px rgba(74, 144, 226, 0.3)';
+        
+        setTimeout(() => {
+            cuartoSeleccionado.style.transform = '';
+            cuartoSeleccionado.style.boxShadow = '';
+        }, 800);
+        
+        console.log(`Cuarto ${cuartoId} seleccionado desde select con scroll`);
     }
 }
 
@@ -832,25 +1024,43 @@ window.guardarMantenimientoInline = async function(mantenimientoId) {
  * Eliminar mantenimiento inline
  */
 window.eliminarMantenimientoInline = async function(mantenimientoId, cuartoId) {
-    if (!confirm('¿Está seguro de eliminar este mantenimiento?')) return;
+    console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
+    
+    if (!confirm('¿Está seguro de eliminar este mantenimiento?')) {
+        console.log('❌ Eliminación cancelada por el usuario');
+        return;
+    }
     
     try {
+        console.log('🌐 Enviando DELETE a:', `${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
+        
         const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
             method: 'DELETE'
         });
         
-        if (!response.ok) throw new Error('Error al eliminar');
+        console.log('📡 Response status:', response.status);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Error response:', errorText);
+            throw new Error(`Error ${response.status}: ${errorText}`);
+        }
+        
+        const result = await response.json();
+        console.log('✅ Resultado eliminación:', result);
         
         // Recargar datos y actualizar vista
+        console.log('🔄 Recargando datos después de eliminación...');
         await cargarDatos();
         mostrarCuartos();
         mostrarAlertasYRecientes();
         
-        mostrarMensaje('Mantenimiento eliminado', 'success');
+        mostrarMensaje('Mantenimiento eliminado exitosamente', 'success');
+        console.log('✅ Eliminación completada correctamente');
         
     } catch (error) {
-        console.error('Error:', error);
-        mostrarMensaje('Error al eliminar mantenimiento', 'error');
+        console.error('❌ Error eliminando mantenimiento:', error);
+        mostrarMensaje(`Error al eliminar mantenimiento: ${error.message}`, 'error');
     }
 };
 
@@ -1066,7 +1276,7 @@ async function emitirNotificacionAlerta(alerta) {
         
         // Obtener información del cuarto
         const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
-        const nombreCuarto = cuarto ? cuarto.nombre : `Cuarto ${alerta.cuarto_id}`;
+        const nombreCuarto = cuarto ? cuarto.numero : `Cuarto ${alerta.cuarto_id}`;
         const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
         const nombreEdificio = edificio ? edificio.nombre : '';
         
