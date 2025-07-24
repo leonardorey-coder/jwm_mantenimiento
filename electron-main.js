@@ -57,10 +57,9 @@ function createWindow() {
         mainWindow.show();
         mainWindow.focus(); // Asegurar que la ventana tenga foco
         
-        // Abrir DevTools solo en desarrollo
-        if (process.env.NODE_ENV === 'development') {
-            mainWindow.webContents.openDevTools();
-        }
+        // Abrir DevTools para debugging startup
+        console.log('🔧 Abriendo DevTools para debugging...');
+        mainWindow.webContents.openDevTools();
     });
 
     // Forzar mostrar ventana después de un timeout por si acaso
@@ -79,6 +78,12 @@ function createWindow() {
 
     mainWindow.webContents.on('did-finish-load', () => {
         console.log('Página cargada exitosamente');
+    });
+
+    // Escuchar mensajes de consola del frontend para debugging
+    mainWindow.webContents.on('console-message', (event, level, message, line, sourceId) => {
+        const logLevel = ['VERBOSE', 'INFO', 'WARNING', 'ERROR'][level] || 'UNKNOWN';
+        console.log(`Frontend [${logLevel}]: ${message} (${sourceId}:${line})`);
     });
 
     // Emitido cuando la ventana se cierra
@@ -254,8 +259,9 @@ function startServer() {
 
     // Intentar cargar desde servidor HTTP primero
     const loadFromServer = () => {
-        console.log(`Cargando aplicación desde http://localhost:${port}`);
-        mainWindow.loadURL(`http://localhost:${port}`).then(() => {
+        const url = `http://localhost:${port}?nocache=${Date.now()}`;
+        console.log(`Cargando aplicación desde ${url}`);
+        mainWindow.loadURL(url).then(() => {
             console.log('Aplicación cargada desde servidor exitosamente');
         }).catch((error) => {
             console.error('Error cargando desde servidor:', error);
