@@ -604,29 +604,49 @@ function mostrarAlertas() {
     const listaAlertas = document.getElementById('listaVistaRutinas');
     if (!listaAlertas) return;
     
-    const hoy = new Date();
-    const alertasPendientes = mantenimientos.filter(m => 
+    // Obtener TODAS las rutinas registradas, sin filtrar por fecha
+    const todasLasRutinas = mantenimientos.filter(m => 
         m.tipo === 'rutina' && 
-        m.dia_alerta &&
-        new Date(m.dia_alerta) <= hoy
-    ).sort((a, b) => new Date(a.dia_alerta) - new Date(b.dia_alerta));
+        m.dia_alerta
+    ).sort((a, b) => {
+        // Ordenar por fecha de alerta (más próximas primero)
+        const fechaA = new Date(a.dia_alerta + ' ' + (a.hora || '00:00'));
+        const fechaB = new Date(b.dia_alerta + ' ' + (b.hora || '00:00'));
+        return fechaA - fechaB;
+    });
     
-    if (alertasPendientes.length === 0) {
-        listaAlertas.innerHTML = '<li class="mensaje-no-items">No hay alertas pendientes</li>';
+    console.log(`📋 Mostrando todas las rutinas: ${todasLasRutinas.length} alertas encontradas`);
+    console.log('🔍 Detalle de rutinas:', todasLasRutinas.map(r => `ID${r.id}(${r.dia_alerta} ${r.hora} - ${r.descripcion.substring(0, 20)}...)`));
+    
+    if (todasLasRutinas.length === 0) {
+        listaAlertas.innerHTML = '<li class="mensaje-no-items">No hay alertas registradas</li>';
         return;
     }
     
     listaAlertas.innerHTML = '';
-    alertasPendientes.slice(0, 5).forEach(alerta => {
+    // Mostrar TODAS las alertas, no solo 5
+    todasLasRutinas.forEach((alerta, index) => {
+        console.log(`📝 Procesando alerta ${index + 1}/${todasLasRutinas.length}:`, alerta);
         const li = document.createElement('li');
         li.className = 'rutina-item';
         li.id = `rutina-${alerta.id}`;
+        
+        // Obtener información del cuarto para mostrar contexto
+        const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
+        const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
+        const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
+        const nombreEdificio = edificio ? edificio.nombre : '';
+        
+        // Determinar estado de la alerta
+        const yaEmitida = alerta.alerta_emitida === 1 || alertasEmitidas.has(alerta.id);
+        const estadoTexto = yaEmitida ? '✅ Emitida' : '⏰ Programada';
+        const estadoClase = yaEmitida ? 'alerta-emitida' : 'alerta-programada';
         
         // Añadir todos los atributos data necesarios para el sistema de notificaciones
         li.dataset.horaRaw = alerta.hora || '';
         li.dataset.diaRaw = alerta.dia_alerta || '';
         li.dataset.descripcion = alerta.descripcion || '';
-        li.dataset.cuartoNombre = alerta.cuarto_nombre || `Cuarto ${alerta.cuarto_id}`;
+        li.dataset.cuartoNombre = nombreCuarto;
         li.dataset.cuartoId = alerta.cuarto_id || '';
         
         li.innerHTML = `
@@ -635,17 +655,22 @@ function mostrarAlertas() {
                 ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
             </span>
             <span class="rutina-info">
-                <span class="rutina-cuarto" title="${escapeHtml(alerta.edificio_nombre || 'Sin edificio')}">
-                    ${escapeHtml(alerta.cuarto_nombre || 'Cuarto ' + alerta.cuarto_id)}
+                <span class="rutina-cuarto" title="${escapeHtml(nombreEdificio)}">
+                    ${escapeHtml(nombreCuarto)}
                 </span>
                 <span class="rutina-descripcion">
                     ${escapeHtml(alerta.descripcion)}
+                </span>
+                <span class="rutina-estado ${estadoClase}">
+                    ${estadoTexto}
                 </span>
             </span>
             <button class="boton-ir-rutina" onclick="scrollToCuarto(${alerta.cuarto_id})" title="Ver detalles">&#10148;</button>
         `;
         listaAlertas.appendChild(li);
     });
+    
+    console.log(`✅ Renderizadas ${todasLasRutinas.length} alertas en el panel principal`);
 }
 
 /**
@@ -707,7 +732,7 @@ function mostrarRecientes() {
 }
 
 /**
- * Mostrar alertas emitidas hoy
+ * Mostrar alertas emitidas hoy (solo las que YA fueron emitidas)
  */
 function mostrarAlertasEmitidas() {
     const listaEmitidas = document.getElementById('listaAlertasEmitidas');
@@ -724,7 +749,7 @@ function mostrarAlertasEmitidas() {
     
     console.log(`📅 Fecha para buscar alertas emitidas: ${hoy} (local actual)`);
     
-    // Buscar alertas emitidas hoy (tanto marcadas en BD como en memoria)
+    // Buscar SOLO alertas emitidas hoy (tanto marcadas en BD como en memoria)
     const alertasEmitidasBD = mantenimientos.filter(m => {
         const cumpleCondicion = m.tipo === 'rutina' && 
             m.dia_alerta === hoy &&
