@@ -5,20 +5,25 @@ const cors = require('cors');
 const DatabaseManager = require('./db/better-sqlite-manager');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001; // Cambiado a 3001 para coincidir con Electron
 
 // Inicializar base de datos SQLite
 let dbManager;
 
 // Inicializar la aplicación
 async function initializeApp() {
+    console.log('🚀 Iniciando aplicación servidor...');
+    console.log('📁 Directorio de trabajo:', __dirname);
+    console.log('🌐 Puerto configurado:', PORT);
+    
     try {
+        console.log('🗄️ Inicializando base de datos SQLite...');
         dbManager = new DatabaseManager();
         await dbManager.initialize();
-        console.log('Base de datos SQLite inicializada correctamente');
+        console.log('✅ Base de datos SQLite inicializada correctamente');
     } catch (error) {
-        console.error('Error inicializando la base de datos:', error);
-        console.log('Continuando sin base de datos SQLite - usando datos mock');
+        console.error('❌ Error inicializando la base de datos:', error);
+        console.log('🔄 Continuando sin base de datos SQLite - usando datos mock');
         dbManager = null; // Indica que no tenemos base de datos disponible
     }
 }
@@ -34,6 +39,29 @@ app.use(cors({
 app.use(express.static(path.join(__dirname)));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Ruta específica para el root que evite caché
+app.get('/', (req, res) => {
+    console.log('📄 Sirviendo index.html con headers no-cache');
+    res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'ETag': false,
+        'Last-Modified': false
+    });
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Headers anti-caché para todos los archivos .js
+app.get('*.js', (req, res, next) => {
+    res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+    });
+    next();
+});
 
 // Middleware para logging
 app.use((req, res, next) => {
@@ -164,7 +192,19 @@ app.post('/api/mantenimientos', async (req, res) => {
         console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta });
         
         if (dbManager) {
-            const nuevoMantenimiento = await dbManager.createMantenimiento(cuarto_id, descripcion, tipo, hora, dia_alerta);
+            // Usar insertMantenimiento en lugar de createMantenimiento
+            const dataMantenimiento = {
+                cuarto_id: parseInt(cuarto_id),
+                descripcion,
+                tipo,
+                hora: hora || null,
+                dia_alerta: dia_alerta || null,
+                fecha_solicitud: new Date().toISOString().split('T')[0],
+                estado: 'pendiente'
+            };
+            
+            const nuevoMantenimiento = await dbManager.insertMantenimiento(dataMantenimiento);
+            console.log('✅ Mantenimiento SQLite creado:', nuevoMantenimiento);
             res.status(201).json(nuevoMantenimiento);
         } else {
             // Simular creación en datos mock con estructura completa
@@ -410,12 +450,27 @@ process.on('SIGTERM', () => {
 });
 
 // Inicializar y arrancar servidor
+console.log('🎯 Iniciando proceso de arranque del servidor...');
 initializeApp().then(() => {
-    app.listen(PORT, () => {
-        console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
-        console.log('JW Mantto - Sistema local de mantenimiento iniciado');
+    console.log('🔌 Intentando iniciar servidor en puerto:', PORT);
+    
+    const server = app.listen(PORT, () => {
+        console.log('✅ Servidor ejecutándose en http://localhost:' + PORT);
+        console.log('🏨 JW Mantto - Sistema local de mantenimiento iniciado');
+        console.log('📊 Estado de la base de datos:', dbManager ? 'SQLite conectado' : 'Modo mock');
+        console.log('📄 Archivos estáticos servidos desde:', __dirname);
     });
+    
+    server.on('error', (error) => {
+        console.error('❌ Error del servidor:', error);
+        if (error.code === 'EADDRINUSE') {
+            console.error('🚫 Puerto', PORT, 'ya está en uso');
+            console.log('💡 Solución: Ejecutar "lsof -ti:' + PORT + ' | xargs kill -9" para liberar el puerto');
+        }
+    });
+    
 }).catch(error => {
-    console.error('Error iniciando la aplicación:', error);
+    console.error('💥 Error crítico iniciando la aplicación:', error);
+    console.error('📋 Stack trace:', error.stack);
     process.exit(1);
 });
