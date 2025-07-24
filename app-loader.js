@@ -5,6 +5,7 @@
 
 // URL base de la API local
 const API_BASE_URL = 'http://localhost:3001';
+console.log('🔧 DEBUG: app-loader.js ACTUALIZADO - Puerto configurado:', API_BASE_URL);
 
 // Variables globales para almacenar datos
 let cuartos = [];
@@ -51,63 +52,86 @@ const datosOffline = {
 /**
  * Función que se ejecuta cuando se carga la página
  */
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('JW Mantto - App Loader iniciado');
-    console.log('API_BASE_URL:', API_BASE_URL);
+async function inicializarApp() {
+    console.log('🚀🚀🚀 JW Mantto - INICIALIZANDO APP 🚀🚀🚀');
+    console.log('🌐 API_BASE_URL configurado:', API_BASE_URL);
+    console.log('📍 URL actual:', window.location.href);
+    console.log('📄 User Agent:', navigator.userAgent);
+    console.log('📋 Document readyState:', document.readyState);
     
     // Preparar audio para primera interacción del usuario
     habilitarAudioConInteraccion();
     
     try {
+        console.log('🔍 Verificando elementos DOM...');
         // Verificar que los elementos existan
         const listaCuartos = document.getElementById('listaCuartos');
         const filtroEdificio = document.getElementById('filtroEdificio');
-        console.log('Elementos encontrados:', {
+        console.log('📋 Elementos encontrados:', {
             listaCuartos: !!listaCuartos,
             filtroEdificio: !!filtroEdificio
         });
         
+        if (!listaCuartos) {
+            throw new Error('❌ Elemento listaCuartos no encontrado en el DOM');
+        }
+        
         // Cargar datos iniciales
-        console.log('Cargando datos...');
+        console.log('📥 Iniciando carga de datos...');
         await cargarDatos();
-        console.log('Datos cargados:', {
+        console.log('✅ Datos cargados exitosamente:', {
             cuartos: cuartos.length,
             edificios: edificios.length,
             mantenimientos: mantenimientos.length
         });
         
         // Configurar eventos de la interfaz
-        console.log('Configurando eventos...');
+        console.log('⚙️ Configurando eventos de interfaz...');
         configurarEventos();
         
         // Mostrar datos en la interfaz
-        console.log('Mostrando datos...');
+        console.log('🖼️ Renderizando interfaz...');
         mostrarCuartos();
         mostrarEdificios();
         cargarCuartosEnSelect();
         mostrarAlertasYRecientes();
         
         // Iniciar sistema de notificaciones
-        console.log('Iniciando sistema de notificaciones...');
+        console.log('🔔 Iniciando sistema de notificaciones...');
         iniciarSistemaNotificaciones();
         
-        console.log('Aplicación cargada exitosamente');
+        console.log('🎉 Aplicación cargada exitosamente');
         
     } catch (error) {
-        console.error('Error al inicializar la aplicación:', error);
-        console.error('Stack trace:', error.stack);
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
+        console.error('💥 Error al inicializar la aplicación:', error);
+        console.error('📋 Error name:', error.name);
+        console.error('📝 Error message:', error.message);
+        console.error('🔍 Stack trace:', error.stack);
+        
+        // Intentar diagnóstico adicional
+        console.log('🔧 Iniciando diagnóstico de error...');
+        console.log('🌐 Conectividad a API:', API_BASE_URL);
+        
+        // Probar conectividad básica
+        try {
+            console.log('🧪 Probando conectividad básica...');
+            const response = await fetch(API_BASE_URL + '/api/cuartos');
+            console.log('📡 Response status:', response.status);
+            console.log('📊 Response ok:', response.ok);
+        } catch (fetchError) {
+            console.error('🚫 Error de conectividad:', fetchError);
+            console.error('🔍 Fetch error details:', fetchError.message);
+        }
         
         // En lugar de mostrar error crítico, intentar continuar con datos básicos
-        console.log('Intentando continuar con recuperación de errores...');
+        console.log('🔄 Intentando continuar con recuperación de errores...');
         try {
             // Usar datos offline como fallback
             cuartos = datosOffline.cuartos;
             edificios = datosOffline.edificios;
             mantenimientos = datosOffline.mantenimientos;
             
-            console.log('Datos offline cargados como fallback');
+            console.log('💾 Datos offline cargados como fallback');
             mostrarCuartos();
             mostrarEdificios();
             cargarCuartosEnSelect();
@@ -115,11 +139,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             
             mostrarMensaje('Aplicación funcionando en modo offline debido a un error', 'warning');
         } catch (fallbackError) {
-            console.error('Error en fallback también:', fallbackError);
+            console.error('💀 Error en fallback también:', fallbackError);
+            console.error('🆘 Mostrando mensaje de error crítico');
             mostrarError('Error al cargar la aplicación. Verifique que el servidor local esté funcionando.');
         }
     }
-});
+}
+
+// Ejecutar cuando el DOM esté listo
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarApp);
+} else {
+    // DOM ya está listo, ejecutar inmediatamente
+    console.log('📄 DOM ya está listo, ejecutando inmediatamente...');
+    inicializarApp();
+}
 
 /**
  * Habilitar audio con la primera interacción del usuario
@@ -153,45 +187,92 @@ function habilitarAudioConInteraccion() {
  */
 async function cargarDatos() {
     try {
-        console.log('Iniciando carga de datos desde API...');
-        console.log('API_BASE_URL:', API_BASE_URL);
+        console.log('🔄 Iniciando carga de datos desde API...');
+        console.log('🌐 API_BASE_URL:', API_BASE_URL);
+        console.log('📍 Location:', window.location.href);
+        console.log('🌍 Protocol:', window.location.protocol);
         
         // Cargar cuartos
-        console.log('Cargando cuartos desde:', `${API_BASE_URL}/api/cuartos`);
+        console.log('📋 Cargando cuartos desde:', `${API_BASE_URL}/api/cuartos`);
         const responseCuartos = await fetch(`${API_BASE_URL}/api/cuartos`);
-        console.log('Response cuartos - status:', responseCuartos.status, 'ok:', responseCuartos.ok);
+        console.log('📊 Response cuartos - status:', responseCuartos.status, 'ok:', responseCuartos.ok, 'statusText:', responseCuartos.statusText);
         if (!responseCuartos.ok) {
-            throw new Error(`Error al cargar cuartos: ${responseCuartos.status} - ${responseCuartos.statusText}`);
+            throw new Error(`❌ Error al cargar cuartos: ${responseCuartos.status} - ${responseCuartos.statusText}`);
         }
         cuartos = await responseCuartos.json();
-        console.log('Cuartos cargados exitosamente:', cuartos.length, 'ejemplos:', cuartos.slice(0, 2));
+        console.log('✅ Cuartos cargados exitosamente:', cuartos.length, 'ejemplos:', cuartos.slice(0, 2));
         
         // Cargar edificios
-        console.log('Cargando edificios desde:', `${API_BASE_URL}/api/edificios`);
+        console.log('🏢 Cargando edificios desde:', `${API_BASE_URL}/api/edificios`);
         const responseEdificios = await fetch(`${API_BASE_URL}/api/edificios`);
-        console.log('Response edificios - status:', responseEdificios.status, 'ok:', responseEdificios.ok);
+        console.log('📊 Response edificios - status:', responseEdificios.status, 'ok:', responseEdificios.ok, 'statusText:', responseEdificios.statusText);
         if (!responseEdificios.ok) {
-            throw new Error(`Error al cargar edificios: ${responseEdificios.status} - ${responseEdificios.statusText}`);
+            throw new Error(`❌ Error al cargar edificios: ${responseEdificios.status} - ${responseEdificios.statusText}`);
         }
         edificios = await responseEdificios.json();
-        console.log('Edificios cargados exitosamente:', edificios.length, 'ejemplos:', edificios);
+        console.log('✅ Edificios cargados exitosamente:', edificios.length, 'ejemplos:', edificios);
         
         // Cargar mantenimientos
-        console.log('Cargando mantenimientos desde:', `${API_BASE_URL}/api/mantenimientos`);
+        console.log('🔧 Cargando mantenimientos desde:', `${API_BASE_URL}/api/mantenimientos`);
         const responseMantenimientos = await fetch(`${API_BASE_URL}/api/mantenimientos`);
-        console.log('Response mantenimientos - status:', responseMantenimientos.status, 'ok:', responseMantenimientos.ok);
+        console.log('📊 Response mantenimientos - status:', responseMantenimientos.status, 'ok:', responseMantenimientos.ok, 'statusText:', responseMantenimientos.statusText);
         if (!responseMantenimientos.ok) {
-            throw new Error(`Error al cargar mantenimientos: ${responseMantenimientos.status} - ${responseMantenimientos.statusText}`);
+            throw new Error(`❌ Error al cargar mantenimientos: ${responseMantenimientos.status} - ${responseMantenimientos.statusText}`);
         }
         mantenimientos = await responseMantenimientos.json();
-        console.log('Mantenimientos cargados exitosamente:', mantenimientos.length, 'ejemplos:', mantenimientos.slice(0, 2));
+        console.log('✅ Mantenimientos cargados exitosamente:', mantenimientos.length, 'ejemplos:', mantenimientos.slice(0, 2));
         
-        console.log('✅ Todos los datos cargados exitosamente desde API');
+        console.log('🎉 Todos los datos cargados exitosamente desde API');
+        
+        // Guardar en localStorage como respaldo
+        try {
+            localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
+            localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
+            localStorage.setItem('ultimosMantenimientos', JSON.stringify(mantenimientos));
+            console.log('💾 Datos guardados en localStorage como respaldo');
+        } catch (storageError) {
+            console.warn('⚠️ No se pudo guardar en localStorage:', storageError);
+        }
+        
         return true;
         
     } catch (error) {
-        console.error('Error cargando datos desde API:', error);
-        console.log('Usando datos offline...');
+        console.error('💥 Error cargando datos desde API:', error);
+        console.error('📋 Error type:', typeof error);
+        console.error('📝 Error message:', error.message);
+        console.error('🔍 Error stack:', error.stack);
+        
+        // Intentar cargar desde localStorage primero
+        console.log('🔄 Intentando cargar desde localStorage...');
+        try {
+            const cuartosGuardados = localStorage.getItem('ultimosCuartos');
+            const edificiosGuardados = localStorage.getItem('ultimosEdificios');
+            const mantenimientosGuardados = localStorage.getItem('ultimosMantenimientos');
+            
+            if (cuartosGuardados && edificiosGuardados && mantenimientosGuardados) {
+                cuartos = JSON.parse(cuartosGuardados);
+                edificios = JSON.parse(edificiosGuardados);
+                mantenimientos = JSON.parse(mantenimientosGuardados);
+                
+                console.log('💾 Datos cargados desde localStorage:', {
+                    cuartos: cuartos.length,
+                    edificios: edificios.length,
+                    mantenimientos: mantenimientos.length
+                });
+                
+                setTimeout(() => {
+                    mostrarMensaje('Datos cargados desde caché local (sin conexión al servidor)', 'info');
+                }, 2000);
+                
+                return true;
+            } else {
+                console.log('❌ No hay datos válidos en localStorage');
+            }
+        } catch (localStorageError) {
+            console.error('💥 Error al cargar desde localStorage:', localStorageError);
+        }
+        
+        console.log('🆘 Usando datos offline como último recurso...');
         
         // Usar datos offline
         try {
@@ -290,7 +371,7 @@ function mostrarCuartos() {
             li.id = `cuarto-${cuarto.id}`;
 
             // Guardar los datos necesarios en dataset para cargar luego
-            li.dataset.nombreCuarto = cuarto.numero || `Cuarto ${cuarto.id}`;
+            li.dataset.nombreCuarto = cuarto.nombre || cuarto.numero || `Cuarto ${cuarto.id}`;
             li.dataset.edificioNombre = cuarto.edificio_nombre || `Edificio ${cuarto.edificio_id}`;
             li.dataset.descripcion = cuarto.descripcion || '';
             li.dataset.cuartoId = cuarto.id;
@@ -432,11 +513,11 @@ function cargarCuartosEnSelect() {
         optgroup.label = edificioNombre;
         
         cuartosPorEdificio[edificioNombre]
-            .sort((a, b) => a.numero.localeCompare(b.numero))
+            .sort((a, b) => (a.nombre || a.numero || '').localeCompare(b.nombre || b.numero || ''))
             .forEach(cuarto => {
                 const option = document.createElement('option');
                 option.value = cuarto.id;
-                option.textContent = cuarto.numero;
+                option.textContent = cuarto.nombre || cuarto.numero;
                 optgroup.appendChild(option);
             });
         
@@ -454,7 +535,7 @@ function filtrarCuartos() {
     
     const cuartosFiltrados = cuartos.filter(cuarto => {
         // Filtro por nombre de cuarto
-        const coincideNombre = cuarto.numero.toString().toLowerCase().includes(buscarCuarto);
+        const coincideNombre = (cuarto.nombre || cuarto.numero || '').toString().toLowerCase().includes(buscarCuarto);
         
         // Filtro por avería en mantenimientos
         const coincideAveria = buscarAveria === '' || 
@@ -671,7 +752,7 @@ function mostrarAlertasEmitidas() {
         .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
         .forEach(alerta => {
             const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
-            const nombreCuarto = cuarto ? cuarto.numero : `Cuarto ${alerta.cuarto_id}`;
+            const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
             
             const li = document.createElement('li');
             li.className = 'alerta-emitida-item';
@@ -679,7 +760,10 @@ function mostrarAlertasEmitidas() {
                 <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
                 <div class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</div>
                 <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
-                <div class="alerta-emision">${alerta.fecha_emision ? formatearHora(alerta.fecha_emision) : 'Emitida'}</div>
+                <div class="alerta-fechas">
+                    <div class="fecha-registro">Registrado: ${alerta.fecha_registro ? formatearFechaCompleta(alerta.fecha_registro) : 'N/A'}</div>
+                    <div class="fecha-emision">Emitido: ${alerta.fecha_emision ? formatearHora(alerta.fecha_emision) : 'Pendiente'}</div>
+                </div>
             `;
             listaEmitidas.appendChild(li);
         });
@@ -1276,7 +1360,7 @@ async function emitirNotificacionAlerta(alerta) {
         
         // Obtener información del cuarto
         const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
-        const nombreCuarto = cuarto ? cuarto.numero : `Cuarto ${alerta.cuarto_id}`;
+        const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
         const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
         const nombreEdificio = edificio ? edificio.nombre : '';
         
