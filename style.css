@@ -1104,6 +1104,25 @@ input:checked + .slider:before {
   font-size: 0.9em;
 }
 
+.rutina-estado {
+  font-size: 0.8em;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-top: 2px;
+  display: inline-block;
+}
+
+.rutina-estado.alerta-emitida {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.rutina-estado.alerta-programada {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
 .mensaje-no-rutinas {
   font-style: italic;
   color: #888;
