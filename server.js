@@ -106,12 +106,12 @@ app.get('/api/edificios', async (req, res) => {
             const edificios = await dbManager.getEdificios();
             res.json(edificios);
         } else {
-            // Usar datos mock
-            res.json(mockData.edificios);
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
     } catch (error) {
         console.error('Error al obtener edificios:', error);
-        res.json(mockData.edificios); // Fallback a datos mock
+        res.status(500).json({ error: 'Error al obtener edificios', details: error.message });
     }
 });
 
@@ -122,12 +122,12 @@ app.get('/api/cuartos', async (req, res) => {
             const cuartos = await dbManager.getCuartos();
             res.json(cuartos);
         } else {
-            // Usar datos mock
-            res.json(mockData.cuartos);
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
     } catch (error) {
         console.error('Error al obtener cuartos:', error);
-        res.json(mockData.cuartos); // Fallback a datos mock
+        res.status(500).json({ error: 'Error al obtener cuartos', details: error.message });
     }
 });
 
@@ -141,21 +141,12 @@ app.get('/api/cuartos/:id', async (req, res) => {
             }
             res.json(cuarto);
         } else {
-            // Buscar en datos mock
-            const cuarto = mockData.cuartos.find(c => c.id == req.params.id);
-            if (!cuarto) {
-                return res.status(404).json({ error: 'Cuarto no encontrado' });
-            }
-            res.json(cuarto);
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
     } catch (error) {
         console.error('Error al obtener cuarto:', error);
-        const cuarto = mockData.cuartos.find(c => c.id == req.params.id);
-        if (cuarto) {
-            res.json(cuarto);
-        } else {
-            res.status(404).json({ error: 'Cuarto no encontrado' });
-        }
+        res.status(500).json({ error: 'Error al obtener cuarto', details: error.message });
     }
 });
 
@@ -167,20 +158,12 @@ app.get('/api/mantenimientos', async (req, res) => {
             const mantenimientos = await dbManager.getMantenimientos(cuartoId);
             res.json(mantenimientos);
         } else {
-            // Usar datos mock
-            let mantenimientos = mockData.mantenimientos;
-            if (req.query.cuarto_id) {
-                mantenimientos = mantenimientos.filter(m => m.cuarto_id == req.query.cuarto_id);
-            }
-            res.json(mantenimientos);
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
     } catch (error) {
         console.error('Error al obtener mantenimientos:', error);
-        let mantenimientos = mockData.mantenimientos;
-        if (req.query.cuarto_id) {
-            mantenimientos = mantenimientos.filter(m => m.cuarto_id == req.query.cuarto_id);
-        }
-        res.json(mantenimientos);
+        res.status(500).json({ error: 'Error al obtener mantenimientos', details: error.message });
     }
 });
 
@@ -207,29 +190,8 @@ app.post('/api/mantenimientos', async (req, res) => {
             console.log('✅ Mantenimiento SQLite creado:', nuevoMantenimiento);
             res.status(201).json(nuevoMantenimiento);
         } else {
-            // Simular creación en datos mock con estructura completa
-            const cuarto = mockData.cuartos.find(c => c.id == cuarto_id);
-            const edificio = cuarto ? mockData.edificios.find(e => e.id === cuarto.edificio_id) : null;
-            
-            const nuevoMantenimiento = {
-                id: mockData.mantenimientos.length + 1,
-                cuarto_id: parseInt(cuarto_id),
-                descripcion,
-                tipo,
-                hora: hora || null,
-                dia_alerta: dia_alerta || null,
-                fecha_registro: new Date().toISOString(),
-                fecha_solicitud: new Date().toISOString().split('T')[0],
-                estado: 'pendiente',
-                cuarto_numero: cuarto?.numero || 'N/A',
-                cuarto_nombre: cuarto?.numero || `Cuarto ${cuarto_id}`,
-                edificio_nombre: edificio?.nombre || 'Edificio Desconocido'
-            };
-            
-            mockData.mantenimientos.push(nuevoMantenimiento);
-            
-            console.log('✅ Mantenimiento mock creado:', nuevoMantenimiento);
-            res.status(201).json(nuevoMantenimiento);
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
     } catch (error) {
         console.error('❌ Error al crear mantenimiento:', error);
@@ -252,27 +214,15 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                 hora: hora || null,
                 dia_alerta: dia_alerta || null
             });
+            
+            res.json({ 
+                success: true, 
+                message: 'Mantenimiento actualizado correctamente' 
+            });
         } else {
-            // Actualizar en datos mock
-            const mantenimiento = mockData.mantenimientos.find(m => m.id === mantenimientoId);
-            if (mantenimiento) {
-                mantenimiento.descripcion = descripcion;
-                mantenimiento.hora = hora || null;
-                mantenimiento.dia_alerta = dia_alerta || null;
-                console.log('✅ Mantenimiento mock actualizado:', mantenimiento);
-            } else {
-                console.log('⚠️ Mantenimiento mock no encontrado para actualizar:', mantenimientoId);
-                return res.status(404).json({ 
-                    success: false, 
-                    message: 'Mantenimiento no encontrado' 
-                });
-            }
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Mantenimiento actualizado correctamente' 
-        });
         
     } catch (error) {
         console.error('❌ Error actualizando mantenimiento:', error);
@@ -294,26 +244,15 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
         
         if (dbManager) {
             await dbManager.marcarAlertaEmitida(mantenimientoId);
+            
+            res.json({ 
+                success: true, 
+                message: 'Alerta marcada como emitida' 
+            });
         } else {
-            // Marcar en datos mock (agregar field fecha_emision)
-            const mantenimiento = mockData.mantenimientos.find(m => m.id === mantenimientoId);
-            if (mantenimiento) {
-                mantenimiento.fecha_emision = new Date().toISOString();
-                mantenimiento.emitida = true;
-                console.log('✅ Alerta mock marcada como emitida:', mantenimiento);
-            } else {
-                console.log('⚠️ Mantenimiento mock no encontrado para marcar:', mantenimientoId);
-                return res.status(404).json({ 
-                    success: false, 
-                    message: 'Mantenimiento no encontrado' 
-                });
-            }
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Alerta marcada como emitida' 
-        });
         
     } catch (error) {
         console.error('❌ Error marcando alerta como emitida:', error);
@@ -335,25 +274,15 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
         
         if (dbManager) {
             await dbManager.deleteMantenimiento(mantenimientoId);
+            
+            res.json({ 
+                success: true, 
+                message: 'Mantenimiento eliminado correctamente' 
+            });
         } else {
-            // Eliminar de datos mock
-            const index = mockData.mantenimientos.findIndex(m => m.id === mantenimientoId);
-            if (index !== -1) {
-                const eliminado = mockData.mantenimientos.splice(index, 1)[0];
-                console.log('✅ Mantenimiento mock eliminado:', eliminado);
-            } else {
-                console.log('⚠️ Mantenimiento mock no encontrado:', mantenimientoId);
-                return res.status(404).json({ 
-                    success: false, 
-                    message: 'Mantenimiento no encontrado' 
-                });
-            }
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
         }
-        
-        res.json({ 
-            success: true, 
-            message: 'Mantenimiento eliminado correctamente' 
-        });
         
     } catch (error) {
         console.error('❌ Error eliminando mantenimiento:', error);
