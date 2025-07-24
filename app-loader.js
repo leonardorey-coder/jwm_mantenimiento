@@ -119,29 +119,31 @@ async function inicializarApp() {
             console.log('📡 Response status:', response.status);
             console.log('📊 Response ok:', response.ok);
         } catch (fetchError) {
-            console.error('🚫 Error de conectividad:', fetchError);
+            console.error('🚫 Error de conectividad crítico:', fetchError);
             console.error('🔍 Fetch error details:', fetchError.message);
+            throw fetchError; // Re-lanzar el error para manejarlo arriba
         }
         
-        // En lugar de mostrar error crítico, intentar continuar con datos básicos
-        console.log('🔄 Intentando continuar con recuperación de errores...');
+        // Si llegamos aquí, hubo un error de aplicación, no de red
+        console.log('� Error de aplicación, re-intentando...');
+
+        
+        // Si llegamos aquí, usar datos offline como último recurso
+        console.log('🆘 Usando datos offline como último recurso...');
         try {
-            // Usar datos offline como fallback
             cuartos = datosOffline.cuartos;
-            edificios = datosOffline.edificios;
+            edificios = datosOffline.edificios; 
             mantenimientos = datosOffline.mantenimientos;
             
-            console.log('💾 Datos offline cargados como fallback');
             mostrarCuartos();
             mostrarEdificios();
             cargarCuartosEnSelect();
             mostrarAlertasYRecientes();
             
-            mostrarMensaje('Aplicación funcionando en modo offline debido a un error', 'warning');
-        } catch (fallbackError) {
-            console.error('💀 Error en fallback también:', fallbackError);
-            console.error('🆘 Mostrando mensaje de error crítico');
-            mostrarError('Error al cargar la aplicación. Verifique que el servidor local esté funcionando.');
+            mostrarMensaje('Aplicación funcionando en modo offline', 'warning');
+        } catch (offlineError) {
+            console.error('Error cargando datos offline:', offlineError);
+            mostrarError('Error crítico al cargar la aplicación.');
         }
     }
 }
