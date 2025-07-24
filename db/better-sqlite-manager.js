@@ -161,7 +161,7 @@ class DatabaseManager {
             SELECT c.*, e.nombre as edificio_nombre 
             FROM cuartos c 
             LEFT JOIN edificios e ON c.edificio_id = e.id 
-            ORDER BY e.nombre, c.numero
+            ORDER BY e.nombre, c.nombre
         `;
         return this.db.prepare(query).all();
     }
@@ -178,7 +178,7 @@ class DatabaseManager {
 
     getMantenimientos(cuartoId = null) {
         let query = `
-            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            SELECT m.*, c.nombre as cuarto_numero, e.nombre as edificio_nombre
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e ON c.edificio_id = e.id
@@ -186,10 +186,10 @@ class DatabaseManager {
         
         if (cuartoId) {
             query += ' WHERE m.cuarto_id = ?';
-            return this.db.prepare(query + ' ORDER BY m.fecha_creacion DESC').all(cuartoId);
+            return this.db.prepare(query + ' ORDER BY m.fecha_registro DESC').all(cuartoId);
         }
         
-        return this.db.prepare(query + ' ORDER BY m.fecha_creacion DESC').all();
+        return this.db.prepare(query + ' ORDER BY m.fecha_registro DESC').all();
     }
 
     insertMantenimiento(data) {
@@ -206,6 +206,18 @@ class DatabaseManager {
             data.hora || null,
             data.dia_alerta || null
         );
+        
+        // Retornar el objeto completo del mantenimiento insertado
+        if (result.lastInsertRowid) {
+            const query = `
+                SELECT m.*, c.nombre as cuarto_numero, e.nombre as edificio_nombre
+                FROM mantenimientos m
+                LEFT JOIN cuartos c ON m.cuarto_id = c.id
+                LEFT JOIN edificios e ON c.edificio_id = e.id
+                WHERE m.id = ?
+            `;
+            return this.db.prepare(query).get(result.lastInsertRowid);
+        }
         
         return result.lastInsertRowid;
     }

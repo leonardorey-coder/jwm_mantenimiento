@@ -1299,6 +1299,26 @@ input:checked + .slider:before {
   font-style: italic;
 }
 
+/* Nuevos estilos para mostrar ambas fechas */
+.alerta-fechas {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.75em;
+  min-width: 140px;
+}
+
+.fecha-registro {
+  color: #666;
+  font-weight: 400;
+}
+
+.fecha-emision {
+  color: #28a745;
+  font-weight: 500;
+  font-style: italic;
+}
+
 .alerta-emitida-hora {
   font-weight: normal; /* No tan bold como la rutina activa */
   font-size: 0.85em;

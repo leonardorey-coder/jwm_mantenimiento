@@ -172,10 +172,16 @@
     <script src="script.js"></script>
     <!-- <script src="script_index.js"></script> -->
     <!-- script_index.js deshabilitado - usando solo app-loader.js -->
-    <script src="app-loader.js"></script>
-    
-    <!-- Service Worker para PWA -->
     <script>
+        // Cargar app-loader.js con timestamp para evitar caché
+        const script = document.createElement('script');
+        script.src = 'app-loader.js?v=' + Date.now();
+        document.head.appendChild(script);
+    </script>
+    
+    <!-- Service Worker temporalmente deshabilitado para debugging -->
+    <script>
+        /*
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('./sw.js')
@@ -185,6 +191,18 @@
                     .catch((registrationError) => {
                         console.log('Fallo en registro SW: ', registrationError);
                     });
+            });
+        }
+        */
+        console.log('🔧 Service Worker deshabilitado para debugging');
+        
+        // Eliminar Service Worker existente si existe
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('🗑️ Service Worker eliminado:', registration);
+                }
             });
         }
     </script>

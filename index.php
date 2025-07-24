@@ -413,7 +413,7 @@ $conexion->close();
     </div>
 
     <script src="script.js"></script>
-    <script src="app-loader.js"></script>
+    <script src="app-loader.js?v=<?php echo time(); ?>"></script>
     <!-- <script src="script_index.js"></script> -->
     <!-- script_index.js temporalmente deshabilitado - usando solo app-loader.js -->
 </body>
