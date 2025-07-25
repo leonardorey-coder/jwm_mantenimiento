@@ -405,6 +405,16 @@ function setupIpcHandlers() {
         }
     });
     
+    // Marcar alerta como emitida
+    ipcMain.handle('mark-alert-emitted', async (event, id) => {
+        try {
+            return await database.markAlertAsEmitted(id);
+        } catch (error) {
+            console.error('Error IPC mark-alert-emitted:', error);
+            throw error;
+        }
+    });
+    
     // Verificar estado de la base de datos
     ipcMain.handle('database-status', async () => {
         try {

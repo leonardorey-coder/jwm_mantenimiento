@@ -12,7 +12,7 @@ let cuartos = [];
 let mantenimientos = [];
 let edificios = [];
 let intervalosNotificaciones = null;
-let alertasEmitidas = new Set(); // Para evitar duplicados
+// Eliminamos alertasEmitidas Set - ahora las alertas emitidas se basan solo en la BD
 
 /**
  * Función que se ejecuta cuando se carga la página
@@ -490,8 +490,8 @@ function mostrarAlertas() {
         const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
         const nombreEdificio = edificio ? edificio.nombre : '';
         
-        // Determinar estado de la alerta
-        const yaEmitida = alerta.alerta_emitida === 1 || alertasEmitidas.has(alerta.id);
+        // Determinar estado de la alerta basándose solo en la BD
+        const yaEmitida = alerta.alerta_emitida === 1 || alerta.fecha_emision;
         const estadoTexto = yaEmitida ? '✅ Emitida' : '⏰ Programada';
         const estadoClase = yaEmitida ? 'alerta-emitida' : 'alerta-programada';
         
@@ -546,9 +546,9 @@ function mostrarRecientes() {
     }
     
     const recientes = mantenimientos
-        .filter(m => m.tipo === 'normal')
+        .filter(m => m.tipo !== 'rutina') // Mostrar todo lo que no sea rutina
         .sort((a, b) => new Date(b.fecha_registro) - new Date(a.fecha_registro))
-        .slice(0, 5);
+        .slice(0, 10); // Aumentamos a 10 para más visibilidad
     
     console.log('Mantenimientos recientes filtrados:', recientes.length);
     
@@ -600,27 +600,39 @@ function mostrarAlertasEmitidas() {
     const ahora = new Date();
     const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
     
-    console.log(`📅 Fecha para buscar alertas emitidas: ${hoy} (local actual)`);
+    console.log(`📅 ALERTAS EMITIDAS - Fecha para buscar: ${hoy} (local actual)`);
+    console.log(`📅 ALERTAS EMITIDAS - Hora actual: ${ahora.toTimeString().slice(0, 8)}`);
     
-    // Buscar SOLO alertas emitidas hoy (tanto marcadas en BD como en memoria)
+    // Buscar alertas emitidas basándose SOLO en la base de datos (no en memoria)
+    // Esto garantiza persistencia después de recargar la página
     const alertasEmitidasBD = mantenimientos.filter(m => {
-        const cumpleCondicion = m.tipo === 'rutina' && 
-            m.dia_alerta === hoy &&
-            (m.alerta_emitida === 1 || alertasEmitidas.has(m.id)); // BD o memoria
+        // Debe ser rutina con fecha de emisión válida
+        const esRutinaEmitida = m.tipo === 'rutina' && m.fecha_emision;
         
-        if (m.tipo === 'rutina' && m.dia_alerta === hoy) {
-            console.log(`🔍 Rutina ID${m.id}: día=${m.dia_alerta}, emitida=${m.alerta_emitida}, en_memoria=${alertasEmitidas.has(m.id)}, cumple=${cumpleCondicion}`);
+        if (esRutinaEmitida) {
+            // Extraer fecha de la emisión (solo fecha, no hora)
+            const fechaEmision = new Date(m.fecha_emision);
+            const fechaEmisionStr = `${fechaEmision.getFullYear()}-${String(fechaEmision.getMonth() + 1).padStart(2, '0')}-${String(fechaEmision.getDate()).padStart(2, '0')}`;
+            
+            console.log(`🔍 ALERTA EMITIDA ID${m.id}:`);
+            console.log(`   - dia_alerta: ${m.dia_alerta}`);
+            console.log(`   - fecha_emision raw: ${m.fecha_emision}`);
+            console.log(`   - fecha_emision parsed: ${fechaEmisionStr}`);
+            console.log(`   - emitida hoy: ${fechaEmisionStr === hoy}`);
+            
+            return fechaEmisionStr === hoy;
         }
         
-        return cumpleCondicion;
+        return false;
     });
     
-    console.log(`📋 Alertas emitidas hoy (${hoy}):`, alertasEmitidasBD.length, 
-        'IDs:', alertasEmitidasBD.map(a => `${a.id}(${a.alerta_emitida ? 'BD' : 'MEM'})`));
+    console.log(`📋 ALERTAS EMITIDAS - Total encontradas hoy (${hoy}): ${alertasEmitidasBD.length}`);
+    console.log(`📋 ALERTAS EMITIDAS - IDs: ${alertasEmitidasBD.map(a => `${a.id}(${a.descripcion.substring(0, 10)}...)`).join(', ')}`);
     
     if (alertasEmitidasBD.length === 0) {
         listaEmitidas.style.display = 'none';
         if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'block';
+        console.log(`📋 ALERTAS EMITIDAS - No hay alertas emitidas hoy, ocultando sección`);
         return;
     }
     
@@ -629,10 +641,23 @@ function mostrarAlertasEmitidas() {
     
     listaEmitidas.innerHTML = '';
     alertasEmitidasBD
-        .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
-        .forEach(alerta => {
+        .sort((a, b) => {
+            // Ordenar por fecha_emision desc (más recientes primero)
+            const fechaA = new Date(a.fecha_emision || 0);
+            const fechaB = new Date(b.fecha_emision || 0);
+            return fechaB - fechaA;
+        })
+        .forEach((alerta, index) => {
             const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
             const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
+            
+            console.log(`📝 ALERTA EMITIDA ${index + 1}/${alertasEmitidasBD.length}:`);
+            console.log(`   - ID: ${alerta.id}`);
+            console.log(`   - Cuarto: ${nombreCuarto}`);
+            console.log(`   - Descripción: ${alerta.descripcion}`);
+            console.log(`   - Fecha registro: ${alerta.fecha_registro}`);
+            console.log(`   - Fecha emisión: ${alerta.fecha_emision}`);
+            console.log(`   - Hora programada: ${alerta.hora}`);
             
             const li = document.createElement('li');
             li.className = 'alerta-emitida-item';
@@ -642,13 +667,13 @@ function mostrarAlertasEmitidas() {
                 <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
                 <div class="alerta-fechas">
                     <div class="fecha-registro">Registrado: ${alerta.fecha_registro ? formatearFechaCompleta(alerta.fecha_registro) : 'N/A'}</div>
-                    <div class="fecha-emision">Emitido: ${alerta.fecha_emision ? formatearHora(alerta.fecha_emision) : 'Pendiente'}</div>
+                    <div class="fecha-emision">Emitido: ${alerta.fecha_emision ? formatearFechaCompleta(alerta.fecha_emision) : 'N/A'}</div>
                 </div>
             `;
             listaEmitidas.appendChild(li);
         });
         
-    console.log(`✅ Mostradas ${alertasEmitidasBD.length} alertas emitidas en UI`);
+    console.log(`✅ ALERTAS EMITIDAS - Mostradas ${alertasEmitidasBD.length} alertas emitidas en UI`);
 }
 
 /**
@@ -818,20 +843,25 @@ async function verificarYEmitirAlertas() {
         // Usar fecha local en lugar de UTC
         const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
         
-        console.log(`🕒 Verificando alertas - ${fechaActual} ${horaActual}`);
+        console.log(`🕒 VERIFICANDO ALERTAS - ${fechaActual} ${horaActual}`);
+        console.log(`🕒 VERIFICANDO ALERTAS - Timestamp completo: ${ahora.toISOString()}`);
         
         // Debug: mostrar todas las rutinas disponibles
         const todasLasRutinas = mantenimientos.filter(m => m.tipo === 'rutina');
-        console.log(`📅 Total rutinas: ${todasLasRutinas.length}`, todasLasRutinas.map(r => `ID${r.id}(${r.dia_alerta} ${r.hora})`));
+        console.log(`📅 VERIFICANDO ALERTAS - Total rutinas: ${todasLasRutinas.length}`);
+        todasLasRutinas.forEach(r => {
+            console.log(`   📝 Rutina ID${r.id}: día=${r.dia_alerta}, hora=${r.hora}, emitida=${r.alerta_emitida}, fecha_emision=${r.fecha_emision}, desc=${r.descripcion.substring(0, 15)}...`);
+        });
         
         // Filtrar alertas que deben notificarse ahora
+        // Cambio importante: usar alerta_emitida de BD en lugar del Set en memoria
         const alertasPorNotificar = mantenimientos.filter(m => {
             if (m.tipo !== 'rutina' || !m.dia_alerta || !m.hora) {
                 return false;
             }
             
-            // Verificar si ya fue emitida
-            if (m.alerta_emitida || alertasEmitidas.has(m.id)) {
+            // Verificar si ya fue emitida (solo BD, no memoria)
+            if (m.alerta_emitida === 1 || m.fecha_emision) {
                 return false;
             }
             
@@ -840,12 +870,23 @@ async function verificarYEmitirAlertas() {
                 return false;
             }
             
-            // Verificar si es la hora correcta (con tolerancia de 1 minuto)
+            // Verificar si es la hora correcta (exacta)
             const horaAlerta = m.hora;
-            return horaAlerta === horaActual;
+            const coincideHora = horaAlerta === horaActual;
+            
+            if (coincideHora) {
+                console.log(`🎯 ALERTA CANDIDATA ID${m.id}: día=${m.dia_alerta}, hora=${m.hora}, desc=${m.descripcion}`);
+            }
+            
+            return coincideHora;
         });
         
-        console.log(`📢 Alertas por notificar: ${alertasPorNotificar.length}`);
+        console.log(`📢 VERIFICANDO ALERTAS - Alertas por notificar: ${alertasPorNotificar.length}`);
+        if (alertasPorNotificar.length > 0) {
+            alertasPorNotificar.forEach(a => {
+                console.log(`   🚨 Para notificar ID${a.id}: ${a.descripcion}`);
+            });
+        }
         
         // Emitir notificaciones para cada alerta
         for (const alerta of alertasPorNotificar) {
@@ -853,7 +894,7 @@ async function verificarYEmitirAlertas() {
         }
         
     } catch (error) {
-        console.error('Error verificando alertas:', error);
+        console.error('❌ Error verificando alertas:', error);
     }
 }
 
@@ -862,16 +903,19 @@ async function verificarYEmitirAlertas() {
  */
 async function emitirNotificacionAlerta(alerta) {
     try {
-        console.log(`🚨 Emitiendo alerta para:`, alerta);
-        
-        // Marcar inmediatamente en memoria para evitar duplicados
-        alertasEmitidas.add(alerta.id);
+        console.log(`🚨 EMITIENDO ALERTA para ID${alerta.id}:`);
+        console.log(`   - Descripción: ${alerta.descripcion}`);
+        console.log(`   - Día programado: ${alerta.dia_alerta}`);
+        console.log(`   - Hora programada: ${alerta.hora}`);
+        console.log(`   - Cuarto ID: ${alerta.cuarto_id}`);
         
         // Obtener información del cuarto
         const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
         const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
         const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
         const nombreEdificio = edificio ? edificio.nombre : '';
+        
+        console.log(`   - Cuarto: ${nombreCuarto} (${nombreEdificio})`);
         
         const titulo = `🔔 Alerta de Mantenimiento`;
         const mensaje = `${nombreCuarto}${nombreEdificio ? ` (${nombreEdificio})` : ''}\n${alerta.descripcion}`;
@@ -882,24 +926,30 @@ async function emitirNotificacionAlerta(alerta) {
         // Mostrar notificación del navegador
         mostrarNotificacionNavegador(titulo, mensaje, alerta);
         
-        // Actualizar inmediatamente la interfaz (antes de la BD)
-        mostrarAlertasEmitidas();
-        
         // Marcar como emitida en la base de datos usando IPC
         try {
-            await ipcRenderer.invoke('mark-alert-emitted', alerta.id);
-            console.log(`✅ Alerta ${alerta.id} confirmada en BD`);
-            // Recargar datos para sincronizar
+            const fechaEmisionAntes = new Date().toISOString();
+            console.log(`💾 EMITIENDO ALERTA - Marcando en BD con fecha: ${fechaEmisionAntes}`);
+            
+            const alertaActualizada = await ipcRenderer.invoke('mark-alert-emitted', alerta.id);
+            console.log(`✅ EMITIENDO ALERTA - Alerta ${alerta.id} confirmada en BD:`, alertaActualizada);
+            
+            // Recargar datos para sincronizar inmediatamente
             await cargarDatos();
+            
+            // Actualizar interfaz inmediatamente
             mostrarAlertasYRecientes();
+            
+            console.log(`✅ EMITIENDO ALERTA - Interfaz actualizada para ${nombreCuarto}`);
+            
         } catch (error) {
-            console.error(`❌ Error marcando alerta ${alerta.id} como emitida:`, error);
+            console.error(`❌ EMITIENDO ALERTA - Error marcando alerta ${alerta.id} como emitida:`, error);
         }
         
-        console.log(`✅ Alerta emitida correctamente para ${nombreCuarto} (ID: ${alerta.id})`);
+        console.log(`✅ EMITIENDO ALERTA - Proceso completado para ${nombreCuarto} (ID: ${alerta.id})`);
         
     } catch (error) {
-        console.error('Error emitiendo notificación:', error);
+        console.error('❌ EMITIENDO ALERTA - Error general:', error);
     }
 }
 
@@ -1254,7 +1304,6 @@ window.appDebug = {
         console.log('✅ Datos recargados');
     },
     verificarAlertas: () => verificarYEmitirAlertas(),
-    alertasEmitidas: () => Array.from(alertasEmitidas),
     testIPC: async () => {
         console.log('🧪 Probando comunicación IPC...');
         try {
