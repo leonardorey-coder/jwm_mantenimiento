@@ -10,6 +10,7 @@
   "scripts": {
     "start": "node server.js",
     "electron": "electron .",
+    "electron-offline": "electron . --offline",
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
     "electron-only": "wait-on http://localhost:3000 && electron .",
     "build": "electron-builder",

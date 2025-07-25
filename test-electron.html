@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Test JW Mantto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #f0f0f0;
+        }
+        .status {
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 JW Mantto - Test de Electron</h1>
+    
+    <div class="status" id="status">
+        <p>🔍 Verificando entorno...</p>
+    </div>
+    
+    <div class="status" id="database-status">
+        <p>💾 Verificando base de datos...</p>
+    </div>
+    
+    <script>
+        console.log('🎯 Script cargado en Electron test');
+        
+        // Detectar Electron
+        const isElectron = typeof process !== 'undefined' && 
+                          process.versions && 
+                          process.versions.electron;
+        
+        const statusDiv = document.getElementById('status');
+        
+        if (isElectron) {
+            statusDiv.innerHTML = `
+                <h3>✅ Entorno Electron detectado</h3>
+                <p><strong>Electron:</strong> ${process.versions.electron}</p>
+                <p><strong>Node:</strong> ${process.versions.node}</p>
+                <p><strong>Chrome:</strong> ${process.versions.chrome}</p>
+            `;
+            
+            // Probar IPC
+            const { ipcRenderer } = require('electron');
+            
+            const dbStatus = document.getElementById('database-status');
+            dbStatus.innerHTML = '<p>🔄 Probando conexión a base de datos...</p>';
+            
+            // Test de IPC
+            ipcRenderer.invoke('get-cuartos').then(cuartos => {
+                dbStatus.innerHTML = `
+                    <h3>✅ Base de datos funcionando</h3>
+                    <p><strong>Cuartos encontrados:</strong> ${cuartos.length}</p>
+                    <pre>${JSON.stringify(cuartos.slice(0, 2), null, 2)}</pre>
+                `;
+            }).catch(error => {
+                dbStatus.innerHTML = `
+                    <h3>❌ Error en base de datos</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+            });
+            
+        } else {
+            statusDiv.innerHTML = `
+                <h3>❌ No es Electron</h3>
+                <p>Este test debe ejecutarse en Electron</p>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
-const { app, BrowserWindow, Menu } = require('electron');
+const { app, BrowserWindow, Menu, ipcMain } = require('electron');
 const path = require('path');
 const { spawn, exec } = require('child_process');
+const database = require('./electron-database');
 
 // Mantener referencia global de la ventana
 let mainWindow;
@@ -36,8 +37,8 @@ function createWindow() {
         minWidth: 800,
         minHeight: 600,
         webPreferences: {
-            nodeIntegration: false,
-            contextIsolation: true,
+            nodeIntegration: true,  // Habilitar para IPC
+            contextIsolation: false, // Deshabilitar para acceso directo a IPC
             enableRemoteModule: false,
             webSecurity: false // Permitir CORS para localhost
         },
@@ -46,10 +47,10 @@ function createWindow() {
         show: true // Mostrar inmediatamente para evitar problemas con ejecutables
     });
 
-    console.log('Ventana creada, iniciando servidor...');
+    console.log('Ventana creada, cargando aplicación offline...');
 
-    // Iniciar el servidor Express
-    startServer();
+    // Cargar directamente el archivo HTML sin servidor Express
+    loadLocalApplication();
 
     // Mostrar ventana cuando esté lista
     mainWindow.once('ready-to-show', () => {
@@ -331,9 +332,133 @@ function startServer() {
 
 // Este método será llamado cuando Electron haya terminado la inicialización
 app.whenReady().then(async () => {
+    console.log('🚀 Iniciando aplicación Electron...');
+    
+    // Inicializar base de datos offline
+    console.log('💾 Inicializando base de datos offline...');
+    try {
+        await database.init();
+        console.log('✅ Base de datos offline lista');
+    } catch (error) {
+        console.error('❌ Error inicializando base de datos:', error);
+    }
+    
+    // Registrar manejadores IPC
+    console.log('🎯 Manejadores IPC registrados para modo offline');
+    setupIpcHandlers();
+    
     await limpiarProcesosPrevios();
     createWindow();
 });
+
+/**
+ * Configurar manejadores IPC para comunicación con el renderer
+ */
+function setupIpcHandlers() {
+    // Obtener cuartos
+    ipcMain.handle('get-cuartos', async () => {
+        try {
+            return await database.getCuartos();
+        } catch (error) {
+            console.error('Error IPC get-cuartos:', error);
+            throw error;
+        }
+    });
+    
+    // Obtener edificios
+    ipcMain.handle('get-edificios', async () => {
+        try {
+            return await database.getEdificios();
+        } catch (error) {
+            console.error('Error IPC get-edificios:', error);
+            throw error;
+        }
+    });
+    
+    // Obtener mantenimientos
+    ipcMain.handle('get-mantenimientos', async () => {
+        try {
+            return await database.getMantenimientos();
+        } catch (error) {
+            console.error('Error IPC get-mantenimientos:', error);
+            throw error;
+        }
+    });
+    
+    // Crear mantenimiento
+    ipcMain.handle('create-mantenimiento', async (event, mantenimiento) => {
+        try {
+            return await database.createMantenimiento(mantenimiento);
+        } catch (error) {
+            console.error('Error IPC create-mantenimiento:', error);
+            throw error;
+        }
+    });
+    
+    // Eliminar mantenimiento
+    ipcMain.handle('delete-mantenimiento', async (event, id) => {
+        try {
+            return await database.deleteMantenimiento(id);
+        } catch (error) {
+            console.error('Error IPC delete-mantenimiento:', error);
+            throw error;
+        }
+    });
+    
+    // Verificar estado de la base de datos
+    ipcMain.handle('database-status', async () => {
+        try {
+            // Verificar que la base de datos esté inicializada
+            const cuartos = await database.getCuartos();
+            return {
+                status: 'connected',
+                message: 'Base de datos offline conectada',
+                cuartos_count: cuartos.length,
+                initialized: true,
+                isReady: true // Esta es la propiedad que verifica el frontend
+            };
+        } catch (error) {
+            console.error('Error verificando estado de base de datos:', error);
+            return {
+                status: 'error',
+                message: error.message,
+                initialized: false,
+                isReady: false
+            };
+        }
+    });
+}
+
+/**
+ * Cargar aplicación local sin servidor Express
+ */
+function loadLocalApplication() {
+    console.log('📁 Cargando aplicación offline...');
+    
+    // Cargar index.html directamente - la detección de entorno hará el resto
+    mainWindow.loadFile('index.html')
+        .then(() => {
+            console.log('✅ Aplicación principal offline cargada exitosamente');
+        })
+        .catch((error) => {
+            console.error('❌ Error cargando aplicación offline:', error);
+            
+            // Último recurso: página de error inline
+            const errorPage = `
+                <!DOCTYPE html>
+                <html>
+                <head><title>Error - JW Mantto</title></head>
+                <body style="font-family:Arial;text-align:center;padding:50px;">
+                    <h1>🏨 JW Mantto</h1>
+                    <h2>❌ Error de Carga</h2>
+                    <p>No se pudo cargar la aplicación</p>
+                    <pre style="background:#f0f0f0;padding:10px;">${error.message}</pre>
+                </body>
+                </html>
+            `;
+            mainWindow.loadURL(`data:text/html,${encodeURIComponent(errorPage)}`);
+        });
+}
 
 // Salir cuando todas las ventanas se cierren
 app.on('window-all-closed', () => {
