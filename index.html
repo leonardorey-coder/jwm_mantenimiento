@@ -173,10 +173,66 @@
     <!-- <script src="script_index.js"></script> -->
     <!-- script_index.js deshabilitado - usando solo app-loader.js -->
     <script>
-        // Cargar app-loader.js con timestamp para evitar caché
-        const script = document.createElement('script');
-        script.src = 'app-loader.js?v=' + Date.now();
-        document.head.appendChild(script);
+        // Detectar si estamos en Electron y cargar el loader apropiado
+        console.log('🔍 Detectando entorno de ejecución...');
+        console.log('🌍 User Agent:', navigator.userAgent);
+        console.log('🎯 Window location:', window.location.href);
+        console.log('🔧 Process available:', typeof process !== 'undefined');
+        
+        // Verificar múltiples formas de detectar Electron
+        const isElectron = (
+            typeof process !== 'undefined' && 
+            process.versions && 
+            process.versions.electron
+        ) || (
+            typeof window !== 'undefined' &&
+            window.process &&
+            window.process.type === 'renderer'
+        ) || (
+            typeof navigator !== 'undefined' &&
+            navigator.userAgent &&
+            navigator.userAgent.toLowerCase().includes('electron')
+        ) || (
+            typeof window !== 'undefined' &&
+            window.require &&
+            typeof window.require === 'function'
+        );
+        
+        console.log('⚡ ¿Es Electron?:', isElectron);
+        
+        if (isElectron) {
+            console.log('⚡ Entorno detectado: Electron (modo offline)');
+            if (typeof process !== 'undefined' && process.versions) {
+                console.log('📋 Electron version:', process.versions.electron || 'unknown');
+                console.log('🔧 Node version:', process.versions.node || 'unknown');
+                console.log('🌐 Chrome version:', process.versions.chrome || 'unknown');
+            }
+            
+            // Cargar el loader offline para Electron
+            const script = document.createElement('script');
+            script.src = 'electron-app-loader.js?v=' + Date.now();
+            script.onload = () => {
+                console.log('✅ Electron app loader cargado exitosamente');
+            };
+            script.onerror = (error) => {
+                console.error('❌ Error cargando electron app loader:', error);
+                // Fallback al loader normal si falla el offline
+                console.log('🔄 Fallback: cargando web app loader...');
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = 'app-loader.js?v=' + Date.now();
+                document.head.appendChild(fallbackScript);
+            };
+            document.head.appendChild(script);
+        } else {
+            console.log('🌐 Entorno detectado: Navegador web (modo online)');
+            
+            // Cargar el loader HTTP normal
+            const script = document.createElement('script');
+            script.src = 'app-loader.js?v=' + Date.now();
+            script.onload = () => console.log('✅ Web app loader cargado');
+            script.onerror = (error) => console.error('❌ Error cargando web app loader:', error);
+            document.head.appendChild(script);
+        }
     </script>
     
     <!-- Service Worker temporalmente deshabilitado para debugging -->
