@@ -99,7 +99,7 @@ class ElectronDatabaseManager {
     }
 
     /**
-     * Insertar datos iniciales si las tablas están vacías
+     * Insertar datos reales del hotel
      */
     async insertInitialData() {
         // Verificar si ya hay datos
@@ -110,48 +110,107 @@ class ElectronDatabaseManager {
             return;
         }
 
-        console.log('📝 Insertando datos iniciales...');
+        console.log('📝 Insertando datos reales del hotel...');
 
-        // Insertar edificios
+        // Edificios reales del hotel
         const insertEdificio = this.db.prepare('INSERT INTO edificios (nombre, descripcion) VALUES (?, ?)');
-        insertEdificio.run('Edificio A', 'Edificio principal del hotel');
-        insertEdificio.run('Edificio B', 'Edificio secundario del hotel');
-        insertEdificio.run('Edificio C', 'Torre ejecutiva');
+        insertEdificio.run('Alfa', 'Edificio Alfa');
+        insertEdificio.run('Bravo', 'Edificio Bravo');
+        insertEdificio.run('Charly', 'Edificio Charly');
+        insertEdificio.run('Eco', 'Edificio Eco');
+        insertEdificio.run('Fox', 'Edificio Fox');
+        insertEdificio.run('Casa Maat', 'Casa Maat');
 
-        // Insertar cuartos
+        // Cuartos reales - obtener IDs de edificios
+        const edificios = this.db.prepare('SELECT * FROM edificios').all();
+        const edificioMap = {};
+        edificios.forEach(e => edificioMap[e.nombre] = e.id);
+
         const insertCuarto = this.db.prepare('INSERT INTO cuartos (nombre, numero, edificio_id, estado, descripcion) VALUES (?, ?, ?, ?, ?)');
         
-        // Edificio A - Cuartos 101-120
-        for (let i = 101; i <= 120; i++) {
-            insertCuarto.run(`Habitación ${i}`, i.toString(), 1, 'disponible', `Habitación estándar ${i}`);
-        }
-        
-        // Edificio B - Cuartos 201-230
-        for (let i = 201; i <= 230; i++) {
-            insertCuarto.run(`Habitación ${i}`, i.toString(), 2, 'disponible', `Habitación superior ${i}`);
-        }
-        
-        // Edificio C - Cuartos 301-315
-        for (let i = 301; i <= 315; i++) {
-            insertCuarto.run(`Suite ${i}`, i.toString(), 3, 'disponible', `Suite ejecutiva ${i}`);
-        }
+        // Datos reales de cuartos del hotel
+        const cuartosReales = [
+            // Edificio Alfa
+            ['A101', '101', 'Alfa', '17/7/2024'], ['A102', '102', 'Alfa', null], ['A103', '103', 'Alfa', null],
+            ['A104', '104', 'Alfa', null], ['A105', '105', 'Alfa', null], ['A106', '106', 'Alfa', null],
+            ['S-A201', '201', 'Alfa', null], ['A202', '202', 'Alfa', null], ['A203', '203', 'Alfa', null],
+            ['A204', '204', 'Alfa', null], ['A205', '205', 'Alfa', null], ['A206', '206', 'Alfa', null],
+            ['A207', '207', 'Alfa', null], ['S-A208', '208', 'Alfa', null], ['A302', '302', 'Alfa', null],
+            ['A303', '303', 'Alfa', null], ['A304', '304', 'Alfa', null], ['A305', '305', 'Alfa', null],
+            ['A306', '306', 'Alfa', null], ['S-A301', '301', 'Alfa', null], ['S-A307', '307', 'Alfa', null],
+            ['A401', '401', 'Alfa', null], ['A402', '402', 'Alfa', null], ['A403', '403', 'Alfa', null],
+            ['A404', '404', 'Alfa', null], ['A405', '405', 'Alfa', null], ['A406', '406', 'Alfa', null],
+            ['S-A401', '401s', 'Alfa', null], ['S-A407', '407s', 'Alfa', null], ['A501', '501', 'Alfa', null],
+            ['A502', '502', 'Alfa', null], ['A503', '503', 'Alfa', null], ['A504', '504', 'Alfa', null],
+            ['A505', '505', 'Alfa', null], ['A506', '506', 'Alfa', null], ['S-A501', '501s', 'Alfa', null],
+            ['S-A507', '507s', 'Alfa', null],
+            
+            // Edificio Bravo (muestra)
+            ['B101', '101', 'Bravo', null], ['B102', '102', 'Bravo', null], ['B103', '103', 'Bravo', null],
+            ['B104', '104', 'Bravo', null], ['B105', '105', 'Bravo', '10/9/2024'], ['B106', '106', 'Bravo', null],
+            ['B107', '107', 'Bravo', null], ['B108', '108', 'Bravo', null], ['B109', '109', 'Bravo', null],
+            ['B110', '110', 'Bravo', null], ['B111', '111', 'Bravo', null], ['B112', '112', 'Bravo', null],
+            ['B113', '113', 'Bravo', null], ['B114', '114', 'Bravo', null], ['B115', '115', 'Bravo', null],
+            ['B201', '201', 'Bravo', null], ['B202', '202', 'Bravo', null], ['B203', '203', 'Bravo', '27/10/2024'],
+            ['B204', '204', 'Bravo', null], ['B205', '205', 'Bravo', null], ['B206', '206', 'Bravo', null],
+            ['B207', '207', 'Bravo', null], ['B208', '208', 'Bravo', null], ['B210', '210', 'Bravo', null],
+            ['B211', '211', 'Bravo', null], ['B212', '212', 'Bravo', null], ['B213', '213', 'Bravo', null],
+            ['B214', '214', 'Bravo', null], ['B215', '215', 'Bravo', null], ['B301', '301', 'Bravo', null],
+            ['B302', '302', 'Bravo', null], ['B303', '303', 'Bravo', null], ['B304', '304', 'Bravo', null],
+            ['B305', '305', 'Bravo', null], ['B306', '306', 'Bravo', null], ['B308', '308', 'Bravo', null],
+            ['B309', '309', 'Bravo', null], ['B310', '310', 'Bravo', null], ['B311', '311', 'Bravo', null],
+            ['B312', '312', 'Bravo', null], ['B313', '313', 'Bravo', null], ['B315', '315', 'Bravo', null],
+            ['B401', '401', 'Bravo', null], ['B402', '402', 'Bravo', null], ['B403', '403', 'Bravo', null],
+            ['B404', '404', 'Bravo', null], ['B405', '405', 'Bravo', null], ['B406', '406', 'Bravo', null],
+            ['B407', '407', 'Bravo', null], ['B408', '408', 'Bravo', null], ['B409', '409', 'Bravo', null],
+            ['B410', '410', 'Bravo', null], ['B411', '411', 'Bravo', null], ['B412', '412', 'Bravo', null],
+            ['B413', '413', 'Bravo', null], ['B414', '414', 'Bravo', null], ['B415', '415', 'Bravo', null],
+            
+            // Edificio Charly
+            ['C101', '101', 'Charly', null], ['C102', '102', 'Charly', null], ['C103', '103', 'Charly', null],
+            ['C104', '104', 'Charly', null], ['C105', '105', 'Charly', null], ['C106', '106', 'Charly', null],
+            ['C107', '107', 'Charly', null], ['C108', '108', 'Charly', null], ['C109', '109', 'Charly', null],
+            ['C110', '110', 'Charly', null], ['C111', '111', 'Charly', null], ['C112', '112', 'Charly', '11/12/2024'],
+            ['C113', '113', 'Charly', null], ['C201', '201', 'Charly', null], ['C202', '202', 'Charly', null]
+        ];
 
-        // Insertar algunos mantenimientos de ejemplo
+        // Insertar cuartos reales
+        cuartosReales.forEach(([nombre, numero, edificio, descripcion]) => {
+            insertCuarto.run(nombre, numero, edificioMap[edificio], 'disponible', descripcion);
+        });
+
+        // Mantenimientos reales de la base de datos original
         const insertMantenimiento = this.db.prepare(`
             INSERT INTO mantenimientos (cuarto_id, tipo, descripcion, fecha_solicitud, estado, hora, dia_alerta) 
             VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
         
-        const hoy = new Date().toISOString().split('T')[0];
-        const manana = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        // Obtener algunos cuartos para los mantenimientos
+        const cuartosInsertados = this.db.prepare('SELECT * FROM cuartos LIMIT 10').all();
         
-        insertMantenimiento.run(1, 'normal', 'Limpieza general de habitación', hoy, 'pendiente', null, null);
-        insertMantenimiento.run(3, 'normal', 'Reparar aire acondicionado', hoy, 'en_proceso', null, null);
-        insertMantenimiento.run(5, 'rutina', 'Revisión rutinaria de minibar', null, 'pendiente', '10:00', manana);
-        insertMantenimiento.run(7, 'rutina', 'Inspección de baño', null, 'pendiente', '14:30', manana);
-        insertMantenimiento.run(2, 'rutina', 'Limpieza profunda', null, 'pendiente', '09:00', hoy);
+        // Mantenimientos reales
+        const mantenimientosReales = [
+            [cuartosInsertados[0]?.id, 'normal', 'FOCOS FUNDIDOS', '2025-04-22', 'pendiente'],
+            [cuartosInsertados[1]?.id, 'normal', 'Cerrar valvulas', '2025-04-22', 'pendiente'],
+            [cuartosInsertados[2]?.id, 'normal', 'Foco fundido', '2025-04-22', 'pendiente'],
+            [cuartosInsertados[3]?.id, 'normal', 'Foco fundido', '2025-04-22', 'pendiente'],
+            [cuartosInsertados[4]?.id, 'rutina', 'Limpieza profunda semanal', null, 'pendiente', '09:00', '2025-07-25'],
+            [cuartosInsertados[5]?.id, 'rutina', 'Revisión rutinaria de aires acondicionados', null, 'pendiente', '10:00', '2025-07-26'],
+            [cuartosInsertados[6]?.id, 'rutina', 'Inspección de baño y plomería', null, 'pendiente', '14:30', '2025-07-26']
+        ];
 
-        console.log('✅ Datos iniciales insertados');
+        mantenimientosReales.forEach(([cuarto_id, tipo, descripcion, fecha, estado, hora = null, dia_alerta = null]) => {
+            if (cuarto_id) {
+                insertMantenimiento.run(cuarto_id, tipo, descripcion, fecha, estado, hora, dia_alerta);
+            }
+        });
+
+        const totalCuartos = this.db.prepare('SELECT COUNT(*) as count FROM cuartos').get().count;
+        const totalEdificios = this.db.prepare('SELECT COUNT(*) as count FROM edificios').get().count;
+        const totalMantenimientos = this.db.prepare('SELECT COUNT(*) as count FROM mantenimientos').get().count;
+        
+        console.log('✅ Datos reales del hotel insertados correctamente');
+        console.log(`📊 ${totalEdificios} edificios, ${totalCuartos} cuartos, ${totalMantenimientos} mantenimientos`);
     }
 
     /**
