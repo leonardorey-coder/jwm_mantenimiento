@@ -334,21 +334,27 @@ function startServer() {
 app.whenReady().then(async () => {
     console.log('🚀 Iniciando aplicación Electron...');
     
+    // Registrar manejadores IPC PRIMERO (antes de inicializar BD)
+    console.log('🎯 Registrando manejadores IPC...');
+    setupIpcHandlers();
+    
     // Inicializar base de datos offline
     console.log('💾 Inicializando base de datos offline...');
     try {
         await database.init();
         console.log('✅ Base de datos offline lista');
+        console.log('📊 database.isReady():', database.isReady());
     } catch (error) {
         console.error('❌ Error inicializando base de datos:', error);
+        console.error('📋 Stack:', error.stack);
     }
     
-    // Registrar manejadores IPC
-    console.log('🎯 Manejadores IPC registrados para modo offline');
-    setupIpcHandlers();
+    console.log('🎯 IPC handlers registrados para modo offline');
     
     await limpiarProcesosPrevios();
     createWindow();
+    
+    console.log('✅ Aplicación Electron completamente inicializada');
 });
 
 /**
@@ -415,23 +421,82 @@ function setupIpcHandlers() {
         }
     });
     
+    // Diagnóstico del módulo better-sqlite3
+    ipcMain.handle('diagnose-better-sqlite3', async () => {
+        try {
+            console.log('🔍 [IPC] diagnose-better-sqlite3 llamado');
+            
+            // Intenta requerir el módulo
+            try {
+                const Database = require('better-sqlite3');
+                console.log('✅ better-sqlite3 cargado exitosamente');
+                
+                // Intenta crear una BD en memoria
+                const testDb = new Database(':memory:');
+                testDb.close();
+                console.log('✅ mejor-sqlite3 funciona (BD en memoria creada y cerrada)');
+                
+                return {
+                    module_loaded: true,
+                    in_memory_test: true,
+                    message: 'better-sqlite3 funciona correctamente'
+                };
+            } catch (error) {
+                console.error('❌ Error con better-sqlite3:', error.message);
+                return {
+                    module_loaded: false,
+                    in_memory_test: false,
+                    error: error.message,
+                    message: 'Error cargando better-sqlite3'
+                };
+            }
+        } catch (error) {
+            console.error('❌ Error en diagnóstico:', error.message);
+            return {
+                error: error.message,
+                message: 'Error ejecutando diagnóstico'
+            };
+        }
+    });
+    
     // Verificar estado de la base de datos
     ipcMain.handle('database-status', async () => {
         try {
-            // Verificar que la base de datos esté inicializada
+            console.log('🔍 [IPC] database-status llamado - verificando estado...');
+            console.log('📊 database.isReady():', database.isReady());
+            
+            if (!database.isReady()) {
+                console.warn('⚠️ Base de datos no está lista en isReady()');
+                return {
+                    status: 'error',
+                    message: 'Database not initialized',
+                    initialized: false,
+                    isReady: false
+                };
+            }
+            
+            // Verificar que la base de datos esté inicializada intentando una consulta
+            console.log('📋 Intentando consulta de prueba...');
             const cuartos = await database.getCuartos();
-            return {
+            console.log('✅ Consulta exitosa, cuartos encontrados:', cuartos ? cuartos.length : 0);
+            
+            const response = {
                 status: 'connected',
                 message: 'Base de datos offline conectada',
-                cuartos_count: cuartos.length,
+                cuartos_count: cuartos ? cuartos.length : 0,
                 initialized: true,
-                isReady: true // Esta es la propiedad que verifica el frontend
+                isReady: true
             };
+            
+            console.log('✅ [IPC] database-status retornando:', response);
+            return response;
         } catch (error) {
-            console.error('Error verificando estado de base de datos:', error);
+            console.error('❌ Error verificando estado de base de datos:', error.message);
+            console.error('📋 Stack:', error.stack);
             return {
                 status: 'error',
                 message: error.message,
+                error: error.toString(),
                 initialized: false,
                 isReady: false
             };

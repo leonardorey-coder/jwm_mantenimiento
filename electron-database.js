@@ -3,7 +3,8 @@
  * Maneja SQLite directamente sin servidor Express
  */
 
-const Database = require('better-sqlite3');
+let Database; // Carga lazy del módulo
+
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
@@ -13,28 +14,68 @@ class ElectronDatabaseManager {
         this.db = null;
         this.isInitialized = false;
     }
+    
+    /**
+     * Cargar el módulo better-sqlite3 (lazy loading)
+     */
+    loadDatabase() {
+        if (!Database) {
+            try {
+                console.log('📦 Cargando módulo better-sqlite3...');
+                Database = require('better-sqlite3');
+                console.log('✅ Módulo better-sqlite3 cargado exitosamente');
+            } catch (error) {
+                console.error('❌ Error al cargar better-sqlite3:', error.message);
+                console.error('📋 Stack:', error.stack);
+                throw new Error(`No se pudo cargar better-sqlite3: ${error.message}`);
+            }
+        }
+        return Database;
+    }
 
     /**
      * Inicializar la base de datos
      */
     async init() {
         try {
+            console.log('📁 Inicializando base de datos...');
+            console.log('📋 __dirname:', __dirname);
+            console.log('📋 __filename:', __filename);
+            
+            // Cargar el módulo better-sqlite3 con lazy loading
+            const DB = this.loadDatabase();
+            
+            // Verificar que better-sqlite3 se cargó correctamente
+            try {
+                const testDb = new DB(':memory:');
+                testDb.close();
+                console.log('✅ better-sqlite3 módulo funciona correctamente');
+            } catch (error) {
+                console.error('❌ Error con mejor-sqlite3:', error.message);
+                throw new Error('No se puede usar el módulo better-sqlite3: ' + error.message);
+            }
+            
             // Ruta de la base de datos en el directorio de la aplicación
             const userDataPath = app.getPath('userData');
             const dbPath = path.join(userDataPath, 'finest_mant_cuartos.db');
             
-            console.log('📁 Inicializando base de datos en:', dbPath);
+            console.log('📁 userData path:', userDataPath);
+            console.log('📁 DB path:', dbPath);
             
             // Asegurar que el directorio existe
             const dbDir = path.dirname(dbPath);
             if (!fs.existsSync(dbDir)) {
+                console.log('📁 Creando directorio:', dbDir);
                 fs.mkdirSync(dbDir, { recursive: true });
             }
             
             // Conectar a la base de datos
-            this.db = new Database(dbPath);
+            console.log('🔗 Conectando a base de datos...');
+            this.db = new DB(dbPath);
             this.db.pragma('journal_mode = WAL');
             this.db.pragma('foreign_keys = ON');
+            
+            console.log('✅ Conexión exitosa a base de datos');
             
             // Crear tablas si no existen
             await this.createTables();
@@ -44,10 +85,13 @@ class ElectronDatabaseManager {
             
             this.isInitialized = true;
             console.log('✅ Base de datos inicializada correctamente');
+            console.log('📊 Estado final - isInitialized:', this.isInitialized, 'db exists:', !!this.db);
             
             return true;
         } catch (error) {
             console.error('❌ Error inicializando base de datos:', error);
+            console.error('📋 Error stack:', error.stack);
+            this.isInitialized = false;
             throw error;
         }
     }
