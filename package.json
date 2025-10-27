@@ -32,6 +32,7 @@
     "appId": "com.jwmarriott.mantto",
     "productName": "JW Mantto",
     "copyright": "© 2024 JW Marriott",
+    "asar": false,
     "directories": {
       "output": "dist"
     },
@@ -40,9 +41,7 @@
       "!node_modules/**/*",
       "!dist/**/*",
       "!*.log",
-      "node_modules/better-sqlite3/**/*",
-      "node_modules/express/**/*",
-      "node_modules/cors/**/*"
+      "node_modules/**/*"
     ],
     "mac": {
       "icon": "icons/icon-512x512.png",

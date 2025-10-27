@@ -41,13 +41,28 @@ async function inicializarApp() {
             throw new Error('❌ Elemento listaCuartos no encontrado en el DOM');
         }
         
+        // Ejecutar diagnóstico de better-sqlite3
+        console.log('🔧 Ejecutando diagnóstico de better-sqlite3...');
+        try {
+            const diagResult = await ipcRenderer.invoke('diagnose-better-sqlite3');
+            console.log('🔧 Resultado diagnóstico:', diagResult);
+        } catch (error) {
+            console.error('❌ Error en diagnóstico:', error);
+        }
+        
         // Verificar estado de la base de datos
         console.log('💾 Verificando estado de la base de datos...');
         const dbStatus = await ipcRenderer.invoke('database-status');
-        console.log('📊 Estado de BD:', dbStatus);
+        console.log('📊 Estado de BD completo:', JSON.stringify(dbStatus, null, 2));
+        console.log('📊 dbStatus.isReady:', dbStatus?.isReady);
+        console.log('📊 Tipo de dbStatus:', typeof dbStatus);
+        console.log('📊 Llaves en dbStatus:', Object.keys(dbStatus || {}));
         
-        if (!dbStatus.isReady) {
-            throw new Error('❌ Base de datos no está lista');
+        if (!dbStatus || !dbStatus.isReady) {
+            const mensaje = !dbStatus 
+                ? '❌ Base de datos no respondió (dbStatus es null/undefined)'
+                : `❌ Base de datos no está lista: ${dbStatus.message || 'sin mensaje'}`;
+            throw new Error(mensaje);
         }
         
         // Cargar datos iniciales
