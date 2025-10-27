@@ -298,53 +298,6 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
 // RUTAS PARA SERVIR LA APLICACIÓN WEB
 // ====================================
 
-// Endpoint para procesar formularios (simular procesar.php)
-app.post('/procesar', async (req, res) => {
-    try {
-        const { accion } = req.body;
-        
-        if (accion === 'agregar_mantenimiento') {
-            const result = await dbManager.addMantenimiento(req.body);
-            
-            // Redirigir de vuelta al index con mensaje de éxito
-            res.redirect('/?success=1');
-        } else {
-            res.status(400).json({ error: 'Acción no válida' });
-        }
-    } catch (error) {
-        console.error('Error en procesar:', error);
-        res.redirect('/?error=1');
-    }
-});
-
-// Endpoint para obtener datos PHP (simular obtener_cuarto.php, etc.)
-app.get('/obtener_cuarto.php', async (req, res) => {
-    try {
-        const cuartos = await dbManager.getCuartos();
-        res.json(cuartos);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Error al obtener datos' });
-    }
-});
-
-app.get('/obtener_mantenimiento.php', async (req, res) => {
-    try {
-        const cuartoId = req.query.cuarto_id;
-        const mantenimientos = await dbManager.getMantenimientos(cuartoId);
-        res.json(mantenimientos);
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({ error: 'Error al obtener datos' });
-    }
-});
-
-// Servir index.php como archivo estático (necesitaremos convertirlo a HTML)
-app.get('/index.php', (req, res) => {
-    // Por ahora redirigir al index.html
-    res.redirect('/');
-});
-
 // Ruta principal - servir la página principal
 app.get('/', (req, res) => {
     // Servir index.html para PWA/Electron
@@ -352,8 +305,7 @@ app.get('/', (req, res) => {
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
     } else {
-        // Fallback al index.php si no existe index.html
-        res.sendFile(path.join(__dirname, 'index.php'));
+        res.status(404).send('Archivo index.html no encontrado');
     }
 });
 

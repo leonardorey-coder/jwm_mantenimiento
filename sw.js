@@ -1,15 +1,15 @@
-const CACHE_NAME = 'jwm-mant-cache-v2';
+const CACHE_NAME = 'jwm-mant-cache-v3';
 const urlsToCache = [
-  './index.html', // Cambiado a HTML
+  './index.html',
   './style.css',
   './script.js',
-  './app-loader.js', // Añadido app-loader.js
+  './app-loader.js',
   './logo_high.png',
   './logo_low.png',
   './icons/icon-192x192.png',
   './icons/icon-512x512.png',
-  './sounds/alert.mp3' // Añadido sonido
-  // No cachear procesar.php, obtener_*.php ni data.json
+  './sounds/alert.mp3'
+  // No cachear API endpoints ni data.json
 ];
 
 // Instalar el Service Worker y cachear los archivos principales
@@ -38,14 +38,13 @@ self.addEventListener('install', event => {
 self.addEventListener('fetch', event => {
   const requestUrl = new URL(event.request.url);
 
-  // No intentar cachear peticiones POST o a scripts PHP de procesamiento/obtención
-  // o el propio manifest/sw (aunque no deberían pedirse via fetch normalmente)
+  // No intentar cachear peticiones POST, API endpoints, o archivos especiales PWA
   if (event.request.method === 'POST' ||
-      requestUrl.pathname.endsWith('.php') ||
+      requestUrl.pathname.startsWith('/api/') ||
       requestUrl.pathname.endsWith('data.json') ||
       requestUrl.pathname.endsWith('manifest.json') ||
       requestUrl.pathname.endsWith('sw.js')) {
-    // Para PHP, POST y archivos PWA, siempre ir a la red
+    // Para API, POST y archivos PWA, siempre ir a la red
     event.respondWith(fetch(event.request));
     return;
   }
