@@ -5,6 +5,8 @@
 *.tmp
 *.log
 *.swp
+*.bak
+*~
 
 # Ignorar directorios típicos
 /vendor/
@@ -12,9 +14,28 @@
 
 # Directorios de build
 /dist
+/out
+
+# Archivos de prueba
+test-*.html
+test-*.js
+*.test.js
+*.spec.js
+
+# Scripts obsoletos
+*.disabled
 
 # Archivos PHP legacy (proyecto migrado a Node.js)
 *.php
 /app/
 /config/
 bootstrap.php
+
+# Base de datos de desarrollo (mantener solo schema)
+db/*.db
+db/*.sqlite
+!db/schema.sql
+
+# Logs
+storage/logs/*.log
+*.log.*
