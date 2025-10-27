@@ -11,8 +11,8 @@
     "start": "node server.js",
     "electron": "electron .",
     "electron-offline": "electron . --offline",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
-    "electron-only": "wait-on http://localhost:3000 && electron .",
+    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3001 && electron .\"",
+    "electron-only": "wait-on http://localhost:3001 && electron .",
     "build": "electron-builder",
     "dist": "electron-builder --publish=never"
   },
@@ -25,6 +25,7 @@
     "concurrently": "^7.6.0",
     "electron": "^21.0.0",
     "electron-builder": "^23.6.0",
+    "electron-rebuild": "^3.2.9",
     "wait-on": "^7.0.1"
   },
   "build": {
