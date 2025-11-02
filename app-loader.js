@@ -456,12 +456,12 @@ function generarMantenimientosHTMLSimple(mantenimientos) {
                     ${escapeHtml(mant.descripcion)}
                     ${mant.tipo === 'rutina' && (mant.hora || mant.dia_alerta) ? `
                         <span class="tiempo-rutina">
-                            ${mant.dia_alerta ? formatearFecha(mant.dia_alerta) + ' ' : ''}
+                            ${mant.dia_alerta ? 'Día ' + mant.dia_alerta + ' ' : ''}
                             ${mant.hora ? formatearHora(mant.hora) : ''}
                         </span>
                     ` : ''}
                     <span class="tiempo-registro">
-                        Registrado: ${formatearFechaCompleta(mant.fecha_registro)}
+                        Registrado: ${formatearFechaCompleta(mant.fecha_creacion || mant.fecha_registro)}
                     </span>
                 </span>
                 <div class="acciones-mantenimiento">
@@ -694,7 +694,7 @@ function mostrarRecientes() {
     
     const recientes = mantenimientos
         .filter(m => m.tipo === 'normal')
-        .sort((a, b) => new Date(b.fecha_registro) - new Date(a.fecha_registro))
+        .sort((a, b) => new Date(b.fecha_creacion || b.fecha_registro) - new Date(a.fecha_creacion || a.fecha_registro))
         .slice(0, 5);
     
     console.log('Mantenimientos recientes filtrados:', recientes.length);
@@ -720,7 +720,7 @@ function mostrarRecientes() {
                     ${escapeHtml(mantenimiento.descripcion)}
                 </span>
                 <span class="reciente-fecha">
-                    ${formatearFechaCompleta(mantenimiento.fecha_registro)}
+                    ${formatearFechaCompleta(mantenimiento.fecha_creacion || mantenimiento.fecha_registro)}
                 </span>
             </span>
             <button class="boton-ir-rutina" onclick="scrollToCuarto(${mantenimiento.cuarto_id})" title="Ir al cuarto">&#10148;</button>
@@ -745,24 +745,25 @@ function mostrarAlertasEmitidas() {
     
     // Usar fecha local actual (no UTC) para comparación
     const ahora = new Date();
-    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+    const diaHoy = ahora.getDate(); // Solo el número del día (1-31)
+    const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(diaHoy).padStart(2, '0')}`;
     
-    console.log(`📅 Fecha para buscar alertas emitidas: ${hoy} (local actual)`);
+    console.log(`📅 Fecha para buscar alertas emitidas: ${hoy} - Día ${diaHoy} (local actual)`);
     
     // Buscar SOLO alertas emitidas hoy (tanto marcadas en BD como en memoria)
     const alertasEmitidasBD = mantenimientos.filter(m => {
         const cumpleCondicion = m.tipo === 'rutina' && 
-            m.dia_alerta === hoy &&
-            (m.alerta_emitida === 1 || alertasEmitidas.has(m.id)); // BD o memoria
+            m.dia_alerta === diaHoy && // Comparar número con número
+            (m.alerta_emitida === true || m.alerta_emitida === 1 || alertasEmitidas.has(m.id)); // BD o memoria
         
-        if (m.tipo === 'rutina' && m.dia_alerta === hoy) {
+        if (m.tipo === 'rutina' && m.dia_alerta === diaHoy) {
             console.log(`🔍 Rutina ID${m.id}: día=${m.dia_alerta}, emitida=${m.alerta_emitida}, en_memoria=${alertasEmitidas.has(m.id)}, cumple=${cumpleCondicion}`);
         }
         
         return cumpleCondicion;
     });
     
-    console.log(`📋 Alertas emitidas hoy (${hoy}):`, alertasEmitidasBD.length, 
+    console.log(`📋 Alertas emitidas hoy (Día ${diaHoy}):`, alertasEmitidasBD.length, 
         'IDs:', alertasEmitidasBD.map(a => `${a.id}(${a.alerta_emitida ? 'BD' : 'MEM'})`));
     
     if (alertasEmitidasBD.length === 0) {
@@ -788,7 +789,7 @@ function mostrarAlertasEmitidas() {
                 <div class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</div>
                 <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
                 <div class="alerta-fechas">
-                    <div class="fecha-registro">Registrado: ${alerta.fecha_registro ? formatearFechaCompleta(alerta.fecha_registro) : 'N/A'}</div>
+                    <div class="fecha-registro">Registrado: ${alerta.fecha_creacion || alerta.fecha_registro ? formatearFechaCompleta(alerta.fecha_creacion || alerta.fecha_registro) : 'N/A'}</div>
                     <div class="fecha-emision">Emitido: ${alerta.fecha_emision ? formatearHora(alerta.fecha_emision) : 'Pendiente'}</div>
                 </div>
             `;
@@ -1333,10 +1334,10 @@ async function verificarYEmitirAlertas() {
     try {
         const ahora = new Date();
         const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
-        // Usar fecha local en lugar de UTC
-        const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+        const diaActual = ahora.getDate(); // Solo el número del día (1-31)
+        const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(diaActual).padStart(2, '0')}`;
         
-        console.log(`🕒 Verificando alertas - ${fechaActual} ${horaActual}`);
+        console.log(`🕒 Verificando alertas - Día ${diaActual} ${horaActual} (${fechaActual})`);
         
         // Debug: mostrar todas las rutinas disponibles
         const todasLasRutinas = mantenimientos.filter(m => m.tipo === 'rutina');
@@ -1350,17 +1351,23 @@ async function verificarYEmitirAlertas() {
             
             // Verificar si ya fue emitida
             if (m.alerta_emitida || alertasEmitidas.has(m.id)) {
+                console.log(`⏭️ ID${m.id} ya emitida (alerta_emitida=${m.alerta_emitida}, en Set=${alertasEmitidas.has(m.id)})`);
                 return false;
             }
             
-            // Verificar si es el día correcto
-            if (m.dia_alerta !== fechaActual) {
+            // Verificar si es el día correcto (comparar número con número)
+            if (m.dia_alerta !== diaActual) {
                 return false;
             }
             
-            // Verificar si es la hora correcta (con tolerancia de 1 minuto)
-            const horaAlerta = m.hora;
-            return horaAlerta === horaActual;
+            // Verificar si es la hora correcta (extraer solo HH:MM de ambos)
+            const horaAlerta = m.hora.slice(0, 5); // "03:14:00" → "03:14"
+            const coincide = horaAlerta === horaActual;
+            
+            // Log detallado para rutinas del día actual
+            console.log(`🔍 ID${m.id} - Día:${m.dia_alerta}=${diaActual}✅ Hora:"${horaAlerta}"="${horaActual}"${coincide?'✅':'❌'} - ${m.descripcion}`);
+            
+            return coincide;
         });
         
         console.log(`📢 Alertas por notificar: ${alertasPorNotificar.length}`);
