@@ -14,12 +14,17 @@
     "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3001 && electron .\"",
     "electron-only": "wait-on http://localhost:3001 && electron .",
     "build": "electron-builder",
-    "dist": "electron-builder --publish=never"
+    "dist": "electron-builder --publish=never",
+    "migrate": "node scripts/migrate-sqlite-to-postgres.js",
+    "migrate:clean": "node scripts/migrate-sqlite-to-postgres.js --clean",
+    "setup:postgres": "./scripts/setup-postgres.sh"
   },
   "dependencies": {
     "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "pg": "^8.13.1"
   },
   "devDependencies": {
     "concurrently": "^7.6.0",

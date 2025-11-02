@@ -2,12 +2,12 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const DatabaseManager = require('./db/better-sqlite-manager');
+const PostgresManager = require('./db/postgres-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3001; // Cambiado a 3001 para coincidir con Electron
 
-// Inicializar base de datos SQLite
+// Inicializar base de datos PostgreSQL
 let dbManager;
 
 // Inicializar la aplicación
@@ -17,13 +17,13 @@ async function initializeApp() {
     console.log('🌐 Puerto configurado:', PORT);
     
     try {
-        console.log('🗄️ Inicializando base de datos SQLite...');
-        dbManager = new DatabaseManager();
+        console.log('🗄️ Inicializando base de datos PostgreSQL...');
+        dbManager = new PostgresManager();
         await dbManager.initialize();
-        console.log('✅ Base de datos SQLite inicializada correctamente');
+        console.log('✅ Base de datos PostgreSQL inicializada correctamente');
     } catch (error) {
         console.error('❌ Error inicializando la base de datos:', error);
-        console.log('🔄 Continuando sin base de datos SQLite - usando datos mock');
+        console.log('🔄 Continuando sin base de datos PostgreSQL - usando datos mock');
         dbManager = null; // Indica que no tenemos base de datos disponible
     }
 }
@@ -175,19 +175,32 @@ app.post('/api/mantenimientos', async (req, res) => {
         console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta });
         
         if (dbManager) {
+            // Convertir dia_alerta de fecha completa a solo el día (1-31)
+            let diaAlertaNumero = null;
+            if (dia_alerta) {
+                if (typeof dia_alerta === 'string' && dia_alerta.includes('-')) {
+                    // Si es una fecha completa "2025-10-30", extraer solo el día del string
+                    const partes = dia_alerta.split('-');
+                    diaAlertaNumero = parseInt(partes[2]); // El día es la tercera parte
+                } else {
+                    // Si ya es un número, usarlo directamente
+                    diaAlertaNumero = parseInt(dia_alerta);
+                }
+            }
+            
             // Usar insertMantenimiento en lugar de createMantenimiento
             const dataMantenimiento = {
                 cuarto_id: parseInt(cuarto_id),
                 descripcion,
                 tipo,
                 hora: hora || null,
-                dia_alerta: dia_alerta || null,
+                dia_alerta: diaAlertaNumero,
                 fecha_solicitud: new Date().toISOString().split('T')[0],
                 estado: 'pendiente'
             };
             
             const nuevoMantenimiento = await dbManager.insertMantenimiento(dataMantenimiento);
-            console.log('✅ Mantenimiento SQLite creado:', nuevoMantenimiento);
+            console.log('✅ Mantenimiento PostgreSQL creado:', nuevoMantenimiento);
             res.status(201).json(nuevoMantenimiento);
         } else {
             console.error('❌ Base de datos no disponible');
@@ -209,10 +222,23 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
         console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta });
         
         if (dbManager) {
+            // Convertir dia_alerta de fecha completa a solo el día (1-31)
+            let diaAlertaNumero = null;
+            if (dia_alerta) {
+                if (typeof dia_alerta === 'string' && dia_alerta.includes('-')) {
+                    // Si es una fecha completa "2025-10-30", extraer solo el día del string
+                    const partes = dia_alerta.split('-');
+                    diaAlertaNumero = parseInt(partes[2]); // El día es la tercera parte
+                } else {
+                    // Si ya es un número, usarlo directamente
+                    diaAlertaNumero = parseInt(dia_alerta);
+                }
+            }
+            
             await dbManager.updateMantenimiento(mantenimientoId, {
                 descripcion,
                 hora: hora || null,
-                dia_alerta: dia_alerta || null
+                dia_alerta: diaAlertaNumero
             });
             
             res.json({ 
@@ -338,7 +364,7 @@ initializeApp().then(() => {
     const server = app.listen(PORT, () => {
         console.log('✅ Servidor ejecutándose en http://localhost:' + PORT);
         console.log('🏨 JW Mantto - Sistema local de mantenimiento iniciado');
-        console.log('📊 Estado de la base de datos:', dbManager ? 'SQLite conectado' : 'Modo mock');
+        console.log('📊 Estado de la base de datos:', dbManager ? 'PostgreSQL conectado' : 'Modo mock');
         console.log('📄 Archivos estáticos servidos desde:', __dirname);
     });
     
