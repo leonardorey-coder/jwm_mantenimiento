@@ -1,7 +1,7 @@
 {
   "name": "JW Mantto",
   "short_name": "JW Mantto",
-  "description": "Registro de Mantenimiento de Cuartos JW Marriott",
+  "description": "Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y Espacios Comunes",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

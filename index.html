@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>JW Mantto</title>
+    <title>JW Marriott - Sistema de Mantenimiento</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="style.css">
     
@@ -17,7 +17,7 @@
     <link rel="shortcut icon" href="icons/favicon.ico">
     
     <!-- Meta tags para PWA -->
-    <meta name="theme-color" content="#3498db">
+    <meta name="theme-color" content="#1E1E1E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="JW Mantto">
@@ -26,213 +26,1158 @@
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
-    <link rel="mask-icon" href="icons/safari-pinned-tab.svg" color="#3498db">
+    <link rel="mask-icon" href="icons/safari-pinned-tab.svg" color="#1E1E1E">
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
-    <meta name="theme-color" content="#3498db">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="JW Mantto">
     <meta name="application-name" content="JW Mantto">
+    
+    <!-- CDN Libraries -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 </head>
 <body>
-    <header>
-        <div class="logo logo-high">
-            <img src="logo_high.png" alt="Logo grande del Hotel">
-        </div>
-        <div class="logo logo-low">
-            <img src="logo_low.png" alt="Logo pequeño del Hotel">
+    <!-- Header Premium -->
+    <header class="premium-header">
+        <div class="header-content">
+            <!-- Logo Premium -->
+            <div class="logo">
+                <img src="logo_low.png" alt="JW Marriott Los Cabos" class="logo-high">
+            </div>
+
+            <!-- Navigation Menu - Dentro del header en desktop, abajo en móviles -->
+            <nav class="premium-nav">
+                <div class="menu">
+                    <a href="#" class="link active" data-tab="habitaciones" id="nav-habitaciones">
+                        <div class="link-icon">
+                            <i class="fas fa-bed"></i>
+                        </div>
+                        <div class="link-title">
+                            <span>Habitaciones</span>
+                        </div>
+                    </a>
+
+                    <a href="#" class="link" data-tab="espacios" id="nav-espacios">
+                        <div class="link-icon">
+                            <i class="fas fa-building"></i>
+                        </div>
+                        <div class="link-title">
+                            <span>Espacios Comunes</span>
+                        </div>
+                    </a>
+
+                    <a href="#" class="link" data-tab="sabana" id="nav-sabana">
+                        <div class="link-icon">
+                            <i class="fas fa-filter"></i>
+                        </div>
+                        <div class="link-title">
+                            <span>Sábana</span>
+                        </div>
+                    </a>
+
+                    <a href="#" class="link" data-tab="checklist" id="nav-checklist">
+                        <div class="link-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="link-title">
+                            <span>Checklist</span>
+                        </div>
+                    </a>
+
+                    <a href="#" class="link admin-only" data-tab="usuarios" id="nav-usuarios">
+                        <div class="link-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <div class="link-title">
+                            <span>Usuarios</span>
+                        </div>
+                    </a>
+                </div>
+            </nav>
+
+            <!-- Controles de usuario y tema -->
+            <div class="header-controls">
+                <!-- Switch de tema -->
+                <button id="themeToggle" class="theme-toggle-header" title="Cambiar tema">
+                    <i class="fas fa-moon"></i>
+                </button>
+
+                <!-- Info de usuario -->
+                <div class="user-info">
+                    <div>
+                        <span class="user-name" id="userName">Usuario</span>
+                        <span class="user-role" id="userRole">Rol</span>
+                    </div>
+                </div>
+
+                <!-- Botón de cerrar sesión -->
+                <button id="logoutBtn" class="logout-btn" title="Cerrar sesión">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </div>
     </header>
-    
-    <div class="contenedor">
-        <h1 class="titulos t-principal">Registro de Mantenimiento Habitaciones</h1>
-        <h1 class="titulos t-secundario">Gerencia de Mantenimiento</h1>
 
-        <!-- Estructura de vista duo -->
-        <div class="vista-duo">
-            <!-- Columna izquierda (3/4) - Lista de cuartos -->
-            <div class="columna columna-principal">
-                <!-- Panel de búsqueda y filtros -->
-                <div class="panel panel-filtros">
-                    <div class="busqueda-filtros">
-                        <div class="campo-busqueda">
-                            <i class="icono-busqueda">🔍</i>
-                            <input type="text" id="buscarCuarto" placeholder="Buscar cuarto...">
+    <!-- Navigation Menu Móvil - Abajo en móviles -->
+    <nav class="premium-nav-mobile">
+        <div class="menu">
+            <a href="#" class="link active" data-tab="habitaciones" id="nav-habitaciones-mobile">
+                <div class="link-icon">
+                    <i class="fas fa-bed"></i>
+                </div>
+                <div class="link-title">
+                    <span>Habitaciones</span>
+                </div>
+            </a>
+
+            <a href="#" class="link" data-tab="espacios" id="nav-espacios-mobile">
+                <div class="link-icon">
+                    <i class="fas fa-building"></i>
+                </div>
+                <div class="link-title">
+                    <span>Espacios Comunes</span>
+                </div>
+            </a>
+
+            <a href="#" class="link" data-tab="sabana" id="nav-sabana-mobile">
+                <div class="link-icon">
+                    <i class="fas fa-filter"></i>
+                </div>
+                <div class="link-title">
+                    <span>Sábana</span>
+                </div>
+            </a>
+
+            <a href="#" class="link" data-tab="checklist" id="nav-checklist-mobile">
+                <div class="link-icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <div class="link-title">
+                    <span>Checklist</span>
+                </div>
+            </a>
+
+            <a href="#" class="link admin-only" data-tab="usuarios" id="nav-usuarios-mobile">
+                <div class="link-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <div class="link-title">
+                    <span>Usuarios</span>
+                </div>
+            </a>
+        </div>
+    </nav>
+
+    <div class="contenedor">
+        <!-- Tab Content: Habitaciones -->
+        <div class="tab-content active" id="tab-habitaciones" data-aos="fade-in">
+            <h1 class="titulos t-principal">Sistema de Gestión de Mantenimiento</h1>
+            <h2 class="titulos t-secundario">Gerencia de Mantenimiento · JW Marriott</h2>
+
+            <!-- Estructura de vista duo -->
+            <div class="vista-duo">
+                <!-- Columna izquierda (3/4) - Lista de cuartos -->
+                <div class="columna columna-principal">
+                    <!-- Panel de búsqueda y filtros -->
+                    <div class="panel panel-filtros" data-aos="fade-down">
+                        <div class="busqueda-filtros">
+                            <div class="campo-busqueda premium-search">
+                                <i class="fas fa-search icono-busqueda"></i>
+                                <input type="text" id="buscarCuarto" placeholder="Buscar habitación...">
+                            </div>
+                            <div class="campo-busqueda premium-search">
+                                <i class="fas fa-tools icono-busqueda"></i>
+                                <input type="text" id="buscarAveria" placeholder="Buscar por tipo...">
+                            </div>
+                            <div class="select-container premium-select">
+                                <select id="filtroEdificio" name="edificio">
+                                    <option value="">Todos los edificios</option>
+                                    <!-- Los edificios se cargarán dinámicamente -->
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
                         </div>
-                        <div class="campo-busqueda">
-                            <i class="icono-busqueda">🔧</i>
-                            <input type="text" id="buscarAveria" placeholder="Buscar por avería...">
+                    </div>
+                    
+                    <ul class="lista-cuartos brutalist-grid" id="listaCuartos">
+                        <!-- Los cuartos se cargarán dinámicamente con sus mantenimientos -->
+                        <li class="mensaje-cargando">
+                            <div class="loader-wrapper">
+                                <span class="loader-letter">C</span>
+                                <span class="loader-letter">a</span>
+                                <span class="loader-letter">r</span>
+                                <span class="loader-letter">g</span>
+                                <span class="loader-letter">a</span>
+                                <span class="loader-letter">n</span>
+                                <span class="loader-letter">d</span>
+                                <span class="loader-letter">o</span>
+                                <div class="loader"></div>
+                            </div>
+                        </li>
+                    </ul>
+                    <div class="habitaciones-pagination" id="habitacionesPagination" aria-live="polite"></div>
+                    <!-- Mensaje para cuando no hay resultados de búsqueda/filtro -->
+                    <div id="mensajeNoResultados" class="mensaje-no-cuartos" style="display: none; margin-top: 20px;">
+                        <i class="fas fa-search"></i>
+                        <p>No se encontraron habitaciones con los criterios seleccionados</p>
+                    </div>
+                </div>
+
+                <!-- Columna derecha (1/4) - Formulario para agregar mantenimientos -->
+                <div class="columna columna-lateral">
+                    <!-- Panel para registrar nuevo mantenimiento -->
+                    <div class="panel formulario-mantenimiento-lateral brutalist-card" data-aos="fade-left">
+                        <div class="brutalist-card__header">
+                            <div class="brutalist-card__icon">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div class="brutalist-card__alert">Registrar</div>
                         </div>
-                        <div class="select-container">
-                            <select id="filtroEdificio" name="edificio">
-                                <option value="">Todos los edificios</option>
-                                <!-- Los edificios se cargarán dinámicamente -->
-                            </select>
-                            <i class="icono-select">▼</i>
+                        
+                        <form id="formAgregarMantenimientoLateral" action="/procesar" method="POST" class="brutalist-card__form">
+                            <input type="hidden" name="accion" value="agregar_mantenimiento">
+
+                            <div class="select-container premium-select" style="margin-bottom: 15px;">
+                                <select id="cuartoMantenimientoLateral" name="cuarto_id" required class="brutalist-input">
+                                    <option value="">-- Seleccionar Habitación --</option>
+                                    <!-- Los cuartos se cargarán dinámicamente -->
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+
+                            <!-- Switch Premium para Tipo -->
+                            <div class="checkbox-wrapper-35" style="margin-bottom: 20px;">
+                                <input value="private" name="switch" id="tipoMantenimientoSwitchLateral" type="checkbox" class="switch" onchange="handleTipoSwitchChange(this)">
+                                <label for="tipoMantenimientoSwitchLateral">
+                                    <span class="switch-x-text">Tipo: </span>
+                                    <span class="switch-x-toggletext">
+                                        <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Tipo: </span>Avería</span>
+                                        <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Tipo: </span>Alerta</span>
+                                    </span>
+                                </label>
+                                <input type="hidden" name="tipo" id="tipoHiddenLateral" value="normal">
+                            </div>
+
+                            <input type="text" id="descripcionMantenimientoLateral" name="descripcion" placeholder="Descripción del servicio" required class="brutalist-input" style="margin-bottom: 15px;">
+
+                            <!-- Campos de Alerta (se muestran solo cuando el switch está en Alerta) -->
+                            <div class="alerta-fields" id="alertaFieldsContainer" style="display: none;">
+                                <div class="input-group">
+                                    <label for="horaRutinaLateral">
+                                        <i class="fas fa-clock"></i> Hora de la Alerta
+                                    </label>
+                                    <input type="time" id="horaRutinaLateral" name="hora" class="brutalist-input">
+                                </div>
+
+                                <div class="input-group">
+                                    <label for="diaAlertaLateral">
+                                        <i class="fas fa-calendar-alt"></i> Día de la Alerta
+                                    </label>
+                                    <input type="date" id="diaAlertaLateral" name="dia_alerta" class="brutalist-input">
+                                </div>
+                                
+                                <!-- Semáforo Compacto Integrado -->
+                                <div class="semaforo-compact" style="margin-top: 15px;">
+                                    <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; color: #78768d; font-weight: 600;">
+                                        <i class="fas fa-traffic-light"></i> Nivel de Alerta
+                                    </label>
+                                    <div class="semaforo-horizontal-compact">
+                                        <label class="semaforo-label-compact semaforo-green">
+                                            <input type="radio" name="nivel_alerta" value="baja" class="semaforo-input" checked>
+                                            <span class="semaforo-light-compact"></span>
+                                            <span class="semaforo-text-compact">Baja</span>
+                                        </label>
+                                        <label class="semaforo-label-compact semaforo-yellow">
+                                            <input type="radio" name="nivel_alerta" value="media" class="semaforo-input">
+                                            <span class="semaforo-light-compact"></span>
+                                            <span class="semaforo-text-compact">Media</span>
+                                        </label>
+                                        <label class="semaforo-label-compact semaforo-red">
+                                            <input type="radio" name="nivel_alerta" value="alta" class="semaforo-input">
+                                            <span class="semaforo-light-compact"></span>
+                                            <span class="semaforo-text-compact">Alta</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btnRegistrarMantenimiento" class="brutalist-card__button brutalist-card__button--read">Registrar Servicio</button>
+                        </form>
+                    </div>
+
+                    <!-- Panel de Vista Rápida de Alertas -->
+                    <div class="panel panel-vista-rutinas gradient-card" data-aos="fade-left" data-aos-delay="100">
+                        <h2><i class="fas fa-bell"></i> Alertas Programadas</h2>
+                        <ul class="lista-vista-rutinas" id="listaVistaRutinas">
+                            <!-- Las alertas se cargarán dinámicamente -->
+                            <li class="mensaje-cargando">Cargando alertas...</li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel de Mantenimientos Recientes -->
+                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-left" data-aos-delay="200">
+                        <h2><i class="fas fa-history"></i> Actividad Reciente</h2>
+                        <ul class="lista-vista-recientes" id="listaVistaRecientes">
+                            <!-- Los mantenimientos recientes se cargarán dinámicamente -->
+                            <li class="mensaje-cargando">Cargando...</li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel de Alertas Emitidas -->
+                    <div class="panel panel-alertas-emitidas gradient-card" data-aos="fade-left" data-aos-delay="300">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Alertas del Día</h2>
+                        <ul class="lista-alertas-emitidas" id="listaAlertasEmitidas">
+                            <!-- Las alertas emitidas se cargarán aquí por JavaScript -->
+                        </ul>
+                        <p id="mensaje-no-alertas-emitidas" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                            <i class="fas fa-check-circle"></i> No hay alertas pendientes
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Content: Espacios Comunes -->
+        <div class="tab-content" id="tab-espacios" data-aos="fade-in">
+            <h1 class="titulos t-principal">Bitácora de Espacios Comunes</h1>
+            <h2 class="titulos t-secundario">Control de Áreas Públicas · JW Marriott</h2>
+            
+            <!-- Estructura de vista duo (igual que Habitaciones) -->
+            <div class="vista-duo">
+                <!-- Columna izquierda (3/4) - Lista de espacios -->
+                <div class="columna columna-principal">
+                    <!-- Panel de búsqueda y filtros -->
+                    <div class="panel panel-filtros" data-aos="fade-down">
+                        <div class="busqueda-filtros">
+                            <div class="campo-busqueda premium-search">
+                                <i class="fas fa-search icono-busqueda"></i>
+                                <input type="text" id="buscarEspacio" placeholder="Buscar espacio...">
+                            </div>
+                            <div class="campo-busqueda premium-search">
+                                <i class="fas fa-tools icono-busqueda"></i>
+                                <input type="text" id="buscarServicioEspacio" placeholder="Buscar por servicio...">
+                            </div>
+                            <div class="select-container premium-select">
+                                <select id="filtroTipoEspacio" name="tipo_espacio">
+                                    <option value="">Todos los espacios</option>
+                                    <option value="comun">Áreas Comunes</option>
+                                    <option value="recreativo">Recreación</option>
+                                    <option value="eventos">Eventos</option>
+                                    <option value="servicios">Servicios</option>
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Grid de Espacios Comunes -->
+                    <div class="bitacora-espacios-grid" data-aos="fade-up">
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-door-open"></i>
+                                <h3>Lobby Principal</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 08:00 AM</span>
+                                    <span class="bitacora-desc">Limpieza profunda y desinfección</span>
+                                </div>
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 14:30 PM</span>
+                                    <span class="bitacora-desc">Revisión de iluminación</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-utensils"></i>
+                                <h3>Restaurante</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 06:00 AM</span>
+                                    <span class="bitacora-desc">Preparación de área</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-swimming-pool"></i>
+                                <h3>Área de Piscina</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 07:00 AM</span>
+                                    <span class="bitacora-desc">Limpieza y tratamiento de agua</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-dumbbell"></i>
+                                <h3>Gimnasio</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 06:30 AM</span>
+                                    <span class="bitacora-desc">Desinfección de equipos</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-spa"></i>
+                                <h3>Spa & Wellness</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 07:30 AM</span>
+                                    <span class="bitacora-desc">Preparación y limpieza</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bitacora-card gradient-card">
+                            <div class="bitacora-header">
+                                <i class="fas fa-glass-cheers"></i>
+                                <h3>Salones de Eventos</h3>
+                            </div>
+                            <div class="bitacora-content">
+                                <div class="bitacora-item">
+                                    <span class="bitacora-time"><i class="far fa-clock"></i> 09:00 AM</span>
+                                    <span class="bitacora-desc">Revisión de instalaciones</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
-                
-                <ul class="lista-cuartos" id="listaCuartos">
-                    <!-- Los cuartos se cargarán dinámicamente con sus mantenimientos -->
-                    <li class="mensaje-cargando">Cargando cuartos...</li>
-                </ul>
-                <!-- Mensaje para cuando no hay resultados de búsqueda/filtro -->
-                <div id="mensajeNoResultados" class="mensaje-no-cuartos" style="display: none; margin-top: 20px;">
-                    No se encontraron cuartos que coincidan con los criterios de búsqueda o filtro.
+
+                <!-- Columna derecha (1/4) - Formulario y controles -->
+                <div class="columna columna-lateral">
+                    <!-- Panel de Registro con Semáforo Integrado -->
+                    <div class="panel formulario-mantenimiento-lateral brutalist-card" data-aos="fade-left">
+                        <div class="brutalist-card__header">
+                            <div class="brutalist-card__icon">
+                                <i class="fas fa-clipboard-list"></i>
+                            </div>
+                            <div class="brutalist-card__alert">Registrar Servicio</div>
+                        </div>
+                        
+                        <form class="brutalist-card__form espacios-form-content">
+                            <div class="select-container premium-select" style="margin-bottom: 15px;">
+                                <select class="brutalist-input" required>
+                                    <option value="">-- Seleccionar Área --</option>
+                                    <option value="lobby">Lobby Principal</option>
+                                    <option value="restaurante">Restaurante</option>
+                                    <option value="gym">Gimnasio</option>
+                                    <option value="piscina">Área de Piscina</option>
+                                    <option value="spa">Spa & Wellness</option>
+                                    <option value="salon">Salones de Eventos</option>
+                                    <option value="estacionamiento">Estacionamiento</option>
+                                    <option value="jardines">Jardines</option>
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+                            
+                            <input type="text" placeholder="Descripción del servicio" class="brutalist-input" required style="margin-bottom: 15px;">
+                            
+                            <textarea placeholder="Observaciones adicionales" class="brutalist-input" rows="3" style="margin-bottom: 15px;"></textarea>
+                            
+                            <!-- Semáforo Compacto Integrado -->
+                            <div class="semaforo-compact">
+                                <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; color: #78768d; font-weight: 600;">
+                                    <i class="fas fa-traffic-light"></i> Nivel de Alerta
+                                </label>
+                                <div class="semaforo-horizontal-compact">
+                                    <label class="semaforo-label-compact semaforo-green">
+                                        <input type="radio" name="semaforo" class="semaforo-input" checked>
+                                        <span class="semaforo-light-compact"></span>
+                                        <span class="semaforo-text-compact">Baja</span>
+                                    </label>
+                                    <label class="semaforo-label-compact semaforo-yellow">
+                                        <input type="radio" name="semaforo" class="semaforo-input">
+                                        <span class="semaforo-light-compact"></span>
+                                        <span class="semaforo-text-compact">Media</span>
+                                    </label>
+                                    <label class="semaforo-label-compact semaforo-red">
+                                        <input type="radio" name="semaforo" class="semaforo-input">
+                                        <span class="semaforo-light-compact"></span>
+                                        <span class="semaforo-text-compact">Alta</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <input type="text" id="responsableSemaforo" class="brutalist-input" placeholder="Responsable" style="margin-bottom: 15px; margin-top: 15px;">
+                            
+                            <button type="submit" class="brutalist-card__button brutalist-card__button--read">
+                                Registrar Servicio
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Panel de Estadísticas Compacto -->
+                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-left" data-aos-delay="100">
+                        <h2><i class="fas fa-chart-bar"></i> Estadísticas</h2>
+                        <div class="estadisticas-compact">
+                            <div class="estadistica-item-compact">
+                                <span class="estadistica-label">Total</span>
+                                <span class="estadistica-valor" id="totalEspacios">8</span>
+                            </div>
+                            <div class="estadistica-item-compact">
+                                <span class="estadistica-label">Disponibles</span>
+                                <span class="estadistica-valor disponible" id="espaciosDisponibles">6</span>
+                            </div>
+                            <div class="estadistica-item-compact">
+                                <span class="estadistica-label">En Mantto.</span>
+                                <span class="estadistica-valor mantenimiento" id="espaciosMantenimiento">1</span>
+                            </div>
+                            <div class="estadistica-item-compact">
+                                <span class="estadistica-label">Fuera Serv.</span>
+                                <span class="estadistica-valor fuera" id="espaciosFuera">1</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-
-            <!-- Columna derecha (1/4) - Formulario para agregar mantenimientos -->
-            <div class="columna columna-lateral">
-                <!-- Panel para registrar nuevo mantenimiento -->
-                <div class="panel formulario-mantenimiento-lateral">
-                    <h2>Registrar Mantenimiento</h2>
-                    <form id="formAgregarMantenimientoLateral" action="/procesar" method="POST">
-                        <input type="hidden" name="accion" value="agregar_mantenimiento">
-
-                        <div class="select-container" style="margin-bottom: 15px;">
-                            <select id="cuartoMantenimientoLateral" name="cuarto_id" required>
-                                <option value="">-- Seleccionar Cuarto --</option>
-                                <!-- Los cuartos se cargarán dinámicamente -->
-                            </select>
-                            <i class="icono-select">▼</i>
+        </div>
+        
+        <!-- Tab Content: Registro de Filtros -->
+        <div class="tab-content" id="tab-filtros" data-aos="fade-in">
+            <h1 class="titulos t-principal">Registro de Cambio de Filtros</h1>
+            <h2 class="titulos t-secundario">Control Semestral · JW Marriott</h2>
+            
+            <div class="filtros-container">
+                <!-- Bitácora de Filtros Card -->
+                <div class="filtros-bitacora-card" data-aos="zoom-in">
+                    <div class="filtros-bitacora-header">
+                        <h2 class="filtros-bitacora-title">
+                            <i class="fas fa-clipboard-list"></i> Bitácora de Filtros
+                        </h2>
+                        <div class="filtros-bitacora-periodo">
+                            <i class="fas fa-calendar-alt"></i> Enero - Junio 2025
+                            <div style="font-size: 0.8rem; margin-top: 0.3rem; opacity: 0.9;">
+                                <i class="fas fa-clock"></i> Próximo cambio: <span id="filtroTimer">180 días</span>
+                            </div>
                         </div>
+                    </div>
+                    
+                    <!-- Tabla de Filtros -->
+                    <div class="filtros-table-wrapper">
+                        <table class="filtros-table">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-door-closed"></i> Habitación</th>
+                                    <th><i class="fas fa-calendar"></i> Última Revisión</th>
+                                    <th><i class="fas fa-filter"></i> Tipo de Filtro</th>
+                                    <th><i class="fas fa-info-circle"></i> Estado</th>
+                                    <th><i class="fas fa-calendar-check"></i> Próximo Cambio</th>
+                                    <th><i class="fas fa-user"></i> Responsable</th>
+                                </tr>
+                            </thead>
+                            <tbody id="filtrosTableBody">
+                                <tr>
+                                    <td>101</td>
+                                    <td>05/11/2025</td>
+                                    <td>HEPA Premium</td>
+                                    <td><span class="filtro-estado bueno">Bueno</span></td>
+                                    <td>05/05/2026</td>
+                                    <td>Juan Pérez</td>
+                                </tr>
+                                <tr>
+                                    <td>102</td>
+                                    <td>05/11/2025</td>
+                                    <td>HEPA Premium</td>
+                                    <td><span class="filtro-estado bueno">Bueno</span></td>
+                                    <td>05/05/2026</td>
+                                    <td>Juan Pérez</td>
+                                </tr>
+                                <tr>
+                                    <td>103</td>
+                                    <td>03/11/2025</td>
+                                    <td>HEPA Standard</td>
+                                    <td><span class="filtro-estado revisar">Revisar</span></td>
+                                    <td>03/05/2026</td>
+                                    <td>María López</td>
+                                </tr>
+                                <tr>
+                                    <td>201</td>
+                                    <td>01/11/2025</td>
+                                    <td>HEPA Premium</td>
+                                    <td><span class="filtro-estado cambiar">Cambiar</span></td>
+                                    <td>01/05/2026</td>
+                                    <td>Carlos Ruiz</td>
+                                </tr>
+                                <tr>
+                                    <td>202</td>
+                                    <td>05/11/2025</td>
+                                    <td>HEPA Premium</td>
+                                    <td><span class="filtro-estado bueno">Bueno</span></td>
+                                    <td>05/05/2026</td>
+                                    <td>Juan Pérez</td>
+                                </tr>
+                                <tr>
+                                    <td>203</td>
+                                    <td>04/11/2025</td>
+                                    <td>HEPA Standard</td>
+                                    <td><span class="filtro-estado bueno">Bueno</span></td>
+                                    <td>04/05/2026</td>
+                                    <td>María López</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Botones de Acción -->
+                    <div class="filtros-actions-container">
+                        <button class="filtros-action-button excel" onclick="exportarFiltrosExcel()">
+                            <i class="fas fa-file-excel"></i>
+                            <div>
+                                <div style="font-weight: 700;">Exportar Excel</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Descargar bitácora completa</div>
+                            </div>
+                        </button>
+                        
+                        <button class="filtros-action-button archive" onclick="archivarPeriodo()">
+                            <i class="fas fa-archive"></i>
+                            <div>
+                                <div style="font-weight: 700;">Archivar Periodo</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Guardar periodo anterior</div>
+                            </div>
+                        </button>
+                        
+                        <button class="filtros-action-button history" onclick="verHistorialFiltros()">
+                            <i class="fas fa-history"></i>
+                            <div>
+                                <div style="font-weight: 700;">Ver Historial</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Consultar periodos anteriores</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                        <!-- Reemplazo de Radio Buttons por Switch -->
-                        <div class="switch-container" style="margin-bottom: 15px; display: flex; align-items: center;">
-                            <label for="tipoMantenimientoSwitchLateral" class="switch-label-container">
-                                <div class="switch">
-                                    <input type="checkbox" id="tipoMantenimientoSwitchLateral" onchange="handleTipoSwitchChange(this)">
-                                    <span class="slider round"></span>
+        <!-- Tab Content: Inspecciones -->
+        <div class="tab-content" id="tab-inspecciones" data-aos="fade-in">
+            <h1 class="titulos t-principal">Sistema de Inspecciones</h1>
+            <h2 class="titulos t-secundario">Control de Calidad · JW Marriott</h2>
+            
+            <!-- Estructura de vista duo (igual que Habitaciones) -->
+            <div class="vista-duo">
+                <!-- Columna izquierda (3/4) - Área de contenido dinámico -->
+                <div class="columna columna-principal">
+                    <!-- Lista de Inspecciones Recientes -->
+                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-up">
+                        <h2><i class="fas fa-clipboard-list"></i> Inspecciones Recientes</h2>
+                        <ul class="lista-vista-recientes">
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>101 - Revisión Aire Acondicionado</strong>
+                                    <span class="item-tecnico">Juan Pérez</span>
                                 </div>
-                                <span id="switchLabelLateral" style="font-weight: bold;">Avería</span>
-                            </label>
-                            <!-- Campo oculto para enviar el valor 'normal' o 'rutina' -->
-                            <input type="hidden" name="tipo" id="tipoHiddenLateral" value="normal">
-                        </div>
-                        <!-- Fin del reemplazo -->
+                                <span class="item-fecha">Hoy 10:30 AM</span>
+                                <span class="badge-aprobado">✓ Aprobada</span>
+                            </li>
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>102 - Reparación Plomería</strong>
+                                    <span class="item-tecnico">María López</span>
+                                </div>
+                                <span class="item-fecha">Hoy 09:15 AM</span>
+                                <span class="badge-pendiente">⏳ Pendiente</span>
+                            </li>
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>201 - Cambio de Filtros</strong>
+                                    <span class="item-tecnico">Carlos Ruiz</span>
+                                </div>
+                                <span class="item-fecha">Ayer 16:45 PM</span>
+                                <span class="badge-aprobado">✓ Aprobada</span>
+                            </li>
+                        </ul>
+                    </div>
 
-                        <div class="input-flotante">
-                            <input type="text" id="descripcionMantenimientoLateral" name="descripcion" placeholder=" " required>
-                            <label for="descripcionMantenimientoLateral">Descripción</label>
+                    <!-- Formularios Desplegables de Acciones Rápidas -->
+                    
+                    <!-- Formulario Checklist (oculto por defecto) -->
+                    <div id="formChecklist" class="accion-form-container" style="display: none;" data-aos="fade-down">
+                        <div class="brutalist-card">
+                            <div class="brutalist-card__header">
+                                <div class="brutalist-card__icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="brutalist-card__alert">Crear Checklist</div>
+                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formChecklist')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <form class="brutalist-card__form">
+                                <input type="text" placeholder="Nombre del checklist" class="brutalist-input" required>
+                                <textarea placeholder="Items del checklist (uno por línea)" class="brutalist-input" rows="6"></textarea>
+                                <div class="select-container premium-select">
+                                    <select class="brutalist-input" required>
+                                        <option value="">-- Asignar a --</option>
+                                        <option value="1">Juan Pérez</option>
+                                        <option value="2">María López</option>
+                                        <option value="3">Carlos Ruiz</option>
+                                        <option value="4">Ana García</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down icono-select"></i>
+                                </div>
+                                <button type="submit" class="brutalist-card__button brutalist-card__button--read">
+                                    <i class="fas fa-save"></i> Guardar Checklist
+                                </button>
+                            </form>
                         </div>
+                    </div>
 
-                        <div class="input-flotante" id="horaRutinaLateralContainer" style="display: none; margin-top: 15px;">
-                            <input type="time" id="horaRutinaLateral" name="hora" placeholder=" ">
-                            <label for="horaRutinaLateral">Hora de la Alerta</label>
+                    <!-- Formulario Evidencia (oculto por defecto) -->
+                    <div id="formEvidencia" class="accion-form-container" style="display: none;" data-aos="fade-down">
+                        <div class="brutalist-card">
+                            <div class="brutalist-card__header">
+                                <div class="brutalist-card__icon">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div class="brutalist-card__alert">Adjuntar Evidencia</div>
+                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formEvidencia')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <form class="brutalist-card__form">
+                                <div class="select-container premium-select">
+                                    <select class="brutalist-input" required>
+                                        <option value="">-- Seleccionar Inspección --</option>
+                                        <option value="1">101 - Revisión Aire Acondicionado</option>
+                                        <option value="2">102 - Reparación Plomería</option>
+                                        <option value="3">201 - Cambio de Filtros</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down icono-select"></i>
+                                </div>
+                                <input type="file" accept="image/*,video/*" class="brutalist-input file-input" multiple>
+                                <textarea placeholder="Descripción de la evidencia..." class="brutalist-input" rows="3"></textarea>
+                                <button type="submit" class="brutalist-card__button brutalist-card__button--read">
+                                    <i class="fas fa-upload"></i> Subir Evidencia
+                                </button>
+                            </form>
                         </div>
+                    </div>
 
-                        <!-- Campo para Día de la Alerta -->
-                        <div class="input-flotante" id="diaAlertaLateralContainer" style="display: none; margin-top: 15px;">
-                            <input type="date" id="diaAlertaLateral" name="dia_alerta" placeholder=" ">
-                            <label for="diaAlertaLateral">Día de la Alerta</label>
+                    <!-- Formulario Firma (oculto por defecto) -->
+                    <div id="formFirma" class="accion-form-container" style="display: none;" data-aos="fade-down">
+                        <div class="brutalist-card">
+                            <div class="brutalist-card__header">
+                                <div class="brutalist-card__icon">
+                                    <i class="fas fa-signature"></i>
+                                </div>
+                                <div class="brutalist-card__alert">Capturar Firma</div>
+                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formFirma')">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <form class="brutalist-card__form">
+                                <div class="select-container premium-select">
+                                    <select class="brutalist-input" required>
+                                        <option value="">-- Seleccionar Inspección --</option>
+                                        <option value="1">101 - Revisión Aire Acondicionado</option>
+                                        <option value="2">102 - Reparación Plomería</option>
+                                        <option value="3">201 - Cambio de Filtros</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down icono-select"></i>
+                                </div>
+                                <input type="text" placeholder="Nombre del firmante" class="brutalist-input" required>
+                                <div class="firma-canvas-container">
+                                    <canvas id="canvasFirma" class="firma-canvas"></canvas>
+                                    <button type="button" class="btn-limpiar-firma" onclick="limpiarFirma()">
+                                        <i class="fas fa-eraser"></i> Limpiar
+                                    </button>
+                                </div>
+                                <button type="submit" class="brutalist-card__button brutalist-card__button--read">
+                                    <i class="fas fa-check"></i> Guardar Firma
+                                </button>
+                            </form>
                         </div>
-
-                        <button type="submit" id="btnRegistrarMantenimiento" style="margin-top: 15px;">Registrar</button>
-                    </form>
+                    </div>
                 </div>
 
-                <!-- Panel de Vista Rápida de Alertas -->
-                <div class="panel panel-vista-rutinas">
-                    <h2>Alertas</h2>
-                    <ul class="lista-vista-rutinas" id="listaVistaRutinas">
-                        <!-- Las alertas se cargarán dinámicamente -->
-                        <li class="mensaje-cargando">Cargando alertas...</li>
-                    </ul>
+                <!-- Columna derecha (1/4) - Formulario principal y acciones -->
+                <div class="columna columna-lateral">
+                    <!-- Formulario de Registro de Inspección -->
+                    <div class="panel formulario-mantenimiento-lateral brutalist-card" data-aos="fade-left">
+                        <div class="brutalist-card__header">
+                            <div class="brutalist-card__icon">
+                                <i class="fas fa-clipboard-check"></i>
+                            </div>
+                            <div class="brutalist-card__alert">Nueva Inspección</div>
+                        </div>
+                        
+                        <form id="formNuevaInspeccion" class="brutalist-card__form">
+                            <div class="select-container premium-select" style="margin-bottom: 15px;">
+                                <select id="mantenimientoInspeccion" name="mantenimiento_id" required class="brutalist-input">
+                                    <option value="">-- Seleccionar Mantenimiento --</option>
+                                    <option value="1">101 - Revisión Aire Acondicionado</option>
+                                    <option value="2">102 - Reparación Plomería</option>
+                                    <option value="3">201 - Cambio de Filtros</option>
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+
+                            <div class="select-container premium-select" style="margin-bottom: 15px;">
+                                <select id="tecnicoInspeccion" name="tecnico_id" required class="brutalist-input">
+                                    <option value="">-- Seleccionar Técnico --</option>
+                                    <option value="1">Juan Pérez - Electricista</option>
+                                    <option value="2">María López - Plomera</option>
+                                    <option value="3">Carlos Ruiz - HVAC</option>
+                                    <option value="4">Ana García - Mantenimiento General</option>
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+
+                            <textarea id="descripcionInspeccion" name="descripcion" placeholder="Descripción de la inspección..." required class="brutalist-input" rows="4" style="margin-bottom: 15px;"></textarea>
+
+                            <div class="checkbox-aprobacion" style="margin-bottom: 15px;">
+                                <label class="checkbox-container">
+                                    <input type="checkbox" id="inspeccionAprobada" name="aprobada">
+                                    <span class="checkmark"></span>
+                                    <span class="checkbox-label">Inspección Aprobada</span>
+                                </label>
+                            </div>
+
+                            <button type="submit" class="brutalist-card__button brutalist-card__button--read">
+                                <i class="fas fa-check-circle"></i> Crear Inspección
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Panel de Acciones Rápidas -->
+                    <div class="panel panel-vista-rutinas gradient-card" data-aos="fade-left" data-aos-delay="100">
+                        <h2><i class="fas fa-bolt"></i> Acciones Rápidas</h2>
+                        <div class="acciones-rapidas-vertical">
+                            <button class="accion-rapida-btn-vertical checklist" onclick="mostrarFormularioAccion('formChecklist')">
+                                <i class="fas fa-tasks"></i>
+                                <span>Crear Checklist</span>
+                            </button>
+                            
+                            <button class="accion-rapida-btn-vertical evidencia" onclick="mostrarFormularioAccion('formEvidencia')">
+                                <i class="fas fa-camera"></i>
+                                <span>Adjuntar Evidencia</span>
+                            </button>
+                            
+                            <button class="accion-rapida-btn-vertical firma" onclick="mostrarFormularioAccion('formFirma')">
+                                <i class="fas fa-signature"></i>
+                                <span>Capturar Firma</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Sábana (Registro de Cambios de Filtros) -->
+        <div class="tab-content" id="tab-sabana" data-aos="fade-in">
+            <h1 class="titulos t-principal">Sábana de Cambio de Filtros</h1>
+            <h2 class="titulos t-secundario">Control Semestral · JW Marriott</h2>
+            
+            <div class="filtros-container">
+                <!-- Buscador de Sábana -->
+                <div class="panel panel-filtros" data-aos="fade-down">
+                    <div class="busqueda-filtros">
+                        <div class="campo-busqueda premium-search">
+                            <i class="fas fa-search icono-busqueda"></i>
+                            <input type="text" id="buscarSabana" placeholder="Buscar habitación...">
+                        </div>
+                        <div class="select-container premium-select">
+                            <select id="filtroEdificioSabana" name="edificio">
+                                <option value="">Todos los edificios</option>
+                            </select>
+                            <i class="fas fa-chevron-down icono-select"></i>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Panel de Mantenimientos Recientes -->
-                <div class="panel panel-vista-recientes">
-                    <h2>Mantenimientos Recientes</h2>
-                    <ul class="lista-vista-recientes" id="listaVistaRecientes">
-                        <!-- Los mantenimientos recientes se cargarán dinámicamente -->
-                        <li class="mensaje-cargando">Cargando...</li>
-                    </ul>
+                <!-- Bitácora de Filtros Card -->
+                <div class="filtros-bitacora-card" data-aos="zoom-in">
+                    <div class="filtros-bitacora-header">
+                        <h2 class="filtros-bitacora-title">
+                            <i class="fas fa-clipboard-list"></i> Bitácora de Filtros
+                        </h2>
+                        <div class="filtros-bitacora-periodo">
+                            <i class="fas fa-calendar-alt"></i> Enero - Junio 2025
+                            <div style="font-size: 0.8rem; margin-top: 0.3rem; opacity: 0.9;">
+                                <i class="fas fa-clock"></i> Próximo cambio: <span id="filtroTimer">180 días</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabla de Filtros con diseño mejorado -->
+                    <div class="filtros-table-wrapper responsive-table">
+                        <table class="filtros-table">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-door-closed"></i> Habitación</th>
+                                    <th><i class="fas fa-calendar"></i> Última Revisión</th>
+                                    <th><i class="fas fa-filter"></i> Tipo de Filtro</th>
+                                    <th><i class="fas fa-info-circle"></i> Estado</th>
+                                    <th><i class="fas fa-calendar-check"></i> Próximo Cambio</th>
+                                    <th><i class="fas fa-user"></i> Responsable</th>
+                                    <th><i class="fas fa-check-circle"></i> Realizado</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sabanaTableBody">
+                                <!-- Los datos se cargarán dinámicamente -->
+                                <tr>
+                                    <td colspan="7" class="mensaje-cargando">Cargando datos...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Botones de Acción -->
+                    <div class="filtros-actions-container">
+                        <button class="filtros-action-button excel admin-only" onclick="exportarSabanaExcel()">
+                            <i class="fas fa-file-excel"></i>
+                            <div>
+                                <div style="font-weight: 700;">Exportar Excel</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Descargar bitácora completa</div>
+                            </div>
+                        </button>
+                        
+                        <button class="filtros-action-button archive admin-only" onclick="archivarPeriodo()">
+                            <i class="fas fa-archive"></i>
+                            <div>
+                                <div style="font-weight: 700;">Archivar Periodo</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Guardar periodo anterior</div>
+                            </div>
+                        </button>
+                        
+                        <button class="filtros-action-button history" onclick="verHistorialFiltros()">
+                            <i class="fas fa-history"></i>
+                            <div>
+                                <div style="font-weight: 700;">Ver Historial</div>
+                                <div style="font-size: 0.8rem; opacity: 0.8;">Consultar periodos anteriores</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Checklist de Inspecciones -->
+        <div class="tab-content" id="tab-checklist" data-aos="fade-in">
+            <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
+            <h2 class="titulos t-secundario">Control de Calidad de Habitaciones · JW Marriott</h2>
+            
+            <!-- Estructura de vista duo (igual que Habitaciones) -->
+            <div class="vista-duo">
+                <!-- Columna izquierda (3/4) - Área de contenido dinámico -->
+                <div class="columna columna-principal">
+                    <!-- Buscador de Checklist -->
+                    <div class="panel panel-filtros" data-aos="fade-down">
+                        <div class="busqueda-filtros">
+                            <div class="campo-busqueda premium-search">
+                                <i class="fas fa-search icono-busqueda"></i>
+                                <input type="text" id="buscarChecklist" placeholder="Buscar por item (ej: sofá, aire acondicionado)...">
+                            </div>
+                            <div class="select-container premium-select">
+                                <select id="filtroEstadoChecklist">
+                                    <option value="">Todos los estados</option>
+                                    <option value="bueno">Buen Estado</option>
+                                    <option value="regular">Regular</option>
+                                    <option value="malo">Malo</option>
+                                </select>
+                                <i class="fas fa-chevron-down icono-select"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid de Habitaciones con Checklist -->
+                    <div class="checklist-grid" id="checklistGrid">
+                        <!-- Las habitaciones con checklist se cargarán aquí -->
+                        <div class="mensaje-cargando">Cargando checklists...</div>
+                    </div>
                 </div>
 
-                <!-- Panel de Alertas Emitidas -->
-                <div class="panel panel-alertas-emitidas">
-                    <h2>Alertas Emitidas Hoy</h2>
-                    <ul class="lista-alertas-emitidas" id="listaAlertasEmitidas">
-                        <!-- Las alertas emitidas se cargarán aquí por JavaScript -->
-                    </ul>
-                    <p id="mensaje-no-alertas-emitidas" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #888;">
-                        No hay alertas emitidas por revisar hoy.
-                    </p>
+                <!-- Columna derecha (1/4) - Inspecciones Recientes -->
+                <div class="columna columna-lateral">
+                    <!-- Panel de Inspecciones Recientes -->
+                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-left">
+                        <h2><i class="fas fa-clipboard-list"></i> Inspecciones Recientes</h2>
+                        <ul class="lista-vista-recientes" id="listaInspeccionesRecientes">
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>101 - Revisión Aire Acondicionado</strong>
+                                    <span class="item-tecnico">Juan Pérez</span>
+                                </div>
+                                <span class="item-fecha">Hoy 10:30 AM</span>
+                                <span class="badge-aprobado">✓ Aprobada</span>
+                            </li>
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>102 - Reparación Plomería</strong>
+                                    <span class="item-tecnico">María López</span>
+                                </div>
+                                <span class="item-fecha">Hoy 09:15 AM</span>
+                                <span class="badge-pendiente">⏳ Pendiente</span>
+                            </li>
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>201 - Cambio de Filtros</strong>
+                                    <span class="item-tecnico">Carlos Ruiz</span>
+                                </div>
+                                <span class="item-fecha">Ayer 16:45 PM</span>
+                                <span class="badge-aprobado">✓ Aprobada</span>
+                            </li>
+                            <li class="item-reciente">
+                                <div class="item-info">
+                                    <strong>203 - Revisión TV</strong>
+                                    <span class="item-tecnico">Ana García</span>
+                                </div>
+                                <span class="item-fecha">Ayer 14:20 PM</span>
+                                <span class="badge-aprobado">✓ Aprobada</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Panel de Exportación (Solo Admin) -->
+                    <div class="panel panel-vista-rutinas gradient-card admin-only" data-aos="fade-left" data-aos-delay="100">
+                        <h2><i class="fas fa-file-export"></i> Acciones</h2>
+                        <button class="brutalist-card__button brutalist-card__button--read" onclick="exportarChecklistExcel()" style="width: 100%; margin-bottom: 1rem;">
+                            <i class="fas fa-file-excel"></i> Exportar Checklist
+                        </button>
+                        <button class="brutalist-card__button brutalist-card__button--mark" onclick="generarReporteChecklist()" style="width: 100%;">
+                            <i class="fas fa-file-pdf"></i> Generar Reporte
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Gestión de Usuarios (Solo Admin) -->
+        <div class="tab-content admin-only" id="tab-usuarios" data-aos="fade-in">
+            <h1 class="titulos t-principal">Gestión de Usuarios</h1>
+            <h2 class="titulos t-secundario">Administración del Sistema · JW Marriott</h2>
+            
+            <div class="usuarios-container">
+                <!-- Botón Agregar Usuario -->
+                <div class="panel panel-filtros" data-aos="fade-down">
+                    <button class="brutalist-card__button" onclick="mostrarModalNuevoUsuario()">
+                        <i class="fas fa-user-plus"></i> Agregar Nuevo Usuario
+                    </button>
                 </div>
 
+                <!-- Lista de Usuarios -->
+                <div class="usuarios-grid" id="usuariosGrid">
+                    <!-- Los usuarios se cargarán dinámicamente -->
+                    <div class="mensaje-cargando">Cargando usuarios...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Download Spinner - Dot Spinner (hidden by default) -->
+    <div id="downloadSpinner" class="download-spinner-overlay" style="display: none;">
+        <div class="dot-spinner">
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+            <div class="dot-spinner__dot"></div>
+        </div>
+        <p class="download-text">Generando documento...</p>
+    </div>
+
+    <!-- Modal para Ver Detalles de Servicios -->
+    <div id="modalDetallesServicio" class="modal-detalles" style="display: none;">
+        <div class="modal-detalles-overlay" onclick="cerrarModalDetalles()"></div>
+        <div class="modal-detalles-contenido">
+            <div class="modal-detalles-header">
+                <h3 id="modalDetallesTitulo">Detalles del Servicio</h3>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalDetalles()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body" id="modalDetallesBody">
+                <!-- El contenido se llenará dinámicamente -->
             </div>
         </div>
     </div>
 
+    <script src="app.js"></script>
     <script src="script.js"></script>
+    <script src="enhanced-frontend.js"></script>
+    
+    <!-- Script para manejar el switch Avería/Alerta -->
+    <script>
+        // Función para manejar el cambio del switch
+        function handleTipoSwitchChange(switchElement) {
+            console.log('🔄 Switch cambió a:', switchElement.checked ? 'ALERTA' : 'AVERÍA');
+            
+            const tipoHidden = document.getElementById('tipoHiddenLateral');
+            const alertaFields = document.getElementById('alertaFieldsContainer');
+            
+            if (!alertaFields) {
+                console.error('❌ No se encontró alertaFieldsContainer');
+                return;
+            }
+            
+            if (switchElement.checked) {
+                // Modo ALERTA - MOSTRAR campos
+                console.log('✅ Mostrando campos de alerta');
+                if (tipoHidden) tipoHidden.value = 'rutina';
+                // Usar la clase 'show' para activar la animación CSS
+                alertaFields.classList.add('show');
+                alertaFields.style.display = 'block';
+                
+                // Hacer los campos requeridos cuando es alerta
+                const horaInput = document.getElementById('horaRutinaLateral');
+                const fechaInput = document.getElementById('diaAlertaLateral');
+                if (horaInput) horaInput.setAttribute('required', 'required');
+                if (fechaInput) fechaInput.setAttribute('required', 'required');
+            } else {
+                // Modo AVERÍA - OCULTAR campos
+                console.log('⚠️ Ocultando campos de alerta');
+                if (tipoHidden) tipoHidden.value = 'normal';
+                // Remover clase y ocultar
+                alertaFields.classList.remove('show');
+                alertaFields.style.display = 'none';
+                
+                // Remover atributo required cuando es avería
+                const horaInput = document.getElementById('horaRutinaLateral');
+                const fechaInput = document.getElementById('diaAlertaLateral');
+                if (horaInput) horaInput.removeAttribute('required');
+                if (fechaInput) fechaInput.removeAttribute('required');
+            }
+        }
+        
+        // Hacer la función global
+        window.handleTipoSwitchChange = handleTipoSwitchChange;
+        
+        console.log('✅ Función handleTipoSwitchChange cargada');
+    </script>
+    
     <!-- <script src="script_index.js"></script> -->
     <!-- script_index.js deshabilitado - usando solo app-loader.js -->
     <script>
-        // Detectar si estamos en Electron y cargar el loader apropiado
-        console.log('🔍 Detectando entorno de ejecución...');
-        console.log('🌍 User Agent:', navigator.userAgent);
-        console.log('🎯 Window location:', window.location.href);
-        console.log('🔧 Process available:', typeof process !== 'undefined');
-        
-        // Verificar múltiples formas de detectar Electron
-        const isElectron = (
-            typeof process !== 'undefined' && 
-            process.versions && 
-            process.versions.electron
-        ) || (
-            typeof window !== 'undefined' &&
-            window.process &&
-            window.process.type === 'renderer'
-        ) || (
-            typeof navigator !== 'undefined' &&
-            navigator.userAgent &&
-            navigator.userAgent.toLowerCase().includes('electron')
-        ) || (
-            typeof window !== 'undefined' &&
-            window.require &&
-            typeof window.require === 'function'
-        );
-        
-        console.log('⚡ ¿Es Electron?:', isElectron);
-        
-        if (isElectron) {
-            console.log('⚡ Entorno detectado: Electron (modo offline)');
-            if (typeof process !== 'undefined' && process.versions) {
-                console.log('📋 Electron version:', process.versions.electron || 'unknown');
-                console.log('🔧 Node version:', process.versions.node || 'unknown');
-                console.log('🌐 Chrome version:', process.versions.chrome || 'unknown');
-            }
-            
-            // Cargar el loader offline para Electron
-            const script = document.createElement('script');
-            script.src = 'electron-app-loader.js?v=' + Date.now();
-            script.onload = () => {
-                console.log('✅ Electron app loader cargado exitosamente');
-            };
-            script.onerror = (error) => {
-                console.error('❌ Error cargando electron app loader:', error);
-                // Fallback al loader normal si falla el offline
-                console.log('🔄 Fallback: cargando web app loader...');
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'app-loader.js?v=' + Date.now();
-                document.head.appendChild(fallbackScript);
-            };
-            document.head.appendChild(script);
-        } else {
-            console.log('🌐 Entorno detectado: Navegador web (modo online)');
-            
-            // Cargar el loader HTTP normal
-            const script = document.createElement('script');
-            script.src = 'app-loader.js?v=' + Date.now();
-            script.onload = () => console.log('✅ Web app loader cargado');
-            script.onerror = (error) => console.error('❌ Error cargando web app loader:', error);
-            document.head.appendChild(script);
-        }
+        // Cargar el loader de la aplicación
+        console.log('🌐 Cargando aplicación web...');
+        const script = document.createElement('script');
+        script.src = 'app-loader.js?v=' + Date.now();
+        script.onload = () => console.log('✅ App loader cargado exitosamente');
+        script.onerror = (error) => console.error('❌ Error cargando app loader:', error);
+        document.head.appendChild(script);
     </script>
     
     <!-- Service Worker temporalmente deshabilitado para debugging -->

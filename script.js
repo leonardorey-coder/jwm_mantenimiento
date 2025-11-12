@@ -101,31 +101,18 @@ function manejarMensajes() {
         const error = urlParams.get('error');
         let textoError = '';
         
-        switch (error) {
-            case 'nombre_vacio':
-                textoError = 'El nombre no puede estar vacío.';
-                break;
-            case 'edificio_existe':
-                textoError = 'Ya existe un edificio con ese nombre.';
-                break;
-            case 'edificio_con_cuartos':
-                textoError = 'No se puede eliminar el edificio porque tiene cuartos asociados.';
-                break;
-            case 'cuarto_existe':
-                textoError = 'Ya existe un cuarto con ese nombre en el mismo edificio.';
-                break;
-            case 'datos_incompletos':
-                textoError = 'Por favor, complete todos los campos obligatorios.';
-                break;
-            case 'hora_obligatoria': // La clave de error no cambia
-                textoError = 'Para las alertas, la hora es obligatoria.'; // Mensaje cambia
-                break;
-            case 'error_sql':
-                textoError = 'Error en la base de datos. Por favor, intente de nuevo.';
-                break;
-            default:
-                textoError = 'Ha ocurrido un error. Por favor, intente de nuevo.';
+        textoError = {
+            'nombre_vacio': 'El nombre no puede estar vacío.',
+            'edificio_existe': 'Ya existe un edificio con ese nombre.',
+            'edificio_con_cuartos': 'No se puede eliminar el edificio porque tiene cuartos asociados.',
+            'cuarto_existe': 'Ya existe un cuarto con ese nombre en el mismo edificio.',
+            'datos_incompletos': 'Por favor, complete todos los campos obligatorios.',
+            'hora_obligatoria': 'Para las alertas, la hora es obligatoria.',
+            'error_sql': 'Error en la base de datos. Por favor, intente de nuevo.',
+            'default': 'Ha ocurrido un error. Por favor, intente de nuevo.',
         }
+        
+        textoError = textoError[error] || textoError['default'];
         
         // Usar notificación más moderna o alert simple
         alert(textoError); // Mostrar errores importantes al usuario
