@@ -1,123 +1,42 @@
 {
   "name": "jw-mantto",
-  "version": "1.1.0",
-  "description": "JW Mantto - Sistema local de registro de mantenimiento",
-  "main": "electron-main.js",
+  "version": "1.2.0",
+  "description": "JW Mantto - Sistema de Gestión de Mantenimiento (PWA + PostgreSQL)",
+  "main": "server.js",
   "author": {
     "name": "JW Marriott",
     "email": "mantto@jwmarriott.com"
   },
   "scripts": {
     "start": "node server.js",
-    "electron": "electron .",
-    "electron-offline": "electron . --offline",
-    "electron-dev": "concurrently \"npm start\" \"wait-on http://localhost:3001 && electron .\"",
-    "electron-only": "wait-on http://localhost:3001 && electron .",
-    "build": "electron-builder",
-    "dist": "electron-builder --publish=never",
-    "migrate": "node scripts/migrate-sqlite-to-postgres.js",
-    "migrate:clean": "node scripts/migrate-sqlite-to-postgres.js --clean",
+    "dev": "NODE_ENV=development node server.js",
+    "prod": "NODE_ENV=production node server.js",
     "setup:postgres": "./scripts/setup-postgres.sh"
   },
   "dependencies": {
-    "better-sqlite3": "^12.2.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
     "pg": "^8.13.1"
   },
-  "devDependencies": {
-    "concurrently": "^7.6.0",
-    "electron": "^21.0.0",
-    "electron-builder": "^23.6.0",
-    "electron-rebuild": "^3.2.9",
-    "wait-on": "^7.0.1"
+  "devDependencies": {},
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
-  "build": {
-    "appId": "com.jwmarriott.mantto",
-    "productName": "JW Mantto",
-    "copyright": "© 2024 JW Marriott",
-    "asar": false,
-    "directories": {
-      "output": "dist"
-    },
-    "files": [
-      "**/*",
-      "!node_modules/**/*",
-      "!dist/**/*",
-      "!*.log",
-      "node_modules/**/*"
-    ],
-    "mac": {
-      "icon": "icons/icon-512x512.png",
-      "category": "public.app-category.productivity",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        },
-        {
-          "target": "zip",
-          "arch": [
-            "x64",
-            "arm64"
-          ]
-        }
-      ]
-    },
-    "win": {
-      "icon": "icons/icon-512x512.png",
-      "target": [
-        {
-          "target": "nsis",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        },
-        {
-          "target": "portable",
-          "arch": [
-            "x64",
-            "ia32"
-          ]
-        }
-      ]
-    },
-    "linux": {
-      "icon": "icons/icon-512x512.png",
-      "target": [
-        {
-          "target": "AppImage",
-          "arch": [
-            "x64"
-          ]
-        },
-        {
-          "target": "deb",
-          "arch": [
-            "x64"
-          ]
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "JW Mantto"
-    },
-    "dmg": {
-      "title": "JW Mantto - Sistema de Mantenimiento",
-      "backgroundColor": "#ffffff",
-      "window": {
-        "width": 600,
-        "height": 400
-      }
-    }
-  }
+  "keywords": [
+    "mantenimiento",
+    "hotel",
+    "pwa",
+    "postgresql",
+    "jw-marriott",
+    "habitaciones",
+    "offline-first"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/leonardorey-coder/jwm_mantenimiento.git"
+  },
+  "license": "UNLICENSED",
+  "private": true
 }

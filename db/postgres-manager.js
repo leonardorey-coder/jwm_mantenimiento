@@ -95,6 +95,7 @@ class PostgresManager {
                 descripcion TEXT,
                 estado VARCHAR(50) DEFAULT 'disponible',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (edificio_id) REFERENCES edificios(id) ON DELETE CASCADE,
                 UNIQUE (numero, edificio_id)
             )`,
@@ -156,6 +157,171 @@ class PostgresManager {
         `;
         const result = await this.pool.query(query, [id]);
         return result.rows[0] || null;
+    }
+
+    /**
+     * Actualizar el estado de un cuarto
+     * @param {number} id - ID del cuarto
+     * @param {string} nuevoEstado - Nuevo estado del cuarto
+     * @returns {Promise<Object>} Cuarto actualizado
+     */
+    async updateEstadoCuarto(id, nuevoEstado) {
+        // Validar estados permitidos
+        const estadosPermitidos = ['disponible', 'ocupado', 'mantenimiento', 'fuera_servicio'];
+        if (!estadosPermitidos.includes(nuevoEstado)) {
+            throw new Error(`Estado no válido. Debe ser uno de: ${estadosPermitidos.join(', ')}`);
+        }
+        
+        const query = `
+            UPDATE cuartos 
+            SET estado = $1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $2
+            RETURNING *
+        `;
+        
+        const result = await this.pool.query(query, [nuevoEstado, id]);
+        
+        if (result.rows.length === 0) {
+            throw new Error('Cuarto no encontrado');
+        }
+        
+        // Obtener el cuarto completo con información del edificio
+        return await this.getCuartoById(id);
+    }
+
+    /**
+     * Obtener cuartos filtrados por estado
+     * @param {string} estado - Estado a filtrar
+     * @returns {Promise<Array>} Array de cuartos con ese estado
+     */
+    async getCuartosPorEstado(estado) {
+        const query = `
+            SELECT c.*, e.nombre as edificio_nombre 
+            FROM cuartos c 
+            LEFT JOIN edificios e ON c.edificio_id = e.id 
+            WHERE c.estado = $1
+            ORDER BY e.nombre, c.numero
+        `;
+        const result = await this.pool.query(query, [estado]);
+        return result.rows;
+    }
+
+    /**
+     * Obtener estadísticas de estados de cuartos
+     * @returns {Promise<Object>} Objeto con contadores por estado
+     */
+    async getEstadisticasEstados() {
+        const query = `
+            SELECT 
+                estado,
+                COUNT(*) as cantidad,
+                ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) OVER(), 2) as porcentaje
+            FROM cuartos
+            GROUP BY estado
+            ORDER BY cantidad DESC
+        `;
+        const result = await this.pool.query(query);
+        
+        // Convertir a objeto con formato { disponible: 10, ocupado: 5, ... }
+        const estadisticas = {
+            disponible: 0,
+            ocupado: 0,
+            mantenimiento: 0,
+            fuera_servicio: 0,
+            total: 0
+        };
+        
+        result.rows.forEach(row => {
+            estadisticas[row.estado] = parseInt(row.cantidad);
+            estadisticas.total += parseInt(row.cantidad);
+        });
+        
+        return estadisticas;
+    }
+
+    /**
+     * Obtener configuración de estados con colores
+     * @returns {Object} Objeto con estados y sus propiedades (color, label, icono)
+     */
+    getConfiguracionEstados() {
+        return {
+            disponible: {
+                valor: 'disponible',
+                label: 'Disponible',
+                descripcion: 'Cuarto limpio y listo para ocupar',
+                color: '#4CAF50',        // Verde
+                colorHex: '4CAF50',
+                colorRgb: 'rgb(76, 175, 80)',
+                colorSecundario: '#E8F5E9',  // Verde claro para fondo
+                icono: '🟢',
+                prioridad: 1,
+                disponibleParaReserva: true
+            },
+            ocupado: {
+                valor: 'ocupado',
+                label: 'Ocupado',
+                descripcion: 'Huésped hospedado actualmente',
+                color: '#2196F3',        // Azul
+                colorHex: '2196F3',
+                colorRgb: 'rgb(33, 150, 243)',
+                colorSecundario: '#E3F2FD',  // Azul claro para fondo
+                icono: '🔵',
+                prioridad: 2,
+                disponibleParaReserva: false
+            },
+            mantenimiento: {
+                valor: 'mantenimiento',
+                label: 'Mantenimiento',
+                descripcion: 'En proceso de limpieza o reparación',
+                color: '#FF9800',        // Naranja
+                colorHex: 'FF9800',
+                colorRgb: 'rgb(255, 152, 0)',
+                colorSecundario: '#FFF3E0',  // Naranja claro para fondo
+                icono: '🟠',
+                prioridad: 3,
+                disponibleParaReserva: false
+            },
+            fuera_servicio: {
+                valor: 'fuera_servicio',
+                label: 'Fuera de Servicio',
+                descripcion: 'No disponible por remodelación o daños graves',
+                color: '#616161',        // Gris oscuro
+                colorHex: '616161',
+                colorRgb: 'rgb(97, 97, 97)',
+                colorSecundario: '#F5F5F5',  // Gris claro para fondo
+                icono: '⚫',
+                prioridad: 4,
+                disponibleParaReserva: false
+            }
+        };
+    }
+
+    /**
+     * Obtener estadísticas detalladas con colores
+     * @returns {Promise<Object>} Estadísticas con información de colores
+     */
+    async getEstadisticasConColores() {
+        const estadisticas = await this.getEstadisticasEstados();
+        const configuracion = this.getConfiguracionEstados();
+        
+        // Combinar estadísticas con configuración de colores
+        const resultado = {
+            total: estadisticas.total,
+            estados: {}
+        };
+        
+        Object.keys(configuracion).forEach(estado => {
+            resultado.estados[estado] = {
+                ...configuracion[estado],
+                cantidad: estadisticas[estado] || 0,
+                porcentaje: estadisticas.total > 0 
+                    ? ((estadisticas[estado] || 0) / estadisticas.total * 100).toFixed(1)
+                    : 0
+            };
+        });
+        
+        return resultado;
     }
 
     /**

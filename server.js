@@ -5,10 +5,10 @@ const cors = require('cors');
 const PostgresManager = require('./db/postgres-manager');
 
 const app = express();
-const PORT = process.env.PORT || 3001; // Cambiado a 3001 para coincidir con Electron
+const PORT = process.env.PORT || 3001;
 
 // Inicializar base de datos PostgreSQL
-let dbManager;
+let postgresManager;
 
 // Inicializar la aplicación
 async function initializeApp() {
@@ -18,13 +18,13 @@ async function initializeApp() {
     
     try {
         console.log('🗄️ Inicializando base de datos PostgreSQL...');
-        dbManager = new PostgresManager();
-        await dbManager.initialize();
+        postgresManager = new PostgresManager();
+        await postgresManager.initialize();
         console.log('✅ Base de datos PostgreSQL inicializada correctamente');
     } catch (error) {
         console.error('❌ Error inicializando la base de datos:', error);
         console.log('🔄 Continuando sin base de datos PostgreSQL - usando datos mock');
-        dbManager = null; // Indica que no tenemos base de datos disponible
+        postgresManager = null; // Indica que no tenemos base de datos disponible
     }
 }
 
@@ -63,6 +63,17 @@ app.get('*.js', (req, res, next) => {
     next();
 });
 
+// Headers anti-caché para todos los archivos .css
+app.get('*.css', (req, res, next) => {
+    res.set({
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        'Content-Type': 'text/css'
+    });
+    next();
+});
+
 // Middleware para logging
 app.use((req, res, next) => {
     console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
@@ -74,23 +85,70 @@ app.use((req, res, next) => {
 // ====================================
 const mockData = {
     edificios: [
-        { id: 1, nombre: 'Edificio A', descripcion: 'Edificio principal' },
-        { id: 2, nombre: 'Edificio B', descripcion: 'Edificio secundario' }
+        { id: 1, nombre: 'Torre A', descripcion: 'Edificio principal' },
+        { id: 2, nombre: 'Torre B', descripcion: 'Edificio secundario' }
     ],
     cuartos: [
-        { id: 1, numero: '101', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'ocupado' },
-        { id: 2, numero: '102', edificio_id: 1, edificio_nombre: 'Edificio A', estado: 'libre' },
-        { id: 3, numero: '201', edificio_id: 2, edificio_nombre: 'Edificio B', estado: 'mantenimiento' }
+        { id: 1, numero: '101', nombre: '101', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'ocupado' },
+        { id: 2, numero: '102', nombre: '102', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'vacio' },
+        { id: 3, numero: '201', nombre: '201', edificio_id: 2, edificio_nombre: 'Torre B', estado: 'mantenimiento' }
     ],
     mantenimientos: [
         {
             id: 1,
             cuarto_id: 1,
-            tipo: 'limpieza',
-            descripcion: 'Limpieza general',
-            fecha_solicitud: '2024-07-21',
+            tipo: 'normal',
+            descripcion: 'Reparación de aire acondicionado',
+            fecha_registro: new Date().toISOString(),
             estado: 'pendiente',
-            cuarto_numero: '101'
+            cuarto_numero: '101',
+            cuarto_nombre: '101'
+        },
+        {
+            id: 2,
+            cuarto_id: 1,
+            tipo: 'rutina',
+            descripcion: 'Cambio de filtros programado',
+            hora: '14:00:00',
+            dia_alerta: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            nivel_alerta: 'media',
+            fecha_registro: new Date().toISOString(),
+            estado: 'pendiente',
+            cuarto_numero: '101',
+            cuarto_nombre: '101'
+        },
+        {
+            id: 3,
+            cuarto_id: 1,
+            tipo: 'rutina',
+            descripcion: 'Inspección de seguridad',
+            hora: '10:00:00',
+            dia_alerta: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            nivel_alerta: 'alta',
+            fecha_registro: new Date().toISOString(),
+            estado: 'pendiente',
+            cuarto_numero: '101',
+            cuarto_nombre: '101'
+        },
+        {
+            id: 4,
+            cuarto_id: 1,
+            tipo: 'normal',
+            descripcion: 'Revisión de plomería en baño',
+            fecha_registro: new Date().toISOString(),
+            estado: 'pendiente',
+            cuarto_numero: '101',
+            cuarto_nombre: '101'
+        },
+        {
+            id: 5,
+            cuarto_id: 2,
+            tipo: 'normal',
+            descripcion: 'Limpieza profunda',
+            fecha_registro: new Date().toISOString(),
+            estado: 'pendiente',
+            cuarto_numero: '102',
+            cuarto_nombre: '102'
         }
     ]
 };
@@ -102,8 +160,8 @@ const mockData = {
 // Obtener edificios
 app.get('/api/edificios', async (req, res) => {
     try {
-        if (dbManager) {
-            const edificios = await dbManager.getEdificios();
+        if (postgresManager) {
+            const edificios = await postgresManager.getEdificios();
             res.json(edificios);
         } else {
             console.error('❌ Base de datos no disponible');
@@ -118,8 +176,8 @@ app.get('/api/edificios', async (req, res) => {
 // Obtener cuartos
 app.get('/api/cuartos', async (req, res) => {
     try {
-        if (dbManager) {
-            const cuartos = await dbManager.getCuartos();
+        if (postgresManager) {
+            const cuartos = await postgresManager.getCuartos();
             res.json(cuartos);
         } else {
             console.error('❌ Base de datos no disponible');
@@ -134,8 +192,8 @@ app.get('/api/cuartos', async (req, res) => {
 // Obtener cuarto específico
 app.get('/api/cuartos/:id', async (req, res) => {
     try {
-        if (dbManager) {
-            const cuarto = await dbManager.getCuartoById(req.params.id);
+        if (postgresManager) {
+            const cuarto = await postgresManager.getCuartoById(req.params.id);
             if (!cuarto) {
                 return res.status(404).json({ error: 'Cuarto no encontrado' });
             }
@@ -153,9 +211,9 @@ app.get('/api/cuartos/:id', async (req, res) => {
 // Obtener mantenimientos
 app.get('/api/mantenimientos', async (req, res) => {
     try {
-        if (dbManager) {
+        if (postgresManager) {
             const cuartoId = req.query.cuarto_id;
-            const mantenimientos = await dbManager.getMantenimientos(cuartoId);
+            const mantenimientos = await postgresManager.getMantenimientos(cuartoId);
             res.json(mantenimientos);
         } else {
             console.error('❌ Base de datos no disponible');
@@ -170,37 +228,25 @@ app.get('/api/mantenimientos', async (req, res) => {
 // Agregar mantenimiento
 app.post('/api/mantenimientos', async (req, res) => {
     try {
-        const { cuarto_id, descripcion, tipo = 'normal', hora, dia_alerta } = req.body;
+        const { cuarto_id, descripcion, tipo = 'normal', hora, dia_alerta, nivel_alerta } = req.body;
         
-        console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta });
+        console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta, nivel_alerta });
         
-        if (dbManager) {
-            // Convertir dia_alerta de fecha completa a solo el día (1-31)
-            let diaAlertaNumero = null;
-            if (dia_alerta) {
-                if (typeof dia_alerta === 'string' && dia_alerta.includes('-')) {
-                    // Si es una fecha completa "2025-10-30", extraer solo el día del string
-                    const partes = dia_alerta.split('-');
-                    diaAlertaNumero = parseInt(partes[2]); // El día es la tercera parte
-                } else {
-                    // Si ya es un número, usarlo directamente
-                    diaAlertaNumero = parseInt(dia_alerta);
-                }
-            }
-            
+        if (postgresManager) {
             // Usar insertMantenimiento en lugar de createMantenimiento
             const dataMantenimiento = {
                 cuarto_id: parseInt(cuarto_id),
                 descripcion,
                 tipo,
                 hora: hora || null,
-                dia_alerta: diaAlertaNumero,
+                dia_alerta: dia_alerta || null,
+                nivel_alerta: nivel_alerta || null,
                 fecha_solicitud: new Date().toISOString().split('T')[0],
                 estado: 'pendiente'
             };
             
-            const nuevoMantenimiento = await dbManager.insertMantenimiento(dataMantenimiento);
-            console.log('✅ Mantenimiento PostgreSQL creado:', nuevoMantenimiento);
+            const nuevoMantenimiento = await postgresManager.insertMantenimiento(dataMantenimiento);
+            console.log('✅ Mantenimiento creado:', nuevoMantenimiento);
             res.status(201).json(nuevoMantenimiento);
         } else {
             console.error('❌ Base de datos no disponible');
@@ -216,29 +262,17 @@ app.post('/api/mantenimientos', async (req, res) => {
 app.put('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { descripcion, hora, dia_alerta } = req.body;
+        const { descripcion, hora, dia_alerta, nivel_alerta } = req.body;
         const mantenimientoId = parseInt(id);
         
-        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta });
+        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, nivel_alerta });
         
-        if (dbManager) {
-            // Convertir dia_alerta de fecha completa a solo el día (1-31)
-            let diaAlertaNumero = null;
-            if (dia_alerta) {
-                if (typeof dia_alerta === 'string' && dia_alerta.includes('-')) {
-                    // Si es una fecha completa "2025-10-30", extraer solo el día del string
-                    const partes = dia_alerta.split('-');
-                    diaAlertaNumero = parseInt(partes[2]); // El día es la tercera parte
-                } else {
-                    // Si ya es un número, usarlo directamente
-                    diaAlertaNumero = parseInt(dia_alerta);
-                }
-            }
-            
-            await dbManager.updateMantenimiento(mantenimientoId, {
+        if (postgresManager) {
+            await postgresManager.updateMantenimiento(mantenimientoId, {
                 descripcion,
                 hora: hora || null,
-                dia_alerta: diaAlertaNumero
+                dia_alerta: dia_alerta || null,
+                nivel_alerta: nivel_alerta || null
             });
             
             res.json({ 
@@ -268,8 +302,8 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
         
         console.log('📢 Marcando alerta como emitida:', mantenimientoId);
         
-        if (dbManager) {
-            await dbManager.marcarAlertaEmitida(mantenimientoId);
+        if (postgresManager) {
+            await postgresManager.marcarAlertaEmitida(mantenimientoId);
             
             res.json({ 
                 success: true, 
@@ -298,8 +332,8 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
         
         console.log('🗑️ Eliminando mantenimiento:', mantenimientoId);
         
-        if (dbManager) {
-            await dbManager.deleteMantenimiento(mantenimientoId);
+        if (postgresManager) {
+            await postgresManager.deleteMantenimiento(mantenimientoId);
             
             res.json({ 
                 success: true, 
@@ -326,7 +360,7 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
 
 // Ruta principal - servir la página principal
 app.get('/', (req, res) => {
-    // Servir index.html para PWA/Electron
+    // Servir index.html para PWA
     const indexPath = path.join(__dirname, 'index.html');
     if (fs.existsSync(indexPath)) {
         res.sendFile(indexPath);
@@ -342,16 +376,16 @@ app.get('/', (req, res) => {
 // Manejar cierre graceful
 process.on('SIGINT', () => {
     console.log('Cerrando servidor...');
-    if (dbManager) {
-        dbManager.close();
+    if (postgresManager) {
+        postgresManager.close();
     }
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('Cerrando servidor...');
-    if (dbManager) {
-        dbManager.close();
+    if (postgresManager) {
+        postgresManager.close();
     }
     process.exit(0);
 });
@@ -364,7 +398,7 @@ initializeApp().then(() => {
     const server = app.listen(PORT, () => {
         console.log('✅ Servidor ejecutándose en http://localhost:' + PORT);
         console.log('🏨 JW Mantto - Sistema local de mantenimiento iniciado');
-        console.log('📊 Estado de la base de datos:', dbManager ? 'PostgreSQL conectado' : 'Modo mock');
+        console.log('📊 Estado de la base de datos:', postgresManager ? 'PostgreSQL conectado' : 'Modo mock');
         console.log('📄 Archivos estáticos servidos desde:', __dirname);
     });
     
