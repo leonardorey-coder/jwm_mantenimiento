@@ -208,6 +208,29 @@ app.get('/api/cuartos/:id', async (req, res) => {
     }
 });
 
+// Obtener usuarios activos
+app.get('/api/usuarios', async (req, res) => {
+    try {
+        if (postgresManager) {
+            const query = `
+                SELECT u.id, u.nombre, u.rol_id, u.departamento, r.nombre as rol_nombre
+                FROM usuarios u
+                LEFT JOIN roles r ON u.rol_id = r.id
+                WHERE u.activo = true
+                ORDER BY u.nombre ASC
+            `;
+            const result = await postgresManager.pool.query(query);
+            res.json(result.rows);
+        } else {
+            console.error('❌ Base de datos no disponible');
+            res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+    } catch (error) {
+        console.error('Error al obtener usuarios:', error);
+        res.status(500).json({ error: 'Error al obtener usuarios', details: error.message });
+    }
+});
+
 // Obtener mantenimientos
 app.get('/api/mantenimientos', async (req, res) => {
     try {
@@ -228,24 +251,56 @@ app.get('/api/mantenimientos', async (req, res) => {
 // Agregar mantenimiento
 app.post('/api/mantenimientos', async (req, res) => {
     try {
-        const { cuarto_id, descripcion, tipo = 'normal', hora, dia_alerta, nivel_alerta } = req.body;
+        const { 
+            cuarto_id, 
+            descripcion, 
+            tipo = 'normal', 
+            hora, 
+            dia_alerta, 
+            nivel_alerta,
+            prioridad = 'media',
+            estado = 'pendiente',
+            usuario_asignado_id,
+            notas
+        } = req.body;
         
-        console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta, nivel_alerta });
+        console.log('📝 Creando mantenimiento:', { cuarto_id, descripcion, tipo, hora, dia_alerta, nivel_alerta, prioridad, estado, usuario_asignado_id, notas });
         
         if (postgresManager) {
-            // Usar insertMantenimiento en lugar de createMantenimiento
-            const dataMantenimiento = {
-                cuarto_id: parseInt(cuarto_id),
+            // Determinar fecha_finalizacion si el estado es completado o cancelado
+            let fecha_finalizacion = null;
+            if (estado === 'completado' || estado === 'cancelado') {
+                fecha_finalizacion = new Date();
+            }
+            
+            // Construir query con los nuevos campos
+            const query = `
+                INSERT INTO mantenimientos (
+                    cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad,
+                    estado, usuario_creador_id, usuario_asignado_id, notas,
+                    fecha_finalizacion, fecha_creacion
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+                RETURNING *
+            `;
+            
+            const values = [
+                parseInt(cuarto_id),
                 descripcion,
                 tipo,
-                hora: hora || null,
-                dia_alerta: dia_alerta || null,
-                nivel_alerta: nivel_alerta || null,
-                fecha_solicitud: new Date().toISOString().split('T')[0],
-                estado: 'pendiente'
-            };
+                hora || null,
+                dia_alerta || null,
+                prioridad,
+                estado,
+                3, // usuario_creador_id (ID 3: María Técnico - primer usuario activo)
+                usuario_asignado_id ? parseInt(usuario_asignado_id) : null,
+                notas || null,
+                fecha_finalizacion
+            ];
             
-            const nuevoMantenimiento = await postgresManager.insertMantenimiento(dataMantenimiento);
+            const result = await postgresManager.pool.query(query, values);
+            const nuevoMantenimiento = result.rows[0];
+            
             console.log('✅ Mantenimiento creado:', nuevoMantenimiento);
             res.status(201).json(nuevoMantenimiento);
         } else {
@@ -262,22 +317,95 @@ app.post('/api/mantenimientos', async (req, res) => {
 app.put('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { descripcion, hora, dia_alerta, nivel_alerta } = req.body;
+        const { 
+            descripcion, 
+            hora, 
+            dia_alerta, 
+            nivel_alerta,
+            prioridad,
+            estado,
+            usuario_asignado_id,
+            notas
+        } = req.body;
         const mantenimientoId = parseInt(id);
         
-        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, nivel_alerta });
+        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, nivel_alerta, prioridad, estado, usuario_asignado_id, notas });
         
         if (postgresManager) {
-            await postgresManager.updateMantenimiento(mantenimientoId, {
-                descripcion,
-                hora: hora || null,
-                dia_alerta: dia_alerta || null,
-                nivel_alerta: nivel_alerta || null
-            });
+            // Obtener el mantenimiento actual para verificar cambio de estado
+            const queryActual = 'SELECT estado FROM mantenimientos WHERE id = $1';
+            const resultActual = await postgresManager.pool.query(queryActual, [mantenimientoId]);
+            const estadoActual = resultActual.rows[0]?.estado;
+            
+            // Determinar si se debe actualizar fecha_finalizacion
+            let fecha_finalizacion = null;
+            if (estado && (estado === 'completado' || estado === 'cancelado') && 
+                estadoActual !== 'completado' && estadoActual !== 'cancelado') {
+                fecha_finalizacion = new Date();
+            }
+            
+            // Construir query dinámica solo con los campos que vienen en el body
+            let setClauses = [];
+            let values = [];
+            let paramIndex = 1;
+            
+            if (descripcion !== undefined) {
+                setClauses.push(`descripcion = $${paramIndex++}`);
+                values.push(descripcion);
+            }
+            if (hora !== undefined) {
+                setClauses.push(`hora = $${paramIndex++}`);
+                values.push(hora || null);
+            }
+            if (dia_alerta !== undefined) {
+                setClauses.push(`dia_alerta = $${paramIndex++}`);
+                values.push(dia_alerta || null);
+            }
+            if (nivel_alerta !== undefined) {
+                setClauses.push(`prioridad = $${paramIndex++}`);
+                values.push(nivel_alerta);
+            }
+            if (prioridad !== undefined) {
+                setClauses.push(`prioridad = $${paramIndex++}`);
+                values.push(prioridad);
+            }
+            if (estado !== undefined) {
+                setClauses.push(`estado = $${paramIndex++}`);
+                values.push(estado);
+            }
+            if (usuario_asignado_id !== undefined) {
+                setClauses.push(`usuario_asignado_id = $${paramIndex++}`);
+                values.push(usuario_asignado_id ? parseInt(usuario_asignado_id) : null);
+            }
+            if (notas !== undefined) {
+                setClauses.push(`notas = $${paramIndex++}`);
+                values.push(notas || null);
+            }
+            if (fecha_finalizacion) {
+                setClauses.push(`fecha_finalizacion = $${paramIndex++}`);
+                values.push(fecha_finalizacion);
+            }
+            
+            if (setClauses.length === 0) {
+                return res.json({ success: true, message: 'No hay cambios para actualizar' });
+            }
+            
+            // Agregar ID al final
+            values.push(mantenimientoId);
+            
+            const query = `
+                UPDATE mantenimientos 
+                SET ${setClauses.join(', ')}
+                WHERE id = $${paramIndex}
+                RETURNING *
+            `;
+            
+            const result = await postgresManager.pool.query(query, values);
             
             res.json({ 
                 success: true, 
-                message: 'Mantenimiento actualizado correctamente' 
+                message: 'Mantenimiento actualizado correctamente',
+                data: result.rows[0]
             });
         } else {
             console.error('❌ Base de datos no disponible');
