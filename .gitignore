@@ -39,3 +39,4 @@ db/*.sqlite
 # Logs
 storage/logs/*.log
 *.log.*
+.vercel

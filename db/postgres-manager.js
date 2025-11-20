@@ -63,7 +63,8 @@ class PostgresManager {
             const tablesExist = parseInt(result.rows[0].count) === 3;
             
             if (tablesExist) {
-                console.log('✅ Las tablas ya existen, no se ejecutará el esquema');
+                console.log('✅ Las tablas ya existen, verificando migraciones...');
+                await this.runMigrations();
                 return;
             }
             
@@ -74,6 +75,96 @@ class PostgresManager {
         } catch (error) {
             console.error('❌ Error creando tablas:', error);
             // No lanzar error, las tablas pueden ya existir
+        }
+    }
+
+    /**
+     * Ejecutar migraciones necesarias
+     */
+    async runMigrations() {
+        try {
+            // Verificar si dia_alerta es INTEGER y necesita migración a DATE
+            const columnCheck = await this.pool.query(`
+                SELECT data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'mantenimientos' 
+                AND column_name = 'dia_alerta'
+            `);
+            
+            if (columnCheck.rows.length > 0 && columnCheck.rows[0].data_type === 'integer') {
+                console.log('🔄 Migrando dia_alerta de INTEGER a DATE...');
+                
+                // 1. Limpiar columna temporal si existe de intentos anteriores
+                await this.pool.query(`
+                    ALTER TABLE mantenimientos 
+                    DROP COLUMN IF EXISTS dia_alerta_temp
+                `);
+                
+                // 2. Eliminar vista que depende de dia_alerta (si existe)
+                await this.pool.query(`DROP VIEW IF EXISTS vista_mantenimientos_completa CASCADE`);
+                
+                // 3. Agregar columna temporal
+                await this.pool.query(`ALTER TABLE mantenimientos ADD COLUMN dia_alerta_temp DATE`);
+                
+                // 4. Migrar datos existentes
+                await this.pool.query(`
+                    UPDATE mantenimientos 
+                    SET dia_alerta_temp = MAKE_DATE(
+                        EXTRACT(YEAR FROM CURRENT_DATE)::INTEGER,
+                        EXTRACT(MONTH FROM CURRENT_DATE)::INTEGER,
+                        dia_alerta
+                    )
+                    WHERE dia_alerta IS NOT NULL 
+                    AND dia_alerta BETWEEN 1 AND 31
+                `);
+                
+                // 5. Eliminar columna antigua
+                await this.pool.query(`ALTER TABLE mantenimientos DROP COLUMN dia_alerta`);
+                
+                // 6. Renombrar columna temporal
+                await this.pool.query(`ALTER TABLE mantenimientos RENAME COLUMN dia_alerta_temp TO dia_alerta`);
+                
+                console.log('✅ Migración de dia_alerta completada (INTEGER → DATE)');
+            }
+            
+            // Verificar si existe columna prioridad
+            const prioridadCheck = await this.pool.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'mantenimientos' 
+                AND column_name = 'prioridad'
+            `);
+            
+            if (prioridadCheck.rows.length === 0) {
+                console.log('🔄 Agregando columna prioridad...');
+                await this.pool.query(`
+                    ALTER TABLE mantenimientos 
+                    ADD COLUMN prioridad VARCHAR(20) DEFAULT 'media' 
+                    CHECK (prioridad IN ('baja', 'media', 'alta', 'urgente'))
+                `);
+                console.log('✅ Columna prioridad agregada');
+            }
+            
+            // Verificar si existe columna alerta_emitida
+            const alertaEmitidaCheck = await this.pool.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'mantenimientos' 
+                AND column_name = 'alerta_emitida'
+            `);
+            
+            if (alertaEmitidaCheck.rows.length === 0) {
+                console.log('🔄 Agregando columna alerta_emitida...');
+                await this.pool.query(`
+                    ALTER TABLE mantenimientos 
+                    ADD COLUMN alerta_emitida BOOLEAN DEFAULT FALSE
+                `);
+                console.log('✅ Columna alerta_emitida agregada');
+            }
+            
+        } catch (error) {
+            console.error('⚠️ Error ejecutando migraciones:', error);
+            // No lanzar error para no bloquear la aplicación
         }
     }
 
@@ -105,10 +196,11 @@ class PostgresManager {
                 descripcion TEXT NOT NULL,
                 tipo VARCHAR(50) DEFAULT 'normal',
                 estado VARCHAR(50) DEFAULT 'pendiente',
+                prioridad VARCHAR(20) DEFAULT 'media' CHECK (prioridad IN ('baja', 'media', 'alta', 'urgente')),
                 fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 fecha_programada DATE,
                 hora TIME,
-                dia_alerta INTEGER,
+                dia_alerta DATE,
                 alerta_emitida BOOLEAN DEFAULT FALSE,
                 usuario_creador VARCHAR(100) DEFAULT 'sistema',
                 notas TEXT,
@@ -329,10 +421,21 @@ class PostgresManager {
      */
     async getMantenimientos(cuartoId = null) {
         let query = `
-            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            SELECT 
+                m.*,
+                c.numero as cuarto_numero,
+                c.numero as cuarto_nombre,
+                e.nombre as edificio_nombre,
+                uc.nombre as usuario_creador_nombre,
+                ua.nombre as usuario_asignado_nombre,
+                ua.rol_id as usuario_asignado_rol_id,
+                r.nombre as usuario_asignado_rol_nombre
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e ON c.edificio_id = e.id
+            LEFT JOIN usuarios uc ON m.usuario_creador_id = uc.id
+            LEFT JOIN usuarios ua ON m.usuario_asignado_id = ua.id
+            LEFT JOIN roles r ON ua.rol_id = r.id
         `;
         
         let params = [];
@@ -353,8 +456,8 @@ class PostgresManager {
     async insertMantenimiento(data) {
         const query = `
             INSERT INTO mantenimientos (
-                cuarto_id, descripcion, tipo, hora, dia_alerta
-            ) VALUES ($1, $2, $3, $4, $5)
+                cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad
+            ) VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
         `;
         
@@ -363,7 +466,8 @@ class PostgresManager {
             data.descripcion,
             data.tipo || 'normal',
             data.hora || null,
-            data.dia_alerta || null
+            data.dia_alerta || null,  // Ahora acepta fecha completa YYYY-MM-DD
+            data.prioridad || 'media'
         ];
         
         const result = await this.pool.query(query, values);
@@ -386,19 +490,45 @@ class PostgresManager {
 
     /**
      * Actualizar un mantenimiento existente
+     * Si se cambia dia_alerta u hora, resetea alerta_emitida a FALSE
      */
     async updateMantenimiento(id, data) {
-        const query = `
-            UPDATE mantenimientos 
-            SET descripcion = $1, hora = $2, dia_alerta = $3
-            WHERE id = $4
-            RETURNING *
-        `;
+        // Primero obtener el registro actual para comparar
+        const currentQuery = 'SELECT dia_alerta, hora FROM mantenimientos WHERE id = $1';
+        const currentResult = await this.pool.query(currentQuery, [id]);
+        const currentRecord = currentResult.rows[0];
         
-        const values = [
+        // Determinar si cambió la fecha o la hora
+        const fechaCambio = currentRecord && data.dia_alerta && currentRecord.dia_alerta !== data.dia_alerta;
+        const horaCambio = currentRecord && data.hora && currentRecord.hora !== data.hora;
+        
+        let query;
+        let values;
+        
+        if (fechaCambio || horaCambio) {
+            // Si cambió fecha u hora, resetear alerta_emitida a FALSE
+            console.log(`🔄 Reseteando alerta_emitida para mantenimiento ${id} (fecha cambió: ${fechaCambio}, hora cambió: ${horaCambio})`);
+            query = `
+                UPDATE mantenimientos 
+                SET descripcion = $1, hora = $2, dia_alerta = $3, prioridad = $4, alerta_emitida = FALSE
+                WHERE id = $5
+                RETURNING *
+            `;
+        } else {
+            // Si no cambió fecha/hora, actualizar normalmente
+            query = `
+                UPDATE mantenimientos 
+                SET descripcion = $1, hora = $2, dia_alerta = $3, prioridad = $4
+                WHERE id = $5
+                RETURNING *
+            `;
+        }
+        
+        values = [
             data.descripcion,
             data.hora,
-            data.dia_alerta,
+            data.dia_alerta || null,  // Fecha completa YYYY-MM-DD
+            data.prioridad || 'media',
             id
         ];
         
@@ -430,6 +560,34 @@ class PostgresManager {
     }
 
     /**
+     * Marcar automáticamente como emitidas todas las alertas cuya fecha/hora ya pasó
+     * @returns {Promise<number>} Número de alertas marcadas
+     */
+    async marcarAlertasPasadasComoEmitidas() {
+        const query = `
+            UPDATE mantenimientos 
+            SET alerta_emitida = TRUE 
+            WHERE tipo = 'rutina'
+            AND alerta_emitida = FALSE
+            AND dia_alerta IS NOT NULL
+            AND hora IS NOT NULL
+            AND (
+                dia_alerta < CURRENT_DATE
+                OR (dia_alerta = CURRENT_DATE AND hora < CURRENT_TIME)
+            )
+            RETURNING id
+        `;
+        const result = await this.pool.query(query);
+        const count = result.rows.length;
+        
+        if (count > 0) {
+            console.log(`✅ Marcadas ${count} alertas pasadas como emitidas:`, result.rows.map(r => r.id));
+        }
+        
+        return count;
+    }
+
+    /**
      * Obtener mantenimientos pendientes de alerta
      * (útil para sistema de notificaciones)
      */
@@ -441,9 +599,56 @@ class PostgresManager {
             LEFT JOIN edificios e ON c.edificio_id = e.id
             WHERE m.dia_alerta IS NOT NULL 
             AND m.alerta_emitida = FALSE
-            AND EXTRACT(DAY FROM CURRENT_DATE) >= m.dia_alerta
+            AND CURRENT_DATE >= m.dia_alerta
             ORDER BY m.dia_alerta, m.fecha_creacion
         `;
+        const result = await this.pool.query(query);
+        return result.rows;
+    }
+
+    /**
+     * Obtener alertas emitidas
+     * @param {string} fecha - Fecha específica (YYYY-MM-DD) o null para todas
+     * @returns {Promise<Array>} Array de alertas emitidas
+     */
+    async getAlertasEmitidas(fecha = null) {
+        let query = `
+            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            FROM mantenimientos m
+            LEFT JOIN cuartos c ON m.cuarto_id = c.id
+            LEFT JOIN edificios e ON c.edificio_id = e.id
+            WHERE m.tipo = 'rutina'
+            AND m.alerta_emitida = TRUE
+        `;
+        
+        const params = [];
+        
+        if (fecha) {
+            query += ` AND m.dia_alerta = $1`;
+            params.push(fecha);
+        }
+        
+        query += ` ORDER BY m.dia_alerta DESC, m.hora DESC`;
+        
+        const result = await this.pool.query(query, params);
+        return result.rows;
+    }
+
+    /**
+     * Obtener alertas pendientes (no emitidas)
+     * @returns {Promise<Array>} Array de alertas pendientes
+     */
+    async getAlertasPendientes() {
+        const query = `
+            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            FROM mantenimientos m
+            LEFT JOIN cuartos c ON m.cuarto_id = c.id
+            LEFT JOIN edificios e ON c.edificio_id = e.id
+            WHERE m.tipo = 'rutina'
+            AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
+            ORDER BY m.dia_alerta ASC, m.hora ASC
+        `;
+        
         const result = await this.pool.query(query);
         return result.rows;
     }
@@ -462,6 +667,329 @@ class PostgresManager {
         `;
         const result = await this.pool.query(query);
         return result.rows[0];
+    }
+
+    // =====================================
+    // Gestión de Usuarios
+    // =====================================
+
+    /**
+     * Obtiene todos los usuarios con detalles de rol y sesiones
+     * @param {boolean} includeInactive - Incluye usuarios dados de baja
+     * @returns {Promise<Array>} Lista de usuarios
+     */
+    async getUsuarios(includeInactive = false) {
+        const condition = includeInactive 
+            ? '1=1'
+            : 'u.activo = TRUE AND u.fecha_baja IS NULL';
+
+        const query = `
+            SELECT 
+                u.id,
+                u.nombre,
+                u.email,
+                u.telefono,
+                u.departamento,
+                u.numero_empleado,
+                u.activo,
+                u.fecha_registro,
+                u.fecha_baja,
+                u.motivo_baja,
+                u.ultimo_acceso,
+                u.foto_perfil_url,
+                u.notas_admin,
+                u.requiere_cambio_password,
+                u.bloqueado_hasta,
+                u.intentos_fallidos,
+                r.id as rol_id,
+                r.nombre as rol_nombre,
+                COALESCE(s.total_sesiones, 0) as total_sesiones,
+                s.ultima_sesion_login,
+                s.ultima_sesion_logout,
+                COALESCE(s.sesiones_activas, 0) as sesiones_activas
+            FROM usuarios u
+            LEFT JOIN roles r ON u.rol_id = r.id
+            LEFT JOIN LATERAL (
+                SELECT 
+                    COUNT(*) FILTER (WHERE TRUE) as total_sesiones,
+                    COUNT(*) FILTER (WHERE activa = TRUE) as sesiones_activas,
+                    MAX(fecha_login) as ultima_sesion_login,
+                    MAX(fecha_logout) as ultima_sesion_logout
+                FROM sesiones_usuarios su
+                WHERE su.usuario_id = u.id
+            ) s ON TRUE
+            WHERE ${condition}
+            ORDER BY u.nombre ASC
+        `;
+
+        const result = await this.pool.query(query);
+        return result.rows;
+    }
+
+    /**
+     * Obtiene un usuario específico por ID
+     * @param {number} id - ID del usuario
+     * @returns {Promise<Object|null>} Usuario encontrado o null
+     */
+    async getUsuarioById(id) {
+        const result = await this.pool.query(`
+            SELECT 
+                u.id,
+                u.nombre,
+                u.email,
+                u.telefono,
+                u.departamento,
+                u.numero_empleado,
+                u.activo,
+                u.fecha_registro,
+                u.fecha_baja,
+                u.motivo_baja,
+                u.ultimo_acceso,
+                u.foto_perfil_url,
+                u.notas_admin,
+                u.requiere_cambio_password,
+                r.id as rol_id,
+                r.nombre as rol_nombre,
+                COALESCE(s.total_sesiones, 0) as total_sesiones,
+                s.ultima_sesion_login,
+                s.ultima_sesion_logout,
+                COALESCE(s.sesiones_activas, 0) as sesiones_activas
+            FROM usuarios u
+            LEFT JOIN roles r ON u.rol_id = r.id
+            LEFT JOIN LATERAL (
+                SELECT 
+                    COUNT(*) FILTER (WHERE TRUE) as total_sesiones,
+                    COUNT(*) FILTER (WHERE activa = TRUE) as sesiones_activas,
+                    MAX(fecha_login) as ultima_sesion_login,
+                    MAX(fecha_logout) as ultima_sesion_logout
+                FROM sesiones_usuarios su
+                WHERE su.usuario_id = u.id
+            ) s ON TRUE
+            WHERE u.id = $1
+        `, [id]);
+
+        return result.rows[0] || null;
+    }
+
+    /**
+     * Obtiene el listado de roles disponibles
+     * @returns {Promise<Array>}
+     */
+    async getRoles() {
+        const result = await this.pool.query(`
+            SELECT id, nombre, descripcion, permisos
+            FROM roles
+            ORDER BY nombre ASC
+        `);
+        return result.rows;
+    }
+
+    /**
+     * Crea un nuevo usuario en la base de datos
+     * @param {Object} data - Datos del nuevo usuario
+     * @returns {Promise<Object>} Usuario creado
+     */
+    async createUsuario(data) {
+        if (!data?.nombre || !data?.email || !data?.password || !data?.rol) {
+            throw new Error('Nombre, email, password y rol son requeridos');
+        }
+
+        const trimmedPassword = data.password.trim();
+        if (trimmedPassword.length < 6) {
+            throw new Error('La contraseña debe tener al menos 6 caracteres');
+        }
+
+        const nombre = data.nombre.trim();
+        if (!nombre) {
+            throw new Error('El nombre no puede estar vacío');
+        }
+
+        const email = data.email.trim().toLowerCase();
+        if (!email) {
+            throw new Error('El email no puede estar vacío');
+        }
+
+        const rolId = await this.resolveRolId(data.rol);
+        const passwordHash = await this.hashPassword(trimmedPassword);
+
+        const result = await this.pool.query(`
+            INSERT INTO usuarios (
+                nombre,
+                email,
+                password_hash,
+                rol_id,
+                telefono,
+                departamento,
+                numero_empleado,
+                notas_admin,
+                foto_perfil_url,
+                activo,
+                requiere_cambio_password
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, TRUE, COALESCE($10, FALSE))
+            RETURNING id
+        `, [
+            nombre,
+            email,
+            passwordHash,
+            rolId,
+            data.telefono || null,
+            data.departamento || null,
+            data.numero_empleado || null,
+            data.notas_admin || null,
+            data.foto_perfil_url || null,
+            data.requiere_cambio_password ?? false
+        ]);
+
+        return this.getUsuarioById(result.rows[0].id);
+    }
+
+    /**
+     * Actualiza la información de un usuario existente
+     * @param {number} id - ID del usuario
+     * @param {Object} data - Campos a actualizar
+     */
+    async updateUsuario(id, data = {}) {
+        const updates = [];
+        const values = [];
+        let idx = 1;
+
+        const updatableFields = ['nombre', 'email', 'telefono', 'departamento', 'numero_empleado', 'notas_admin', 'foto_perfil_url', 'activo', 'requiere_cambio_password'];
+
+        updatableFields.forEach((field) => {
+            if (data[field] !== undefined) {
+                if (field === 'email') {
+                    values.push(data[field].trim().toLowerCase());
+                } else {
+                    values.push(data[field]);
+                }
+                updates.push(`${field} = $${idx++}`);
+            }
+        });
+
+        if (data.rol !== undefined) {
+            const rolId = await this.resolveRolId(data.rol);
+            values.push(rolId);
+            updates.push(`rol_id = $${idx++}`);
+        }
+
+        if (data.password) {
+            const trimmedPassword = data.password.trim();
+            if (trimmedPassword.length < 6) {
+                throw new Error('La contraseña debe tener al menos 6 caracteres');
+            }
+            const passwordHash = await this.hashPassword(trimmedPassword);
+            values.push(passwordHash);
+            updates.push(`password_hash = $${idx++}`);
+            updates.push('ultimo_cambio_password = CURRENT_TIMESTAMP');
+        }
+
+        if (!updates.length) {
+            throw new Error('No hay cambios para actualizar');
+        }
+
+        values.push(id);
+
+        const query = `
+            UPDATE usuarios
+            SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $${idx}
+            RETURNING id
+        `;
+
+        const result = await this.pool.query(query, values);
+
+        if (!result.rows.length) {
+            throw new Error('Usuario no encontrado');
+        }
+
+        return this.getUsuarioById(id);
+    }
+
+    /**
+     * Da de baja (soft delete) a un usuario
+     */
+    async darBajaUsuario(id, motivo = 'Baja administrativa', adminId) {
+        await this.pool.query(
+            'SELECT dar_baja_usuario($1, $2, $3)',
+            [id, motivo, adminId || null]
+        );
+        return this.getUsuarioById(id);
+    }
+
+    /**
+     * Reactiva a un usuario dado de baja
+     */
+    async reactivarUsuario(id, adminId) {
+        await this.pool.query(
+            'SELECT reactivar_usuario($1, $2)',
+            [id, adminId || null]
+        );
+        return this.getUsuarioById(id);
+    }
+
+    /**
+     * Desbloquea a un usuario bloqueado por intentos fallidos
+     */
+    async desbloquearUsuario(id, adminId) {
+        await this.pool.query(`
+            UPDATE usuarios
+            SET bloqueado_hasta = NULL,
+                intentos_fallidos = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = $1
+        `, [id]);
+
+        await this.pool.query(`
+            INSERT INTO auditoria_usuarios (usuario_id, accion, descripcion, usuario_ejecutor_id)
+            VALUES ($1, 'desbloqueo', 'Usuario desbloqueado manualmente por administrador', $2)
+        `, [id, adminId || null]);
+
+        return this.getUsuarioById(id);
+    }
+
+    /**
+     * Genera el hash seguro de una contraseña usando la función de Postgres
+     */
+    async hashPassword(plainPassword) {
+        const password = plainPassword?.trim();
+        if (!password) {
+            throw new Error('La contraseña no puede estar vacía');
+        }
+
+        const result = await this.pool.query(
+            'SELECT hashear_password($1) AS hash',
+            [password]
+        );
+        return result.rows[0].hash;
+    }
+
+    /**
+     * Resuelve el ID del rol a partir de nombre o ID
+     */
+    async resolveRolId(rol) {
+        if (!rol && rol !== 0) {
+            throw new Error('Rol requerido');
+        }
+
+        if (typeof rol === 'number' && Number.isInteger(rol)) {
+            return rol;
+        }
+
+        const numeric = parseInt(rol, 10);
+        if (!Number.isNaN(numeric)) {
+            return numeric;
+        }
+
+        const result = await this.pool.query(
+            'SELECT id FROM roles WHERE UPPER(nombre) = $1',
+            [rol.toString().trim().toUpperCase()]
+        );
+
+        if (!result.rows.length) {
+            throw new Error(`Rol no válido: ${rol}`);
+        }
+
+        return result.rows[0].id;
     }
 
     /**

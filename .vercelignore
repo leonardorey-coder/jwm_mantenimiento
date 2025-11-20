@@ -1,0 +1,43 @@
+# Archivos y carpetas a ignorar en Vercel
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Archivos de desarrollo
+.env.local
+.env.development
+.env.test
+
+# Documentación
+docs/
+*.md
+!README.md
+
+# Archivos de Word
+*.docx
+
+# Archivos temporales
+*.tmp
+*.temp
+~$*
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Node modules (ya se ignora por defecto, pero por si acaso)
+node_modules/
+
+# Archivos de configuración local
+ngrok.yml
+
+# Archivos de test
+test-packaged-app.sh
+*_test.log
+
+# Storage local
+storage/logs/
+storage/uploads/
+
