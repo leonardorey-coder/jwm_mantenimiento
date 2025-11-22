@@ -201,8 +201,25 @@ loginForm.addEventListener('submit', async (e) => {
         }
         
         if (data.success) {
-            console.log('🟢 [LOGIN-JWT] Login exitoso, guardando datos en localStorage...');
-            // Guardar tokens y datos de usuario
+            console.log('🟢 [LOGIN-JWT] Login exitoso, guardando datos...');
+            
+            // Guardar en IndexedDB si está disponible
+            if (window.storageHelper) {
+                try {
+                    await window.storageHelper.saveAuthTokens({
+                        accessToken: data.tokens.accessToken,
+                        refreshToken: data.tokens.refreshToken,
+                        tokenType: data.tokens.tokenType,
+                        expiresIn: data.tokens.expiresIn,
+                        sesionId: data.sesion_id
+                    }, rememberMe);
+                    console.log('✅ [LOGIN-JWT] Tokens guardados en IndexedDB');
+                } catch (idbError) {
+                    console.warn('⚠️ Error guardando tokens en IndexedDB:', idbError);
+                }
+            }
+            
+            // Guardar tokens también en localStorage/sessionStorage como fallback
             if (rememberMe) {
                 localStorage.setItem('accessToken', data.tokens.accessToken);
                 localStorage.setItem('refreshToken', data.tokens.refreshToken);
@@ -239,6 +256,17 @@ loginForm.addEventListener('submit', async (e) => {
                 requiere_cambio_password: requiereCambioPassword
             };
             
+            // Guardar usuario en IndexedDB
+            if (window.storageHelper) {
+                try {
+                    await window.storageHelper.saveCurrentUser(userData, rememberMe);
+                    console.log('✅ [LOGIN-JWT] Usuario guardado en IndexedDB');
+                } catch (idbError) {
+                    console.warn('⚠️ Error guardando usuario en IndexedDB:', idbError);
+                }
+            }
+            
+            // Fallback a localStorage/sessionStorage
             if (rememberMe) {
                 localStorage.setItem('currentUser', JSON.stringify(userData));
             } else {

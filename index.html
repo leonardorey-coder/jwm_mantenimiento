@@ -1,41 +1,42 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <title>JW Marriott - Sistema de Mantenimiento</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-users-blocked.css">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
-    
+
     <!-- Favicon para navegadores -->
     <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
     <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="shortcut icon" href="icons/favicon.ico">
-    
+
     <!-- Meta tags para PWA -->
     <meta name="theme-color" content="#1E1E1E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="JW Mantto">
     <link rel="apple-touch-icon" href="icons/icon-192x192.png">
-    
+
     <!-- Apple Touch Icons -->
     <link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
     <link rel="mask-icon" href="icons/safari-pinned-tab.svg" color="#1E1E1E">
-    
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json" crossorigin="use-credentials">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="application-name" content="JW Mantto">
-    
+
     <!-- CDN Libraries -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.1/dist/aos.css">
@@ -43,6 +44,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 </head>
+
 <body>
     <!-- Header Premium -->
     <header class="premium-header">
@@ -77,52 +79,52 @@
 
         <!-- Navigation Menu - Debajo del header -->
         <nav class="premium-nav">
-                <div class="menu">
-                    <a href="#" class="link active" data-tab="habitaciones" id="nav-habitaciones">
-                        <div class="link-icon">
-                            <i class="fas fa-bed"></i>
-                        </div>
-                        <div class="link-title">
-                            <span>Habitaciones</span>
-                        </div>
-                    </a>
+            <div class="menu">
+                <a href="#" class="link active" data-tab="habitaciones" id="nav-habitaciones">
+                    <div class="link-icon">
+                        <i class="fas fa-bed"></i>
+                    </div>
+                    <div class="link-title">
+                        <span>Habitaciones</span>
+                    </div>
+                </a>
 
-                    <a href="#" class="link" data-tab="espacios" id="nav-espacios">
-                        <div class="link-icon">
-                            <i class="fas fa-building"></i>
-                        </div>
-                        <div class="link-title">
-                            <span>Espacios Comunes</span>
-                        </div>
-                    </a>
+                <a href="#" class="link" data-tab="espacios" id="nav-espacios">
+                    <div class="link-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="link-title">
+                        <span>Espacios Comunes</span>
+                    </div>
+                </a>
 
-                    <a href="#" class="link" data-tab="sabana" id="nav-sabana">
-                        <div class="link-icon">
-                            <i class="fas fa-table"></i>
-                        </div>
-                        <div class="link-title">
-                            <span>Sábana</span>
-                        </div>
-                    </a>
+                <a href="#" class="link" data-tab="sabana" id="nav-sabana">
+                    <div class="link-icon">
+                        <i class="fas fa-table"></i>
+                    </div>
+                    <div class="link-title">
+                        <span>Sábana</span>
+                    </div>
+                </a>
 
-                    <a href="#" class="link" data-tab="checklist" id="nav-checklist">
-                        <div class="link-icon">
-                            <i class="fas fa-clipboard-check"></i>
-                        </div>
-                        <div class="link-title">
-                            <span>Checklist</span>
-                        </div>
-                    </a>
+                <a href="#" class="link" data-tab="checklist" id="nav-checklist">
+                    <div class="link-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="link-title">
+                        <span>Checklist</span>
+                    </div>
+                </a>
 
-                    <a href="#" class="link admin-only" data-tab="usuarios" id="nav-usuarios">
-                        <div class="link-icon">
-                            <i class="fas fa-users-cog"></i>
-                        </div>
-                        <div class="link-title">
-                            <span>Usuarios</span>
-                        </div>
-                    </a>
-                </div>
+                <a href="#" class="link admin-only" data-tab="usuarios" id="nav-usuarios">
+                    <div class="link-icon">
+                        <i class="fas fa-users-cog"></i>
+                    </div>
+                    <div class="link-title">
+                        <span>Usuarios</span>
+                    </div>
+                </a>
+            </div>
         </nav>
     </header>
 
@@ -149,7 +151,7 @@
 
             <a href="#" class="link" data-tab="sabana" id="nav-sabana-mobile">
                 <div class="link-icon">
-                    <i class="fas fa-filter"></i>
+                    <i class="fas fa-table"></i>
                 </div>
                 <div class="link-title">
                     <span>Sábana</span>
@@ -273,13 +275,13 @@
                             <div class="select-container premium-select" style="margin-bottom: 15px;">
                                 <select id="cuartoMantenimientoLateral" name="cuarto_id" required class="brutalist-input">
                                     <option value="">-- Seleccionar Habitación --</option> -->
-                                    <!-- Los cuartos se cargarán dinámicamente -->
-                                <!-- </select>
+                    <!-- Los cuartos se cargarán dinámicamente -->
+                    <!-- </select>
                                 <i class="fas fa-chevron-down icono-select"></i>
                             </div> -->
 
-                            <!-- Switch Premium para Tipo -->
-                            <!-- <div class="checkbox-wrapper-35" style="margin-bottom: 18px;">
+                    <!-- Switch Premium para Tipo -->
+                    <!-- <div class="checkbox-wrapper-35" style="margin-bottom: 18px;">
                                 <input value="private" name="switch" id="tipoMantenimientoSwitchLateral" type="checkbox" class="switch" onchange="handleTipoSwitchChange(this)">
                                 <label for="tipoMantenimientoSwitchLateral">
                                     <span class="switch-x-text">Tipo: </span>
@@ -291,8 +293,8 @@
                                 <input type="hidden" name="tipo" id="tipoHiddenLateral" value="normal">
                             </div> -->
 
-                            <!-- Selector Minimalista de Estado del Cuarto -->
-                            <!-- <div class="estado-selector-minimal" style="margin-bottom: 18px;">
+                    <!-- Selector Minimalista de Estado del Cuarto -->
+                    <!-- <div class="estado-selector-minimal" style="margin-bottom: 18px;">
                                 <label class="estado-label-minimal">Estado</label>
                                 <div class="estado-pills-container">
                                     <button type="button" class="estado-pill" data-estado="disponible" onclick="seleccionarEstadoPill(this, 'disponible')">
@@ -317,8 +319,8 @@
 
                             <input type="text" id="descripcionMantenimientoLateral" name="descripcion" placeholder="Descripción del servicio" required class="brutalist-input" style="margin-bottom: 15px;"> -->
 
-                            <!-- Campos de Alerta (se muestran solo cuando el switch está en Alerta) -->
-                            <!-- <div class="alerta-fields" id="alertaFieldsContainer" style="display: none;">
+                    <!-- Campos de Alerta (se muestran solo cuando el switch está en Alerta) -->
+                    <!-- <div class="alerta-fields" id="alertaFieldsContainer" style="display: none;">
                                 <div class="input-group">
                                     <label for="horaRutinaLateral">
                                         <i class="fas fa-clock"></i> Hora de la Alerta
@@ -332,9 +334,9 @@
                                     </label>
                                     <input type="date" id="diaAlertaLateral" name="dia_alerta" class="brutalist-input">
                                 </div> -->
-                                
-                                <!-- Semáforo Compacto Integrado -->
-                                <!-- <div class="semaforo-compact" style="margin-top: 15px;">
+
+                    <!-- Semáforo Compacto Integrado -->
+                    <!-- <div class="semaforo-compact" style="margin-top: 15px;">
                                     <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; color: #78768d; font-weight: 600;">
                                         <i class="fas fa-traffic-light"></i> Prioridad
                                     </label>
@@ -367,13 +369,17 @@
                         <h2><i class="fas fa-bell"></i> Alertas Programadas</h2>
                         <div class="alert-search-container premium-search">
                             <i class="fas fa-search icono-busqueda"></i>
-                            <input onkeyup="buscarAlertas(document.querySelectorAll('#listaVistaRutinas li'),document.querySelectorAll('#listaVistaRutinas li .rutina-descripcion'), this.value,document.getElementById('mensaje-no-alertas-encontradas'))" type="search" name="buscadorVistaAlertas" id="buscadorVistaAlertas" placeholder="Buscar alertas...">
+                            <input
+                                onkeyup="buscarAlertas(document.querySelectorAll('#listaVistaRutinas li'),document.querySelectorAll('#listaVistaRutinas li .rutina-descripcion'), this.value,document.getElementById('mensaje-no-alertas-encontradas'))"
+                                type="search" name="buscadorVistaAlertas" id="buscadorVistaAlertas"
+                                placeholder="Buscar alertas...">
                         </div>
                         <ul class="lista-vista-rutinas" id="listaVistaRutinas">
                             <!-- Las alertas se cargarán dinámicamente -->
-                            <li class="mensaje-cargando"><i class="fas fa-spinner"></i> Cargando alertas...</li>
+                            <li class="mensaje-cargando">Cargando alertas...</li>
                         </ul>
-                        <p id="mensaje-no-alertas-encontradas" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                        <p id="mensaje-no-alertas-encontradas" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
                             <i class="fas fa-search"></i> No hay alertas que coincidan con la búsqueda
                         </p>
                     </div>
@@ -383,15 +389,19 @@
                         <h2><i class="fas fa-exclamation-triangle"></i> Alertas del Día</h2>
                         <div class="alert-search-container premium-search">
                             <i class="fas fa-search icono-busqueda"></i>
-                            <input onkeyup="buscarAlertas(document.querySelectorAll('#listaAlertasEmitidas li'),document.querySelectorAll('#listaAlertasEmitidas li .alerta-descripcion'), this.value, document.getElementById('mensaje-no-alertas-dia-buscador'))" id="buscadorAlertasDia" type="search" placeholder="Buscar alertas del día...">
+                            <input
+                                onkeyup="buscarAlertas(document.querySelectorAll('#listaAlertasEmitidas li'),document.querySelectorAll('#listaAlertasEmitidas li .alerta-descripcion'), this.value, document.getElementById('mensaje-no-alertas-dia-buscador'))"
+                                id="buscadorAlertasDia" type="search" placeholder="Buscar alertas del día...">
                         </div>
                         <ul class="lista-alertas-emitidas" id="listaAlertasEmitidas">
                             <!-- Las alertas emitidas se cargarán aquí por JavaScript -->
                         </ul>
-                        <p id="mensaje-no-alertas-emitidas" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                        <p id="mensaje-no-alertas-emitidas" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
                             <i class="fas fa-check-circle"></i> No hay alertas pendientes
                         </p>
-                        <p id="mensaje-no-alertas-dia-buscador" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                        <p id="mensaje-no-alertas-dia-buscador" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
                             <i class="fas fa-search"></i> No hay alertas que coincidan con la búsqueda
                         </p>
                     </div>
@@ -401,31 +411,42 @@
                         <h2><i class="fas fa-history"></i> Historial de Alertas Emitidas</h2>
                         <div class="alert-search-container premium-search">
                             <i class="fas fa-search icono-busqueda"></i>
-                            <input onkeyup="buscarAlertas(document.querySelectorAll('#listaHistorialAlertas li'),document.querySelectorAll('#listaHistorialAlertas li .alerta-descripcion'), this.value, document.getElementById('mensaje-no-buscador-historial'))" id="buscadorHistorialAlertas" type="search" placeholder="Buscar en historial...">
+                            <input
+                                onkeyup="buscarAlertas(document.querySelectorAll('#listaHistorialAlertas li'),document.querySelectorAll('#listaHistorialAlertas li .alerta-descripcion'), this.value, document.getElementById('mensaje-no-buscador-historial'))"
+                                id="buscadorHistorialAlertas" type="search" placeholder="Buscar en historial...">
                         </div>
                         <ul class="lista-historial-alertas" id="listaHistorialAlertas">
                             <!-- El historial completo de alertas emitidas se cargará dinámicamente -->
-                            <li class="mensaje-cargando"><i class="fas fa-spinner"></i> Cargando historial...</li>
+                            <li class="mensaje-cargando">Cargando historial...</li>
                         </ul>
-                        <p id="mensaje-no-historial" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                        <p id="mensaje-no-historial" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
                             <i class="fas fa-inbox"></i> No hay alertas emitidas registradas
                         </p>
-                        <p id="mensaje-no-buscador-historial" class="mensaje-no-items" style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                        <p id="mensaje-no-buscador-historial" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
                             <i class="fas fa-search"></i> No hay alertas que coincidan con la búsqueda
                         </p>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Tab Content: Espacios Comunes -->
         <div class="tab-content" id="tab-espacios" data-aos="fade-in">
             <h1 class="titulos t-principal">Bitácora de Espacios Comunes</h1>
             <h2 class="titulos t-secundario">Control de Áreas Públicas</h2>
-            
-            <!-- Panel de búsqueda y filtros (ancho completo) -->
+
+            <!-- Filtros superiores -->
             <div class="panel panel-filtros" data-aos="fade-down">
-                <div class="busqueda-filtros">
+                <div class="filtros-header-mobile">
+                    <button class="filtros-toggle-btn" id="toggleFiltrosEspacios" aria-label="Mostrar/Ocultar filtros">
+                        <i class="fas fa-filter"></i>
+                        <span>Filtros</span>
+                        <i class="fas fa-chevron-down toggle-icon"></i>
+                    </button>
+                </div>
+                <div class="busqueda-filtros usuarios-filtros" id="contenedorFiltrosEspacios">
                     <div class="campo-busqueda premium-search">
                         <i class="fas fa-search icono-busqueda"></i>
                         <input type="text" id="buscarEspacio" placeholder="Buscar espacio...">
@@ -435,7 +456,7 @@
                         <input type="text" id="buscarServicioEspacio" placeholder="Buscar por servicio...">
                     </div>
                     <div class="select-container premium-select">
-                        <select id="filtroTipoEspacio" name="tipo_espacio">
+                        <select id="filtroTipoEspacio">
                             <option value="">Todos los espacios</option>
                             <option value="comun">Áreas Comunes</option>
                             <option value="recreativo">Recreación</option>
@@ -445,7 +466,7 @@
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
                     <div class="select-container premium-select">
-                        <select id="filtroPrioridadEspacio" name="prioridad_espacio">
+                        <select id="filtroPrioridadEspacio">
                             <option value="">Todas las prioridades</option>
                             <option value="baja">🟢 Baja</option>
                             <option value="media">🟡 Media</option>
@@ -453,211 +474,134 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
+                    <div class="select-container premium-select">
+                        <select id="filtroEstadoEspacio">
+                            <option value="">Todos los estados</option>
+                            <option value="disponible">Disponible</option>
+                            <option value="mantenimiento">En mantenimiento</option>
+                            <option value="ocupado">Ocupado</option>
+                            <option value="fuera_servicio">Fuera de servicio</option>
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
+                    </div>
                 </div>
             </div>
-            
-            <!-- Selector de vistas para móvil -->
-            <div class="mobile-view-selector">
-                <button class="view-btn active" data-view="habitaciones">
-                    <i class="fas fa-building"></i>
-                    <span>Espacios</span>
-                </button>
-                <button class="view-btn" data-view="alertas">
-                    <i class="fas fa-bell"></i>
-                    <span>Alertas</span>
-                </button>
-            </div>
-            
-            <!-- Estructura de vista duo (igual que Habitaciones) -->
+
             <div class="vista-duo">
-                <!-- Columna izquierda (3/4) - Lista de espacios -->
+                <!-- Columna principal -->
                 <div class="columna columna-principal">
-                    <!-- Grid de Espacios Comunes -->
-                    <div class="bitacora-espacios-grid" data-aos="fade-up">
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-door-open"></i>
-                                <h3>Lobby Principal</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 08:00 AM</span>
-                                    <span class="bitacora-desc">Limpieza profunda y desinfección</span>
-                                </div>
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 14:30 PM</span>
-                                    <span class="bitacora-desc">Revisión de iluminación</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-utensils"></i>
-                                <h3>Restaurante</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 06:00 AM</span>
-                                    <span class="bitacora-desc">Preparación de área</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-swimming-pool"></i>
-                                <h3>Área de Piscina</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 07:00 AM</span>
-                                    <span class="bitacora-desc">Limpieza y tratamiento de agua</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-dumbbell"></i>
-                                <h3>Gimnasio</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 06:30 AM</span>
-                                    <span class="bitacora-desc">Desinfección de equipos</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-spa"></i>
-                                <h3>Spa & Wellness</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 07:30 AM</span>
-                                    <span class="bitacora-desc">Preparación y limpieza</span>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="bitacora-card gradient-card">
-                            <div class="bitacora-header">
-                                <i class="fas fa-glass-cheers"></i>
-                                <h3>Salones de Eventos</h3>
-                            </div>
-                            <div class="bitacora-content">
-                                <div class="bitacora-item">
-                                    <span class="bitacora-time"><i class="far fa-clock"></i> 09:00 AM</span>
-                                    <span class="bitacora-desc">Revisión de instalaciones</span>
-                                </div>
-                            </div>
-                        </div>
+                    <ul class="lista-cuartos brutalist-grid" id="listaEspaciosComunes" data-aos="fade-up">
+                        <!-- Los espacios se cargarán dinámicamente -->
+                    </ul>
+                    <div class="habitaciones-pagination" id="espaciosPagination" aria-live="polite"></div>
+                    <div id="mensajeNoEspacios" class="mensaje-no-cuartos" style="display:none">
+                        <i class="fas fa-search"></i>
+                        <p>No se encontraron espacios con los criterios seleccionados</p>
                     </div>
                 </div>
 
-                <!-- Columna derecha (1/4) - Formulario y controles -->
+                <!-- Columna lateral -->
                 <div class="columna columna-lateral">
-                    <!-- Panel de Registro con Semáforo Integrado -->
-                    <div class="panel formulario-mantenimiento-lateral brutalist-card" data-aos="fade-left">
-                        <div class="brutalist-card__header">
-                            <div class="brutalist-card__icon">
-                                <i class="fas fa-clipboard-list"></i>
-                            </div>
-                            <div class="brutalist-card__alert">Registrar Servicio</div>
+                    <!-- Panel de Alertas de Espacios Comunes -->
+                    <div class="panel panel-vista-rutinas gradient-card" data-aos="fade-left" data-aos-delay="100">
+                        <h2><i class="fas fa-bell"></i> Alertas de Espacios</h2>
+                        <div class="alert-search-container premium-search">
+                            <i class="fas fa-search icono-busqueda"></i>
+                            <input type="search" id="buscadorAlertasEspacios" placeholder="Buscar alertas...">
                         </div>
-                        
-                        <form class="brutalist-card__form espacios-form-content">
-                            <div class="select-container premium-select" style="margin-bottom: 15px;">
-                                <select class="brutalist-input" required>
-                                    <option value="">-- Seleccionar Área --</option>
-                                    <option value="lobby">Lobby Principal</option>
-                                    <option value="restaurante">Restaurante</option>
-                                    <option value="gym">Gimnasio</option>
-                                    <option value="piscina">Área de Piscina</option>
-                                    <option value="spa">Spa & Wellness</option>
-                                    <option value="salon">Salones de Eventos</option>
-                                    <option value="estacionamiento">Estacionamiento</option>
-                                    <option value="jardines">Jardines</option>
-                                </select>
-                                <i class="fas fa-chevron-down icono-select"></i>
-                            </div>
-                            
-                            <input type="text" placeholder="Descripción del servicio" class="brutalist-input" required style="margin-bottom: 15px;">
-                            
-                            <textarea placeholder="Observaciones adicionales" class="brutalist-input" rows="3" style="margin-bottom: 15px;"></textarea>
-                            
-                            <!-- Semáforo Compacto Integrado -->
-                            <div class="semaforo-compact">
-                                <label style="display: block; margin-bottom: 8px; font-size: 0.85rem; color: #78768d; font-weight: 600;">
-                                    <i class="fas fa-traffic-light"></i> Nivel de Alerta
-                                </label>
-                                <div class="semaforo-horizontal-compact">
-                                    <label class="semaforo-label-compact semaforo-green">
-                                        <input type="radio" name="semaforo" class="semaforo-input" checked>
-                                        <span class="semaforo-light-compact"></span>
-                                        <span class="semaforo-text-compact">Baja</span>
-                                    </label>
-                                    <label class="semaforo-label-compact semaforo-yellow">
-                                        <input type="radio" name="semaforo" class="semaforo-input">
-                                        <span class="semaforo-light-compact"></span>
-                                        <span class="semaforo-text-compact">Media</span>
-                                    </label>
-                                    <label class="semaforo-label-compact semaforo-red">
-                                        <input type="radio" name="semaforo" class="semaforo-input">
-                                        <span class="semaforo-light-compact"></span>
-                                        <span class="semaforo-text-compact">Alta</span>
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <input type="text" id="responsableSemaforo" class="brutalist-input" placeholder="Responsable" style="margin-bottom: 15px; margin-top: 15px;">
-                            
-                            <button type="submit" class="brutalist-card__button brutalist-card__button--read">
-                                Registrar Servicio
-                            </button>
-                        </form>
+                        <ul class="lista-vista-rutinas" id="listaAlertasEspacios">
+                            <!-- Las alertas de espacios se cargarán dinámicamente -->
+                            <li class="mensaje-cargando">Cargando alertas...</li>
+                        </ul>
+                        <p id="mensaje-no-alertas-espacios" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                            <i class="fas fa-check-circle"></i> No hay alertas pendientes
+                        </p>
                     </div>
 
-                    <!-- Panel de Estadísticas Compacto -->
-                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-left" data-aos-delay="100">
-                        <h2><i class="fas fa-chart-bar"></i> Estadísticas</h2>
-                        <div class="estadisticas-compact">
-                            <div class="estadistica-item-compact">
-                                <span class="estadistica-label">Total</span>
-                                <span class="estadistica-valor" id="totalEspacios">8</span>
+                    <!-- Panel de Alertas Emitidas de Espacios -->
+                    <div class="panel panel-alertas-emitidas gradient-card" data-aos="fade-left" data-aos-delay="300">
+                        <h2><i class="fas fa-exclamation-triangle"></i> Alertas del Día</h2>
+                        <div class="alert-search-container premium-search">
+                            <i class="fas fa-search icono-busqueda"></i>
+                            <input type="search" id="buscadorAlertasDiaEspacios"
+                                placeholder="Buscar alertas del día...">
+                        </div>
+                        <ul class="lista-alertas-emitidas" id="listaAlertasEmitidasEspacios">
+                            <!-- Las alertas emitidas se cargarán aquí por JavaScript -->
+                            <li class="mensaje-cargando">Cargando alertas...</li>
+                        </ul>
+                        <p id="mensaje-no-alertas-emitidas-espacios" class="mensaje-no-items"
+                            style="display: none; text-align: center; margin-top: 10px; font-style: italic; color: #78768d;">
+                            <i class="fas fa-check-circle"></i> No hay alertas pendientes
+                        </p>
+                    </div>
+
+                    <!-- Panel de Estadísticas (NUEVO) -->
+                    <div class="card-container usuarios-stats-container espacios-stats-container" data-aos="fade-left"
+                        data-aos-delay="100">
+                        <div class="pixar-card usuario-stats-card espacios-stats-card" role="article"
+                            aria-labelledby="espaciosStatsTitle">
+                            <div class="card-header">
+                                <div class="card-avatar"></div>
+                                <p class="card-username" id="espaciosStatsTitle">Panel de Espacios</p>
                             </div>
-                            <div class="estadistica-item-compact">
-                                <span class="estadistica-label">Disponibles</span>
-                                <span class="estadistica-valor disponible" id="espaciosDisponibles">6</span>
+                            <div class="card-image-area">
+                                <div class="card-image-placeholder">
+                                    <div class="pixar-progress" id="espaciosStatsProgress" data-percent="0%"
+                                        style="--progress-value:0%"></div>
+                                </div>
+                                <p class="card-caption">
+                                    <span id="espaciosStatsCaption">Total de espacios: 0</span>
+                                    <span class="card-caption-highlight" id="espaciosStatsHighlight">Disponibles: 0 ·
+                                        Ocupados: 0 · En mantto.: 0</span>
+                                </p>
                             </div>
-                            <div class="estadistica-item-compact">
-                                <span class="estadistica-label">En Mantto.</span>
-                                <span class="estadistica-valor mantenimiento" id="espaciosMantenimiento">1</span>
-                            </div>
-                            <div class="estadistica-item-compact">
-                                <span class="estadistica-label">Fuera Serv.</span>
-                                <span class="estadistica-valor fuera" id="espaciosFuera">1</span>
+                            <div class="card-actions">
+                                <button class="action-button like-button" type="button"
+                                    aria-label="Espacios disponibles">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Disponibles</span>
+                                        <strong id="espaciosStatsDisponibles">0</strong>
+                                    </div>
+                                </button>
+                                <button class="action-button share-button" type="button" aria-label="Espacios ocupados">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Ocupados</span>
+                                        <strong id="espaciosStatsOcupados">0</strong>
+                                    </div>
+                                </button>
+                                <button class="action-button" type="button" aria-label="Espacios en mantenimiento">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Mantto.</span>
+                                        <strong id="espaciosStatsMantenimiento">0</strong>
+                                    </div>
+                                </button>
+                                <button class="action-button comment-button" type="button"
+                                    aria-label="Espacios fuera de servicio">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Fuera</span>
+                                        <strong id="espaciosStatsFuera">0</strong>
+                                    </div>
+                                </button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+
         <!-- Tab Content: Registro de Filtros -->
         <div class="tab-content" id="tab-filtros" data-aos="fade-in">
             <h1 class="titulos t-principal">Registro de Cambio de Filtros</h1>
             <h2 class="titulos t-secundario">Control Semestral</h2>
-            
+
             <div class="filtros-container">
                 <!-- Bitácora de Filtros Card -->
                 <div class="filtros-bitacora-card" data-aos="zoom-in">
                     <div class="filtros-bitacora-header">
                         <h2 class="filtros-bitacora-title">
-                            <i class="fas fa-clipboard-list"></i> Bitácora de Filtros
+                            Bitácora de Filtros
                         </h2>
                         <div class="filtros-bitacora-periodo">
                             <i class="fas fa-calendar-alt"></i> Enero - Junio 2025
@@ -666,7 +610,7 @@
                             </div>
                         </div>
                     </div>
-                    
+
                     <!-- Tabla de Filtros -->
                     <div class="filtros-table-wrapper">
                         <table class="filtros-table">
@@ -732,7 +676,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Botones de Acción -->
                     <div class="filtros-actions-container">
                         <button class="filtros-action-button excel" onclick="exportarFiltrosExcel()">
@@ -742,7 +686,7 @@
                                 <div style="font-size: 0.8rem; opacity: 0.8;">Descargar bitácora completa</div>
                             </div>
                         </button>
-                        
+
                         <button class="filtros-action-button archive" onclick="archivarPeriodo()">
                             <i class="fas fa-archive"></i>
                             <div>
@@ -750,7 +694,7 @@
                                 <div style="font-size: 0.8rem; opacity: 0.8;">Guardar periodo anterior</div>
                             </div>
                         </button>
-                        
+
                         <button class="filtros-action-button history" onclick="verHistorialFiltros()">
                             <i class="fas fa-history"></i>
                             <div>
@@ -767,7 +711,7 @@
         <div class="tab-content" id="tab-inspecciones" data-aos="fade-in">
             <h1 class="titulos t-principal">Sistema de Inspecciones</h1>
             <h2 class="titulos t-secundario">Control de Calidad</h2>
-            
+
             <!-- Estructura de vista duo (igual que Habitaciones) -->
             <div class="vista-duo">
                 <!-- Columna izquierda (3/4) - Área de contenido dinámico -->
@@ -804,7 +748,7 @@
                     </div>
 
                     <!-- Formularios Desplegables de Acciones Rápidas -->
-                    
+
                     <!-- Formulario Checklist (oculto por defecto) -->
                     <div id="formChecklist" class="accion-form-container" style="display: none;" data-aos="fade-down">
                         <div class="brutalist-card">
@@ -813,13 +757,15 @@
                                     <i class="fas fa-tasks"></i>
                                 </div>
                                 <div class="brutalist-card__alert">Crear Checklist</div>
-                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formChecklist')">
+                                <button type="button" class="btn-cerrar-form"
+                                    onclick="cerrarFormularioAccion('formChecklist')">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
                             <form class="brutalist-card__form">
                                 <input type="text" placeholder="Nombre del checklist" class="brutalist-input" required>
-                                <textarea placeholder="Items del checklist (uno por línea)" class="brutalist-input" rows="6"></textarea>
+                                <textarea placeholder="Items del checklist (uno por línea)" class="brutalist-input"
+                                    rows="6"></textarea>
                                 <div class="select-container premium-select">
                                     <select class="brutalist-input" required>
                                         <option value="">-- Asignar a --</option>
@@ -845,7 +791,8 @@
                                     <i class="fas fa-camera"></i>
                                 </div>
                                 <div class="brutalist-card__alert">Adjuntar Evidencia</div>
-                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formEvidencia')">
+                                <button type="button" class="btn-cerrar-form"
+                                    onclick="cerrarFormularioAccion('formEvidencia')">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -860,7 +807,8 @@
                                     <i class="fas fa-chevron-down icono-select"></i>
                                 </div>
                                 <input type="file" accept="image/*,video/*" class="brutalist-input file-input" multiple>
-                                <textarea placeholder="Descripción de la evidencia..." class="brutalist-input" rows="3"></textarea>
+                                <textarea placeholder="Descripción de la evidencia..." class="brutalist-input"
+                                    rows="3"></textarea>
                                 <button type="submit" class="brutalist-card__button brutalist-card__button--read">
                                     <i class="fas fa-upload"></i> Subir Evidencia
                                 </button>
@@ -876,7 +824,8 @@
                                     <i class="fas fa-signature"></i>
                                 </div>
                                 <div class="brutalist-card__alert">Capturar Firma</div>
-                                <button type="button" class="btn-cerrar-form" onclick="cerrarFormularioAccion('formFirma')">
+                                <button type="button" class="btn-cerrar-form"
+                                    onclick="cerrarFormularioAccion('formFirma')">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </div>
@@ -915,10 +864,11 @@
                             </div>
                             <div class="brutalist-card__alert">Nueva Inspección</div>
                         </div>
-                        
+
                         <form id="formNuevaInspeccion" class="brutalist-card__form">
                             <div class="select-container premium-select" style="margin-bottom: 15px;">
-                                <select id="mantenimientoInspeccion" name="mantenimiento_id" required class="brutalist-input">
+                                <select id="mantenimientoInspeccion" name="mantenimiento_id" required
+                                    class="brutalist-input">
                                     <option value="">-- Seleccionar Mantenimiento --</option>
                                     <option value="1">101 - Revisión Aire Acondicionado</option>
                                     <option value="2">102 - Reparación Plomería</option>
@@ -938,7 +888,9 @@
                                 <i class="fas fa-chevron-down icono-select"></i>
                             </div>
 
-                            <textarea id="descripcionInspeccion" name="descripcion" placeholder="Descripción de la inspección..." required class="brutalist-input" rows="4" style="margin-bottom: 15px;"></textarea>
+                            <textarea id="descripcionInspeccion" name="descripcion"
+                                placeholder="Descripción de la inspección..." required class="brutalist-input" rows="4"
+                                style="margin-bottom: 15px;"></textarea>
 
                             <div class="checkbox-aprobacion" style="margin-bottom: 15px;">
                                 <label class="checkbox-container">
@@ -958,17 +910,20 @@
                     <div class="panel panel-vista-rutinas gradient-card" data-aos="fade-left" data-aos-delay="100">
                         <h2><i class="fas fa-bolt"></i> Acciones Rápidas</h2>
                         <div class="acciones-rapidas-vertical">
-                            <button class="accion-rapida-btn-vertical checklist" onclick="mostrarFormularioAccion('formChecklist')">
+                            <button class="accion-rapida-btn-vertical checklist"
+                                onclick="mostrarFormularioAccion('formChecklist')">
                                 <i class="fas fa-tasks"></i>
                                 <span>Crear Checklist</span>
                             </button>
-                            
-                            <button class="accion-rapida-btn-vertical evidencia" onclick="mostrarFormularioAccion('formEvidencia')">
+
+                            <button class="accion-rapida-btn-vertical evidencia"
+                                onclick="mostrarFormularioAccion('formEvidencia')">
                                 <i class="fas fa-camera"></i>
                                 <span>Adjuntar Evidencia</span>
                             </button>
-                            
-                            <button class="accion-rapida-btn-vertical firma" onclick="mostrarFormularioAccion('formFirma')">
+
+                            <button class="accion-rapida-btn-vertical firma"
+                                onclick="mostrarFormularioAccion('formFirma')">
                                 <i class="fas fa-signature"></i>
                                 <span>Capturar Firma</span>
                             </button>
@@ -982,39 +937,48 @@
         <div class="tab-content" id="tab-sabana" data-aos="fade-in">
             <h1 class="titulos t-principal">Sábana de Servicios</h1>
             <h2 class="titulos t-secundario">Control de Servicios por Habitación</h2>
-            
+
             <div class="filtros-container">
                 <!-- Buscador de Sábana -->
                 <div class="panel panel-filtros" data-aos="fade-down">
-                    <div class="busqueda-filtros">
+                    <div class="filtros-header-mobile">
+                        <button class="filtros-toggle-btn" id="toggleFiltrosSabana"
+                            aria-label="Mostrar/Ocultar filtros">
+                            <i class="fas fa-filter"></i>
+                            <span>Filtros</span>
+                            <i class="fas fa-chevron-down toggle-icon"></i>
+                        </button>
+                    </div>
+                    <div class="busqueda-filtros" id="contenedorFiltrosSabana">
                         <div class="campo-busqueda premium-search">
                             <i class="fas fa-search icono-busqueda"></i>
-                            <input type="text" id="buscarSabana" placeholder="Buscar habitación o servicio...">
+                            <input type="text" id="buscarSabana" placeholder="Buscar habitación o servicio..."
+                                oninput="filterSabana()">
                         </div>
                         <div class="select-container premium-select">
-                            <select id="filtroEdificioSabana" name="edificio">
+                            <select id="filtroEdificioSabana" name="edificio" onchange="filterSabana()">
                                 <option value="">Todos los edificios</option>
                             </select>
                             <i class="fas fa-chevron-down icono-select"></i>
                         </div>
                         <div class="select-container premium-select">
-                            <select id="filtroServicioActual" name="servicioActual">
-                                <option value="cambio_chapas">Cambio de Chapas</option>
-                                <option value="cambio_sabanas">Cambio de Sábanas</option>
-                                <option value="cambio_filtros">Cambio de Filtros</option>
-                                <option value="mantenimiento_ac">Mantenimiento A/C</option>
-                                <option value="limpieza_profunda">Limpieza Profunda</option>
-                                <option value="pintura">Pintura</option>
-                                <option value="plomeria">Plomería</option>
-                                <option value="electricidad">Electricidad</option>
+                            <select id="filtroServicioActual" name="servicioActual"
+                                onchange="cambiarServicioActual(this.value)">
+                                <option value="">-- Seleccionar servicio --</option>
                             </select>
                             <i class="fas fa-chevron-down icono-select"></i>
                         </div>
                         <div class="select-container premium-select">
-                            <select id="filtroEstadoServicio" name="estadoServicio">
+                            <select id="filtroEstadoServicio" name="estadoServicio" onchange="filterSabana()">
                                 <option value="">Todos los estados</option>
                                 <option value="realizado">Realizado</option>
                                 <option value="pendiente">Pendiente</option>
+                            </select>
+                            <i class="fas fa-chevron-down icono-select"></i>
+                        </div>
+                        <div class="select-container premium-select">
+                            <select id="filtroPersonalSabana" name="personalSabana" onchange="filterSabana()">
+                                <option value="">Todo el personal</option>
                             </select>
                             <i class="fas fa-chevron-down icono-select"></i>
                         </div>
@@ -1025,13 +989,15 @@
                 <div class="filtros-bitacora-card" data-aos="zoom-in">
                     <div class="filtros-bitacora-header">
                         <h2 class="filtros-bitacora-title">
-                            <i class="fas fa-clipboard-list"></i> <span id="tituloServicioActual">Sábana de Cambio de Chapas</span>
+                            <i class="fas fa-clipboard-list"></i> <span id="tituloServicioActual">Cargando
+                                Sábana...</span>
                         </h2>
                         <div class="filtros-bitacora-right">
                             <div class="filtros-bitacora-periodo">
                                 <i class="fas fa-calendar-alt"></i> <span id="periodoActual">Periodo Actual</span>
                                 <div style="font-size: 0.8rem; margin-top: 0.3rem; opacity: 0.9;">
-                                    <i class="fas fa-chart-bar"></i> Completados: <span id="serviciosCompletados">0</span> / <span id="serviciosTotales">0</span>
+                                    <i class="fas fa-chart-bar"></i> Completados: <span
+                                        id="serviciosCompletados">0</span> / <span id="serviciosTotales">0</span>
                                 </div>
                             </div>
                             <button class="btn-nueva-sabana" type="button" onclick="abrirModalNuevaSabana()">
@@ -1040,9 +1006,10 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <!-- Tabla de Servicios con diseño mejorado -->
-                    <div class="filtros-table-wrapper responsive-table" loading="lazy" style="max-height: 70vh; overflow-y: auto;">
+                    <div class="filtros-table-wrapper responsive-table" loading="lazy"
+                        style="max-height: 70vh; overflow-y: auto;">
                         <table class="filtros-table">
                             <thead>
                                 <tr>
@@ -1063,7 +1030,7 @@
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- Botones de Acción -->
                     <div class="filtros-actions-container">
                         <button class="filtros-action-button excel supervisor-only" onclick="exportarSabanaExcel()">
@@ -1073,7 +1040,7 @@
                                 <div style="font-size: 0.8rem; opacity: 0.8;">Descargar registro completo</div>
                             </div>
                         </button>
-                        
+
                         <button class="filtros-action-button archive supervisor-only" onclick="archivarPeriodo()">
                             <i class="fas fa-archive"></i>
                             <div>
@@ -1081,7 +1048,7 @@
                                 <div style="font-size: 0.8rem; opacity: 0.8;">Guardar periodo anterior</div>
                             </div>
                         </button>
-                        
+
                         <button class="filtros-action-button history" onclick="verHistorialServicios()">
                             <i class="fas fa-history"></i>
                             <div>
@@ -1098,7 +1065,7 @@
         <div class="tab-content" id="tab-checklist" data-aos="fade-in">
             <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
             <h2 class="titulos t-secundario">Control de Calidad de Habitaciones</h2>
-            
+
             <!-- Selector de vistas para móvil -->
             <div class="mobile-view-selector">
                 <button class="view-btn active" data-view="habitaciones">
@@ -1110,7 +1077,7 @@
                     <span>Alertas</span>
                 </button>
             </div>
-            
+
             <!-- Estructura de vista duo (igual que Habitaciones) -->
             <div class="vista-duo">
                 <!-- Columna izquierda (3/4) - Área de contenido dinámico -->
@@ -1120,7 +1087,8 @@
                         <div class="busqueda-filtros">
                             <div class="campo-busqueda premium-search">
                                 <i class="fas fa-search icono-busqueda"></i>
-                                <input type="text" id="buscarChecklist" placeholder="Buscar por item (ej: sofá, aire acondicionado)...">
+                                <input type="text" id="buscarChecklist"
+                                    placeholder="Buscar por item (ej: sofá, aire acondicionado)...">
                             </div>
                             <div class="select-container premium-select">
                                 <select id="filtroEstadoChecklist">
@@ -1183,12 +1151,15 @@
                     </div>
 
                     <!-- Panel de Exportación (Solo Admin) -->
-                    <div class="panel panel-vista-rutinas gradient-card admin-only" data-aos="fade-left" data-aos-delay="100">
+                    <div class="panel panel-vista-rutinas gradient-card admin-only" data-aos="fade-left"
+                        data-aos-delay="100">
                         <h2><i class="fas fa-file-export"></i> Acciones</h2>
-                        <button class="brutalist-card__button brutalist-card__button--read" onclick="exportarChecklistExcel()" style="width: 100%; margin-bottom: 1rem;">
+                        <button class="brutalist-card__button brutalist-card__button--read"
+                            onclick="exportarChecklistExcel()" style="width: 100%; margin-bottom: 1rem;">
                             <i class="fas fa-file-excel"></i> Exportar Checklist
                         </button>
-                        <button class="brutalist-card__button brutalist-card__button--mark" onclick="generarReporteChecklist()" style="width: 100%;">
+                        <button class="brutalist-card__button brutalist-card__button--mark"
+                            onclick="generarReporteChecklist()" style="width: 100%;">
                             <i class="fas fa-file-pdf"></i> Generar Reporte
                         </button>
                     </div>
@@ -1200,7 +1171,7 @@
         <div class="tab-content admin-only" id="tab-usuarios" data-aos="fade-in">
             <h1 class="titulos t-principal">Gestión de Usuarios</h1>
             <h2 class="titulos t-secundario">Administración del Sistema</h2>
-            
+
             <div class="usuarios-container">
                 <div class="usuarios-layout">
                     <div class="usuarios-main-column">
@@ -1208,7 +1179,8 @@
                             <div class="usuarios-toolbar-left">
                                 <div class="campo-busqueda premium-search">
                                     <i class="fas fa-search icono-busqueda"></i>
-                                    <input type="text" id="usuariosSearchInput" placeholder="Buscar por nombre, correo o departamento">
+                                    <input type="text" id="usuariosSearchInput"
+                                        placeholder="Buscar por nombre, correo o departamento">
                                 </div>
                             </div>
                             <div class="usuarios-toolbar-right">
@@ -1216,7 +1188,8 @@
                                     <input type="checkbox" id="usuariosShowInactive">
                                     <span>Solo inactivos</span>
                                 </label>
-                                <button class="brutalist-card__button brutalist-card__button--read" id="usuariosRefreshBtn">
+                                <button class="brutalist-card__button brutalist-card__button--read"
+                                    id="usuariosRefreshBtn">
                                     <i class="fas fa-sync-alt"></i> Refrescar
                                 </button>
                                 <button class="brutalist-card__button" onclick="mostrarModalNuevoUsuario()">
@@ -1245,7 +1218,8 @@
                                     </label>
                                     <label>
                                         <span>Correo corporativo *</span>
-                                        <input type="email" id="usuarioEmail" required placeholder="usuario@jwmarriott.com">
+                                        <input type="email" id="usuarioEmail" required
+                                            placeholder="usuario@jwmarriott.com">
                                     </label>
                                     <label>
                                         <span>Departamento</span>
@@ -1270,12 +1244,14 @@
                                 <label>
                                     <span>Contraseña temporal</span>
                                     <input type="password" id="usuarioPassword" placeholder="Mínimo 6 caracteres">
-                                    <small id="usuarioPasswordHelp">La contraseña temporal solo se solicita durante el alta de un usuario.</small>
+                                    <small id="usuarioPasswordHelp">La contraseña temporal solo se solicita durante el
+                                        alta de un usuario.</small>
                                 </label>
 
                                 <label>
                                     <span>Notas internas</span>
-                                    <textarea id="usuarioNotas" rows="3" placeholder="Notas para el equipo de administración"></textarea>
+                                    <textarea id="usuarioNotas" rows="3"
+                                        placeholder="Notas para el equipo de administración"></textarea>
                                 </label>
 
                                 <div class="usuarios-form-options">
@@ -1290,10 +1266,12 @@
                                 </div>
 
                                 <div class="usuarios-form-actions">
-                                    <button type="submit" id="usuarioFormSubmit" class="brutalist-card__button brutalist-card__button--mark">
+                                    <button type="submit" id="usuarioFormSubmit"
+                                        class="brutalist-card__button brutalist-card__button--mark">
                                         <i class="fas fa-save"></i> Crear usuario
                                     </button>
-                                    <button type="button" id="usuarioFormCancel" class="brutalist-card__button brutalist-card__button--ghost">
+                                    <button type="button" id="usuarioFormCancel"
+                                        class="brutalist-card__button brutalist-card__button--ghost">
                                         Cancelar
                                     </button>
                                 </div>
@@ -1304,7 +1282,7 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Download Spinner - Dot Spinner (hidden by default) -->
     <div id="downloadSpinner" class="download-spinner-overlay" style="display: none;">
         <div class="dot-spinner">
@@ -1347,12 +1325,13 @@
                 </button>
             </div>
             <div class="modal-detalles-body">
-                <p class="modal-nueva-sabana-texto">Define el servicio que se realizará. La sábana actual se archivará antes de crear la nueva.</p>
-                
+                <p class="modal-nueva-sabana-texto">Define el servicio que se realizará.</p>
+
                 <!-- Radio toggle: Nuevo / Existente -->
                 <div class="servicio-tipo-toggle">
                     <label class="radio-toggle-option">
-                        <input type="radio" name="tipoServicio" value="nuevo" checked onchange="toggleTipoServicioModal()">
+                        <input type="radio" name="tipoServicio" value="nuevo" checked
+                            onchange="toggleTipoServicioModal()">
                         <span class="radio-label"><i class="fas fa-plus-circle"></i> Nuevo servicio</span>
                     </label>
                     <label class="radio-toggle-option">
@@ -1366,13 +1345,8 @@
                     <label for="inputNombreServicio">
                         <i class="fas fa-tag"></i> Nombre del servicio
                     </label>
-                    <input 
-                        type="text" 
-                        id="inputNombreServicio" 
-                        class="brutalist-input" 
-                        placeholder="Ej: Cambio de Lámparas LED" 
-                        maxlength="50"
-                    >
+                    <input type="text" id="inputNombreServicio" class="brutalist-input"
+                        placeholder="Ej: Cambio de Lámparas LED" maxlength="50">
                 </div>
 
                 <!-- Select para servicios existentes -->
@@ -1388,13 +1362,25 @@
                     </div>
                 </div>
 
-                <div class="modal-nueva-sabana-alerta">
-                    <i class="fas fa-archive"></i>
-                    <span>La sábana vigente se moverá al historial en automático.</span>
+                <!-- Switch para archivar sábana actual -->
+                <div class="form-group-modal" style="margin-top: 1rem;">
+                    <label class="switch-container">
+                        <input type="checkbox" id="switchArchivarActual" checked>
+                        <span class="switch-slider"></span>
+                        <span class="switch-label">
+                            <i class="fas fa-archive"></i> Archivar sábana actual
+                        </span>
+                    </label>
+                    <div class="modal-nueva-sabana-alerta" style="margin-top: 0.75rem; margin-left: 0;">
+                        <i class="fas fa-archive"></i>
+                        <span>La sábana vigente se moverá al historial en automático.</span>
+                    </div>
                 </div>
+
                 <div class="modal-nueva-sabana-actions">
                     <button class="btn-modal-cancel" type="button" onclick="cerrarModalNuevaSabana()">Cancelar</button>
-                    <button class="btn-modal-confirm" type="button" onclick="confirmarNuevaSabana()">Archivar y crear</button>
+                    <button class="btn-modal-confirm" type="button" id="btn-confirmar-nueva-sabana"
+                        onclick="confirmarNuevaSabana()">Crear sábana</button>
                 </div>
             </div>
         </div>
@@ -1412,7 +1398,7 @@
             </div>
             <div class="modal-detalles-body">
                 <p class="modal-historial-descripcion">
-                    <i class="fas fa-info-circle"></i> 
+                    <i class="fas fa-info-circle"></i>
                     Haz clic en una sábana para cargarla y consultarla.
                 </p>
                 <div id="listaHistorialSabanas" class="historial-lista">
@@ -1426,24 +1412,25 @@
     </div>
 
     <!-- Scripts principales -->
-    <script src="app.js"></script>
-    <script src="script.js"></script>
-    <script src="enhanced-frontend.js"></script>
-    
+    <script src="js/sabana-functions.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/enhanced-frontend.js"></script>
+
     <!-- Script para manejar el switch Avería/Alerta -->
     <script>
         // Función para manejar el cambio del switch
         function handleTipoSwitchChange(switchElement) {
             console.log('🔄 Switch cambió a:', switchElement.checked ? 'ALERTA' : 'AVERÍA');
-            
+
             const tipoHidden = document.getElementById('tipoHiddenLateral');
             const alertaFields = document.getElementById('alertaFieldsContainer');
-            
+
             if (!alertaFields) {
                 console.error('❌ No se encontró alertaFieldsContainer');
                 return;
             }
-            
+
             if (switchElement.checked) {
                 // Modo ALERTA - MOSTRAR campos
                 console.log('✅ Mostrando campos de alerta');
@@ -1451,7 +1438,7 @@
                 // Usar la clase 'show' para activar la animación CSS
                 alertaFields.classList.add('show');
                 alertaFields.style.display = 'block';
-                
+
                 // Hacer los campos requeridos cuando es alerta
                 const horaInput = document.getElementById('horaRutinaLateral');
                 const fechaInput = document.getElementById('diaAlertaLateral');
@@ -1464,7 +1451,7 @@
                 // Remover clase y ocultar
                 alertaFields.classList.remove('show');
                 alertaFields.style.display = 'none';
-                
+
                 // Remover atributo required cuando es avería
                 const horaInput = document.getElementById('horaRutinaLateral');
                 const fechaInput = document.getElementById('diaAlertaLateral');
@@ -1472,31 +1459,61 @@
                 if (fechaInput) fechaInput.removeAttribute('required');
             }
         }
-        
+
         // Hacer la función global
         window.handleTipoSwitchChange = handleTipoSwitchChange;
-        
+
         console.log('✅ Función handleTipoSwitchChange cargada');
     </script>
-    
+
     <!-- <script src="script_index.js"></script> -->
     <!-- script_index.js deshabilitado - usando solo app-loader.js -->
-    <script>
-        // Cargar el loader de la aplicación
-        console.log('🌐 Cargando aplicación web...');
-        const script = document.createElement('script');
-        script.src = 'app-loader.js?v=' + Date.now();
-        script.onload = () => console.log('✅ App loader cargado exitosamente');
-        script.onerror = (error) => console.error('❌ Error cargando app loader:', error);
-        document.head.appendChild(script);
+
+    <!-- IndexedDB Manager - Sistema de almacenamiento local -->
+    <script type="module">
+        // Importar módulos de IndexedDB
+        import dbManager from './js/indexeddb-manager.js';
+        import storageHelper from './js/storage-helper.js';
+
+        // Exponer globalmente para compatibilidad
+        window.dbManager = dbManager;
+        window.storageHelper = storageHelper;
+
+        // Inicializar IndexedDB
+        console.log('🔧 [IndexedDB] Inicializando sistema de almacenamiento...');
+
+        Promise.all([
+            dbManager.init(),
+            storageHelper.init()
+        ]).then(() => {
+            console.log('✅ [IndexedDB] Sistema de almacenamiento inicializado');
+
+            // Cargar el loader de la aplicación después de IndexedDB
+            console.log('🌐 Cargando aplicación web...');
+            const script = document.createElement('script');
+            script.src = 'js/app-loader.js?v=' + Date.now();
+            script.onload = () => console.log('✅ App loader cargado exitosamente');
+            script.onerror = (error) => console.error('❌ Error cargando app loader:', error);
+            document.head.appendChild(script);
+        }).catch(error => {
+            console.error('❌ [IndexedDB] Error al inicializar:', error);
+
+            // Intentar cargar la app de todas formas (fallback a localStorage)
+            console.warn('⚠️ Usando fallback a localStorage/sessionStorage');
+            const script = document.createElement('script');
+            script.src = 'js/app-loader.js?v=' + Date.now();
+            script.onload = () => console.log('✅ App loader cargado en modo fallback');
+            script.onerror = (error) => console.error('❌ Error cargando app loader:', error);
+            document.head.appendChild(script);
+        });
     </script>
-    
+
     <!-- Service Worker temporalmente deshabilitado para debugging -->
     <script>
         /*
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
+                navigator.serviceWorker.register('./js/sw.js')
                     .then((registration) => {
                         console.log('SW registrado exitosamente: ', registration);
                     })
@@ -1507,22 +1524,22 @@
         }
         */
         console.log('🔧 Service Worker deshabilitado para debugging');
-        
+
         // Eliminar Service Worker existente si existe
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                for(let registration of registrations) {
+            navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                for (let registration of registrations) {
                     registration.unregister();
                     console.log('🗑️ Service Worker eliminado:', registration);
                 }
             });
         }
 
-        function buscarAlertas(listas,listasDescr, valorInputBuscar, mensaje) {
+        function buscarAlertas(listas, listasDescr, valorInputBuscar, mensaje) {
             let listaHistorialAlertasDescr = listasDescr;
             let listaHistAlertasDescr = []
 
-            listas.forEach(alerta=>{
+            listas.forEach(alerta => {
                 alerta.style.display = "none"
             })
 
@@ -1556,4 +1573,5 @@
         }
     </script>
 </body>
+
 </html>

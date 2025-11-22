@@ -1017,6 +1017,255 @@ class PostgresManager {
             waitingCount: this.pool.waitingCount
         };
     }
+
+    // ====================================
+    // FUNCIONES DE SÁBANAS
+    // ====================================
+
+    async createSabana(data) {
+        const { nombre, servicio_id, servicio_nombre, usuario_creador_id, notas, cuartos } = data;
+        
+        const client = await this.pool.connect();
+        try {
+            await client.query('BEGIN');
+            
+            const querySabana = `
+                INSERT INTO sabanas (nombre, servicio_id, servicio_nombre, usuario_creador_id, notas)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *
+            `;
+            const resultSabana = await client.query(querySabana, [
+                nombre, 
+                servicio_id, 
+                servicio_nombre, 
+                usuario_creador_id || null, 
+                notas || null
+            ]);
+            
+            const sabana = resultSabana.rows[0];
+            
+            if (cuartos && cuartos.length > 0) {
+                const queryItems = `
+                    INSERT INTO sabanas_items (
+                        sabana_id, cuarto_id, habitacion, edificio, edificio_id, 
+                        fecha_programada, fecha_realizado, responsable, 
+                        usuario_responsable_id, observaciones, realizado
+                    )
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+                `;
+                
+                for (const cuarto of cuartos) {
+                    await client.query(queryItems, [
+                        sabana.id,
+                        cuarto.cuarto_id,
+                        cuarto.habitacion,
+                        cuarto.edificio,
+                        cuarto.edificio_id || null,
+                        cuarto.fecha_programada || new Date(),
+                        cuarto.fecha_realizado || null,
+                        cuarto.responsable || null,
+                        cuarto.usuario_responsable_id || null,
+                        cuarto.observaciones || null,
+                        cuarto.realizado || false
+                    ]);
+                }
+            }
+            
+            await client.query('COMMIT');
+            return await this.getSabanaById(sabana.id);
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    async getSabanas(includeArchivadas = false) {
+        const query = `
+            SELECT s.*, 
+                   u.nombre as creador_nombre,
+                   u.email as creador_email
+            FROM sabanas s
+            LEFT JOIN usuarios u ON s.usuario_creador_id = u.id
+            WHERE s.archivada = $1 OR $2 = true
+            ORDER BY s.fecha_creacion DESC
+        `;
+        const result = await this.pool.query(query, [false, includeArchivadas]);
+        return result.rows;
+    }
+
+    async getSabanaById(id) {
+        console.log('🔍 [DB] Buscando sábana con ID:', id);
+        
+        const querySabana = `
+            SELECT s.*, 
+                   u.nombre as creador_nombre,
+                   u.email as creador_email
+            FROM sabanas s
+            LEFT JOIN usuarios u ON s.usuario_creador_id = u.id
+            WHERE s.id = $1
+        `;
+        const resultSabana = await this.pool.query(querySabana, [id]);
+        
+        if (resultSabana.rows.length === 0) {
+            console.log('❌ [DB] Sábana no encontrada con ID:', id);
+            return null;
+        }
+        
+        const sabana = resultSabana.rows[0];
+        console.log('✅ [DB] Sábana encontrada:', sabana.nombre);
+        
+        const queryItems = `
+            SELECT si.id,
+                   si.sabana_id,
+                   si.cuarto_id,
+                   si.habitacion,
+                   si.edificio as edificio,
+                   si.edificio_id,
+                   si.fecha_programada,
+                   si.fecha_realizado,
+                   si.responsable,
+                   si.usuario_responsable_id,
+                   si.observaciones,
+                   si.realizado,
+                   c.numero as cuarto_numero,
+                   c.estado as cuarto_estado,
+                   e.nombre as edificio_nombre,
+                   u.nombre as responsable_nombre
+            FROM sabanas_items si
+            LEFT JOIN cuartos c ON si.cuarto_id = c.id
+            LEFT JOIN edificios e ON si.edificio_id = e.id
+            LEFT JOIN usuarios u ON si.usuario_responsable_id = u.id
+            WHERE si.sabana_id = $1
+            ORDER BY e.nombre, c.numero
+        `;
+        const resultItems = await this.pool.query(queryItems, [id]);
+        
+        sabana.items = resultItems.rows;
+        console.log('📦 [DB] Items cargados:', resultItems.rows.length);
+        
+        return sabana;
+    }
+
+    async updateSabanaItem(itemId, data) {
+        const { fecha_realizado, responsable, usuario_responsable_id, observaciones, realizado } = data;
+        
+        const campos = [];
+        const valores = [];
+        let contador = 1;
+        
+        if (fecha_realizado !== undefined) {
+            campos.push(`fecha_realizado = $${contador++}`);
+            valores.push(fecha_realizado);
+        }
+        if (responsable !== undefined) {
+            campos.push(`responsable = $${contador++}`);
+            valores.push(responsable);
+        }
+        if (usuario_responsable_id !== undefined) {
+            campos.push(`usuario_responsable_id = $${contador++}`);
+            valores.push(usuario_responsable_id);
+        }
+        if (observaciones !== undefined) {
+            campos.push(`observaciones = $${contador++}`);
+            valores.push(observaciones);
+        }
+        if (realizado !== undefined) {
+            campos.push(`realizado = $${contador++}`);
+            valores.push(realizado);
+            
+            if (realizado && !fecha_realizado) {
+                campos.push(`fecha_realizado = $${contador++}`);
+                valores.push(new Date());
+            }
+        }
+        
+        if (campos.length === 0) {
+            throw new Error('No hay campos para actualizar');
+        }
+        
+        valores.push(itemId);
+        
+        const query = `
+            UPDATE sabanas_items
+            SET ${campos.join(', ')}
+            WHERE id = $${contador}
+            RETURNING *
+        `;
+        
+        const result = await this.pool.query(query, valores);
+        return result.rows[0];
+    }
+
+    async archivarSabana(sabanaId) {
+        console.log('🗄️ [DB] Archivando sábana ID:', sabanaId);
+        
+        const query = `
+            UPDATE sabanas
+            SET archivada = true,
+                fecha_archivado = CURRENT_TIMESTAMP
+            WHERE id = $1
+            RETURNING *
+        `;
+        const result = await this.pool.query(query, [sabanaId]);
+        
+        if (result.rows.length === 0) {
+            throw new Error(`Sábana con ID ${sabanaId} no encontrada`);
+        }
+        
+        console.log('✅ [DB] Sábana archivada:', {
+            id: result.rows[0].id,
+            nombre: result.rows[0].nombre,
+            archivada: result.rows[0].archivada,
+            fecha_archivado: result.rows[0].fecha_archivado
+        });
+        
+        return result.rows[0];
+    }
+
+    async getSabanasArchivadas() {
+        const query = `
+            SELECT s.*, 
+                   u.nombre as creador_nombre,
+                   u.email as creador_email,
+                   COUNT(si.id) as total_items,
+                   COUNT(CASE WHEN si.realizado = true THEN 1 END) as items_completados,
+                   CASE 
+                       WHEN COUNT(si.id) > 0 THEN 
+                           ROUND((COUNT(CASE WHEN si.realizado = true THEN 1 END)::numeric / COUNT(si.id)::numeric) * 100, 2)
+                       ELSE 0
+                   END as progreso_porcentaje
+            FROM sabanas s
+            LEFT JOIN usuarios u ON s.usuario_creador_id = u.id
+            LEFT JOIN sabanas_items si ON si.sabana_id = s.id
+            WHERE s.archivada = true
+            GROUP BY s.id, u.nombre, u.email
+            ORDER BY s.fecha_archivado DESC, s.fecha_creacion DESC
+        `;
+        const result = await this.pool.query(query);
+        console.log('📚 Sábanas archivadas encontradas:', result.rows.length);
+        return result.rows;
+    }
+
+    async deleteSabana(sabanaId) {
+        const query = 'DELETE FROM sabanas WHERE id = $1';
+        await this.pool.query(query, [sabanaId]);
+    }
+
+    async getSabanasByServicio(servicioId, includeArchivadas = false) {
+        const query = `
+            SELECT s.*, 
+                   u.nombre as creador_nombre,
+                   u.email as creador_email
+            FROM sabanas s
+            LEFT JOIN usuarios u ON s.usuario_creador_id = u.id
+            WHERE s.servicio_id = $1 AND (s.archivada = false OR $2 = true)
+            ORDER BY s.fecha_creacion DESC
+        `;
+        const result = await this.pool.query(query, [servicioId, includeArchivadas]);
+        return result.rows;
+    }
 }
 
 module.exports = PostgresManager;
