@@ -2,7 +2,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
-const PostgresManager = require('./db/postgres-manager');
+const PostgresManager = require('../db/postgres-manager');
 
 const app = express();
 const PORT = process.env.PORT || 3001;

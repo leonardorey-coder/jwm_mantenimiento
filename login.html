@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - JW Marriott Sistema de Mantenimiento</title>
+    
+    <!-- Establecer tema antes de cargar estilos -->
+    <script>
+        (function() {
+            const theme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+    
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -148,7 +157,41 @@
         </div>
     </div>
 
-    <script src="login-jwt.js"></script>
+    <!-- IndexedDB Manager - Sistema de almacenamiento local -->
+    <script type="module">
+        // Importar módulos de IndexedDB
+        import dbManager from './js/indexeddb-manager.js';
+        import storageHelper from './js/storage-helper.js';
+        
+        // Exponer globalmente para compatibilidad
+        window.dbManager = dbManager;
+        window.storageHelper = storageHelper;
+        
+        // Inicializar IndexedDB antes de cargar login
+        console.log('🔧 [Login] Inicializando sistema de almacenamiento...');
+        
+        Promise.all([
+            dbManager.init(),
+            storageHelper.init()
+        ]).then(() => {
+            console.log('✅ [Login] Sistema de almacenamiento inicializado');
+            
+            // Cargar script de login
+            const script = document.createElement('script');
+            script.src = 'js/login-jwt.js?v=' + Date.now();
+            script.onload = () => console.log('✅ [Login] Script de login cargado');
+            script.onerror = (error) => console.error('❌ [Login] Error cargando script:', error);
+            document.body.appendChild(script);
+        }).catch(error => {
+            console.error('❌ [Login] Error al inicializar storage:', error);
+            
+            // Cargar de todas formas (fallback)
+            const script = document.createElement('script');
+            script.src = 'js/login-jwt.js?v=' + Date.now();
+            script.onload = () => console.log('✅ [Login] Script cargado en modo fallback');
+            document.body.appendChild(script);
+        });
+    </script>
 </body>
 </html>
 

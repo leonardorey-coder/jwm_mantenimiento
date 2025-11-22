@@ -240,6 +240,9 @@ function exportarFiltrosExcel() {
 // ========================================
 // ARCHIVAR PERIODO ANTERIOR
 // ========================================
+// NOTA: Esta función está comentada porque la implementación real
+// está en sabana-functions.js conectada a la base de datos
+/*
 function archivarPeriodo() {
     if (confirm('¿Está seguro de archivar el periodo anterior? Esta acción moverá los registros al historial.')) {
         const spinner = document.getElementById('downloadSpinner');
@@ -264,6 +267,8 @@ function archivarPeriodo() {
         }
     }
 }
+*/
+// La función real archivarPeriodo() está en sabana-functions.js
 
 // ========================================
 // VER HISTORIAL DE FILTROS
@@ -484,7 +489,7 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
 // ========================================
 window.exportarBitacora = exportarBitacora;
 window.exportarFiltrosExcel = exportarFiltrosExcel;
-window.archivarPeriodo = archivarPeriodo;
+// window.archivarPeriodo = archivarPeriodo; // COMENTADO - Usar la función real de sabana-functions.js
 window.verHistorialFiltros = verHistorialFiltros;
 window.mostrarNotificacion = mostrarNotificacion;
 window.aplicarPrioridad = aplicarPrioridad;

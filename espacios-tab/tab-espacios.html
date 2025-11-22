@@ -1,0 +1,122 @@
+<!-- Tab Content: Espacios Comunes -->
+<div class="tab-content" id="tab-espacios" data-aos="fade-in">
+  <h1 class="titulos t-principal">Bitácora de Espacios Comunes</h1>
+  <h2 class="titulos t-secundario">Control de Áreas Públicas · JW Marriott</h2>
+
+  <!-- Filtros superiores -->
+  <div class="panel panel-filtros" data-aos="fade-down">
+    <div class="busqueda-filtros usuarios-filtros">
+      <div class="campo-busqueda premium-search">
+        <i class="fas fa-search icono-busqueda"></i>
+        <input type="text" id="buscarEspacio" placeholder="Buscar espacio...">
+      </div>
+      <div class="campo-busqueda premium-search">
+        <i class="fas fa-tools icono-busqueda"></i>
+        <input type="text" id="buscarServicioEspacio" placeholder="Buscar por servicio...">
+      </div>
+      <div class="select-container premium-select">
+        <select id="filtroTipoEspacio">
+          <option value="">Todos los espacios</option>
+          <option value="comun">Áreas Comunes</option>
+          <option value="recreativo">Recreación</option>
+          <option value="eventos">Eventos</option>
+          <option value="servicios">Servicios</option>
+        </select>
+        <i class="fas fa-chevron-down icono-select"></i>
+      </div>
+      <div class="select-container premium-select">
+        <select id="filtroPrioridadEspacio">
+          <option value="">Todas las prioridades</option>
+          <option value="baja">🟢 Baja</option>
+          <option value="media">🟡 Media</option>
+          <option value="alta">🔴 Alta</option>
+        </select>
+        <i class="fas fa-chevron-down icono-select"></i>
+      </div>
+      <div class="select-container premium-select">
+        <select id="filtroEstadoEspacio">
+          <option value="">Todos los estados</option>
+          <option value="disponible">Disponible</option>
+          <option value="mantenimiento">En mantenimiento</option>
+          <option value="ocupado">Ocupado</option>
+          <option value="fuera_servicio">Fuera de servicio</option>
+        </select>
+        <i class="fas fa-chevron-down icono-select"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="vista-duo">
+    <!-- Columna principal -->
+    <div class="columna columna-principal">
+      <ul class="lista-cuartos brutalist-grid" id="listaEspacios" data-aos="fade-up"></ul>
+      <div class="habitaciones-pagination" id="espaciosPagination" aria-live="polite"></div>
+      <div id="mensajeNoEspacios" class="mensaje-no-cuartos" style="display:none">
+        <i class="fas fa-search"></i>
+        <p>No se encontraron espacios con los criterios seleccionados</p>
+      </div>
+    </div>
+
+    <!-- Columna lateral -->
+    <div class="columna columna-lateral">
+      <div class="panel panel-alertas-espacios gradient-card" data-aos="fade-left">
+        <div class="panel-header-alertas">
+          <h2><i class="fas fa-bullhorn"></i> Alertas Programadas</h2>
+        </div>
+        <ul class="lista-alertas-espacios" id="listaAlertasProgramadasEspacios">
+          <li class="mensaje-cargando">Cargando alertas...</li>
+        </ul>
+      </div>
+
+      <div class="panel panel-alertas-espacios gradient-card" data-aos="fade-left" data-aos-delay="80">
+        <div class="panel-header-alertas">
+          <h2><i class="fas fa-calendar-day"></i> Alertas del Día</h2>
+        </div>
+        <ul class="lista-alertas-espacios lista-alertas-dia-limitada" id="listaAlertasDiaEspacios">
+          <li class="mensaje-cargando">Cargando alertas...</li>
+        </ul>
+        <p id="mensajeNoAlertasDiaEspacios" class="mensaje-no-items" style="display:none">
+          <i class="fas fa-check-circle"></i> No hay alertas para hoy
+        </p>
+      </div>
+
+      <div class="card-container usuarios-stats-container espacios-stats-container" data-aos="fade-left" data-aos-delay="100">
+        <div class="pixar-card usuario-stats-card espacios-stats-card" role="article" aria-labelledby="espaciosStatsTitle">
+          <div class="card-header">
+            <div class="card-avatar"></div>
+            <p class="card-username" id="espaciosStatsTitle">Panel de Espacios</p>
+          </div>
+          <div class="card-image-area">
+            <div class="card-image-placeholder">
+              <div class="pixar-progress" id="espaciosStatsProgress" data-percent="0%" style="--progress-value:0%"></div>
+            </div>
+            <p class="card-caption">
+              <span id="espaciosStatsCaption">Total de espacios: 0</span>
+              <span class="card-caption-highlight" id="espaciosStatsHighlight">Disponibles: 0 · En mantto.: 0</span>
+            </p>
+          </div>
+          <div class="card-actions">
+            <button class="action-button like-button" type="button" aria-label="Espacios disponibles">
+              <div class="action-button-metric">
+                <span class="metric-label">Disponibles</span>
+                <strong id="espaciosStatsDisponibles">0</strong>
+              </div>
+            </button>
+            <button class="action-button" type="button" aria-label="Espacios en mantenimiento">
+              <div class="action-button-metric">
+                <span class="metric-label">Mantto.</span>
+                <strong id="espaciosStatsMantenimiento">0</strong>
+              </div>
+            </button>
+            <button class="action-button comment-button" type="button" aria-label="Espacios fuera de servicio">
+              <div class="action-button-metric">
+                <span class="metric-label">Fuera</span>
+                <strong id="espaciosStatsFuera">0</strong>
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

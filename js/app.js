@@ -3,9 +3,9 @@
 // ========================================
 
 // Configuración de la API
-const API_BASE_URL = window.location.hostname.includes('vercel.app') || 
-                     window.location.hostname.includes('vercel.com') ? '' : 
-                     window.location.port === '3000' ? '' : 'http://localhost:3001';
+const API_BASE_URL = window.location.hostname.includes('vercel.app') ||
+    window.location.hostname.includes('vercel.com') ? '' :
+    window.location.port === '3000' ? '' : 'http://localhost:3001';
 
 // Estado global de la aplicación
 const AppState = {
@@ -15,6 +15,8 @@ const AppState = {
     edificios: [],
     cuartos: [],
     mantenimientos: [],
+    espaciosComunes: [],
+    mantenimientosEspacios: [],
     usuarios: [],
     roles: [],
     usuariosFiltro: '',
@@ -45,25 +47,25 @@ const AppState = {
 async function fetchWithAuth(url, options = {}) {
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const tokenType = localStorage.getItem('tokenType') || sessionStorage.getItem('tokenType') || 'Bearer';
-    
+
     if (!accessToken) {
         console.error('❌ [FETCH-AUTH] No hay token de acceso');
         window.location.href = 'login.html';
         throw new Error('No hay sesión activa');
     }
-    
+
     const headers = {
         ...options.headers,
         'Authorization': `${tokenType} ${accessToken}`,
         'Content-Type': 'application/json'
     };
-    
+
     console.log('🔵 [FETCH-AUTH] Haciendo petición a:', url);
     const response = await fetch(url, {
         ...options,
         headers
     });
-    
+
     // Si el token expiró, intentar refrescar
     if (response.status === 401) {
         console.log('⚠️ [FETCH-AUTH] Token expirado (401), intentando refrescar...');
@@ -79,19 +81,19 @@ async function fetchWithAuth(url, options = {}) {
             window.location.href = 'login.html';
         }
     }
-    
+
     return response;
 }
 
 // Refrescar access token usando refresh token
 async function refreshAccessToken() {
     const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
-    
+
     if (!refreshToken) {
         clearAuthData();
         return false;
     }
-    
+
     try {
         console.log('🔵 [REFRESH-TOKEN] Intentando refrescar token...');
         const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
@@ -101,13 +103,13 @@ async function refreshAccessToken() {
             },
             body: JSON.stringify({ refreshToken })
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.mensaje || 'Error al refrescar token');
         }
-        
+
         if (data.success) {
             // Actualizar tokens en el storage correspondiente
             const isRemembered = localStorage.getItem('refreshToken') !== null;
@@ -121,7 +123,7 @@ async function refreshAccessToken() {
             console.log('✅ [REFRESH-TOKEN] Token refrescado exitosamente');
             return true;
         }
-        
+
     } catch (error) {
         console.error('❌ [REFRESH-TOKEN] Error al refrescar token:', error);
         clearAuthData();
@@ -155,30 +157,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 [APP.JS] DOMContentLoaded - Inicializando JW Marriott Sistema de Mantenimiento...');
     console.log('🚀 [APP.JS] URL actual:', window.location.href);
     console.log('🚀 [APP.JS] LocalStorage keys:', Object.keys(localStorage));
-    
+
     // Verificar autenticación (ahora es async)
     console.log('🚀 [APP.JS] Llamando a checkAuthentication()...');
     const isAuthenticated = await checkAuthentication();
     if (!isAuthenticated) {
         return; // Si no está autenticado, ya se redirigió
     }
-    
+
     // Inicializar tema
     console.log('🚀 [APP.JS] Inicializando tema...');
     initializeTheme();
-    
+
     // Configurar event listeners
     console.log('🚀 [APP.JS] Configurando event listeners...');
     setupEventListeners();
-    
+
     // Inicializar navegación
     console.log('🚀 [APP.JS] Inicializando navegación...');
     initializeNavigation();
-    
+
     // Cargar datos iniciales y luego renderizar el tab activo
     console.log('🚀 [APP.JS] Cargando datos iniciales...');
     await loadInitialData();
-    
+
     // Cargar el tab activo después de tener los datos
     console.log('🚀 [APP.JS] Cargando tab activo:', AppState.currentTab);
     loadTabData(AppState.currentTab);
@@ -193,14 +195,14 @@ async function checkAuthentication() {
     // Verificar token JWT (en localStorage o sessionStorage)
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-    
+
     console.log('🔐 [APP.JS] Datos de autenticación:', {
         hasAccessToken: !!accessToken,
         hasCurrentUser: !!currentUser,
         userEmail: currentUser?.email,
         userRol: currentUser?.rol
     });
-    
+
     if (!accessToken || !currentUser) {
         // Redirigir al login si no hay sesión
         console.log('🔐 [APP.JS] No hay sesión válida, redirigiendo a login.html...');
@@ -218,7 +220,7 @@ async function checkAuthentication() {
                     'Content-Type': 'application/json'
                 }
             });
-            
+
             if (response.ok) {
                 const data = await response.json();
                 // Actualizar el usuario con los datos frescos del backend
@@ -244,32 +246,32 @@ async function checkAuthentication() {
             return false;
         }
     }
-    
+
     // Normalizar el campo de rol para compatibilidad
     if (currentUser.rol && !currentUser.role) {
         currentUser.role = currentUser.rol.toLowerCase();
         console.log('🔐 [APP.JS] Rol normalizado:', currentUser.rol, '->', currentUser.role);
     }
-    
+
     // Verificar si el token sigue vigente
     AppState.currentUser = currentUser;
     console.log('🔐 [APP.JS] Usuario asignado a AppState:', AppState.currentUser);
-    
+
     // Actualizar UI con info del usuario
     console.log('🔐 [APP.JS] Actualizando UI del usuario...');
     updateUserInfo();
-    
+
     // Aplicar permisos según el rol
     console.log('🔐 [APP.JS] Aplicando permisos de rol:', currentUser.role);
     applyRolePermissions(currentUser.role);
-    
+
     console.log('✅ [APP.JS] Usuario autenticado:', currentUser.nombre || currentUser.name, '-', currentUser.role);
     return true;
 }
 
 function updateUserInfo() {
     const { nombre, name, rol, role } = AppState.currentUser;
-    
+
     document.getElementById('userName').textContent = nombre || name;
     document.getElementById('userRole').textContent = (rol || role).toUpperCase();
 }
@@ -279,13 +281,13 @@ function applyRolePermissions(role) {
     // Agregar clase al body según el rol
     document.body.classList.add(role);
     console.log('🔑 [APP.JS] Clase añadida al body:', role);
-    
+
     // Manejar elementos admin-only
     if (role === 'admin') {
         console.log('🔑 [APP.JS] Rol ADMIN detectado, mostrando elementos admin-only');
         const adminElements = document.querySelectorAll('.admin-only');
         console.log('🔑 [APP.JS] Elementos admin-only encontrados:', adminElements.length);
-        
+
         adminElements.forEach((el, index) => {
             if (!el.classList.contains('tab-content')) {
                 if (el.tagName === 'A' || el.tagName === 'BUTTON') {
@@ -305,13 +307,13 @@ function applyRolePermissions(role) {
             }
         });
     }
-    
+
     // Manejar elementos supervisor-only (para supervisor y admin)
     if (role === 'admin' || role === 'supervisor') {
         console.log('🔑 [APP.JS] Rol SUPERVISOR/ADMIN detectado, mostrando elementos supervisor-only');
         const supervisorElements = document.querySelectorAll('.supervisor-only');
         console.log('🔑 [APP.JS] Elementos supervisor-only encontrados:', supervisorElements.length);
-        
+
         supervisorElements.forEach((el, index) => {
             if (el.tagName === 'A' || el.tagName === 'BUTTON') {
                 el.style.display = 'flex';
@@ -327,7 +329,7 @@ function applyRolePermissions(role) {
             el.style.display = 'none';
         });
     }
-    
+
     console.log('👤 Permisos aplicados para rol:', role);
 }
 
@@ -335,12 +337,12 @@ async function logout() {
     if (!confirm('¿Está seguro que desea cerrar sesión?')) {
         return;
     }
-    
+
     console.log('🔴 [LOGOUT] Cerrando sesión...');
-    
+
     try {
         const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
-        
+
         if (refreshToken) {
             console.log('🔴 [LOGOUT] Enviando petición de logout al servidor...');
             await fetchWithAuth(`${API_BASE_URL}/api/auth/logout`, {
@@ -369,18 +371,18 @@ function initializeTheme() {
     AppState.theme = savedTheme;
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
-    
+
     console.log('🎨 Tema inicializado:', savedTheme);
 }
 
 function toggleTheme() {
     const newTheme = AppState.theme === 'light' ? 'dark' : 'light';
     AppState.theme = newTheme;
-    
+
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
-    
+
     console.log('🎨 Tema cambiado a:', newTheme);
 }
 
@@ -407,13 +409,13 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
-    
+
     // Switch de tema
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-    
+
     // Navegación entre tabs - Desktop y móvil
     document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -422,43 +424,81 @@ function setupEventListeners() {
             switchTab(tabId);
         });
     });
-    
+
     // Selector de vistas móvil (Habitaciones | Alertas)
     setupMobileViewSelector();
-    
+
     // Toggle de filtros para móvil
     setupFiltrosToggle();
-    
+
     // Buscadores
     setupSearchListeners();
 
     // Gestión de usuarios (solo admin)
     setupUsuariosListeners();
-    
+
     console.log('✅ Event listeners configurados');
 }
 
 // Función para manejar el toggle de filtros en móvil
 function setupFiltrosToggle() {
+    // Toggle para Habitaciones
     const toggleBtn = document.getElementById('toggleFiltros');
     const contenedorFiltros = document.getElementById('contenedorFiltros');
-    
+
     if (toggleBtn && contenedorFiltros) {
         toggleBtn.addEventListener('click', () => {
-            // Toggle de la clase 'show'
             contenedorFiltros.classList.toggle('show');
             toggleBtn.classList.toggle('active');
-            
-            // Guardar preferencia en localStorage
+
             const isOpen = contenedorFiltros.classList.contains('show');
             localStorage.setItem('filtrosOpen', isOpen);
         });
-        
-        // Restaurar estado previo del localStorage
+
         const filtrosOpen = localStorage.getItem('filtrosOpen');
         if (filtrosOpen === 'true') {
             contenedorFiltros.classList.add('show');
             toggleBtn.classList.add('active');
+        }
+    }
+
+    // Toggle para Espacios Comunes
+    const toggleBtnEspacios = document.getElementById('toggleFiltrosEspacios');
+    const contenedorFiltrosEspacios = document.getElementById('contenedorFiltrosEspacios');
+
+    if (toggleBtnEspacios && contenedorFiltrosEspacios) {
+        toggleBtnEspacios.addEventListener('click', () => {
+            contenedorFiltrosEspacios.classList.toggle('show');
+            toggleBtnEspacios.classList.toggle('active');
+
+            const isOpen = contenedorFiltrosEspacios.classList.contains('show');
+            localStorage.setItem('filtrosEspaciosOpen', isOpen);
+        });
+
+        const filtrosEspaciosOpen = localStorage.getItem('filtrosEspaciosOpen');
+        if (filtrosEspaciosOpen === 'true') {
+            contenedorFiltrosEspacios.classList.add('show');
+            toggleBtnEspacios.classList.add('active');
+        }
+    }
+
+    // Toggle para Sábana
+    const toggleBtnSabana = document.getElementById('toggleFiltrosSabana');
+    const contenedorFiltrosSabana = document.getElementById('contenedorFiltrosSabana');
+
+    if (toggleBtnSabana && contenedorFiltrosSabana) {
+        toggleBtnSabana.addEventListener('click', () => {
+            contenedorFiltrosSabana.classList.toggle('show');
+            toggleBtnSabana.classList.toggle('active');
+
+            const isOpen = contenedorFiltrosSabana.classList.contains('show');
+            localStorage.setItem('filtrosSabanaOpen', isOpen);
+        });
+
+        const filtrosSabanaOpen = localStorage.getItem('filtrosSabanaOpen');
+        if (filtrosSabanaOpen === 'true') {
+            contenedorFiltrosSabana.classList.add('show');
+            toggleBtnSabana.classList.add('active');
         }
     }
 }
@@ -471,7 +511,7 @@ function setupSearchListeners() {
             filterSabana();
         });
     }
-    
+
     // Filtros de Sábana
     const filtroEdificioSabana = document.getElementById('filtroEdificioSabana');
     if (filtroEdificioSabana) {
@@ -479,21 +519,21 @@ function setupSearchListeners() {
             filterSabana();
         });
     }
-    
+
     const filtroServicioActual = document.getElementById('filtroServicioActual');
     if (filtroServicioActual) {
         filtroServicioActual.addEventListener('change', (e) => {
             cambiarServicioActual(e.target.value);
         });
     }
-    
+
     const filtroEstadoServicio = document.getElementById('filtroEstadoServicio');
     if (filtroEstadoServicio) {
         filtroEstadoServicio.addEventListener('change', () => {
             filterSabana();
         });
     }
-    
+
     // Buscador de Checklist
     const buscarChecklist = document.getElementById('buscarChecklist');
     if (buscarChecklist) {
@@ -501,13 +541,81 @@ function setupSearchListeners() {
             filterChecklist(e.target.value);
         });
     }
-    
+
     // Filtro de estado de checklist
     const filtroEstadoChecklist = document.getElementById('filtroEstadoChecklist');
     if (filtroEstadoChecklist) {
         filtroEstadoChecklist.addEventListener('change', (e) => {
             filterChecklistByEstado(e.target.value);
         });
+    }
+
+    // Filtros de espacios comunes
+    const buscarEspacioInput = document.getElementById('buscarEspacio');
+    const buscarServicioInput = document.getElementById('buscarServicioEspacio');
+    const filtroTipoSelect = document.getElementById('filtroTipoEspacio');
+    const filtroPrioridadSelect = document.getElementById('filtroPrioridadEspacio');
+    const filtroEstadoSelect = document.getElementById('filtroEstadoEspacio');
+
+    if (buscarEspacioInput) buscarEspacioInput.addEventListener('input', filterEspaciosComunes);
+    if (buscarServicioInput) buscarServicioInput.addEventListener('input', filterEspaciosComunes);
+    if (filtroTipoSelect) filtroTipoSelect.addEventListener('change', filterEspaciosComunes);
+    if (filtroPrioridadSelect) filtroPrioridadSelect.addEventListener('change', filterEspaciosComunes);
+    if (filtroEstadoSelect) filtroEstadoSelect.addEventListener('change', filterEspaciosComunes);
+}
+
+function filterEspaciosComunes() {
+    const buscarEspacio = document.getElementById('buscarEspacio')?.value.toLowerCase() || '';
+    const buscarServicio = document.getElementById('buscarServicioEspacio')?.value.toLowerCase() || '';
+    const tipoFiltro = document.getElementById('filtroTipoEspacio')?.value || '';
+    const prioridadFiltro = document.getElementById('filtroPrioridadEspacio')?.value || '';
+    const estadoFiltro = document.getElementById('filtroEstadoEspacio')?.value || '';
+
+    // Usar AppState para acceder a los datos globales
+    const espaciosComunes = AppState.espaciosComunes || [];
+    const mantenimientosEspacios = AppState.mantenimientosEspacios || [];
+
+    const espaciosFiltrados = espaciosComunes.filter(espacio => {
+        const coincideNombre = !buscarEspacio || espacio.nombre.toLowerCase().includes(buscarEspacio);
+        const coincideTipo = !tipoFiltro || espacio.tipo === tipoFiltro;
+        const coincideEstado = !estadoFiltro || espacio.estado === estadoFiltro;
+
+        const mantenimientosEspacio = mantenimientosEspacios.filter(m => m.espacio_comun_id === espacio.id);
+        const coincideServicio = !buscarServicio || mantenimientosEspacio.some(m =>
+            m.descripcion.toLowerCase().includes(buscarServicio)
+        );
+
+        const coincidePrioridad = !prioridadFiltro || mantenimientosEspacio.some(m =>
+            m.prioridad === prioridadFiltro
+        );
+
+        return coincideNombre && coincideTipo && coincideEstado && coincideServicio && coincidePrioridad;
+    });
+
+    const mensajeNoResultados = document.getElementById('mensajeNoEspacios');
+    const lista = document.getElementById('listaEspaciosComunes');
+
+    if (espaciosFiltrados.length === 0) {
+        if (mensajeNoResultados) mensajeNoResultados.style.display = 'block';
+        if (lista) lista.style.display = 'none';
+    } else {
+        if (mensajeNoResultados) mensajeNoResultados.style.display = 'none';
+        if (lista) lista.style.display = 'grid';
+
+        // Actualizar espacios filtrados y mostrar usando nueva función
+        if (window.mostrarEspaciosComunes) {
+            // Guardar espacios originales
+            const espaciosOriginales = AppState.espaciosComunes;
+
+            // Temporalmente reemplazar con filtrados
+            AppState.espaciosComunes = espaciosFiltrados;
+
+            // Llamar a la nueva función de renderizado
+            window.mostrarEspaciosComunes();
+
+            // Restaurar espacios originales
+            AppState.espaciosComunes = espaciosOriginales;
+        }
     }
 }
 
@@ -552,27 +660,27 @@ function setupUsuariosListeners() {
 function setupMobileViewSelector() {
     // Buscar todos los selectores en diferentes tabs
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     tabContents.forEach(tab => {
         const selector = tab.querySelector('.mobile-view-selector');
         if (!selector) return;
-        
+
         const viewButtons = selector.querySelectorAll('.view-btn');
         const vistaDuo = tab.querySelector('.vista-duo');
-        
+
         if (!vistaDuo) return;
-        
+
         const columnaHabitaciones = vistaDuo.querySelector('.columna-principal');
         const columnaAlertas = vistaDuo.querySelector('.columna-lateral');
-        
+
         viewButtons.forEach(button => {
             button.addEventListener('click', () => {
                 const view = button.getAttribute('data-view');
-                
+
                 // Actualizar botones activos solo en este selector
                 viewButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
-                
+
                 // Alternar visibilidad de columnas
                 if (view === 'habitaciones') {
                     if (columnaHabitaciones) columnaHabitaciones.style.display = 'block';
@@ -594,7 +702,7 @@ function initializeNavigation() {
     // Verificar si hay un parámetro de URL
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get('view');
-    
+
     if (view) {
         switchTab(view === 'admin' ? 'usuarios' : 'habitaciones', false);
     } else {
@@ -607,7 +715,7 @@ function switchTab(tabId, loadData = true) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     // Desactivar todos los enlaces de navegación - Desktop y móvil
     document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
         link.classList.remove('active');
@@ -624,19 +732,22 @@ function switchTab(tabId, loadData = true) {
     selectedButtons.forEach(button => {
         button.classList.add('active');
     });
-    
+
     AppState.currentTab = tabId;
-    
+
     // Cargar datos específicos del tab solo si se solicita
     if (loadData) {
         loadTabData(tabId);
     }
-    
+
     console.log('📄 Tab activo:', tabId);
 }
 
 function loadTabData(tabId) {
     switch (tabId) {
+        case 'espacios':
+            loadEspaciosComunesData();
+            break;
         case 'sabana':
             loadSabanaData();
             break;
@@ -664,7 +775,7 @@ async function loadUsuariosData() {
 async function loadInitialData() {
     try {
         console.log('📥 [LOAD-DATA] Cargando datos iniciales desde API...');
-        
+
         // Cargar edificios
         try {
             console.log('📥 [LOAD-DATA] Cargando edificios...');
@@ -673,18 +784,14 @@ async function loadInitialData() {
                 AppState.edificios = await edifResponse.json();
                 console.log('✅ [LOAD-DATA] Edificios cargados:', AppState.edificios.length);
             } else {
-                console.warn('⚠️ [LOAD-DATA] Error cargando edificios, usando datos mock');
-                AppState.edificios = [
-                    { id: 1, nombre: 'Edificio A' },
-                    { id: 2, nombre: 'Edificio B' },
-                    { id: 3, nombre: 'Edificio C' }
-                ];
+                console.error('❌ [LOAD-DATA] Error cargando edificios');
+                AppState.edificios = [];
             }
         } catch (error) {
             console.error('❌ [LOAD-DATA] Error en edificios:', error);
             AppState.edificios = [];
         }
-        
+
         // Cargar cuartos
         try {
             console.log('📥 [LOAD-DATA] Cargando cuartos...');
@@ -693,145 +800,119 @@ async function loadInitialData() {
                 AppState.cuartos = await cuartosResponse.json();
                 console.log('✅ [LOAD-DATA] Cuartos cargados:', AppState.cuartos.length);
             } else {
-                console.warn('⚠️ [LOAD-DATA] Error cargando cuartos, usando datos mock');
-                AppState.cuartos = generateMockCuartos();
+                console.error('❌ [LOAD-DATA] Error cargando cuartos');
+                AppState.cuartos = [];
             }
         } catch (error) {
             console.error('❌ [LOAD-DATA] Error en cuartos:', error);
-            AppState.cuartos = generateMockCuartos();
+            AppState.cuartos = [];
         }
-        
+
+        // Cargar espacios comunes
+        try {
+            console.log('📥 [LOAD-DATA] Cargando espacios comunes...');
+            const espaciosResponse = await fetchWithAuth(`${API_BASE_URL}/api/espacios-comunes`);
+            if (espaciosResponse.ok) {
+                AppState.espaciosComunes = await espaciosResponse.json();
+                console.log('✅ [LOAD-DATA] Espacios comunes cargados:', AppState.espaciosComunes.length);
+            } else {
+                console.warn('⚠️ [LOAD-DATA] Error cargando espacios comunes');
+                AppState.espaciosComunes = [];
+            }
+        } catch (error) {
+            console.error('❌ [LOAD-DATA] Error en espacios comunes:', error);
+            AppState.espaciosComunes = [];
+        }
+
         console.log('✅ [LOAD-DATA] Datos iniciales cargados');
     } catch (error) {
         console.error('❌ [LOAD-DATA] Error general cargando datos iniciales:', error);
     }
 }
 
-function generateMockCuartos() {
-    const cuartos = [];
-    const edificios = ['A', 'B', 'C'];
-    let id = 1;
-    
-    edificios.forEach((edificio, edifIndex) => {
-        for (let piso = 1; piso <= 5; piso++) {
-            for (let num = 1; num <= 8; num++) {
-                cuartos.push({
-                    id: id++,
-                    numero: `${edificio}${piso}0${num}`,
-                    edificio_id: edifIndex + 1,
-                    edificio_nombre: `Edificio ${edificio}`,
-                    estado: 'disponible'
-                });
-            }
-        }
-    });
-    
-    return cuartos;
-}
 
 // ========================================
-// SÁBANA - REGISTRO DE SERVICIOS
+// SÁBANA - REGISTRO DE SERVICIOS (CONECTADO A BD)
 // ========================================
 
-// Tipos de servicio disponibles
-const TIPOS_SERVICIO = [
-    { id: 'cambio_chapas', nombre: 'Cambio de Chapas' },
-    { id: 'cambio_sabanas', nombre: 'Cambio de Sábanas' },
-    { id: 'cambio_filtros', nombre: 'Cambio de Filtros' },
-    { id: 'mantenimiento_ac', nombre: 'Mantenimiento A/C' },
-    { id: 'limpieza_profunda', nombre: 'Limpieza Profunda' },
-    { id: 'pintura', nombre: 'Pintura' },
-    { id: 'plomeria', nombre: 'Plomería' },
-    { id: 'electricidad', nombre: 'Electricidad' }
-];
+async function loadSabanaData() {
+    console.log('📋 [SABANA] Cargando datos de sábana de servicios desde BD...');
 
-const SABANA_DATA_VERSION = '2';
-
-function loadSabanaData() {
-    console.log('📋 [SABANA] Cargando datos de sábana de servicios...');
-    console.log('📋 [SABANA] Cuartos disponibles:', AppState.cuartos.length);
-    
     const tbody = document.getElementById('sabanaTableBody');
     if (!tbody) {
         console.error('❌ [SABANA] No se encontró #sabanaTableBody');
         return;
     }
-    
+
     if (AppState.cuartos.length === 0) {
-        console.warn('⚠️ [SABANA] No hay cuartos cargados, generando datos mock...');
-        AppState.cuartos = generateMockCuartos();
+        console.warn('⚠️ [SABANA] No hay cuartos cargados aún');
     }
-    
-    // Cargar edificios en el filtro
-    const filtroEdificioSabana = document.getElementById('filtroEdificioSabana');
-    if (filtroEdificioSabana) {
-        const edificiosUnicos = [...new Set(AppState.cuartos.map(c => c.edificio_nombre))];
-        filtroEdificioSabana.innerHTML = '<option value="">Todos los edificios</option>';
-        edificiosUnicos.forEach(edificio => {
-            const option = document.createElement('option');
-            option.value = edificio;
-            option.textContent = edificio;
-            filtroEdificioSabana.appendChild(option);
-        });
-    }
-    
-    // Cargar servicios personalizados en el selector principal
+
+    // Solo cargar la lista de sábanas si el select está vacío
     const selectServicio = document.getElementById('filtroServicioActual');
-    if (selectServicio) {
-        const serviciosPersonalizados = JSON.parse(localStorage.getItem('serviciosPersonalizados') || '[]');
-        if (serviciosPersonalizados.length > 0) {
-            serviciosPersonalizados.forEach(servicio => {
-                const existeOption = Array.from(selectServicio.options).find(opt => opt.value === servicio.id);
-                if (!existeOption) {
-                    const option = document.createElement('option');
-                    option.value = servicio.id;
-                    option.textContent = `${servicio.nombre} ⭐`;
-                    selectServicio.appendChild(option);
-                }
-            });
+    if (selectServicio && selectServicio.options.length <= 1) {
+        console.log('📋 [SABANA] Cargando lista de sábanas por primera vez');
+        const sabanas = await window.cargarListaSabanas();
+
+        // Cargar la última sábana creada por defecto
+        if (sabanas && sabanas.length > 0) {
+            const sabanasActivas = sabanas.filter(s => !s.archivada);
+            if (sabanasActivas.length > 0) {
+                // Ordenar por fecha_creacion DESC y obtener la primera (más reciente)
+                const ultimaSabana = sabanasActivas.sort((a, b) =>
+                    new Date(b.fecha_creacion) - new Date(a.fecha_creacion)
+                )[0];
+
+                console.log('⭐ [SABANA] Cargando última sábana por defecto:', ultimaSabana.nombre);
+                selectServicio.value = ultimaSabana.id;
+                await window.cambiarServicioActual(ultimaSabana.id);
+            }
         }
+    } else {
+        console.log('📋 [SABANA] Select ya tiene opciones, no recargar');
     }
 
-    if (localStorage.getItem('sabanaServiciosDataVersion') !== SABANA_DATA_VERSION) {
-        localStorage.removeItem('sabanaServiciosData');
-        localStorage.setItem('sabanaServiciosDataVersion', SABANA_DATA_VERSION);
-        console.log('♻️ [SABANA] Datos de ejemplo eliminados. Nueva versión lista.');
-    }
+    // Solo mostrar mensaje si no hay sábana seleccionada
+    if (!selectServicio || !selectServicio.value) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Selecciona o crea una sábana para comenzar.</td></tr>';
 
-    if (!localStorage.getItem('sabanaServiciosData')) {
-        localStorage.setItem('sabanaServiciosData', JSON.stringify({}));
+        const tituloEl = document.getElementById('tituloServicioActual');
+        if (tituloEl) {
+            tituloEl.textContent = 'Sábana de Servicios';
+        }
+    } else {
+        console.log('📋 [SABANA] Ya hay una sábana seleccionada, mantener tabla');
     }
-    
-    // Cargar el servicio seleccionado
-    const servicioActual = document.getElementById('filtroServicioActual')?.value || 'cambio_chapas';
-    cambiarServicioActual(servicioActual);
 }
 
-function renderSabanaTable(data) {
+// FUNCIÓN OBSOLETA - Ahora se usa la de sabana-functions.js
+// Esta función ya no se usa, se mantiene solo por compatibilidad
+function renderSabanaTable_OLD(data) {
+    console.warn('⚠️ Llamando a función obsoleta renderSabanaTable_OLD - usar sabana-functions.js');
     const tbody = document.getElementById('sabanaTableBody');
     if (!tbody) return;
-    
+
     tbody.innerHTML = '';
-    
+
     if (data.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No hay registros para este servicio. Usa el botón "+ Nueva" para crear la sábana.</td></tr>';
         return;
     }
-    
+
     // Lazy loading con Intersection Observer
     const BATCH_SIZE = 20; // Renderizar en lotes de 20
     let currentIndex = 0;
-    
+
     const renderBatch = () => {
         const endIndex = Math.min(currentIndex + BATCH_SIZE, data.length);
         const fragment = document.createDocumentFragment();
-        
+
         for (let i = currentIndex; i < endIndex; i++) {
             const row = data[i];
             const tr = document.createElement('tr');
             tr.className = row.realizado ? 'servicio-realizado' : 'servicio-pendiente';
             tr.setAttribute('data-lazy', 'true');
-            
+
             tr.innerHTML = `
                 <td data-label="Edificio">${row.edificio}</td>
                 <td data-label="Habitación"><strong>${row.habitacion}</strong></td>
@@ -861,17 +942,17 @@ function renderSabanaTable(data) {
             `;
             fragment.appendChild(tr);
         }
-        
+
         tbody.appendChild(fragment);
         currentIndex = endIndex;
-        
+
         // Si quedan más filas, preparar el sentinel
         if (currentIndex < data.length) {
             const sentinel = document.createElement('tr');
             sentinel.className = 'lazy-sentinel';
             sentinel.innerHTML = '<td colspan="7" style="height: 1px;"></td>';
             tbody.appendChild(sentinel);
-            
+
             // Observer para cargar siguiente lote
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -882,45 +963,45 @@ function renderSabanaTable(data) {
                     }
                 });
             }, { rootMargin: '200px' });
-            
+
             observer.observe(sentinel);
         }
     };
-    
+
     // Iniciar primer lote
     renderBatch();
 }
 
-function cambiarServicioActual(servicioId) {
-    const servicioInfo = TIPOS_SERVICIO.find(s => s.id === servicioId);
+// FUNCIÓN OBSOLETA - Ahora se usa la de sabana-functions.js
+function cambiarServicioActual_OLD(servicioId) {
+    console.warn('⚠️ Llamando a función obsoleta cambiarServicioActual_OLD - usar sabana-functions.js');
     const serviciosPersonalizados = JSON.parse(localStorage.getItem('serviciosPersonalizados') || '[]');
-    const servicioPersonalizado = serviciosPersonalizados.find(s => s.id === servicioId);
-    
-    const nombreServicio = servicioInfo?.nombre || servicioPersonalizado?.nombre || 'Servicio';
-    
+    const servicio = serviciosPersonalizados.find(s => s.id === servicioId);
+
+    const nombreServicio = servicio?.nombre || 'Servicio';
+
     // Actualizar título
     const tituloEl = document.getElementById('tituloServicioActual');
     if (tituloEl) {
-        const icono = servicioPersonalizado ? '⭐' : '<i class="fas fa-clipboard-list"></i>';
-        tituloEl.innerHTML = `${icono} Sábana de ${nombreServicio}`;
+        tituloEl.textContent = `Sábana de ${nombreServicio}`;
     }
-    
+
     // Cargar datos del servicio
     const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
     const servicioData = allData[servicioId] || [];
-    
-    renderSabanaTable(servicioData);
+
+    renderSabanaTable_OLD(servicioData);
     updateServiciosStats(servicioData);
 }
 
 function updateServiciosStats(data) {
     const completados = data.filter(s => s.realizado).length;
     const total = data.length;
-    
+
     const completadosEl = document.getElementById('serviciosCompletados');
     const totalesEl = document.getElementById('serviciosTotales');
     const periodoEl = document.getElementById('periodoActual');
-    
+
     if (completadosEl) completadosEl.textContent = completados;
     if (totalesEl) totalesEl.textContent = total;
     if (periodoEl) {
@@ -933,7 +1014,7 @@ function toggleServicioRealizado(tipoServicio, cuartoId) {
     const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
     const servicioData = allData[tipoServicio] || [];
     const servicio = servicioData.find(s => s.id === cuartoId);
-    
+
     if (servicio) {
         servicio.realizado = !servicio.realizado;
         if (servicio.realizado && !servicio.fechaRealizado) {
@@ -944,7 +1025,7 @@ function toggleServicioRealizado(tipoServicio, cuartoId) {
         }
         allData[tipoServicio] = servicioData;
         localStorage.setItem('sabanaServiciosData', JSON.stringify(allData));
-        
+
         // Recargar la vista actual
         cambiarServicioActual(tipoServicio);
         console.log(`✅ Servicio ${servicio.realizado ? 'marcado como realizado' : 'marcado como pendiente'} - ${servicio.habitacion}`);
@@ -955,7 +1036,7 @@ function updateObservaciones(tipoServicio, cuartoId, observaciones) {
     const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
     const servicioData = allData[tipoServicio] || [];
     const servicio = servicioData.find(s => s.id === cuartoId);
-    
+
     if (servicio) {
         servicio.observaciones = observaciones;
         allData[tipoServicio] = servicioData;
@@ -964,30 +1045,32 @@ function updateObservaciones(tipoServicio, cuartoId, observaciones) {
     }
 }
 
-function filterSabana() {
+// FUNCIÓN OBSOLETA - Ahora se usa filterSabana de sabana-functions.js
+function filterSabana_OLD() {
+    console.warn('⚠️ Llamando a función obsoleta filterSabana_OLD - usar sabana-functions.js');
     const searchTerm = document.getElementById('buscarSabana')?.value.toLowerCase() || '';
     const edificioFiltro = document.getElementById('filtroEdificioSabana')?.value || '';
     const estadoFiltro = document.getElementById('filtroEstadoServicio')?.value || '';
     const servicioActual = document.getElementById('filtroServicioActual')?.value || 'cambio_chapas';
-    
+
     const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
     const servicioData = allData[servicioActual] || [];
-    
+
     const filtered = servicioData.filter(row => {
-        const matchSearch = !searchTerm || 
+        const matchSearch = !searchTerm ||
             row.habitacion.toLowerCase().includes(searchTerm) ||
             row.edificio.toLowerCase().includes(searchTerm) ||
             row.responsable.toLowerCase().includes(searchTerm);
-        
+
         const matchEdificio = !edificioFiltro || row.edificio === edificioFiltro;
-        const matchEstado = !estadoFiltro || 
+        const matchEstado = !estadoFiltro ||
             (estadoFiltro === 'realizado' && row.realizado) ||
             (estadoFiltro === 'pendiente' && !row.realizado);
-        
+
         return matchSearch && matchEdificio && matchEstado;
     });
-    
-    renderSabanaTable(filtered);
+
+    renderSabanaTable_OLD(filtered);
     updateServiciosStats(filtered);
 }
 
@@ -997,108 +1080,22 @@ function formatFecha(fechaStr) {
     return fecha.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-function exportarSabanaExcel() {
-    if (AppState.currentUser?.role !== 'admin') {
-        alert('Solo los administradores pueden exportar datos');
-        return;
-    }
-    
-    const servicioActual = document.getElementById('filtroServicioActual')?.value || 'cambio_chapas';
-    const servicioInfo = TIPOS_SERVICIO.find(s => s.id === servicioActual);
-    const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
-    const servicioData = allData[servicioActual] || [];
-    
-    // Crear CSV completo con todos los campos
-    let csv = 'Edificio,Habitación,Fecha Programada,Fecha Realizado,Responsable,Observaciones,Realizado\n';
-    servicioData.forEach(row => {
-        csv += `${row.edificio},${row.habitacion},${row.fechaProgramada},${row.fechaRealizado || '-'},"${row.responsable}","${row.observaciones}",${row.realizado ? 'Sí' : 'No'}\n`;
-    });
-    
-    // Descargar archivo
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `sabana_${servicioActual}_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
-    
-    alert(`Sábana de ${servicioInfo?.nombre || 'servicios'} exportada exitosamente`);
-}
+// ⚠️ DELEGADOR: NO REDEFINIR - Usar solo la función de sabana-functions.js
+// La función real está en sabana-functions.js con soporte a BD
+// Al no redefinir aquí, window.exportarSabanaExcel permanece apuntando a la versión correcta
 
-function abrirModalNuevaSabana() {
-    const modal = document.getElementById('modalNuevaSabana');
-    const select = document.getElementById('selectServicioNuevaSabana');
-    const inputNombre = document.getElementById('inputNombreServicio');
-    if (!modal || !select) {
-        return;
-    }
+// Esto evita conflictos de carga y recursión infinita:
+// - Si definimos función aquí → sobrescribe window.exportarSabanaExcel
+// - Cuando se llama, busca window.exportarSabanaExcel → encuentra la que acaba de definir
+// - Resultado: recursión infinita
 
-    // Cargar servicios personalizados guardados
-    const serviciosPersonalizados = JSON.parse(localStorage.getItem('serviciosPersonalizados') || '[]');
-    
-    select.innerHTML = '<option value="">-- Selecciona un servicio --</option>';
-    
-    // Agregar servicios base
-    TIPOS_SERVICIO.forEach(tipo => {
-        const option = document.createElement('option');
-        option.value = tipo.id;
-        option.textContent = tipo.nombre;
-        select.appendChild(option);
-    });
-    
-    // Agregar servicios personalizados
-    if (serviciosPersonalizados.length > 0) {
-        const separator = document.createElement('option');
-        separator.disabled = true;
-        separator.textContent = '──────────────────';
-        select.appendChild(separator);
-        
-        serviciosPersonalizados.forEach(servicio => {
-            const option = document.createElement('option');
-            option.value = servicio.id;
-            option.textContent = `${servicio.nombre} ⭐`;
-            select.appendChild(option);
-        });
-    }
+// SOLUCIÓN: Dejar que sabana-functions.js defina la función directamente sin intermediarios
 
-    const servicioActual = document.getElementById('filtroServicioActual')?.value;
-    if (servicioActual) {
-        // Verificar si está en "existente"
-        const radioExistente = document.querySelector('input[name="tipoServicio"][value="existente"]');
-        if (radioExistente) {
-            radioExistente.checked = true;
-            toggleTipoServicioModal();
-        }
-        select.value = servicioActual;
-    } else {
-        // Resetear al modo "nuevo"
-        const radioNuevo = document.querySelector('input[name="tipoServicio"][value="nuevo"]');
-        if (radioNuevo) {
-            radioNuevo.checked = true;
-            toggleTipoServicioModal();
-        }
-        if (inputNombre) inputNombre.value = '';
-    }
+// ⚠️ NOTA: abrirModalNuevaSabana está definida en sabana-functions.js
+// No se redefine aquí para evitar conflictos de versión
 
-    modal.style.display = 'flex';
-}
-
-function toggleTipoServicioModal() {
-    const radioNuevo = document.querySelector('input[name="tipoServicio"][value="nuevo"]:checked');
-    const contenedorNuevo = document.getElementById('contenedorNuevoServicio');
-    const contenedorExistente = document.getElementById('contenedorServicioExistente');
-    
-    if (radioNuevo) {
-        // Modo nuevo servicio
-        if (contenedorNuevo) contenedorNuevo.style.display = 'flex';
-        if (contenedorExistente) contenedorExistente.style.display = 'none';
-    } else {
-        // Modo servicio existente
-        if (contenedorNuevo) contenedorNuevo.style.display = 'none';
-        if (contenedorExistente) contenedorExistente.style.display = 'flex';
-    }
-}
+// ⚠️ NOTA: toggleTipoServicioModal está definida en sabana-functions.js
+// No se redefine aquí para evitar conflictos de versión
 
 function cerrarModalNuevaSabana() {
     const modal = document.getElementById('modalNuevaSabana');
@@ -1109,302 +1106,36 @@ function cerrarModalNuevaSabana() {
 
 function confirmarNuevaSabana() {
     const radioNuevo = document.querySelector('input[name="tipoServicio"][value="nuevo"]:checked');
-    
+
     if (radioNuevo) {
         // Crear con nombre personalizado
         const inputNombre = document.getElementById('inputNombreServicio');
         const nombreServicio = inputNombre?.value.trim();
-        
+
         if (!nombreServicio) {
             alert('Ingresa el nombre del servicio que se realizará.');
             inputNombre?.focus();
             return;
         }
-        
+
         crearNuevaSabanaPersonalizada(nombreServicio);
     } else {
         // Usar servicio existente
         const select = document.getElementById('selectServicioNuevaSabana');
         const servicioId = select?.value;
-        
+
         if (!servicioId) {
             alert('Selecciona el servicio que se realizará.');
             return;
         }
-        
+
         crearNuevaSabana(servicioId);
     }
 }
 
-function generarSabanaParaServicio(servicioId) {
-    if (AppState.cuartos.length === 0) {
-        AppState.cuartos = generateMockCuartos();
-    }
 
-    const fechaProgramada = new Date().toISOString().split('T')[0];
-    return AppState.cuartos.map(cuarto => ({
-        id: cuarto.id,
-        cuarto_id: cuarto.id,
-        habitacion: cuarto.numero,
-        edificio: cuarto.edificio_nombre,
-        tipoServicio: servicioId,
-        fechaProgramada,
-        fechaRealizado: '',
-        responsable: '',
-        observaciones: '',
-        realizado: false
-    }));
-}
-
-function crearNuevaSabana(servicioId) {
-    const servicioInfo = TIPOS_SERVICIO.find(s => s.id === servicioId);
-    const serviciosPersonalizados = JSON.parse(localStorage.getItem('serviciosPersonalizados') || '[]');
-    const servicioPersonalizado = serviciosPersonalizados.find(s => s.id === servicioId);
-    
-    const nombreServicio = servicioInfo?.nombre || servicioPersonalizado?.nombre;
-    
-    if (!nombreServicio) {
-        alert('El servicio seleccionado no es válido.');
-        return;
-    }
-
-    const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
-    const historial = JSON.parse(localStorage.getItem('sabanaServiciosHistorial') || '[]');
-    const registrosActuales = allData[servicioId];
-
-    if (Array.isArray(registrosActuales) && registrosActuales.length > 0) {
-        historial.push({
-            id: `${servicioId}_${Date.now()}`,
-            servicioId,
-            servicioNombre: nombreServicio,
-            archivadoEl: new Date().toISOString(),
-            total: registrosActuales.length,
-            completados: registrosActuales.filter(item => item.realizado).length,
-            datos: registrosActuales
-        });
-        localStorage.setItem('sabanaServiciosHistorial', JSON.stringify(historial));
-    } else if (!localStorage.getItem('sabanaServiciosHistorial')) {
-        localStorage.setItem('sabanaServiciosHistorial', JSON.stringify([]));
-    }
-
-    allData[servicioId] = generarSabanaParaServicio(servicioId);
-    localStorage.setItem('sabanaServiciosData', JSON.stringify(allData));
-
-    const filtroServicio = document.getElementById('filtroServicioActual');
-    if (filtroServicio) {
-        filtroServicio.value = servicioId;
-    }
-
-    cerrarModalNuevaSabana();
-    cambiarServicioActual(servicioId);
-    alert(`Sábana lista para ${nombreServicio}. La anterior quedó archivada en el historial.`);
-}
-
-function crearNuevaSabanaPersonalizada(nombreServicio) {
-    // Generar ID único basado en timestamp y texto normalizado
-    const servicioId = 'custom_' + nombreServicio.toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Quitar acentos
-        .replace(/[^a-z0-9]+/g, '_') // Reemplazar caracteres especiales
-        .substring(0, 30) + '_' + Date.now();
-    
-    // Guardar en lista de servicios personalizados
-    const serviciosPersonalizados = JSON.parse(localStorage.getItem('serviciosPersonalizados') || '[]');
-    const nuevoServicio = {
-        id: servicioId,
-        nombre: nombreServicio,
-        creadoEl: new Date().toISOString()
-    };
-    serviciosPersonalizados.push(nuevoServicio);
-    localStorage.setItem('serviciosPersonalizados', JSON.stringify(serviciosPersonalizados));
-    
-    // Actualizar el select del filtro principal con el nuevo servicio
-    actualizarSelectServicios(servicioId, nombreServicio);
-    
-    // Crear la sábana usando la función existente
-    crearNuevaSabana(servicioId);
-}
-
-function actualizarSelectServicios(servicioId, nombreServicio) {
-    const selectFiltro = document.getElementById('filtroServicioActual');
-    if (!selectFiltro) return;
-    
-    // Verificar si ya existe
-    const existeOption = Array.from(selectFiltro.options).find(opt => opt.value === servicioId);
-    if (existeOption) return;
-    
-    // Agregar al select del filtro
-    const option = document.createElement('option');
-    option.value = servicioId;
-    option.textContent = `${nombreServicio} ⭐`;
-    selectFiltro.appendChild(option);
-}
-
-function agregarServicioMasivo() {
-    alert('Funcionalidad de agregar servicio en desarrollo. Próximamente podrás agregar servicios masivamente a múltiples habitaciones.');
-}
-
-function archivarPeriodo() {
-    if (AppState.currentUser?.role !== 'admin') {
-        alert('Solo los administradores pueden archivar periodos');
-        return;
-    }
-    
-    if (!confirm('Esto archivará todas las sábanas vigentes y limpiará los registros actuales. ¿Deseas continuar?')) {
-        return;
-    }
-
-    const sabanaData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
-    const historial = JSON.parse(localStorage.getItem('sabanaServiciosHistorial') || '[]');
-    const fechaArchivo = new Date().toISOString();
-    let sabanasArchivadas = 0;
-
-    Object.entries(sabanaData).forEach(([servicioId, registros]) => {
-        if (!Array.isArray(registros) || registros.length === 0) {
-            return;
-        }
-        const servicioInfo = TIPOS_SERVICIO.find(s => s.id === servicioId);
-        historial.push({
-            id: `${servicioId}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-            servicioId,
-            servicioNombre: servicioInfo?.nombre || servicioId,
-            archivadoEl: fechaArchivo,
-            total: registros.length,
-            completados: registros.filter(item => item.realizado).length,
-            datos: registros
-        });
-        sabanasArchivadas += 1;
-    });
-
-    localStorage.setItem('sabanaServiciosHistorial', JSON.stringify(historial));
-    localStorage.setItem('sabanaServiciosData', JSON.stringify({}));
-
-    const servicioActual = document.getElementById('filtroServicioActual')?.value || 'cambio_chapas';
-    cambiarServicioActual(servicioActual);
-    alert(sabanasArchivadas === 0 
-        ? 'No había sábanas activas para archivar.'
-        : `Periodo archivado correctamente. ${sabanasArchivadas} sábanas se movieron al historial.`);
-}
-
-function verHistorialServicios() {
-    const modal = document.getElementById('modalHistorialSabanas');
-    const listaContainer = document.getElementById('listaHistorialSabanas');
-    
-    if (!modal || !listaContainer) {
-        alert('Error al abrir el historial.');
-        return;
-    }
-    
-    const historial = JSON.parse(localStorage.getItem('sabanaServiciosHistorial') || '[]');
-    
-    if (historial.length === 0) {
-        listaContainer.innerHTML = `
-            <div class="historial-vacio">
-                <i class="fas fa-archive"></i>
-                <p>Aún no hay sábanas archivadas.</p>
-                <p style="font-size: 0.85rem; margin-top: 0.5rem;">Usa el botón "+ Nueva" para comenzar a generar historial.</p>
-            </div>
-        `;
-    } else {
-        // Ordenar por fecha más reciente primero
-        const historialOrdenado = historial.slice().reverse();
-        
-        listaContainer.innerHTML = historialOrdenado.map(entry => {
-            const fecha = new Date(entry.archivadoEl);
-            const fechaFormateada = fecha.toLocaleDateString('es-MX', {
-                day: '2-digit',
-                month: 'short',
-                year: 'numeric'
-            });
-            const horaFormateada = fecha.toLocaleTimeString('es-MX', {
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            const porcentaje = entry.total > 0 
-                ? Math.round((entry.completados / entry.total) * 100) 
-                : 0;
-            
-            return `
-                <div class="historial-item" onclick="cargarSabanaDesdeHistorial('${entry.id}')">
-                    <div class="historial-item-header">
-                        <div class="historial-item-titulo">
-                            <i class="fas fa-clipboard-list"></i>
-                            <span>${entry.servicioNombre}</span>
-                        </div>
-                        <div class="historial-item-fecha">
-                            <i class="far fa-calendar-alt"></i>
-                            ${fechaFormateada}
-                        </div>
-                    </div>
-                    <div class="historial-item-stats">
-                        <div class="historial-stat">
-                            <i class="fas fa-check-circle"></i>
-                            <span class="historial-stat-valor">${entry.completados}/${entry.total}</span>
-                            <span>habitaciones</span>
-                            <span class="historial-stat-porcentaje">${porcentaje}%</span>
-                        </div>
-                        <div class="historial-stat">
-                            <i class="far fa-clock"></i>
-                            <span>${horaFormateada}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    modal.style.display = 'flex';
-}
-
-function cerrarModalHistorial() {
-    const modal = document.getElementById('modalHistorialSabanas');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
-
-function cargarSabanaDesdeHistorial(entryId) {
-    const historial = JSON.parse(localStorage.getItem('sabanaServiciosHistorial') || '[]');
-    const entry = historial.find(h => h.id === entryId);
-    
-    if (!entry) {
-        alert('No se encontró la sábana en el historial.');
-        return;
-    }
-    
-    // Crear una copia temporal de la sábana archivada
-    const allData = JSON.parse(localStorage.getItem('sabanaServiciosData') || '{}');
-    const tempServiceId = `historial_${entry.servicioId}_${Date.now()}`;
-    
-    // Guardar temporalmente los datos históricos
-    allData[tempServiceId] = entry.datos;
-    localStorage.setItem('sabanaServiciosData', JSON.stringify(allData));
-    
-    // Actualizar el select si no existe el servicio
-    const selectFiltro = document.getElementById('filtroServicioActual');
-    if (selectFiltro) {
-        const existeOption = Array.from(selectFiltro.options).find(opt => opt.value === entry.servicioId);
-        if (!existeOption) {
-            const option = document.createElement('option');
-            option.value = tempServiceId;
-            option.textContent = `${entry.servicioNombre} (Historial)`;
-            selectFiltro.appendChild(option);
-        }
-        selectFiltro.value = existeOption ? entry.servicioId : tempServiceId;
-    }
-    
-    // Cerrar modal y cargar datos
-    cerrarModalHistorial();
-    cambiarServicioActual(existeOption ? entry.servicioId : tempServiceId);
-    
-    // Mensaje informativo
-    const fecha = new Date(entry.archivadoEl).toLocaleDateString('es-MX', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    });
-    alert(`Sábana cargada: ${entry.servicioNombre}\nArchivada el ${fecha}\n${entry.completados}/${entry.total} habitaciones completadas`);
-}
+// FUNCIONES DE SÁBANA MOVIDAS A sabana-functions.js
+// Las funciones están en sabana-functions.js y son accedidas vía window.*
 
 // ========================================
 // CHECKLIST - INSPECCIONES
@@ -1412,10 +1143,10 @@ function cargarSabanaDesdeHistorial(entryId) {
 
 function loadChecklistData() {
     console.log('📋 Cargando datos de checklist...');
-    
+
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
-    
+
     // Generar checklist para cada habitación
     if (!localStorage.getItem('checklistData')) {
         const checklistData = AppState.cuartos.slice(0, 20).map(cuarto => ({
@@ -1429,7 +1160,7 @@ function loadChecklistData() {
         }));
         localStorage.setItem('checklistData', JSON.stringify(checklistData));
     }
-    
+
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     renderChecklistGrid(checklistData);
 }
@@ -1437,14 +1168,14 @@ function loadChecklistData() {
 function renderChecklistGrid(data) {
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
-    
+
     grid.innerHTML = '';
-    
+
     data.forEach(habitacion => {
         const card = document.createElement('div');
         card.className = 'checklist-card';
         card.setAttribute('data-habitacion', habitacion.numero);
-        
+
         const itemsHTML = habitacion.items.map((item, itemIndex) => `
             <div class="checklist-item" data-item="${item.nombre.toLowerCase()}">
                 <span class="checklist-item-name">${item.nombre}</span>
@@ -1487,7 +1218,7 @@ function renderChecklistGrid(data) {
                 </div>
             </div>
         `).join('');
-        
+
         card.innerHTML = `
             <div class="checklist-header">
                 <h3 class="checklist-habitacion">${habitacion.numero}</h3>
@@ -1497,7 +1228,7 @@ function renderChecklistGrid(data) {
                 ${itemsHTML}
             </div>
         `;
-        
+
         grid.appendChild(card);
     });
 }
@@ -1505,7 +1236,7 @@ function renderChecklistGrid(data) {
 function updateChecklistEstado(cuartoId, itemIndex, nuevoEstado) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (habitacion) {
         habitacion.items[itemIndex].estado = nuevoEstado;
         localStorage.setItem('checklistData', JSON.stringify(checklistData));
@@ -1516,19 +1247,19 @@ function updateChecklistEstado(cuartoId, itemIndex, nuevoEstado) {
 function filterChecklist(searchTerm) {
     const allData = JSON.parse(localStorage.getItem('checklistData'));
     const searchLower = searchTerm.toLowerCase();
-    
+
     const filtered = allData.filter(habitacion => {
         // Buscar en número de habitación
         if (habitacion.numero.toLowerCase().includes(searchLower)) {
             return true;
         }
-        
+
         // Buscar en items del checklist
-        return habitacion.items.some(item => 
+        return habitacion.items.some(item =>
             item.nombre.toLowerCase().includes(searchLower)
         );
     });
-    
+
     renderChecklistGrid(filtered);
 }
 
@@ -1537,13 +1268,13 @@ function filterChecklistByEstado(estado) {
         loadChecklistData();
         return;
     }
-    
+
     const allData = JSON.parse(localStorage.getItem('checklistData'));
-    
+
     const filtered = allData.filter(habitacion => {
         return habitacion.items.some(item => item.estado === estado);
     });
-    
+
     renderChecklistGrid(filtered);
 }
 
@@ -1552,26 +1283,26 @@ function exportarChecklistExcel() {
         alert('Solo los administradores pueden exportar datos');
         return;
     }
-    
+
     document.getElementById('downloadSpinner').style.display = 'flex';
-    
+
     setTimeout(() => {
         const checklistData = JSON.parse(localStorage.getItem('checklistData'));
-        
+
         let csv = 'Habitación,Edificio,Item,Estado\n';
         checklistData.forEach(habitacion => {
             habitacion.items.forEach(item => {
                 csv += `${habitacion.numero},${habitacion.edificio},${item.nombre},${item.estado}\n`;
             });
         });
-        
+
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `checklist_inspecciones_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
-        
+
         document.getElementById('downloadSpinner').style.display = 'none';
         alert('Checklist exportado exitosamente');
     }, 1500);
@@ -1589,23 +1320,337 @@ function exportarChecklistExcel() {
 
 function verHistorialFiltros() {
     const historial = JSON.parse(localStorage.getItem('sabanaHistorial')) || [];
-    
+
     if (historial.length === 0) {
         alert('No hay periodos archivados disponibles');
         return;
     }
-    
+
     let mensaje = 'Periodos archivados:\n\n';
     historial.forEach((periodo, index) => {
         const fecha = new Date(periodo.fecha).toLocaleDateString('es-MX');
         mensaje += `${index + 1}. ${periodo.periodo} - Archivado el ${fecha}\n`;
     });
-    
+
     alert(mensaje);
 }
 
 function generarReporteChecklist() {
     alert('Generación de reporte PDF en desarrollo.\nPróximamente podrá descargar reportes detallados en formato PDF.');
+}
+
+// ========================================
+// ESPACIOS COMUNES - GESTIÓN
+// ========================================
+
+async function loadEspaciosComunesData() {
+    console.log('🏢 [ESPACIOS] Cargando datos de espacios comunes...');
+    console.log('📥 [ESPACIOS] Cargando datos de espacios comunes y mantenimientos...');
+
+    // Mostrar skeletons instantáneamente
+    if (window.mostrarSkeletonsEspacios) {
+        window.mostrarSkeletonsEspacios();
+    }
+
+    try {
+        const [espaciosResponse, mantenimientosResponse] = await Promise.all([
+            fetchWithAuth(`${API_BASE_URL}/api/espacios-comunes`),
+            fetchWithAuth(`${API_BASE_URL}/api/mantenimientos/espacios`)
+        ]);
+
+        if (espaciosResponse.ok && mantenimientosResponse.ok) {
+            AppState.espaciosComunes = await espaciosResponse.json();
+            AppState.mantenimientosEspacios = await mantenimientosResponse.json();
+            console.log(`✅ [ESPACIOS] Datos cargados: ${AppState.espaciosComunes.length} espacios, ${AppState.mantenimientosEspacios.length} mantenimientos.`);
+
+            // Usar la nueva función de renderizado si está disponible
+            if (window.cargarEspaciosComunes) {
+                window.cargarEspaciosComunes();
+            } else {
+                // Fallback a la función antigua
+                renderEspaciosComunes();
+            }
+        } else {
+            console.error('❌ [ESPACIOS] Error cargando datos:', espaciosResponse.status, mantenimientosResponse.status);
+            AppState.espaciosComunes = [];
+            AppState.mantenimientosEspacios = [];
+            if (window.mostrarEspaciosComunes) {
+                window.mostrarEspaciosComunes();
+            } else {
+                renderEspaciosComunes();
+            }
+        }
+    } catch (error) {
+        console.error('❌ [ESPACIOS] Error cargando datos:', error);
+        AppState.espaciosComunes = [];
+        AppState.mantenimientosEspacios = [];
+        if (window.mostrarEspaciosComunes) {
+            window.mostrarEspaciosComunes();
+        } else {
+            renderEspaciosComunes();
+        }
+    }
+}
+
+function renderEspaciosComunes() {
+    const lista = document.getElementById('listaEspaciosComunes');
+    if (!lista) {
+        console.error('❌ [ESPACIOS] No se encontró #listaEspaciosComunes');
+        return;
+    }
+
+    lista.innerHTML = '';
+
+    if (AppState.espaciosComunes.length === 0) {
+        lista.innerHTML = '<li class="mensaje-no-cuartos"><i class="fas fa-building"></i><p>No hay espacios comunes registrados</p></li>';
+        return;
+    }
+
+    AppState.espaciosComunes.forEach(espacio => {
+        const mantenimientosEspacio = AppState.mantenimientosEspacios.filter(
+            m => m.espacio_comun_id === espacio.id
+        );
+
+        const li = document.createElement('li');
+        li.className = 'habitacion-card';
+        li.setAttribute('data-aos', 'fade-up');
+        li.setAttribute('data-espacio-id', espacio.id);
+
+        const { estadoBadgeClass, estadoIcon, estadoText } = getEstadoBadgeInfo(espacio.estado);
+
+        li.innerHTML = `
+            <div class="habitacion-header">
+                <div class="habitacion-titulo">
+                    <i class="habitacion-icon fas fa-building"></i>
+                    <div>
+                        <div class="habitacion-nombre">${escapeHtml(espacio.nombre)}</div>
+                        <div class="habitacion-edificio">
+                            <i class="fas fa-building"></i> ${escapeHtml(espacio.edificio_nombre || 'Sin edificio')}
+                        </div>
+                    </div>
+                </div>
+                <div class="habitacion-estado-badge ${estadoBadgeClass}">
+                    <i class="fas ${estadoIcon}"></i> ${estadoText}
+                </div>
+            </div>
+            <div class="habitacion-servicios" id="servicios-espacio-${espacio.id}">
+                ${generarServiciosEspacioHTML(mantenimientosEspacio, espacio.id)}
+            </div>
+            <div class="habitacion-acciones">
+                ${mostrarBtnEditarEspacio(mantenimientosEspacio, espacio.id)}
+                <button class="habitacion-boton boton-principal" onclick="seleccionarEspacioComun(${espacio.id})">
+                    <i class="fas fa-plus"></i> Agregar Servicio
+                </button>
+            </div>
+        `;
+
+        lista.appendChild(li);
+    });
+}
+
+function getEstadoBadgeInfo(estado) {
+    const estadosMap = {
+        'disponible': { class: 'estado-disponible', icon: 'fa-check-circle', text: 'Disponible' },
+        'ocupado': { class: 'estado-ocupado', icon: 'fa-user', text: 'Ocupado' },
+        'mantenimiento': { class: 'estado-mantenimiento', icon: 'fa-tools', text: 'Mantenimiento' },
+        'fuera_servicio': { class: 'estado-fuera-servicio', icon: 'fa-ban', text: 'Fuera de Servicio' }
+    };
+
+    const info = estadosMap[estado] || estadosMap['disponible'];
+    return {
+        estadoBadgeClass: info.class,
+        estadoIcon: info.icon,
+        estadoText: info.text
+    };
+}
+
+function generarServiciosEspacioHTML(mantenimientos, espacioId) {
+    if (!mantenimientos || mantenimientos.length === 0) {
+        return '<p class="habitacion-sin-servicios"><i class="fas fa-check-circle"></i> Sin servicios pendientes</p>';
+    }
+
+    return mantenimientos.map(m => {
+        const prioridadClass = m.prioridad || 'media';
+        const estadoClass = m.estado || 'pendiente';
+        const tipoIcon = m.tipo === 'rutina' ? 'fa-clock' : 'fa-wrench';
+
+        return `
+            <div class="servicio-item servicio-${estadoClass}" data-mantenimiento-id="${m.id}">
+                <div class="servicio-header">
+                    <i class="fas ${tipoIcon}"></i>
+                    <span class="servicio-tipo">${m.tipo === 'rutina' ? 'Alerta' : 'Servicio'}</span>
+                    <span class="servicio-prioridad prioridad-${prioridadClass}">${m.prioridad || 'media'}</span>
+                </div>
+                <div class="servicio-descripcion">${escapeHtml(m.descripcion)}</div>
+                ${m.tipo === 'rutina' && m.dia_alerta ? `
+                    <div class="servicio-fecha">
+                        <i class="far fa-calendar-alt"></i> ${formatearFecha(m.dia_alerta)}
+                        ${m.hora ? `<i class="far fa-clock"></i> ${m.hora}` : ''}
+                    </div>
+                ` : ''}
+                <div class="servicio-acciones">
+                    <button class="servicio-btn btn-editar" onclick="editarMantenimientoEspacio(${m.id})" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="servicio-btn btn-eliminar" onclick="eliminarMantenimientoEspacio(${m.id})" title="Eliminar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function mostrarBtnEditarEspacio(mantenimientos, espacioId) {
+    return `
+        <button class="habitacion-boton boton-secundario" onclick="cambiarEstadoEspacio(${espacioId})">
+            <i class="fas fa-exchange-alt"></i> Cambiar Estado
+        </button>
+    `;
+}
+
+// COMMENTED OUT - This function is now in app-loader.js with updated IDs
+// function actualizarEstadisticasEspacios() {
+//     const total = AppState.espaciosComunes.length;
+//     const disponibles = AppState.espaciosComunes.filter(e => e.estado === 'disponible').length;
+//     const mantenimiento = AppState.espaciosComunes.filter(e => e.estado === 'mantenimiento').length;
+//     const fueraServicio = AppState.espaciosComunes.filter(e => e.estado === 'fuera_servicio').length;
+
+//     document.getElementById('totalEspacios').textContent = total;
+//     document.getElementById('espaciosDisponibles').textContent = disponibles;
+//     document.getElementById('espaciosMantenimiento').textContent = mantenimiento;
+//     document.getElementById('espaciosFuera').textContent = fueraServicio;
+// }
+
+async function cargarAlertasEspacios() {
+    console.log('📋 [ESPACIOS] Cargando alertas...');
+    const listaAlertas = document.getElementById('listaAlertasEspacios');
+    const listaEmitidas = document.getElementById('listaAlertasEmitidasEspacios');
+
+    if (listaAlertas) {
+        const alertasPendientes = AppState.mantenimientosEspacios.filter(
+            m => m.tipo === 'rutina' && !m.alerta_emitida && m.estado === 'pendiente'
+        );
+
+        if (alertasPendientes.length === 0) {
+            listaAlertas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas pendientes</li>';
+        } else {
+            listaAlertas.innerHTML = alertasPendientes.map(alerta => `
+                <li class="alerta-item prioridad-${alerta.prioridad || 'media'}">
+                    <div class="alerta-info">
+                        <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
+                        <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
+                    </div>
+                    <div class="alerta-meta">
+                        ${alerta.dia_alerta ? formatearFecha(alerta.dia_alerta) : ''}
+                        ${alerta.hora ? alerta.hora : ''}
+                    </div>
+                </li>
+            `).join('');
+        }
+    }
+
+    if (listaEmitidas) {
+        const alertasEmitidas = AppState.mantenimientosEspacios.filter(
+            m => m.tipo === 'rutina' && m.alerta_emitida && m.estado === 'pendiente'
+        );
+
+        if (alertasEmitidas.length === 0) {
+            listaEmitidas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas del día</li>';
+        } else {
+            listaEmitidas.innerHTML = alertasEmitidas.map(alerta => `
+                <li class="alerta-item alerta-emitida prioridad-${alerta.prioridad || 'media'}">
+                    <div class="alerta-info">
+                        <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
+                        <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
+                    </div>
+                    <div class="alerta-meta">
+                        ${alerta.dia_alerta ? formatearFecha(alerta.dia_alerta) : ''}
+                        ${alerta.hora ? alerta.hora : ''}
+                    </div>
+                </li>
+            `).join('');
+        }
+    }
+}
+
+function seleccionarEspacioComun(espacioId) {
+    alert(`Funcionalidad en desarrollo: Agregar servicio al espacio ${espacioId}`);
+}
+
+function editarMantenimientoEspacio(mantenimientoId) {
+    alert(`Funcionalidad en desarrollo: Editar mantenimiento ${mantenimientoId}`);
+}
+
+async function eliminarMantenimientoEspacio(mantenimientoId) {
+    if (!confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            alert('Servicio eliminado correctamente');
+            await loadEspaciosComunesData();
+        } else {
+            throw new Error('Error al eliminar servicio');
+        }
+    } catch (error) {
+        console.error('Error eliminando servicio:', error);
+        alert('Error al eliminar el servicio');
+    }
+}
+
+async function cambiarEstadoEspacio(espacioId) {
+    const espacio = AppState.espaciosComunes.find(e => e.id === espacioId);
+    if (!espacio) return;
+
+    const estados = [
+        { value: 'disponible', label: '🟢 Disponible' },
+        { value: 'ocupado', label: '🔴 Ocupado' },
+        { value: 'mantenimiento', label: '🟡 Mantenimiento' },
+        { value: 'fuera_servicio', label: '⚫ Fuera de Servicio' }
+    ];
+
+    const opciones = estados.map(e => `${e.value === espacio.estado ? '✓ ' : ''}${e.label}`).join('\n');
+    const nuevoEstado = prompt(`Estado actual: ${espacio.estado}\n\nSelecciona nuevo estado:\n${opciones}\n\nEscribe: disponible, ocupado, mantenimiento o fuera_servicio`);
+
+    if (!nuevoEstado || !estados.find(e => e.value === nuevoEstado.trim())) {
+        return;
+    }
+
+    try {
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/espacios-comunes/${espacioId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ estado: nuevoEstado.trim() })
+        });
+
+        if (response.ok) {
+            alert('Estado actualizado correctamente');
+            await loadEspaciosComunesData();
+        } else {
+            throw new Error('Error al actualizar estado');
+        }
+    } catch (error) {
+        console.error('Error actualizando estado:', error);
+        alert('Error al actualizar el estado');
+    }
+}
+
+function formatearFecha(fecha) {
+    if (!fecha) return '';
+    const date = new Date(fecha);
+    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // ========================================
@@ -1777,12 +1822,12 @@ function renderUsuarioCard(usuario) {
             </div>
             <div class="usuario-acciones">
                 ${estaBloqueado
-                    ? `<button class="btn-desbloquear" onclick="desbloquearUsuario(${usuario.id})"><i class="fas fa-unlock"></i> Desbloquear</button>
+            ? `<button class="btn-desbloquear" onclick="desbloquearUsuario(${usuario.id})"><i class="fas fa-unlock"></i> Desbloquear</button>
                        ${usuario.activo ? `<button class="btn-desactivar" onclick="desactivarUsuario(${usuario.id})"><i class="fas fa-user-slash"></i> Desactivar</button>` : ''}`
-                    : usuario.activo
-                        ? `<button class="btn-desactivar" onclick="desactivarUsuario(${usuario.id})"><i class="fas fa-user-slash"></i> Desactivar</button>`
-                        : `<button class="btn-activar" onclick="activarUsuario(${usuario.id})"><i class="fas fa-user-check"></i> Reactivar</button>`
-                }
+            : usuario.activo
+                ? `<button class="btn-desactivar" onclick="desactivarUsuario(${usuario.id})"><i class="fas fa-user-slash"></i> Desactivar</button>`
+                : `<button class="btn-activar" onclick="activarUsuario(${usuario.id})"><i class="fas fa-user-check"></i> Reactivar</button>`
+        }
             </div>
         </div>
     `;
@@ -1841,7 +1886,7 @@ async function handleUsuarioFormSubmit(event) {
             throw new Error('La contraseña temporal es obligatoria para nuevos usuarios');
         }
 
-        const endpoint = isEdit 
+        const endpoint = isEdit
             ? `${API_BASE_URL}/api/usuarios/${AppState.usuarioEdicion.id}`
             : `${API_BASE_URL}/api/usuarios`;
         const method = isEdit ? 'PUT' : 'POST';
@@ -2034,16 +2079,11 @@ function mostrarModalNuevoUsuario() {
     document.getElementById('usuarioNombre')?.focus();
 }
 
+
+
 // Hacer funciones globales para uso en HTML
-window.toggleCambioRealizado = toggleCambioRealizado;
+window.toggleServicioRealizado = toggleServicioRealizado;
 window.updateChecklistEstado = updateChecklistEstado;
-window.exportarSabanaExcel = exportarSabanaExcel;
-window.abrirModalNuevaSabana = abrirModalNuevaSabana;
-window.cerrarModalNuevaSabana = cerrarModalNuevaSabana;
-window.confirmarNuevaSabana = confirmarNuevaSabana;
-window.toggleTipoServicioModal = toggleTipoServicioModal;
-window.cerrarModalHistorial = cerrarModalHistorial;
-window.cargarSabanaDesdeHistorial = cargarSabanaDesdeHistorial;
 window.exportarChecklistExcel = exportarChecklistExcel;
 window.mostrarModalNuevoUsuario = mostrarModalNuevoUsuario;
 window.editarUsuario = editarUsuario;
@@ -2053,10 +2093,23 @@ window.desbloquearUsuario = desbloquearUsuario;
 window.eliminarUsuario = eliminarUsuario;
 window.cargarUsuarios = cargarUsuarios;
 window.resetUsuarioForm = resetUsuarioForm;
-window.archivarPeriodo = archivarPeriodo;
 window.verHistorialFiltros = verHistorialFiltros;
-window.verHistorialServicios = verHistorialServicios;
 window.generarReporteChecklist = generarReporteChecklist;
+window.seleccionarEspacioComun = seleccionarEspacioComun;
+window.editarMantenimientoEspacio = editarMantenimientoEspacio;
+window.eliminarMantenimientoEspacio = eliminarMantenimientoEspacio;
+window.cambiarEstadoEspacio = cambiarEstadoEspacio;
+
+// ⚠️ Funciones de sábana: Ya exportadas desde sabana-functions.js
+// No re-exportar aquí para evitar conflictos de versión:
+// - abrirModalNuevaSabana
+// - cerrarModalNuevaSabana
+// - confirmarNuevaSabana
+// - toggleTipoServicioModal
+// - cerrarModalHistorial
+// - cargarSabanaDesdeHistorial
+// - exportarSabanaExcel
+// - archivarPeriodo
+// - verHistorialServicios
 
 console.log('✅ App.js cargado completamente');
-

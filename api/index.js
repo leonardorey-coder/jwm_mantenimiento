@@ -46,10 +46,10 @@ async function initializeApp() {
     if (dbInitialized) {
         return;
     }
-    
+
     console.log('🚀 Inicializando aplicación en Vercel...');
     console.log('🌐 Entorno:', process.env.NODE_ENV || 'development');
-    
+
     try {
         console.log('🗄️ Inicializando base de datos PostgreSQL...');
         postgresManager = new PostgresManager();
@@ -281,8 +281,8 @@ app.get('/api', (req, res) => {
 
 // Health check
 app.get('/api/health', (req, res) => {
-    res.json({ 
-        status: 'ok', 
+    res.json({
+        status: 'ok',
         timestamp: new Date().toISOString(),
         database: postgresManager ? 'connected' : 'disconnected',
         environment: process.env.VERCEL ? 'vercel' : 'local'
@@ -335,7 +335,7 @@ app.get('/api/cuartos', async (req, res) => {
     try {
         console.log('📥 GET /api/cuartos - iniciando...');
         console.log('🗄️ postgresManager:', postgresManager ? 'DISPONIBLE' : 'NO DISPONIBLE');
-        
+
         if (postgresManager) {
             console.log('🔍 Consultando base de datos...');
             const cuartos = await postgresManager.getCuartos();
@@ -380,26 +380,26 @@ app.put('/api/cuartos/:id', async (req, res) => {
     try {
         const cuartoId = parseInt(req.params.id);
         const { estado } = req.body;
-        
+
         // Validar que el estado sea válido
         const estadosValidos = ['disponible', 'ocupado', 'mantenimiento', 'fuera_servicio'];
         if (!estado || !estadosValidos.includes(estado)) {
-            return res.status(400).json({ 
-                error: 'Estado inválido', 
-                message: `El estado debe ser uno de: ${estadosValidos.join(', ')}` 
+            return res.status(400).json({
+                error: 'Estado inválido',
+                message: `El estado debe ser uno de: ${estadosValidos.join(', ')}`
             });
         }
-        
+
         console.log(`🔄 Actualizando cuarto ${cuartoId} - nuevo estado: ${estado}`);
-        
+
         if (postgresManager) {
             const resultado = await postgresManager.updateEstadoCuarto(cuartoId, estado);
             if (!resultado) {
                 return res.status(404).json({ error: 'Cuarto no encontrado' });
             }
             console.log('✅ Estado actualizado en base de datos');
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: 'Estado actualizado correctamente',
                 cuarto: resultado
             });
@@ -411,8 +411,8 @@ app.put('/api/cuartos/:id', async (req, res) => {
             }
             cuarto.estado = estado;
             console.log('✅ Estado actualizado en datos mock');
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: 'Estado actualizado correctamente',
                 cuarto: cuarto
             });
@@ -447,36 +447,36 @@ app.get('/api/mantenimientos', async (req, res) => {
 // Agregar mantenimiento (requiere autenticación)
 app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
     try {
-        const { 
-            cuarto_id, 
-            descripcion, 
-            tipo = 'normal', 
-            hora, 
-            dia_alerta, 
+        const {
+            cuarto_id,
+            descripcion,
+            tipo = 'normal',
+            hora,
+            dia_alerta,
             prioridad = 'media',
             estado = 'pendiente',
             usuario_creador_id,
             usuario_asignado_id,
             notas,
-            estado_cuarto 
+            estado_cuarto
         } = req.body;
-        
+
         // Usar el usuario del JWT (autenticado) como creador
         const creadorId = req.usuario?.id || usuario_creador_id || 3;
-        
-        console.log('📝 Creando mantenimiento:', { 
-            cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad, estado, 
+
+        console.log('📝 Creando mantenimiento:', {
+            cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
             usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_cuarto,
-            usuario_jwt: req.usuario?.nombre 
+            usuario_jwt: req.usuario?.nombre
         });
-        
+
         if (postgresManager) {
             // Determinar fecha_finalizacion si el estado es completado o cancelado
             let fecha_finalizacion = null;
             if (estado === 'completado' || estado === 'cancelado') {
                 fecha_finalizacion = new Date();
             }
-            
+
             // Construir query con los nuevos campos
             const query = `
                 INSERT INTO mantenimientos (
@@ -487,7 +487,7 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
                 RETURNING *
             `;
-            
+
             const values = [
                 parseInt(cuarto_id),
                 descripcion,
@@ -501,18 +501,18 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
                 notas || null,
                 fecha_finalizacion
             ];
-            
+
             const result = await postgresManager.pool.query(query, values);
             const nuevoMantenimiento = result.rows[0];
-            
+
             console.log('✅ Mantenimiento creado:', nuevoMantenimiento);
-            
+
             // Si se proporcionó un estado_cuarto, actualizar el estado del cuarto
             if (estado_cuarto) {
                 console.log(`🔄 Actualizando estado del cuarto ${cuarto_id} a: ${estado_cuarto}`);
                 await postgresManager.updateEstadoCuarto(parseInt(cuarto_id), estado_cuarto);
             }
-            
+
             res.status(201).json(nuevoMantenimiento);
         } else {
             // Mock response
@@ -540,36 +540,36 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
 app.put('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { 
-            descripcion, 
-            hora, 
-            dia_alerta, 
+        const {
+            descripcion,
+            hora,
+            dia_alerta,
             prioridad,
             estado,
             usuario_asignado_id,
             notas
         } = req.body;
         const mantenimientoId = parseInt(id);
-        
+
         console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, prioridad, estado, usuario_asignado_id, notas });
-        
+
         if (postgresManager) {
             // Obtener el estado actual del mantenimiento
             const queryEstadoActual = 'SELECT estado FROM mantenimientos WHERE id = $1';
             const resultEstado = await postgresManager.pool.query(queryEstadoActual, [mantenimientoId]);
             const estadoActual = resultEstado.rows[0]?.estado;
-            
+
             // Determinar si se debe actualizar fecha_finalizacion
             let fecha_finalizacion = undefined;
             if (estado && (estado === 'completado' || estado === 'cancelado') && estadoActual !== estado) {
                 fecha_finalizacion = new Date();
             }
-            
+
             // Construir query dinámicamente
             const campos = [];
             const valores = [];
             let contador = 1;
-            
+
             if (descripcion !== undefined) {
                 campos.push(`descripcion = $${contador++}`);
                 valores.push(descripcion);
@@ -602,7 +602,7 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                 campos.push(`fecha_finalizacion = $${contador++}`);
                 valores.push(fecha_finalizacion);
             }
-            
+
             if (campos.length > 0) {
                 valores.push(mantenimientoId);
                 const query = `
@@ -611,19 +611,19 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                     WHERE id = $${contador}
                     RETURNING *
                 `;
-                
+
                 const result = await postgresManager.pool.query(query, valores);
                 console.log('✅ Mantenimiento actualizado:', result.rows[0]);
-                
-                res.json({ 
-                    success: true, 
+
+                res.json({
+                    success: true,
                     message: 'Mantenimiento actualizado correctamente',
                     data: result.rows[0]
                 });
             } else {
-                res.json({ 
-                    success: true, 
-                    message: 'No hay cambios para actualizar' 
+                res.json({
+                    success: true,
+                    message: 'No hay cambios para actualizar'
                 });
             }
         } else {
@@ -635,16 +635,16 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                 if (dia_alerta) mantenimiento.dia_alerta = dia_alerta;
                 if (nivel_alerta) mantenimiento.nivel_alerta = nivel_alerta;
             }
-            res.json({ 
-                success: true, 
-                message: 'Mantenimiento actualizado correctamente' 
+            res.json({
+                success: true,
+                message: 'Mantenimiento actualizado correctamente'
             });
         }
-        
+
     } catch (error) {
         console.error('❌ Error actualizando mantenimiento:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error interno del servidor',
             details: error.message
         });
@@ -655,9 +655,9 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
 app.get('/api/alertas/emitidas', async (req, res) => {
     try {
         const { fecha } = req.query; // Opcional: filtrar por fecha específica
-        
+
         console.log('📋 Obteniendo alertas emitidas', fecha ? `para fecha: ${fecha}` : '(todas)');
-        
+
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasEmitidas(fecha || null);
             console.log(`✅ Alertas emitidas encontradas: ${alertas.length}`);
@@ -669,10 +669,10 @@ app.get('/api/alertas/emitidas', async (req, res) => {
     } catch (error) {
         console.error('❌ Error obteniendo alertas emitidas:', error);
         console.error('Stack:', error.stack);
-        res.status(500).json({ 
-            error: 'Error al obtener alertas emitidas', 
+        res.status(500).json({
+            error: 'Error al obtener alertas emitidas',
             details: error.message,
-            stack: error.stack 
+            stack: error.stack
         });
     }
 });
@@ -681,7 +681,7 @@ app.get('/api/alertas/emitidas', async (req, res) => {
 app.get('/api/alertas/pendientes', async (req, res) => {
     try {
         console.log('📋 Obteniendo alertas pendientes (no emitidas)');
-        
+
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasPendientes();
             console.log(`✅ Alertas pendientes encontradas: ${alertas.length}`);
@@ -693,10 +693,10 @@ app.get('/api/alertas/pendientes', async (req, res) => {
     } catch (error) {
         console.error('❌ Error obteniendo alertas pendientes:', error);
         console.error('Stack:', error.stack);
-        res.status(500).json({ 
-            error: 'Error al obtener alertas pendientes', 
+        res.status(500).json({
+            error: 'Error al obtener alertas pendientes',
             details: error.message,
-            stack: error.stack 
+            stack: error.stack
         });
     }
 });
@@ -706,28 +706,28 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
     try {
         const { id } = req.params;
         const mantenimientoId = parseInt(id);
-        
+
         console.log('📢 Marcando alerta como emitida:', mantenimientoId);
-        
+
         if (postgresManager) {
             await postgresManager.marcarAlertaEmitida(mantenimientoId);
-            
-            res.json({ 
-                success: true, 
-                message: 'Alerta marcada como emitida' 
+
+            res.json({
+                success: true,
+                message: 'Alerta marcada como emitida'
             });
         } else {
             // Mock response
-            res.json({ 
-                success: true, 
-                message: 'Alerta marcada como emitida' 
+            res.json({
+                success: true,
+                message: 'Alerta marcada como emitida'
             });
         }
-        
+
     } catch (error) {
         console.error('❌ Error marcando alerta como emitida:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error interno del servidor',
             details: error.message
         });
@@ -738,27 +738,27 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
 app.post('/api/alertas/marcar-pasadas', async (req, res) => {
     try {
         console.log('🔄 Marcando alertas pasadas como emitidas...');
-        
+
         if (postgresManager) {
             const count = await postgresManager.marcarAlertasPasadasComoEmitidas();
-            
-            res.json({ 
-                success: true, 
+
+            res.json({
+                success: true,
                 message: `${count} alertas pasadas marcadas como emitidas`,
                 count
             });
         } else {
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 message: 'No hay base de datos disponible',
                 count: 0
             });
         }
-        
+
     } catch (error) {
         console.error('❌ Error marcando alertas pasadas:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error interno del servidor',
             details: error.message
         });
@@ -786,8 +786,8 @@ app.get('/api/debug/verificar-alertas', async (req, res) => {
                 ALTER TABLE mantenimientos 
                 ADD COLUMN alerta_emitida BOOLEAN DEFAULT FALSE
             `);
-            
-            return res.json({ 
+
+            return res.json({
                 success: true,
                 message: 'Columna alerta_emitida creada exitosamente',
                 action: 'created'
@@ -803,10 +803,10 @@ app.get('/api/debug/verificar-alertas', async (req, res) => {
                 AND m.alerta_emitida = TRUE
                 ORDER BY m.dia_alerta DESC, m.hora DESC
             `;
-            
+
             const testResult = await postgresManager.pool.query(testQuery);
-            
-            return res.json({ 
+
+            return res.json({
                 success: true,
                 message: 'Columna alerta_emitida ya existe',
                 columnInfo: checkColumn.rows[0],
@@ -817,7 +817,7 @@ app.get('/api/debug/verificar-alertas', async (req, res) => {
         }
     } catch (error) {
         console.error('❌ Error verificando columna:', error);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Error verificando columna',
             details: error.message,
             stack: error.stack
@@ -830,15 +830,15 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
     try {
         const { id } = req.params;
         const mantenimientoId = parseInt(id);
-        
+
         console.log('🗑️ Eliminando mantenimiento:', mantenimientoId);
-        
+
         if (postgresManager) {
             await postgresManager.deleteMantenimiento(mantenimientoId);
-            
-            res.json({ 
-                success: true, 
-                message: 'Mantenimiento eliminado correctamente' 
+
+            res.json({
+                success: true,
+                message: 'Mantenimiento eliminado correctamente'
             });
         } else {
             // Mock delete
@@ -846,19 +846,447 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
             if (index > -1) {
                 mockData.mantenimientos.splice(index, 1);
             }
-            res.json({ 
-                success: true, 
-                message: 'Mantenimiento eliminado correctamente' 
+            res.json({
+                success: true,
+                message: 'Mantenimiento eliminado correctamente'
             });
         }
-        
+
     } catch (error) {
         console.error('❌ Error eliminando mantenimiento:', error);
-        res.status(500).json({ 
-            success: false, 
+        res.status(500).json({
+            success: false,
             message: 'Error interno del servidor',
             details: error.message
         });
+    }
+});
+
+// ====================================
+// RUTAS DE ESPACIOS COMUNES
+// ====================================
+
+// Obtener espacios comunes
+app.get('/api/espacios-comunes', async (req, res) => {
+    try {
+        console.log('📥 GET /api/espacios-comunes - iniciando...');
+
+        if (postgresManager) {
+            const query = `
+                SELECT ec.*, e.nombre as edificio_nombre
+                FROM espacios_comunes ec
+                LEFT JOIN edificios e ON ec.edificio_id = e.id
+                WHERE ec.activo = true
+                ORDER BY e.nombre, ec.nombre
+            `;
+            const result = await postgresManager.pool.query(query);
+            console.log(`✅ Espacios comunes obtenidos: ${result.rows.length} registros`);
+            res.json(result.rows);
+        } else {
+            console.error('❌ Base de datos no disponible, usando datos mock');
+            const mockEspacios = [
+                { id: 1, nombre: 'Lobby Principal', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'comun', estado: 'disponible' },
+                { id: 2, nombre: 'Gimnasio', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'recreativo', estado: 'disponible' },
+                { id: 3, nombre: 'Piscina', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'recreativo', estado: 'mantenimiento' }
+            ];
+            res.json(mockEspacios);
+        }
+    } catch (error) {
+        console.error('❌ Error al obtener espacios comunes:', error);
+        res.status(500).json({ error: 'Error al obtener espacios comunes', details: error.message });
+    }
+});
+
+// Obtener espacio común específico
+app.get('/api/espacios-comunes/:id', async (req, res) => {
+    try {
+        if (postgresManager) {
+            const query = `
+                SELECT ec.*, e.nombre as edificio_nombre
+                FROM espacios_comunes ec
+                LEFT JOIN edificios e ON ec.edificio_id = e.id
+                WHERE ec.id = $1
+            `;
+            const result = await postgresManager.pool.query(query, [parseInt(req.params.id)]);
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Espacio común no encontrado' });
+            }
+            res.json(result.rows[0]);
+        } else {
+            res.status(404).json({ error: 'Espacio común no encontrado' });
+        }
+    } catch (error) {
+        console.error('Error al obtener espacio común:', error);
+        res.status(500).json({ error: 'Error al obtener espacio común', details: error.message });
+    }
+});
+
+// Actualizar estado del espacio común
+app.put('/api/espacios-comunes/:id', async (req, res) => {
+    try {
+        const espacioId = parseInt(req.params.id);
+        const { estado } = req.body;
+
+        const estadosValidos = ['disponible', 'ocupado', 'mantenimiento', 'fuera_servicio'];
+        if (!estado || !estadosValidos.includes(estado)) {
+            return res.status(400).json({
+                error: 'Estado inválido',
+                message: `El estado debe ser uno de: ${estadosValidos.join(', ')}`
+            });
+        }
+
+        console.log(`🔄 Actualizando espacio común ${espacioId} - nuevo estado: ${estado}`);
+
+        if (postgresManager) {
+            const query = `
+                UPDATE espacios_comunes 
+                SET estado = $1, updated_at = CURRENT_TIMESTAMP
+                WHERE id = $2
+                RETURNING *
+            `;
+            const result = await postgresManager.pool.query(query, [estado, espacioId]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Espacio común no encontrado' });
+            }
+
+            console.log('✅ Estado actualizado en base de datos');
+            res.json({
+                success: true,
+                message: 'Estado actualizado correctamente',
+                espacio: result.rows[0]
+            });
+        } else {
+            res.json({
+                success: true,
+                message: 'Estado actualizado correctamente'
+            });
+        }
+    } catch (error) {
+        console.error('❌ Error al actualizar estado del espacio común:', error);
+        res.status(500).json({ error: 'Error al actualizar estado', details: error.message });
+    }
+});
+
+// Obtener mantenimientos de espacios comunes
+app.get('/api/mantenimientos/espacios', async (req, res) => {
+    try {
+        if (postgresManager) {
+            const espacioId = req.query.espacio_comun_id;
+            let query = `
+                SELECT m.*, ec.nombre as espacio_nombre, e.nombre as edificio_nombre
+                FROM mantenimientos m
+                LEFT JOIN espacios_comunes ec ON m.espacio_comun_id = ec.id
+                LEFT JOIN edificios e ON ec.edificio_id = e.id
+                WHERE m.espacio_comun_id IS NOT NULL
+            `;
+
+            const params = [];
+            if (espacioId) {
+                query += ' AND m.espacio_comun_id = $1';
+                params.push(parseInt(espacioId));
+            }
+
+            query += ' ORDER BY m.fecha_creacion DESC';
+
+            const result = await postgresManager.pool.query(query, params);
+            res.json(result.rows);
+        } else {
+            res.json([]);
+        }
+    } catch (error) {
+        console.error('Error al obtener mantenimientos de espacios:', error);
+        res.status(500).json({ error: 'Error al obtener mantenimientos de espacios', details: error.message });
+    }
+});
+
+// Agregar mantenimiento a espacio común
+app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res) => {
+    try {
+        const {
+            espacio_comun_id,
+            descripcion,
+            tipo = 'normal',
+            hora,
+            dia_alerta,
+            prioridad = 'media',
+            estado = 'pendiente',
+            usuario_asignado_id,
+            notas,
+            estado_espacio
+        } = req.body;
+
+        const creadorId = req.usuario?.id || 3;
+
+        console.log('📝 Creando mantenimiento para espacio común:', {
+            espacio_comun_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
+            usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_espacio
+        });
+
+        if (postgresManager) {
+            let fecha_finalizacion = null;
+            if (estado === 'completado' || estado === 'cancelado') {
+                fecha_finalizacion = new Date();
+            }
+
+            const query = `
+                INSERT INTO mantenimientos (
+                    espacio_comun_id, descripcion, tipo, hora, dia_alerta, prioridad,
+                    estado, usuario_creador_id, usuario_asignado_id, notas,
+                    fecha_finalizacion, fecha_creacion
+                )
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+                RETURNING *
+            `;
+
+            const values = [
+                parseInt(espacio_comun_id),
+                descripcion,
+                tipo,
+                hora || null,
+                dia_alerta || null,
+                prioridad,
+                estado,
+                creadorId,
+                usuario_asignado_id ? parseInt(usuario_asignado_id) : null,
+                notas || null,
+                fecha_finalizacion
+            ];
+
+            const result = await postgresManager.pool.query(query, values);
+            const nuevoMantenimiento = result.rows[0];
+
+            console.log('✅ Mantenimiento de espacio común creado:', nuevoMantenimiento);
+
+            if (estado_espacio) {
+                console.log(`🔄 Actualizando estado del espacio ${espacio_comun_id} a: ${estado_espacio}`);
+                await postgresManager.pool.query(
+                    'UPDATE espacios_comunes SET estado = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
+                    [estado_espacio, parseInt(espacio_comun_id)]
+                );
+            }
+
+            res.status(201).json(nuevoMantenimiento);
+        } else {
+            res.status(201).json({ success: true, message: 'Mantenimiento creado (mock)' });
+        }
+    } catch (error) {
+        console.error('❌ Error al crear mantenimiento de espacio común:', error);
+        res.status(500).json({ error: 'Error al crear mantenimiento', details: error.message });
+    }
+});
+
+// ====================================
+// RUTAS DE SÁBANAS
+// ====================================
+
+app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📝 Creando nueva sábana:', req.body);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const { nombre, servicio_id, servicio_nombre, notas } = req.body;
+        const usuario_creador_id = req.usuario?.id;
+
+        if (!nombre || !servicio_id || !servicio_nombre) {
+            return res.status(400).json({
+                error: 'Faltan campos requeridos',
+                required: ['nombre', 'servicio_id', 'servicio_nombre']
+            });
+        }
+
+        const cuartosResult = await postgresManager.getCuartos();
+
+        const cuartosParaSabana = cuartosResult.map(cuarto => ({
+            cuarto_id: cuarto.id,
+            habitacion: cuarto.numero,
+            edificio: cuarto.edificio_nombre || 'Sin edificio',
+            edificio_id: cuarto.edificio_id,
+            fecha_programada: new Date().toISOString().split('T')[0],
+            fecha_realizado: null,
+            responsable: null,
+            usuario_responsable_id: null,
+            observaciones: null,
+            realizado: false
+        }));
+
+        const sabanaData = {
+            nombre,
+            servicio_id,
+            servicio_nombre,
+            usuario_creador_id,
+            notas,
+            cuartos: cuartosParaSabana
+        };
+
+        const nuevaSabana = await postgresManager.createSabana(sabanaData);
+        console.log('✅ Sábana creada:', nuevaSabana.id);
+
+        res.status(201).json(nuevaSabana);
+    } catch (error) {
+        console.error('❌ Error al crear sábana:', error);
+        res.status(500).json({ error: 'Error al crear sábana', details: error.message });
+    }
+});
+
+app.get('/api/sabanas', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📥 GET /api/sabanas');
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const includeArchivadas = parseBooleanFlag(req.query.includeArchivadas);
+        const sabanas = await postgresManager.getSabanas(includeArchivadas);
+
+        res.json(sabanas);
+    } catch (error) {
+        console.error('❌ Error al obtener sábanas:', error);
+        res.status(500).json({ error: 'Error al obtener sábanas', details: error.message });
+    }
+});
+
+app.get('/api/sabanas/archivadas', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📥 GET /api/sabanas/archivadas');
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const sabanas = await postgresManager.getSabanasArchivadas();
+        console.log('📦 Sábanas archivadas encontradas:', sabanas.length);
+        if (sabanas.length > 0) {
+            console.log('📊 Primera sábana archivada:', JSON.stringify(sabanas[0], null, 2));
+        }
+        res.json(sabanas);
+    } catch (error) {
+        console.error('❌ Error al obtener sábanas archivadas:', error);
+        res.status(500).json({ error: 'Error al obtener sábanas archivadas', details: error.message });
+    }
+});
+
+app.get('/api/sabanas/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📥 GET /api/sabanas/:id', req.params.id);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const sabana = await postgresManager.getSabanaById(parseInt(req.params.id));
+
+        if (!sabana) {
+            return res.status(404).json({ error: 'Sábana no encontrada' });
+        }
+
+        console.log('✅ Sábana encontrada:', sabana.id, 'con', sabana.items?.length || 0, 'items');
+
+        res.json(sabana);
+    } catch (error) {
+        console.error('❌ Error al obtener sábana:', error);
+        res.status(500).json({ error: 'Error al obtener sábana', details: error.message });
+    }
+});
+
+app.patch('/api/sabanas/items/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('✏️ PATCH /api/sabanas/items/:id', req.params.id, req.body);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const itemId = parseInt(req.params.id);
+        const { observaciones, realizado } = req.body;
+
+        const updateData = {
+            observaciones
+        };
+
+        // Si se actualizan observaciones, actualizar también el responsable
+        if (observaciones !== undefined) {
+            updateData.responsable = req.usuario?.nombre;
+            updateData.usuario_responsable_id = req.usuario?.id;
+        }
+
+        if (realizado !== undefined) {
+            updateData.realizado = realizado;
+
+            if (realizado) {
+                updateData.fecha_realizado = new Date();
+                updateData.responsable = req.usuario?.nombre;
+                updateData.usuario_responsable_id = req.usuario?.id;
+            } else {
+                updateData.fecha_realizado = null;
+                updateData.responsable = null;
+                updateData.usuario_responsable_id = null;
+            }
+        }
+
+        const itemActualizado = await postgresManager.updateSabanaItem(itemId, updateData);
+
+        console.log('✅ Item de sábana actualizado:', itemActualizado.id);
+        res.json({ success: true, item: itemActualizado });
+    } catch (error) {
+        console.error('❌ Error al actualizar item de sábana:', error);
+        res.status(500).json({ error: 'Error al actualizar item', details: error.message });
+    }
+});
+
+app.post('/api/sabanas/:id/archivar', verificarAutenticacion, verificarAdmin, async (req, res) => {
+    try {
+        console.log('📦 POST /api/sabanas/:id/archivar', req.params.id);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const sabanaId = parseInt(req.params.id);
+
+        if (isNaN(sabanaId)) {
+            return res.status(400).json({ error: 'ID de sábana inválido' });
+        }
+
+        console.log('🔄 Archivando sábana ID:', sabanaId);
+        const sabanaArchivada = await postgresManager.archivarSabana(sabanaId);
+
+        console.log('✅ Sábana archivada exitosamente:', {
+            id: sabanaArchivada.id,
+            nombre: sabanaArchivada.nombre,
+            archivada: sabanaArchivada.archivada,
+            fecha_archivado: sabanaArchivada.fecha_archivado
+        });
+
+        res.json({ success: true, sabana: sabanaArchivada });
+    } catch (error) {
+        console.error('❌ Error al archivar sábana:', error);
+        res.status(500).json({ error: 'Error al archivar sábana', details: error.message });
+    }
+});
+
+app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📥 GET /api/sabanas/servicio/:servicioId', req.params.servicioId);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const includeArchivadas = parseBooleanFlag(req.query.includeArchivadas);
+        const sabanas = await postgresManager.getSabanasByServicio(
+            req.params.servicioId,
+            includeArchivadas
+        );
+
+        res.json(sabanas);
+    } catch (error) {
+        console.error('❌ Error al obtener sábanas por servicio:', error);
+        res.status(500).json({ error: 'Error al obtener sábanas', details: error.message });
     }
 });
 

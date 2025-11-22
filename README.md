@@ -19,8 +19,9 @@ Sistema moderno de registro y gestión de mantenimiento de habitaciones para hot
 - 💾 **Offline-First**: Operación 100% offline (datos y acciones quedan en cola)
 - 📱 **PWA**: Instalable en móviles y equipos de escritorio vía navegador
 - 🗄️ **Base de datos central**: PostgreSQL (nube/servidor)
-- 🧰 **BD local (offline)**: IndexedDB (cola de operaciones para sincronizar)
+- 🧰 **BD local (offline)**: IndexedDB con 50+ MB de capacidad
 - 🔄 **Sincronización**: Reintento automático al recuperar conectividad
+- ⚡ **Alto rendimiento**: Migración completa a IndexedDB para mejor escalabilidad
 
 ## 🎯 Objetivo General
 
@@ -143,8 +144,11 @@ jwm_mant_cuartos/
 - **HTML5 + CSS3 + JavaScript** - Interfaz nativa
 - **Service Worker** - Funcionalidad offline
 - **Cache Storage** - Recursos estáticos
-- **IndexedDB** - Datos locales y cola de sincronización
+- **IndexedDB** - Base de datos local (50+ MB) con índices y transacciones
 - **Notification API** - Alertas del sistema
+- **PWA** - Instalable en dispositivos móviles y escritorio
+
+> 💡 **Migración a IndexedDB**: Se migró de localStorage a IndexedDB para mayor capacidad (50+ MB vs 5-10 MB), mejor rendimiento (operaciones asíncronas), búsquedas eficientes con índices, y soporte para cola de sincronización offline. Ver [MIGRACION_INDEXEDDB.md](./MIGRACION_INDEXEDDB_RESUMEN.md) para más detalles.
 
 ## 📡 API REST
 
