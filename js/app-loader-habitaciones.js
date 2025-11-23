@@ -1,4 +1,47 @@
 /**
+ * Helper para acceder al estado compartido de app-loader
+ * Las variables ahora son referencias directas al estado compartido
+ */
+const getState = () => {
+    if (!window.appLoaderState) {
+        console.warn('⚠️ appLoaderState no está disponible, inicializando estado temporal');
+        window.appLoaderState = {
+            cuartos: [],
+            mantenimientos: [],
+            edificios: [],
+            usuarios: [],
+            cuartosFiltradosActual: [],
+            paginaActualCuartos: 1,
+            totalPaginasCuartos: 1,
+            CUARTOS_POR_PAGINA: 10
+        };
+    }
+    return window.appLoaderState;
+};
+
+// Template HTML para skeleton loading
+const SKELETON_TEMPLATE = `
+    <div class="card-placeholder skeleton-card">
+        <div class="skeleton-header">
+            <div class="skeleton-icon"></div>
+            <div class="skeleton-text-group">
+                <div class="skeleton-line skeleton-title"></div>
+                <div class="skeleton-line skeleton-subtitle"></div>
+            </div>
+            <div class="skeleton-badge"></div>
+        </div>
+        <div class="skeleton-content">
+            <div class="skeleton-line"></div>
+            <div class="skeleton-line"></div>
+        </div>
+        <div class="skeleton-actions">
+            <div class="skeleton-button"></div>
+            <div class="skeleton-button"></div>
+        </div>
+    </div>
+`;
+
+/**
  * Mostrar skeletons de carga inicial antes de cargar datos
  * Optimizado con Document Fragment para evitar múltiples reflows
  */
@@ -32,6 +75,15 @@ function mostrarSkeletonsIniciales() {
  */
 function mostrarCuartos() {
     console.log('=== MOSTRANDO CUARTOS ===');
+    
+    // Usar referencias directas al estado compartido
+    const s = getState();
+    const cuartos = s.cuartos;
+    const cuartosFiltradosActual = s.cuartosFiltradosActual;
+    const paginaActualCuartos = s.paginaActualCuartos;
+    const totalPaginasCuartos = s.totalPaginasCuartos;
+    const CUARTOS_POR_PAGINA = s.CUARTOS_POR_PAGINA;
+    const mantenimientos = s.mantenimientos;
 
     const listaCuartos = document.getElementById('listaCuartos');
     const mensajeNoResultados = document.getElementById('mensajeNoResultados');
@@ -45,11 +97,11 @@ function mostrarCuartos() {
         mensajeNoResultados.style.display = 'none';
     }
 
-    if ((!cuartosFiltradosActual || cuartosFiltradosActual.length === 0) && cuartos.length > 0) {
-        cuartosFiltradosActual = [...cuartos];
+    if ((!s.cuartosFiltradosActual || s.cuartosFiltradosActual.length === 0) && cuartos.length > 0) {
+        s.cuartosFiltradosActual = [...cuartos];
     }
 
-    const totalCuartos = cuartosFiltradosActual.length;
+    const totalCuartos = s.cuartosFiltradosActual.length;
 
     if (totalCuartos === 0) {
         console.warn('No hay cuartos para mostrar');
@@ -59,20 +111,20 @@ function mostrarCuartos() {
         return;
     }
 
-    totalPaginasCuartos = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
+    s.totalPaginasCuartos = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
 
-    if (paginaActualCuartos > totalPaginasCuartos) {
-        paginaActualCuartos = totalPaginasCuartos;
+    if (s.paginaActualCuartos > s.totalPaginasCuartos) {
+        s.paginaActualCuartos = s.totalPaginasCuartos;
     }
-    if (paginaActualCuartos < 1) {
-        paginaActualCuartos = 1;
+    if (s.paginaActualCuartos < 1) {
+        s.paginaActualCuartos = 1;
     }
 
-    const inicio = (paginaActualCuartos - 1) * CUARTOS_POR_PAGINA;
+    const inicio = (s.paginaActualCuartos - 1) * CUARTOS_POR_PAGINA;
     const fin = Math.min(inicio + CUARTOS_POR_PAGINA, totalCuartos);
-    const cuartosPagina = cuartosFiltradosActual.slice(inicio, fin);
+    const cuartosPagina = s.cuartosFiltradosActual.slice(inicio, fin);
 
-    console.log(`Cuartos disponibles: ${totalCuartos} | Página ${paginaActualCuartos}/${totalPaginasCuartos}`);
+    console.log(`Cuartos disponibles: ${totalCuartos} | Página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}`);
 
     listaCuartos.style.display = 'grid';
     listaCuartos.innerHTML = '';
@@ -223,26 +275,28 @@ function mostrarCuartos() {
                         <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
                             <label class="estado-label-inline">Estado de Habitación</label>
                             <div class="estado-pills-inline">
-                                <button type="button" class="estado-pill-inline disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
+                                <button type="button" class="estado-pill-inline ${estadoText ==="Disponible" ? 'estado-pill-inline-activo' : '' } disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Disp.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
+                                <button type="button" class="estado-pill-inline ${estadoText ==="Ocupado" ? 'estado-pill-inline-activo' : '' } ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Ocup.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
+                                <button type="button" class="estado-pill-inline ${estadoText ==="En Mantenimiento" ? 'estado-pill-inline-activo' : '' } mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Mant.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
+                                <button type="button" class="estado-pill-inline ${estadoText ==="Fuera de Servicio" ? 'estado-pill-inline-activo' : '' } fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Fuera</span>
                                 </button>
                             </div>
                         </div>
                         <div class="habitacion-acciones">
-                            ${mostrarBtnEditar(mantenimientosCuarto, cuartoId)}
+                            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
                             <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
                                 <i class="fas fa-plus"></i> Agregar Servicio
                             </button>
@@ -282,32 +336,24 @@ function mostrarCuartos() {
         cards.forEach(li => window.cuartoObserver.observe(li));
     });
 
-    console.log(`Se procesaron ${procesados} cuartos (página ${paginaActualCuartos}/${totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
+    console.log(`Se procesaron ${procesados} cuartos (página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
     console.log('=== FIN MOSTRANDO CUARTOS ===');
 
     renderizarPaginacionCuartos(totalCuartos);
-}
-
-function mostrarBtnEditar(servicios, cuartoId) {
-
-    let btn = servicios.length > 0 ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
-                                <i class="fas fa-edit"></i> Editar
-                            </button>` : '';
-
-    return btn;
 }
 
 /**
  * Sincronizar estado base de cuartos filtrados y paginación
  */
 function sincronizarCuartosFiltrados(mantenerPagina = false) {
-    cuartosFiltradosActual = Array.isArray(cuartos) ? [...cuartos] : [];
-    totalPaginasCuartos = cuartosFiltradosActual.length > 0
-        ? Math.ceil(cuartosFiltradosActual.length / CUARTOS_POR_PAGINA)
+    const s = getState();
+    s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
+    s.totalPaginasCuartos = s.cuartosFiltradosActual.length > 0
+        ? Math.ceil(s.cuartosFiltradosActual.length / s.CUARTOS_POR_PAGINA)
         : 1;
 
-    if (!mantenerPagina || paginaActualCuartos > totalPaginasCuartos) {
-        paginaActualCuartos = cuartosFiltradosActual.length > 0 ? 1 : 1;
+    if (!mantenerPagina || s.paginaActualCuartos > s.totalPaginasCuartos) {
+        s.paginaActualCuartos = s.cuartosFiltradosActual.length > 0 ? 1 : 1;
     }
 }
 
@@ -315,26 +361,27 @@ function sincronizarCuartosFiltrados(mantenerPagina = false) {
  * Renderizar controles de paginación para las habitaciones
  */
 function renderizarPaginacionCuartos(totalCuartos) {
+    const s = getState();
     const contenedorPaginacion = document.getElementById('habitacionesPagination');
     if (!contenedorPaginacion) {
         return;
     }
 
-    if (!totalCuartos || totalCuartos <= CUARTOS_POR_PAGINA) {
+    if (!totalCuartos || totalCuartos <= s.CUARTOS_POR_PAGINA) {
         contenedorPaginacion.innerHTML = '';
         contenedorPaginacion.style.display = 'none';
         return;
     }
 
-    const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
-    totalPaginasCuartos = totalPaginasCalculadas;
-    if (paginaActualCuartos > totalPaginasCuartos) {
-        paginaActualCuartos = totalPaginasCuartos;
+    const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / s.CUARTOS_POR_PAGINA));
+    s.totalPaginasCuartos = totalPaginasCalculadas;
+    if (s.paginaActualCuartos > s.totalPaginasCuartos) {
+        s.paginaActualCuartos = s.totalPaginasCuartos;
     }
 
     const opciones = Array.from({ length: totalPaginasCalculadas }, (_, idx) => {
         const pagina = idx + 1;
-        const seleccionado = pagina === paginaActualCuartos ? ' selected' : '';
+        const seleccionado = pagina === s.paginaActualCuartos ? ' selected' : '';
         return `<option value="${pagina}"${seleccionado}>${pagina}</option>`;
     }).join('');
 
@@ -342,7 +389,7 @@ function renderizarPaginacionCuartos(totalCuartos) {
 
     contenedorPaginacion.style.display = 'flex';
     contenedorPaginacion.innerHTML = `
-    <button class="pagination-btn" data-action="prev" ${paginaActualCuartos === 1 ? 'disabled' : ''} aria-label="Página anterior de habitaciones">
+    <button class="pagination-btn" data-action="prev" ${s.paginaActualCuartos === 1 ? 'disabled' : ''} aria-label="Página anterior de habitaciones">
         <i class="fas fa-chevron-left"></i>
         <span>Anterior</span>
     </button>
@@ -353,7 +400,7 @@ function renderizarPaginacionCuartos(totalCuartos) {
         </select>
         <span>de ${totalPaginasCalculadas}</span>
     </div>
-    <button class="pagination-btn" data-action="next" ${paginaActualCuartos === totalPaginasCalculadas ? 'disabled' : ''} aria-label="Página siguiente de habitaciones">
+    <button class="pagination-btn" data-action="next" ${s.paginaActualCuartos === totalPaginasCalculadas ? 'disabled' : ''} aria-label="Página siguiente de habitaciones">
         <span>Siguiente</span>
         <i class="fas fa-chevron-right"></i>
     </button>
@@ -461,19 +508,20 @@ function desplazarListaCuartosAlInicio() {
  * Filtrar cuartos según los criterios de búsqueda
  */
 function filtrarCuartos() {
+    const s = getState();
     const buscarCuarto = document.getElementById('buscarCuarto').value.toLowerCase();
     const buscarAveria = document.getElementById('buscarAveria').value.toLowerCase();
     const filtroEdificio = document.getElementById('filtroEdificio').value;
     const filtroPrioridad = document.getElementById('filtroPrioridad')?.value || '';
     const filtroEstado = document.getElementById('filtroEstado')?.value || '';
 
-    const cuartosFiltrados = cuartos.filter(cuarto => {
+    const cuartosFiltrados = s.cuartos.filter(cuarto => {
         // Filtro por nombre de cuarto
         const coincideNombre = (cuarto.nombre || cuarto.numero || '').toString().toLowerCase().includes(buscarCuarto);
 
         // Filtro por avería en mantenimientos
         const coincideAveria = buscarAveria === '' ||
-            (mantenimientos && mantenimientos.some(m =>
+            (s.mantenimientos && s.mantenimientos.some(m =>
                 m.cuarto_id === cuarto.id && m.descripcion.toLowerCase().includes(buscarAveria)
             ));
 
@@ -482,7 +530,7 @@ function filtrarCuartos() {
 
         // Filtro por prioridad (solo si el cuarto tiene mantenimientos con esa prioridad)
         const coincidePrioridad = filtroPrioridad === '' ||
-            (mantenimientos && mantenimientos.some(m =>
+            (s.mantenimientos && s.mantenimientos.some(m =>
                 m.cuarto_id === cuarto.id && m.prioridad === filtroPrioridad
             ));
 
@@ -499,6 +547,7 @@ function filtrarCuartos() {
  * Mostrar cuartos filtrados
  */
 function mostrarCuartosFiltrados(cuartosFiltrados) {
+    const s = getState();
     const listaCuartos = document.getElementById('listaCuartos');
     const mensajeNoResultados = document.getElementById('mensajeNoResultados');
 
@@ -510,8 +559,8 @@ function mostrarCuartosFiltrados(cuartosFiltrados) {
         listaCuartos.innerHTML = '';
         listaCuartos.style.display = 'none';
         mensajeNoResultados.style.display = 'block';
-        cuartosFiltradosActual = [];
-        paginaActualCuartos = 1;
+        s.cuartosFiltradosActual = [];
+        s.paginaActualCuartos = 1;
         renderizarPaginacionCuartos(0);
         return;
     }
@@ -524,17 +573,17 @@ function mostrarCuartosFiltrados(cuartosFiltrados) {
     const idCuartoSeleccionado = cuartoActualSeleccionado ?
         cuartoActualSeleccionado.id.replace('cuarto-', '') : null;
 
-    cuartosFiltradosActual = [...cuartosFiltrados];
+    s.cuartosFiltradosActual = [...cuartosFiltrados];
 
     if (idCuartoSeleccionado) {
-        const indiceSeleccionado = cuartosFiltradosActual.findIndex(c => c.id.toString() === idCuartoSeleccionado);
+        const indiceSeleccionado = s.cuartosFiltradosActual.findIndex(c => c.id.toString() === idCuartoSeleccionado);
         if (indiceSeleccionado >= 0) {
-            paginaActualCuartos = Math.floor(indiceSeleccionado / CUARTOS_POR_PAGINA) + 1;
+            s.paginaActualCuartos = Math.floor(indiceSeleccionado / s.CUARTOS_POR_PAGINA) + 1;
         } else {
-            paginaActualCuartos = 1;
+            s.paginaActualCuartos = 1;
         }
     } else {
-        paginaActualCuartos = 1;
+        s.paginaActualCuartos = 1;
     }
 
     mostrarCuartos();
@@ -550,9 +599,10 @@ function mostrarCuartosFiltrados(cuartosFiltrados) {
  * Actualizar contenido de una card específica si está visible en el DOM (OPTIMIZADO)
  */
 function actualizarCardCuartoEnUI(cuartoId) {
+    const s = getState();
     // Actualizar caché de mantenimientos primero
     window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
-    const mantenimientosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
+    const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
     window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
 
     const cardElement = document.getElementById(`cuarto-${cuartoId}`);
@@ -625,6 +675,33 @@ function seleccionarCuarto(cuartoId) {
 }
 
 /**
+     * Actualizar selector de estado con el estado actual del cuarto
+     */
+    function actualizarSelectorEstado(cuartoId) {
+        const estadoSelector = document.getElementById('estadoCuartoSelector');
+        if (!estadoSelector) return;
+
+        // Buscar el cuarto en el array
+        const cuarto = cuartos.find(c => c.id === cuartoId);
+
+        // Remover clase activo de todos los pills
+        const pills = document.querySelectorAll('.estado-pill');
+        pills.forEach(pill => pill.classList.remove('activo'));
+
+        if (cuarto && cuarto.estado) {
+            estadoSelector.value = cuarto.estado;
+
+            // Activar el pill correspondiente
+            const pillActivo = document.querySelector(`.estado-pill[data-estado="${cuarto.estado}"]`);
+            if (pillActivo) {
+                pillActivo.classList.add('activo');
+            }
+        } else {
+            estadoSelector.value = '';
+        }
+    }
+
+/**
  * Seleccionar cuarto desde el select (sin scroll automático)
  */
 function seleccionarCuartoDesdeSelect(cuartoId) {
@@ -646,15 +723,16 @@ function seleccionarCuartoDesdeSelect(cuartoId) {
  * Mostrar formulario inline en la card de habitación
  */
 function mostrarFormularioInline(cuartoId) {
+    const s = getState();
     const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
     if (!contenedorServicios) return;
 
     // Obtener cuarto para información de estado
-    const cuarto = cuartos.find(c => c.id === cuartoId);
+    const cuarto = s.cuartos.find(c => c.id === cuartoId);
     const estadoCuarto = cuarto ? cuarto.estado : '';
 
     // Generar opciones de usuarios
-    const opcionesUsuarios = usuarios.map(u =>
+    const opcionesUsuarios = s.usuarios.map(u =>
         `<option value="${u.id}">${u.nombre}${u.departamento ? ` (${u.departamento})` : ''}</option>`
     ).join('');
 
@@ -812,7 +890,7 @@ function reorganizarServiciosConForm(cuartoId) {
 /**
  * Cerrar formulario inline
  */
-window.cerrarFormularioInline = function (cuartoId) {
+function cerrarFormularioInline (cuartoId) {
     const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
     if (!contenedorServicios) return;
 
@@ -835,11 +913,12 @@ window.cerrarFormularioInline = function (cuartoId) {
         verMas.style.display = 'flex';
     }
 };
+window.cerrarFormularioInline = cerrarFormularioInline;
 
 /**
  * Toggle tipo de servicio en formulario inline
  */
-window.toggleTipoServicioInline = function (cuartoId) {
+function toggleTipoServicioInline (cuartoId) {
     const checkbox = document.getElementById(`tipoToggle-${cuartoId}`);
     const camposAlerta = document.getElementById(`camposAlerta-${cuartoId}`);
     const form = checkbox.closest('form');
@@ -855,15 +934,17 @@ window.toggleTipoServicioInline = function (cuartoId) {
         inputTipo.value = 'normal';
     }
 };
+window.toggleTipoServicioInline = toggleTipoServicioInline;
 
 /**
  * Seleccionar estado en formulario inline
  */
-window.seleccionarEstadoInline = async function (cuartoId, nuevoEstado, boton) {
+async function seleccionarEstadoInline (cuartoId, nuevoEstado, boton) {
+    const s = getState();
     try {
         console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
 
-        const response = await fetch(`${API_BASE_URL}/api/cuartos/${cuartoId}`, {
+        const response = await fetch(`${window.API_BASE_URL}/api/cuartos/${cuartoId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
@@ -879,7 +960,7 @@ window.seleccionarEstadoInline = async function (cuartoId, nuevoEstado, boton) {
         console.log('✅ Estado actualizado:', resultado);
 
         // Actualizar el cuarto en el array local
-        const cuarto = cuartos.find(c => c.id === cuartoId);
+        const cuarto = s.cuartos.find(c => c.id === cuartoId);
         if (cuarto) {
             cuarto.estado = nuevoEstado;
         }
@@ -921,13 +1002,14 @@ window.seleccionarEstadoInline = async function (cuartoId, nuevoEstado, boton) {
         const emoji = estadoEmojis[nuevoEstado] || '⚪';
         const label = estadoLabels[nuevoEstado] || nuevoEstado;
 
-        mostrarMensaje(`${emoji} Estado actualizado a: ${label}`, 'success');
+        window.mostrarMensaje(`${emoji} Estado actualizado a: ${label}`, 'success');
 
     } catch (error) {
         console.error('❌ Error al actualizar estado:', error);
-        mostrarMensaje(`Error al actualizar estado: ${error.message}`, 'error');
+        window.mostrarMensaje(`Error al actualizar estado: ${error.message}`, 'error');
     }
 };
+window.seleccionarEstadoInline = seleccionarEstadoInline;
 
 function formularioEdicionInlineLleno(cuartoId) {
     const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
@@ -950,7 +1032,7 @@ function formularioEdicionInlineLleno(cuartoId) {
     return true;
 }
 
-window.deshabilitarBotonGuardarInline = function (cuartoId, deshabilitar) {
+function deshabilitarBotonGuardarInline (cuartoId, deshabilitar) {
     const botonGuardar = document.getElementById(`btn-guardar-${cuartoId}`);
     if (!botonGuardar) return;
 
@@ -992,11 +1074,12 @@ window.deshabilitarBotonGuardarInline = function (cuartoId, deshabilitar) {
         delete botonGuardar.dataset.submitted;
     }
 };
+window.deshabilitarBotonGuardarInline = deshabilitarBotonGuardarInline;
 
 /**
  * Guardar servicio desde formulario inline
  */
-window.guardarServicioInline = async function (event, cuartoId) {
+async function guardarServicioInline (event, cuartoId) {
     event.preventDefault();
 
     const form = event.target;
@@ -1040,13 +1123,13 @@ window.guardarServicioInline = async function (event, cuartoId) {
     }
 
     try {
-        console.log('🌐 Enviando request a:', `${API_BASE_URL}/api/mantenimientos`);
+        console.log('🌐 Enviando request a:', `${window.API_BASE_URL}/api/mantenimientos`);
 
         // Obtener headers con autenticación (await porque es async)
         const headers = await obtenerHeadersConAuth();
         console.log('🔑 Headers con auth:', headers);
 
-        const response = await fetch(`${API_BASE_URL}/api/mantenimientos`, {
+        const response = await fetch(`${window.API_BASE_URL}/api/mantenimientos`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify(datos)
@@ -1068,39 +1151,40 @@ window.guardarServicioInline = async function (event, cuartoId) {
         cerrarFormularioInline(cuartoId);
 
         // Marcar automáticamente las alertas pasadas (por si la nueva alerta ya pasó)
-        await marcarAlertasPasadasComoEmitidas();
+        await window.marcarAlertasPasadasComoEmitidas();
 
         // Recargar datos y actualizar toda la interfaz
-        await cargarDatos();
+        await window.cargarDatos();
         mostrarCuartos();
-        cargarCuartosEnSelect();
-        mostrarAlertasYRecientes();
+        window.cargarCuartosEnSelect();
+        window.mostrarAlertasYRecientes();
 
         // Actualizar paneles de alertas emitidas
-        await mostrarAlertasEmitidas();
-        await mostrarHistorialAlertas();
+        await window.mostrarAlertasEmitidas();
+        await window.mostrarHistorialAlertas();
 
         // Forzar actualización del sistema de notificaciones si es una rutina
         if (datos.tipo === 'rutina') {
             console.log('🔄 Nueva rutina agregada, verificando sistema de notificaciones...');
             setTimeout(() => {
-                verificarYEmitirAlertas();
+                window.verificarYEmitirAlertas();
             }, 1500);
         }
 
         // Mostrar mensaje de éxito
-        mostrarMensaje('Servicio registrado exitosamente', 'success');
+        window.mostrarMensaje('Servicio registrado exitosamente', 'success');
 
     } catch (error) {
         console.error('❌ Error al registrar servicio:', error);
-        mostrarMensaje(`Error al registrar servicio: ${error.message}`, 'error');
+        window.mostrarMensaje(`Error al registrar servicio: ${error.message}`, 'error');
     }
 };
+window.guardarServicioInline = guardarServicioInline;
 
 /**
  * Toggle de mantenimientos (función esperada por los botones)
  */
-window.toggleMantenimientos = function (cuartoId, button) {
+function toggleMantenimientos (cuartoId, button) {
     const lista = document.getElementById(`mantenimientos-${cuartoId}`);
     if (!lista) return;
 
@@ -1112,11 +1196,12 @@ window.toggleMantenimientos = function (cuartoId, button) {
         button.textContent = 'Mostrar Mantenimientos';
     }
 };
+window.toggleMantenimientos = toggleMantenimientos;
 
 /**
  * Eliminar mantenimiento inline
  */
-window.eliminarMantenimientoInline = async function (mantenimientoId, cuartoId) {
+async function eliminarMantenimientoInline (mantenimientoId, cuartoId) {
     console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
 
     if (!confirm('¿Está seguro de eliminar este mantenimiento?')) {
@@ -1125,9 +1210,9 @@ window.eliminarMantenimientoInline = async function (mantenimientoId, cuartoId) 
     }
 
     try {
-        console.log('🌐 Enviando DELETE a:', `${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
+        console.log('🌐 Enviando DELETE a:', `${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
 
-        const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
+        const response = await fetch(`${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
             method: 'DELETE'
         });
 
@@ -1144,11 +1229,11 @@ window.eliminarMantenimientoInline = async function (mantenimientoId, cuartoId) 
 
         // Recargar datos y actualizar vista
         console.log('🔄 Recargando datos después de eliminación...');
-        await cargarDatos();
+        await window.cargarDatos();
         mostrarCuartos();
-        mostrarAlertasYRecientes();
+        window.mostrarAlertasYRecientes();
 
-        mostrarMensaje('Mantenimiento eliminado exitosamente', 'success');
+        window.mostrarMensaje('Mantenimiento eliminado exitosamente', 'success');
         console.log('✅ Eliminación completada correctamente');
 
     } catch (error) {
@@ -1156,11 +1241,12 @@ window.eliminarMantenimientoInline = async function (mantenimientoId, cuartoId) 
         mostrarMensaje(`Error al eliminar mantenimiento: ${error.message}`, 'error');
     }
 };
+window.eliminarMantenimientoInline = eliminarMantenimientoInline;
 
 /**
  * Scroll a cuarto específico
  */
-window.scrollToCuarto = function (cuartoId) {
+function scrollToCuarto (cuartoId) {
     const cuarto = document.getElementById(`cuarto-${cuartoId}`);
     if (cuarto) {
         // Solo hacer scroll a la card sin seleccionarla
@@ -1178,4 +1264,56 @@ window.scrollToCuarto = function (cuartoId) {
             }, 2000);
         }, 500);
     }
+};
+window.scrollToCuarto = scrollToCuarto;
+
+// Exponer todas las funciones a window para acceso global
+window.mostrarSkeletonsIniciales = mostrarSkeletonsIniciales;
+window.mostrarCuartos = mostrarCuartos;
+window.sincronizarCuartosFiltrados = sincronizarCuartosFiltrados;
+window.renderizarPaginacionCuartos = renderizarPaginacionCuartos;
+window.desplazarListaCuartosAlInicio = desplazarListaCuartosAlInicio;
+window.filtrarCuartos = filtrarCuartos;
+window.mostrarCuartosFiltrados = mostrarCuartosFiltrados;
+window.actualizarCardCuartoEnUI = actualizarCardCuartoEnUI;
+window.seleccionarCuarto = seleccionarCuarto;
+window.seleccionarCuartoDesdeSelect = seleccionarCuartoDesdeSelect;
+window.mostrarFormularioInline = mostrarFormularioInline;
+window.reorganizarServiciosConForm = reorganizarServiciosConForm;
+window.formularioEdicionInlineLleno = formularioEdicionInlineLleno;
+window.cerrarFormularioInline = cerrarFormularioInline;
+window.toggleTipoServicioInline = toggleTipoServicioInline;
+window.seleccionarEstadoInline = seleccionarEstadoInline;
+window.deshabilitarBotonGuardarInline = deshabilitarBotonGuardarInline;
+window.guardarServicioInline = guardarServicioInline;
+window.toggleMantenimientos = toggleMantenimientos;
+window.eliminarMantenimientoInline = eliminarMantenimientoInline;
+window.actualizarSelectorEstado = actualizarSelectorEstado;
+
+console.log('✅ [APP-LOADER-HABITACIONES] Funciones exportadas a window');
+
+// También exportar para compatibilidad con módulos ES6 (si se carga como módulo)
+export {
+    mostrarSkeletonsIniciales,
+    mostrarCuartos,
+    sincronizarCuartosFiltrados,
+    renderizarPaginacionCuartos,
+    desplazarListaCuartosAlInicio,
+    filtrarCuartos,
+    mostrarCuartosFiltrados,
+    actualizarCardCuartoEnUI,
+    seleccionarCuarto,
+    seleccionarCuartoDesdeSelect,
+    mostrarFormularioInline,
+    reorganizarServiciosConForm,
+    formularioEdicionInlineLleno,
+    cerrarFormularioInline,
+    toggleTipoServicioInline,
+    seleccionarEstadoInline,
+    deshabilitarBotonGuardarInline,
+    guardarServicioInline,
+    toggleMantenimientos,
+    eliminarMantenimientoInline,
+    scrollToCuarto,
+    actualizarSelectorEstado
 };

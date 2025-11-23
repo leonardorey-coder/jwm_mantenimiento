@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Módulo de Tareas - JW Marriott</title>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- CSS del módulo -->
+    <link rel="stylesheet" href="tareas-module.css">
+</head>
+<body>
+    <!-- Tab Content: Tareas -->
+    <div class="tab-content" id="tab-tareas" data-aos="fade-in">
+        <h1 class="titulos t-principal">Centro de Tareas</h1>
+        <h2 class="titulos t-secundario">Seguimiento Operativo · JW Marriott</h2>
+
+        <!-- Panel de búsqueda y filtros -->
+        <div class="panel panel-filtros" data-aos="fade-down">
+            <div class="busqueda-filtros usuarios-filtros">
+                <div class="campo-busqueda premium-search">
+                    <i class="fas fa-search icono-busqueda"></i>
+                    <input type="text" id="buscarTarea" placeholder="Buscar tarea...">
+                </div>
+                <div class="select-container premium-select">
+                    <select id="filtroRolTarea">
+                        <option value="mi-rol" selected>Mi rol</option>
+                        <option value="todos">Todos los roles</option>
+                        <option value="admin">Administrador</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="tecnico">Técnico</option>
+                    </select>
+                    <i class="fas fa-chevron-down icono-select"></i>
+                </div>
+                <div class="select-container premium-select">
+                    <select id="filtroEstadoTarea">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="en_proceso">En proceso</option>
+                        <option value="completada">Completada</option>
+                    </select>
+                    <i class="fas fa-chevron-down icono-select"></i>
+                </div>
+                <div class="select-container premium-select" data-semaforo-wrapper="prioridad">
+                    <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                    <select id="filtroPrioridadTarea" data-semaforo-select="prioridad">
+                        <option value="">Todas las prioridades</option>
+                        <option value="alta">Alta</option>
+                        <option value="media">Media</option>
+                        <option value="baja">Baja</option>
+                    </select>
+                    <i class="fas fa-chevron-down icono-select"></i>
+                </div>
+                <div class="select-container premium-select">
+                    <select id="quickActionsSelect">
+                        <option value="">Acciones rápidas</option>
+                        <option value="generar-pdf">Generar PDF</option>
+                        <option value="nueva-tarea">Nueva tarea</option>
+                        <option value="eliminar-tarea">Eliminar tarea</option>
+                    </select>
+                    <i class="fas fa-chevron-down icono-select"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista duo -->
+        <div class="vista-duo">
+            <!-- Columna principal -->
+            <div class="columna columna-principal">
+                <!-- Grid de tareas en formato habitaciones -->
+                <ul class="lista-cuartos brutalist-grid" id="listaTareas" data-aos="fade-up">
+                    <!-- Las tarjetas se inyectan dinámicamente -->
+                </ul>
+                <div class="habitaciones-pagination" id="tareasPagination" aria-live="polite"></div>
+                <div id="mensajeNoTareas" class="mensaje-no-cuartos" style="display:none">
+                    <i class="fas fa-check-double"></i>
+                    <p>No hay tareas con los filtros seleccionados</p>
+                </div>
+            </div>
+
+            <!-- Columna lateral -->
+            <div class="columna columna-lateral">
+                <!-- Resumen por rol -->
+                <div class="panel panel-alertas-espacios gradient-card" data-aos="fade-left">
+                    <div class="panel-header-alertas">
+                        <h2><i class="fas fa-chart-pie"></i> Resumen · <span id="tareasResumenRol" class="rol-label-header">Mi Rol</span></h2>
+                    </div>
+                    <ul class="lista-alertas-espacios lista-resumen-sin-scroll">
+                        <li class="alerta-espacio-item resumen-tarea-item-mejorado">
+                            <div class="alerta-espacio-header">
+                                <div class="alerta-espacio-badge">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Pendientes</span>
+                                </div>
+                                <span class="badge-numero-simple pendiente" id="tareasResumenPendientes">0</span>
+                            </div>
+                            <p class="alerta-espacio-descripcion">Tareas sin iniciar o próximas a vencer</p>
+                        </li>
+                        <li class="alerta-espacio-item resumen-tarea-item-mejorado">
+                            <div class="alerta-espacio-header">
+                                <div class="alerta-espacio-badge">
+                                    <i class="fas fa-spinner"></i>
+                                    <span>En Proceso</span>
+                                </div>
+                                <span class="badge-numero-simple proceso" id="tareasResumenEnProceso">0</span>
+                            </div>
+                            <p class="alerta-espacio-descripcion">Tareas actualmente en ejecución</p>
+                        </li>
+                        <li class="alerta-espacio-item resumen-tarea-item-mejorado">
+                            <div class="alerta-espacio-header">
+                                <div class="alerta-espacio-badge">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Completadas</span>
+                                </div>
+                                <span class="badge-numero-simple completada" id="tareasResumenCompletadas">0</span>
+                            </div>
+                            <p class="alerta-espacio-descripcion">Tareas finalizadas exitosamente</p>
+                        </li>
+                        <li class="alerta-espacio-item resumen-tarea-item-mejorado item-urgente">
+                            <div class="alerta-espacio-header">
+                                <div class="alerta-espacio-badge">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span>Urgentes</span>
+                                </div>
+                                <span class="badge-numero-simple urgente" id="tareasResumenUrgentes">0</span>
+                            </div>
+                            <p class="alerta-espacio-descripcion">Alta prioridad o vencidas</p>
+                        </li>
+                    </ul>
+                    <div class="alerta-extra-resumen">
+                        <i class="fas fa-tasks"></i> Total asignadas: <strong id="tareasResumenTotal">0</strong>
+                    </div>
+                </div>
+
+                <!-- Tarjeta Pixar Stats -->
+                <div class="card-container usuarios-stats-container espacios-stats-container" data-aos="fade-left" data-aos-delay="80">
+                    <div class="pixar-card usuario-stats-card espacios-stats-card" role="article" aria-labelledby="tareasStatsTitle">
+                        <div class="card-header">
+                            <div class="card-avatar"></div>
+                            <p class="card-username" id="tareasStatsTitle">Monitor Operativo</p>
+                        </div>
+                        <div class="card-image-area">
+                            <div class="card-image-placeholder">
+                                <div class="pixar-progress" id="tareasStatsProgress" data-percent="0%" style="--progress-value:0%"></div>
+                            </div>
+                            <p class="card-caption">
+                                <span id="tareasStatsCaption">Total de tareas: 0</span>
+                                <span class="card-caption-highlight" id="tareasStatsHighlight">0 completadas · 0 pendientes</span>
+                            </p>
+                        </div>
+                        <div class="card-actions">
+                            <button class="action-button like-button" type="button" aria-label="Tareas activas">
+                                <div class="action-button-metric">
+                                    <span class="metric-label">Activas</span>
+                                    <strong id="tareasStatsActivas">0</strong>
+                                </div>
+                            </button>
+                            <button class="action-button" type="button" aria-label="En proceso">
+                                <div class="action-button-metric">
+                                    <span class="metric-label">Proceso</span>
+                                    <strong id="tareasStatsProceso">0</strong>
+                                </div>
+                            </button>
+                            <button class="action-button comment-button" type="button" aria-label="Completadas">
+                                <div class="action-button-metric">
+                                    <span class="metric-label">Done</span>
+                                    <strong id="tareasStatsDone">0</strong>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline de vencimientos -->
+                <div class="panel panel-alertas-espacios gradient-card" data-aos="fade-left" data-aos-delay="120">
+                    <div class="panel-header-alertas">
+                        <h2><i class="fas fa-clock"></i> Próximos vencimientos</h2>
+                    </div>
+                    <ul class="lista-alertas-espacios lista-timeline-vencimientos" id="tareasTimeline">
+                        <li class="mensaje-cargando">Sincronizando...</li>
+                    </ul>
+                    <p id="mensajeNoTimeline" class="mensaje-no-items" style="display:none">
+                        <i class="fas fa-star"></i> Todo al día
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalle Tarea -->
+    <div id="modalDetalleTarea" class="modal-detalles" style="display:none" aria-hidden="true">
+        <div class="modal-detalles-overlay" data-close-modal></div>
+        <div class="modal-detalles-contenido tarea-modal">
+            <div class="modal-detalles-header">
+                <div class="tarea-modal-heading">
+                    <div class="tarea-modal-pills-inline">
+                        <span id="tareaModalPrioridad" class="tarea-modal-pill">Prioridad</span>
+                        <span id="tareaModalEstado" class="tarea-modal-pill">Estado</span>
+                    </div>
+                    <p class="modal-detalles-subtitulo">Código • <span id="tareaModalId">TASK-000</span></p>
+                    <h3 id="tareaModalTitulo">Detalle de tarea</h3>
+                </div>
+                <button class="modal-detalles-cerrar" data-close-modal>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body tarea-modal-body">
+                <p id="tareaModalDescripcion" class="tarea-modal-descripcion">Descripción completa de la tarea seleccionada.</p>
+
+                <div class="tarea-modal-grid">
+                    <div class="tarea-modal-info">
+                        <span class="label">Ubicación</span>
+                        <strong id="tareaModalUbicacion">--</strong>
+                    </div>
+                    <div class="tarea-modal-info">
+                        <span class="label">Responsable</span>
+                        <strong id="tareaModalResponsable">--</strong>
+                    </div>
+                    <div class="tarea-modal-info">
+                        <span class="label">Vencimiento</span>
+                        <strong id="tareaModalVence">--</strong>
+                    </div>
+                    <div class="tarea-modal-info">
+                        <span class="label">Rol asignado</span>
+                        <strong id="tareaModalRol">--</strong>
+                    </div>
+                    <div class="tarea-modal-info">
+                        <span class="label">Próxima acción</span>
+                        <strong id="tareaModalNextStep">--</strong>
+                    </div>
+                    <div class="tarea-modal-info">
+                        <span class="label">Último movimiento</span>
+                        <strong id="tareaModalUltimoMovimiento">--</strong>
+                    </div>
+                </div>
+
+                <div class="tarea-modal-tags" id="tareaModalTags">
+                    <span class="tarea-tag-mini">General</span>
+                </div>
+
+                <div class="tarea-modal-actions">
+                    <button class="btn-cuarto-action btn-ver" data-close-modal>
+                        <i class="fas fa-arrow-left"></i> Cerrar
+                    </button>
+                    <button class="btn-cuarto-action" id="tareaModalAccion">
+                        <i class="fas fa-play"></i> Accionar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Editar Tarea -->
+    <div id="modalEditarTarea" class="modal-detalles modal-editar-tarea" style="display:none" aria-hidden="true">
+        <div class="modal-detalles-overlay" data-close-edit-modal></div>
+        <div class="modal-detalles-contenido tarea-edit-modal">
+            <div class="modal-detalles-header">
+                <div>
+                    <p class="modal-detalles-subtitulo">Editar tarea</p>
+                    <h3 id="tareaEditTitulo">TAREA</h3>
+                </div>
+                <button class="modal-detalles-cerrar" data-close-edit-modal>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formEditarTarea" class="tarea-edit-form">
+                <input type="hidden" id="tareaEditId">
+                <div class="tarea-edit-grid">
+                    <div class="form-group full">
+                        <label for="tareaEditNombre">Nombre de la tarea</label>
+                        <input type="text" id="tareaEditNombre" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="tareaEditDescripcion">Descripción completa</label>
+                        <textarea id="tareaEditDescripcion" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="tareaEditPrioridad">Prioridad</label>
+                        <div class="select-container premium-select" data-semaforo-wrapper="prioridad">
+                            <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                            <select id="tareaEditPrioridad" required data-semaforo-select="prioridad">
+                                <option value="alta">Alta</option>
+                                <option value="media">Media</option>
+                                <option value="baja">Baja</option>
+                            </select>
+                            <i class="fas fa-chevron-down icono-select"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="tareaEditEstado">Estado</label>
+                        <select id="tareaEditEstado" required>
+                            <option value="pendiente">Pendiente</option>
+                            <option value="en_proceso">En proceso</option>
+                            <option value="completada">Completada</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="tareaEditFecha">Fecha límite</label>
+                        <input type="date" id="tareaEditFecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="tareaEditResponsable">Responsable</label>
+                        <select id="tareaEditResponsable" required></select>
+                    </div>
+                </div>
+
+                <div class="tarea-edit-section">
+                    <div class="section-header">
+                        <h4>Tags</h4>
+                        <p>Máximo visibles en card: 2</p>
+                    </div>
+                    <div class="tarea-edit-tags" id="tareaEditTags"></div>
+                    <div class="tarea-edit-tags-input">
+                        <input type="text" id="tareaEditTagInput" placeholder="Escribe un tag y presiona Enter">
+                        <button type="button" id="tareaEditAddTag" class="btn-cuarto-action btn-tarea-light">
+                            <i class="fas fa-plus"></i> Añadir
+                        </button>
+                    </div>
+                </div>
+
+                <div class="tarea-edit-section">
+                    <div class="section-header">
+                        <h4>Archivos adjuntos</h4>
+                        <p>Sube evidencia o documentación.</p>
+                    </div>
+                    <div class="tarea-edit-attachments">
+                        <label class="upload-label" for="tareaEditArchivo">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Seleccionar archivos</span>
+                        </label>
+                        <input type="file" id="tareaEditArchivo" multiple>
+                        <ul id="tareaEditAdjuntos" class="tarea-edit-adjuntos-list"></ul>
+                    </div>
+                </div>
+
+                <div class="tarea-edit-section">
+                    <div class="section-header">
+                        <h4>Historial de cambios</h4>
+                        <p>Seguimiento automático de modificaciones.</p>
+                    </div>
+                    <ul id="tareaEditHistorial" class="tarea-edit-historial"></ul>
+                </div>
+
+                <div class="tarea-edit-actions">
+                    <button type="button" class="btn-cuarto-action btn-tarea-light" data-close-edit-modal>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn-cuarto-action btn-tarea-primary">
+                        <i class="fas fa-save"></i> Guardar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript del módulo -->
+    <script src="tareas-module.js"></script>
+</body>
+</html>
