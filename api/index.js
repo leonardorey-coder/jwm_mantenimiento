@@ -554,16 +554,27 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
         console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, prioridad, estado, usuario_asignado_id, notas });
 
         if (postgresManager) {
-            // Obtener el estado actual del mantenimiento
-            const queryEstadoActual = 'SELECT estado FROM mantenimientos WHERE id = $1';
-            const resultEstado = await postgresManager.pool.query(queryEstadoActual, [mantenimientoId]);
-            const estadoActual = resultEstado.rows[0]?.estado;
+            // Obtener el registro actual para comparar cambios
+            const queryActual = 'SELECT estado, dia_alerta, hora FROM mantenimientos WHERE id = $1';
+            const resultActual = await postgresManager.pool.query(queryActual, [mantenimientoId]);
+            const registroActual = resultActual.rows[0];
+
+            if (!registroActual) {
+                return res.status(404).json({ error: 'Mantenimiento no encontrado' });
+            }
+
+            const estadoActual = registroActual.estado;
 
             // Determinar si se debe actualizar fecha_finalizacion
             let fecha_finalizacion = undefined;
             if (estado && (estado === 'completado' || estado === 'cancelado') && estadoActual !== estado) {
                 fecha_finalizacion = new Date();
             }
+
+            // Determinar si cambió la fecha o la hora (para resetear alerta_emitida)
+            const fechaCambio = dia_alerta !== undefined && registroActual.dia_alerta !== dia_alerta;
+            const horaCambio = hora !== undefined && registroActual.hora !== hora;
+            const debeResetearAlerta = fechaCambio || horaCambio;
 
             // Construir query dinámicamente
             const campos = [];
@@ -601,6 +612,13 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
             if (fecha_finalizacion !== undefined) {
                 campos.push(`fecha_finalizacion = $${contador++}`);
                 valores.push(fecha_finalizacion);
+            }
+
+            // Si cambió la fecha o la hora, resetear alerta_emitida a FALSE
+            if (debeResetearAlerta) {
+                campos.push(`alerta_emitida = $${contador++}`);
+                valores.push(false);
+                console.log('🔄 Reseteando alerta_emitida a FALSE debido a cambio en fecha/hora');
             }
 
             if (campos.length > 0) {

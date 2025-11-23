@@ -759,6 +759,11 @@ function loadTabData(tabId) {
                 loadUsuariosData();
             }
             break;
+        case 'tareas':
+            if (window.ensureTareasModule) {
+                window.ensureTareasModule();
+            }
+            break;
     }
 }
 
@@ -1527,10 +1532,18 @@ async function cargarAlertasEspacios() {
     const listaAlertas = document.getElementById('listaAlertasEspacios');
     const listaEmitidas = document.getElementById('listaAlertasEmitidasEspacios');
 
+    // Obtener fecha de hoy (sin hora para comparación)
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
     if (listaAlertas) {
-        const alertasPendientes = AppState.mantenimientosEspacios.filter(
-            m => m.tipo === 'rutina' && !m.alerta_emitida && m.estado === 'pendiente'
-        );
+        // Alertas Programadas: alertas que AÚN NO se han emitido (independiente de la fecha)
+        const alertasPendientes = AppState.mantenimientosEspacios.filter(m => {
+            if (m.tipo !== 'rutina' || m.estado !== 'pendiente') return false;
+
+            // Mostrar solo alertas que NO han sido emitidas
+            return !m.alerta_emitida;
+        });
 
         if (alertasPendientes.length === 0) {
             listaAlertas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas pendientes</li>';
@@ -1551,9 +1564,21 @@ async function cargarAlertasEspacios() {
     }
 
     if (listaEmitidas) {
-        const alertasEmitidas = AppState.mantenimientosEspacios.filter(
-            m => m.tipo === 'rutina' && m.alerta_emitida && m.estado === 'pendiente'
-        );
+        // Alertas del Día: alertas emitidas de hoy
+        const alertasEmitidas = AppState.mantenimientosEspacios.filter(m => {
+            if (m.tipo !== 'rutina' || m.estado !== 'pendiente') return false;
+            if (!m.alerta_emitida) return false; // Solo alertas emitidas
+
+            // Si no tiene fecha, usar lógica antigua
+            if (!m.dia_alerta) return true;
+
+            // Comparar fecha de la alerta con hoy
+            const fechaAlerta = new Date(m.dia_alerta);
+            fechaAlerta.setHours(0, 0, 0, 0);
+
+            // Mostrar en "Alertas del Día" solo si la fecha es hoy
+            return fechaAlerta.getTime() === hoy.getTime();
+        });
 
         if (alertasEmitidas.length === 0) {
             listaEmitidas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas del día</li>';
@@ -2099,17 +2124,6 @@ window.seleccionarEspacioComun = seleccionarEspacioComun;
 window.editarMantenimientoEspacio = editarMantenimientoEspacio;
 window.eliminarMantenimientoEspacio = eliminarMantenimientoEspacio;
 window.cambiarEstadoEspacio = cambiarEstadoEspacio;
-
-// ⚠️ Funciones de sábana: Ya exportadas desde sabana-functions.js
-// No re-exportar aquí para evitar conflictos de versión:
-// - abrirModalNuevaSabana
-// - cerrarModalNuevaSabana
-// - confirmarNuevaSabana
-// - toggleTipoServicioModal
-// - cerrarModalHistorial
-// - cargarSabanaDesdeHistorial
-// - exportarSabanaExcel
-// - archivarPeriodo
-// - verHistorialServicios
+window.cargarAlertasEspacios = cargarAlertasEspacios;
 
 console.log('✅ App.js cargado completamente');

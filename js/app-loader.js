@@ -1,3 +1,6 @@
+// Las funciones de habitaciones se cargan desde app-loader-habitaciones.js (cargado previamente)
+// y están disponibles globalmente en window
+
 (() => {
     'use strict';
 
@@ -84,6 +87,26 @@
     let cuartosFiltradosActual = [];
     let paginaActualCuartos = 1;
     let totalPaginasCuartos = 1;
+
+    // Crear objeto de estado compartido que mantiene referencias actualizadas
+    // Usamos getters para que siempre retorne los valores actuales
+    window.appLoaderState = {
+        get cuartos() { return cuartos; },
+        set cuartos(val) { cuartos = val; },
+        get mantenimientos() { return mantenimientos; },
+        set mantenimientos(val) { mantenimientos = val; },
+        get edificios() { return edificios; },
+        set edificios(val) { edificios = val; },
+        get usuarios() { return usuarios; },
+        set usuarios(val) { usuarios = val; },
+        get cuartosFiltradosActual() { return cuartosFiltradosActual; },
+        set cuartosFiltradosActual(val) { cuartosFiltradosActual = val; },
+        get paginaActualCuartos() { return paginaActualCuartos; },
+        set paginaActualCuartos(val) { paginaActualCuartos = val; },
+        get totalPaginasCuartos() { return totalPaginasCuartos; },
+        set totalPaginasCuartos(val) { totalPaginasCuartos = val; },
+        CUARTOS_POR_PAGINA: CUARTOS_POR_PAGINA
+    };
 
     // Paginación de espacios comunes
     const ESPACIOS_POR_PAGINA = 10;
@@ -204,1183 +227,6 @@
         </div>
     </div>
 `;
-
-    /**
-     * Mostrar skeletons de carga inicial antes de cargar datos
-     * Optimizado con Document Fragment para evitar múltiples reflows
-     */
-    function mostrarSkeletonsIniciales() {
-        const listaCuartos = document.getElementById('listaCuartos');
-        if (!listaCuartos) return;
-
-        // Usar requestAnimationFrame para optimizar el rendering
-        requestAnimationFrame(() => {
-            listaCuartos.style.display = 'grid';
-            listaCuartos.innerHTML = '';
-
-            // Document Fragment para batch DOM updates (evita reflows múltiples)
-            const fragment = document.createDocumentFragment();
-
-            // Crear solo 4 skeletons para una carga más rápida (mejor percepción de velocidad)
-            for (let i = 0; i < 4; i++) {
-                const li = document.createElement('li');
-                li.className = 'cuarto cuarto-lazy';
-                li.innerHTML = SKELETON_TEMPLATE;
-                fragment.appendChild(li);
-            }
-
-            // Un solo append = un solo reflow
-            listaCuartos.appendChild(fragment);
-        });
-    }
-
-    /**
-     * Mostrar cuartos en la lista principal con la misma estructura que index.php
-     */
-    function mostrarCuartos() {
-        console.log('=== MOSTRANDO CUARTOS ===');
-
-        const listaCuartos = document.getElementById('listaCuartos');
-        const mensajeNoResultados = document.getElementById('mensajeNoResultados');
-
-        if (!listaCuartos) {
-            console.error('Elemento listaCuartos no encontrado');
-            return;
-        }
-
-        if (mensajeNoResultados) {
-            mensajeNoResultados.style.display = 'none';
-        }
-
-        if ((!cuartosFiltradosActual || cuartosFiltradosActual.length === 0) && cuartos.length > 0) {
-            cuartosFiltradosActual = [...cuartos];
-        }
-
-        const totalCuartos = cuartosFiltradosActual.length;
-
-        if (totalCuartos === 0) {
-            console.warn('No hay cuartos para mostrar');
-            listaCuartos.style.display = 'grid';
-            listaCuartos.innerHTML = '<li class="mensaje-no-cuartos">No hay cuartos registrados en el sistema.</li>';
-            renderizarPaginacionCuartos(0);
-            return;
-        }
-
-        totalPaginasCuartos = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
-
-        if (paginaActualCuartos > totalPaginasCuartos) {
-            paginaActualCuartos = totalPaginasCuartos;
-        }
-        if (paginaActualCuartos < 1) {
-            paginaActualCuartos = 1;
-        }
-
-        const inicio = (paginaActualCuartos - 1) * CUARTOS_POR_PAGINA;
-        const fin = Math.min(inicio + CUARTOS_POR_PAGINA, totalCuartos);
-        const cuartosPagina = cuartosFiltradosActual.slice(inicio, fin);
-
-        console.log(`Cuartos disponibles: ${totalCuartos} | Página ${paginaActualCuartos}/${totalPaginasCuartos}`);
-
-        listaCuartos.style.display = 'grid';
-        listaCuartos.innerHTML = '';
-        let procesados = 0;
-
-        // Lazy loading: crear cards vacías y cargar contenido solo cuando entran al viewport
-        cuartosPagina.forEach((cuarto, index) => {
-            try {
-                const li = document.createElement('li');
-                li.className = 'cuarto cuarto-lazy';
-                li.id = `cuarto-${cuarto.id}`;
-                li.setAttribute('loading', 'lazy'); // Lazy loading nativo del navegador
-
-                const nombreCuarto = cuarto.nombre || cuarto.numero || `Cuarto ${cuarto.id}`;
-                const edificioNombre = cuarto.edificio_nombre || `Edificio ${cuarto.edificio_id}`;
-
-                // Guardar los datos necesarios en dataset para cargar luego
-                li.dataset.nombreCuarto = nombreCuarto;
-                li.dataset.edificioNombre = edificioNombre;
-                li.dataset.descripcion = cuarto.descripcion || '';
-                li.dataset.cuartoId = cuarto.id;
-                li.dataset.edificioId = cuarto.edificio_id;
-                li.dataset.index = inicio + index;
-
-                // Card placeholder mejorado con skeleton loading
-                li.innerHTML = `
-            <div class="card-placeholder skeleton-card">
-                <div class="skeleton-header">
-                    <div class="skeleton-icon"></div>
-                    <div class="skeleton-text-group">
-                        <div class="skeleton-line skeleton-title"></div>
-                        <div class="skeleton-line skeleton-subtitle"></div>
-                    </div>
-                    <div class="skeleton-badge"></div>
-                </div>
-                <div class="skeleton-content">
-                    <div class="skeleton-line"></div>
-                    <div class="skeleton-line"></div>
-                </div>
-                <div class="skeleton-actions">
-                    <div class="skeleton-button"></div>
-                    <div class="skeleton-button"></div>
-                </div>
-            </div>
-        `;
-
-                listaCuartos.appendChild(li);
-                procesados++;
-            } catch (error) {
-                console.error(`Error procesando cuarto ${index}:`, error, cuarto);
-            }
-        });
-
-        // Reconstruir caché de mantenimientos por cuarto (siempre actualizado)
-        window.mantenimientosPorCuarto = new Map();
-        if (mantenimientos && mantenimientos.length > 0) {
-            mantenimientos.forEach(m => {
-                if (!window.mantenimientosPorCuarto.has(m.cuarto_id)) {
-                    window.mantenimientosPorCuarto.set(m.cuarto_id, []);
-                }
-                window.mantenimientosPorCuarto.get(m.cuarto_id).push(m);
-            });
-            console.log(`📦 Caché de mantenimientos reconstruida: ${window.mantenimientosPorCuarto.size} cuartos con servicios`);
-        }
-
-        // IntersectionObserver para cargar el contenido real cuando la card entra al viewport
-        if (window.cuartoObserver) {
-            window.cuartoObserver.disconnect();
-        }
-        window.cuartoObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const li = entry.target;
-                    if (!li.dataset.loaded) {
-                        // Marcar como cargando para evitar cargas duplicadas
-                        li.dataset.loading = '1';
-
-                        // Calcular delay diagonal basado en la posición (índice)
-                        const cardIndex = parseInt(li.dataset.index || '0', 10);
-                        const delay = (cardIndex % CUARTOS_POR_PAGINA) * 5; // 5ms entre cada card (muy rápido)
-
-                        // Usar requestIdleCallback si está disponible, sino setTimeout
-                        const scheduleRender = window.requestIdleCallback || ((cb) => setTimeout(cb, delay));
-
-                        // Aplicar delay antes de mostrar la card
-                        scheduleRender(() => {
-                            const cuartoId = parseInt(li.dataset.cuartoId, 10);
-                            const nombreCuarto = li.dataset.nombreCuarto;
-                            const edificioNombre = li.dataset.edificioNombre;
-                            const descripcion = li.dataset.descripcion;
-                            const cuartoCompleto = cuartos.find(c => c.id === cuartoId);
-                            // Usar caché de mantenimientos en lugar de filtrar cada vez
-                            const mantenimientosCuarto = window.mantenimientosPorCuarto.get(cuartoId) || [];
-
-                            // Determinar estado del cuarto (ocupado, vacío, en mantenimiento, fuera de servicio)
-                            const estadoCuarto = cuartoCompleto?.estado || 'vacio';
-                            let estadoBadgeClass = 'estado-vacio';
-                            let estadoIcon = 'fa-check-circle';
-                            let estadoText = 'Vacío';
-
-                            switch (estadoCuarto.toLowerCase()) {
-                                case 'ocupado':
-                                    estadoBadgeClass = 'estado-ocupado';
-                                    estadoIcon = 'fa-user';
-                                    estadoText = 'Ocupado';
-                                    break;
-                                case 'en mantenimiento':
-                                case 'mantenimiento':
-                                    estadoBadgeClass = 'estado-mantenimiento';
-                                    estadoIcon = 'fa-tools';
-                                    estadoText = 'En Mantenimiento';
-                                    break;
-                                case 'fuera de servicio':
-                                case 'fuera_servicio':
-                                    estadoBadgeClass = 'estado-fuera-servicio';
-                                    estadoIcon = 'fa-ban';
-                                    estadoText = 'Fuera de Servicio';
-                                    break;
-                                default:
-                                    estadoBadgeClass = 'estado-vacio';
-                                    estadoIcon = 'fa-check-circle';
-                                    estadoText = 'Disponible';
-                            }
-
-                            // Usar requestAnimationFrame para optimizar rendering
-                            requestAnimationFrame(() => {
-                                li.className = 'habitacion-card';
-                                li.setAttribute('data-aos', 'fade-up');
-                                li.innerHTML = `
-                        <div class="habitacion-header">
-                            <div class="habitacion-titulo">
-                                <i class="habitacion-icon fas fa-door-closed"></i>
-                                <div>
-                                    <div class="habitacion-nombre">${escapeHtml(nombreCuarto)}</div>
-                                    <div class="habitacion-edificio">
-                                        <i class="fas fa-building"></i> ${escapeHtml(edificioNombre)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="habitacion-estado-badge ${estadoBadgeClass}">
-                                <i class="fas ${estadoIcon}"></i> ${estadoText}
-                            </div>
-                        </div>
-                        <div class="habitacion-servicios" id="servicios-${cuartoId}">
-                            ${generarServiciosHTML(mantenimientosCuarto, cuartoId)}
-                        </div>
-                                        <!-- Selector de Estado Oculto hasta click en edición-->
-                        <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
-                            <label class="estado-label-inline">Estado de Habitación</label>
-                            <div class="estado-pills-inline">
-                                <button type="button" class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Disp.</span>
-                                </button>
-                                <button type="button" class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Ocup.</span>
-                                </button>
-                                <button type="button" class="estado-pill-inline ${estadoText === 'En Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Mant.</span>
-                                </button>
-                                <button type="button" class="estado-pill-inline ${estadoText === 'Fuera de Servicio' ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Fuera</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="habitacion-acciones">
-                            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
-                                <i class="fas fa-edit"></i> Editar
-                            </button>
-                            <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
-                                <i class="fas fa-plus"></i> Agregar Servicio
-                            </button>
-                        </div>
-                    `;
-
-                                li.dataset.loaded = '1';
-
-                                // Agregar clase de animación diagonal
-                                li.classList.add('card-appear');
-
-                                // Remover clases después de la animación (optimizado)
-                                requestAnimationFrame(() => {
-                                    setTimeout(() => {
-                                        li.classList.remove('cuarto-lazy', 'card-appear');
-                                    }, 250); // Reducido a 250ms para carga más rápida
-                                });
-
-                                // Animar card con anime.js si está disponible
-                                if (typeof window.animarNuevaTarjeta === 'function') {
-                                    window.animarNuevaTarjeta(li);
-                                }
-                            });
-                        }, { timeout: delay });
-                    }
-                    observer.unobserve(li);
-                }
-            });
-        }, {
-            rootMargin: '50px', // Cargar 50px antes de entrar al viewport
-            threshold: 0.01 // 1% visible para detectar rápido
-        });
-
-        // Observar todas las cards después de renderizarlas
-        requestAnimationFrame(() => {
-            const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
-            cards.forEach(li => window.cuartoObserver.observe(li));
-        });
-
-        console.log(`Se procesaron ${procesados} cuartos (página ${paginaActualCuartos}/${totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
-        console.log('=== FIN MOSTRANDO CUARTOS ===');
-
-        renderizarPaginacionCuartos(totalCuartos);
-    }
-
-
-    /**
-     * Sincronizar estado base de cuartos filtrados y paginación
-     */
-    function sincronizarCuartosFiltrados(mantenerPagina = false) {
-        cuartosFiltradosActual = Array.isArray(cuartos) ? [...cuartos] : [];
-        totalPaginasCuartos = cuartosFiltradosActual.length > 0
-            ? Math.ceil(cuartosFiltradosActual.length / CUARTOS_POR_PAGINA)
-            : 1;
-
-        if (!mantenerPagina || paginaActualCuartos > totalPaginasCuartos) {
-            paginaActualCuartos = cuartosFiltradosActual.length > 0 ? 1 : 1;
-        }
-    }
-
-    /**
-     * Renderizar controles de paginación para las habitaciones
-     */
-    function renderizarPaginacionCuartos(totalCuartos) {
-        const contenedorPaginacion = document.getElementById('habitacionesPagination');
-        if (!contenedorPaginacion) {
-            return;
-        }
-
-        if (!totalCuartos || totalCuartos <= CUARTOS_POR_PAGINA) {
-            contenedorPaginacion.innerHTML = '';
-            contenedorPaginacion.style.display = 'none';
-            return;
-        }
-
-        const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
-        totalPaginasCuartos = totalPaginasCalculadas;
-        if (paginaActualCuartos > totalPaginasCuartos) {
-            paginaActualCuartos = totalPaginasCuartos;
-        }
-
-        const opciones = Array.from({ length: totalPaginasCalculadas }, (_, idx) => {
-            const pagina = idx + 1;
-            const seleccionado = pagina === paginaActualCuartos ? ' selected' : '';
-            return `<option value="${pagina}"${seleccionado}>${pagina}</option>`;
-        }).join('');
-
-        const totalLabel = totalCuartos === 1 ? '1 habitación' : `${totalCuartos} habitaciones`;
-
-        contenedorPaginacion.style.display = 'flex';
-        contenedorPaginacion.innerHTML = `
-    <button class="pagination-btn" data-action="prev" ${paginaActualCuartos === 1 ? 'disabled' : ''} aria-label="Página anterior de habitaciones">
-        <i class="fas fa-chevron-left"></i>
-        <span>Anterior</span>
-    </button>
-    <div class="pagination-info">
-        <span>Página</span>
-        <select class="pagination-select" id="habitacionesPaginationSelect" aria-label="Seleccionar página de habitaciones">
-            ${opciones}
-        </select>
-        <span>de ${totalPaginasCalculadas}</span>
-    </div>
-    <button class="pagination-btn" data-action="next" ${paginaActualCuartos === totalPaginasCalculadas ? 'disabled' : ''} aria-label="Página siguiente de habitaciones">
-        <span>Siguiente</span>
-        <i class="fas fa-chevron-right"></i>
-    </button>
-    <span class="pagination-total">${totalLabel}</span>
-`;
-
-        const botonAnterior = contenedorPaginacion.querySelector('[data-action="prev"]');
-        const botonSiguiente = contenedorPaginacion.querySelector('[data-action="next"]');
-        const selectorPaginas = contenedorPaginacion.querySelector('#habitacionesPaginationSelect');
-
-        if (botonAnterior) {
-            botonAnterior.addEventListener('click', () => {
-                if (paginaActualCuartos > 1) {
-                    paginaActualCuartos -= 1;
-                    mostrarCuartos();
-                    // Esperar a que el DOM se actualice antes de hacer scroll
-                    setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-                }
-            });
-        }
-
-        if (botonSiguiente) {
-            botonSiguiente.addEventListener('click', () => {
-                if (paginaActualCuartos < totalPaginasCuartos) {
-                    paginaActualCuartos += 1;
-                    mostrarCuartos();
-                    // Esperar a que el DOM se actualice antes de hacer scroll
-                    setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-                }
-            });
-        }
-
-        if (selectorPaginas) {
-            selectorPaginas.addEventListener('change', (event) => {
-                const nuevaPagina = parseInt(event.target.value, 10);
-                if (!Number.isNaN(nuevaPagina) && nuevaPagina >= 1 && nuevaPagina <= totalPaginasCuartos) {
-                    paginaActualCuartos = nuevaPagina;
-                    mostrarCuartos();
-                    // Esperar a que el DOM se actualice antes de hacer scroll
-                    setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-                }
-            });
-        }
-    }
-
-    /**
-     * Desplazar la vista de habitaciones al inicio después de cambiar de página
-     */
-    function desplazarListaCuartosAlInicio() {
-        // Intentar hacer scroll al tab de habitaciones primero
-        const tabHabitaciones = document.getElementById('tab-habitaciones');
-        if (tabHabitaciones) {
-            const rect = tabHabitaciones.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const targetY = rect.top + scrollTop;
-
-            // Ajustar para el header fijo (aproximadamente 72px en móviles, 0 en desktop)
-            const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-            const finalY = Math.max(0, targetY - headerOffset);
-
-            window.scrollTo({
-                top: finalY,
-                behavior: 'smooth'
-            });
-            return;
-        }
-
-        // Fallback: hacer scroll al panel de filtros
-        const panelFiltros = document.querySelector('.panel-filtros');
-        if (panelFiltros) {
-            const rect = panelFiltros.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const targetY = rect.top + scrollTop;
-
-            // Ajustar para el header fijo
-            const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-            const finalY = Math.max(0, targetY - headerOffset);
-
-            window.scrollTo({
-                top: finalY,
-                behavior: 'smooth'
-            });
-            return;
-        }
-
-        // Último fallback: hacer scroll a la lista de cuartos
-        const listaCuartos = document.getElementById('listaCuartos');
-        if (listaCuartos) {
-            const rect = listaCuartos.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const targetY = rect.top + scrollTop;
-
-            // Ajustar para el header fijo
-            const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-            const finalY = Math.max(0, targetY - headerOffset);
-
-            window.scrollTo({
-                top: finalY,
-                behavior: 'smooth'
-            });
-        }
-    }
-
-    /**
-     * Filtrar cuartos según los criterios de búsqueda
-     */
-    function filtrarCuartos() {
-        const buscarCuarto = document.getElementById('buscarCuarto').value.toLowerCase();
-        const buscarAveria = document.getElementById('buscarAveria').value.toLowerCase();
-        const filtroEdificio = document.getElementById('filtroEdificio').value;
-        const filtroPrioridad = document.getElementById('filtroPrioridad')?.value || '';
-        const filtroEstado = document.getElementById('filtroEstado')?.value || '';
-
-        const cuartosFiltrados = cuartos.filter(cuarto => {
-            // Filtro por nombre de cuarto
-            const coincideNombre = (cuarto.nombre || cuarto.numero || '').toString().toLowerCase().includes(buscarCuarto);
-
-            // Filtro por avería en mantenimientos
-            const coincideAveria = buscarAveria === '' ||
-                (mantenimientos && mantenimientos.some(m =>
-                    m.cuarto_id === cuarto.id && m.descripcion.toLowerCase().includes(buscarAveria)
-                ));
-
-            // Filtro por edificio
-            const coincideEdificio = filtroEdificio === '' || cuarto.edificio_id.toString() === filtroEdificio;
-
-            // Filtro por prioridad (solo si el cuarto tiene mantenimientos con esa prioridad)
-            const coincidePrioridad = filtroPrioridad === '' ||
-                (mantenimientos && mantenimientos.some(m =>
-                    m.cuarto_id === cuarto.id && m.prioridad === filtroPrioridad
-                ));
-
-            // Filtro por estado
-            const coincideEstado = filtroEstado === '' || cuarto.estado === filtroEstado;
-
-            return coincideNombre && coincideAveria && coincideEdificio && coincidePrioridad && coincideEstado;
-        });
-
-        mostrarCuartosFiltrados(cuartosFiltrados);
-    }
-
-    /**
-     * Mostrar cuartos filtrados
-     */
-    function mostrarCuartosFiltrados(cuartosFiltrados) {
-        const listaCuartos = document.getElementById('listaCuartos');
-        const mensajeNoResultados = document.getElementById('mensajeNoResultados');
-
-        if (!listaCuartos || !mensajeNoResultados) {
-            return;
-        }
-
-        if (!cuartosFiltrados || cuartosFiltrados.length === 0) {
-            listaCuartos.innerHTML = '';
-            listaCuartos.style.display = 'none';
-            mensajeNoResultados.style.display = 'block';
-            cuartosFiltradosActual = [];
-            paginaActualCuartos = 1;
-            renderizarPaginacionCuartos(0);
-            return;
-        }
-
-        listaCuartos.style.display = 'grid'; // Mantener grid para 2 columnas
-        mensajeNoResultados.style.display = 'none';
-
-        // Guardar cuarto seleccionado actual si existe
-        const cuartoActualSeleccionado = document.querySelector('.cuarto-seleccionado');
-        const idCuartoSeleccionado = cuartoActualSeleccionado ?
-            cuartoActualSeleccionado.id.replace('cuarto-', '') : null;
-
-        cuartosFiltradosActual = [...cuartosFiltrados];
-
-        if (idCuartoSeleccionado) {
-            const indiceSeleccionado = cuartosFiltradosActual.findIndex(c => c.id.toString() === idCuartoSeleccionado);
-            if (indiceSeleccionado >= 0) {
-                paginaActualCuartos = Math.floor(indiceSeleccionado / CUARTOS_POR_PAGINA) + 1;
-            } else {
-                paginaActualCuartos = 1;
-            }
-        } else {
-            paginaActualCuartos = 1;
-        }
-
-        mostrarCuartos();
-
-        // Restaurar selección si el cuarto filtrado sigue visible
-        if (idCuartoSeleccionado &&
-            cuartosFiltrados.some(c => c.id.toString() === idCuartoSeleccionado)) {
-            setTimeout(() => seleccionarCuarto(parseInt(idCuartoSeleccionado)), 200);
-        }
-    }
-
-    /**
-     * Actualizar contenido de una card específica si está visible en el DOM (OPTIMIZADO)
-     */
-    function actualizarCardCuartoEnUI(cuartoId) {
-        // Actualizar caché de mantenimientos primero
-        window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
-        const mantenimientosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-        window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
-
-        const cardElement = document.getElementById(`cuarto-${cuartoId}`);
-
-        if (!cardElement) {
-            console.log(`⚠️ Card cuarto-${cuartoId} no está en el DOM`);
-            return;
-        }
-
-        // ⚡ OPTIMIZACIÓN: Solo actualizar el contenedor de servicios
-        const serviciosContainer = document.getElementById(`servicios-${cuartoId}`);
-
-        if (serviciosContainer) {
-            // Verificar si está en modo edición
-            const btnEditar = document.getElementById(`btn-editar-${cuartoId}`);
-            const enModoEdicion = btnEditar && btnEditar.classList.contains('modo-edicion-activo');
-
-            // Actualizar inmediatamente sin animaciones
-            serviciosContainer.innerHTML = generarServiciosHTML(mantenimientosCuarto, cuartoId, enModoEdicion);
-
-            // Actualizar botón de editar si es necesario
-            if (btnEditar && mantenimientosCuarto.length === 0) {
-                btnEditar.style.display = 'none';
-            } else if (btnEditar && mantenimientosCuarto.length > 0) {
-                btnEditar.style.display = '';
-            }
-        }
-    }
-
-    /**
-     * Seleccionar un cuarto único (remover selección de otros)
-     */
-    function seleccionarCuarto(cuartoId) {
-        // Verificar si ya hay un formulario inline abierto en esta card
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (!contenedorServicios) return;
-
-        const formExistente = contenedorServicios.querySelector('.form-servicio-inline');
-        if (formExistente) {
-            // Si ya existe, hacer scroll hasta él
-            formExistente.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            return;
-        }
-
-        // Remover selección de todos los cuartos
-        const todosLosCuartos = document.querySelectorAll('.cuarto');
-        todosLosCuartos.forEach(cuarto => {
-            cuarto.classList.remove('cuarto-seleccionado');
-        });
-
-        // Seleccionar el cuarto clickeado
-        const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
-        if (cuartoSeleccionado) {
-            cuartoSeleccionado.classList.add('cuarto-seleccionado');
-
-            // Auto-seleccionar en el formulario lateral si existe
-            const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
-            if (selectCuarto) {
-                selectCuarto.value = cuartoId;
-            }
-
-            // Actualizar el selector de estado con el estado actual del cuarto
-            actualizarSelectorEstado(cuartoId);
-
-            // Mostrar formulario inline en la card
-            mostrarFormularioInline(cuartoId);
-
-            console.log(`Cuarto ${cuartoId} seleccionado con formulario inline`);
-        }
-    }
-
-    /**
-     * Seleccionar cuarto desde el select (sin scroll automático)
-     */
-    function seleccionarCuartoDesdeSelect(cuartoId) {
-        // Remover selección de todos los cuartos
-        const todosLosCuartos = document.querySelectorAll('.cuarto');
-        todosLosCuartos.forEach(cuarto => {
-            cuarto.classList.remove('cuarto-seleccionado');
-        });
-
-        // Seleccionar el cuarto sin hacer scroll
-        const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
-        if (cuartoSeleccionado) {
-            cuartoSeleccionado.classList.add('cuarto-seleccionado');
-            console.log(`Cuarto ${cuartoId} seleccionado desde select`);
-        }
-    }
-
-    /**
-     * Mostrar formulario inline en la card de habitación
-     */
-    function mostrarFormularioInline(cuartoId) {
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (!contenedorServicios) return;
-
-        // Obtener cuarto para información de estado
-        const cuarto = cuartos.find(c => c.id === cuartoId);
-        const estadoCuarto = cuarto ? cuarto.estado : '';
-
-        // Generar opciones de usuarios
-        const opcionesUsuarios = usuarios.map(u =>
-            `<option value="${u.id}">${u.nombre}${u.departamento ? ` (${u.departamento})` : ''}</option>`
-        ).join('');
-
-        // Crear el formulario inline
-        const formHTML = `
-    <div class="form-servicio-inline" data-cuarto-id="${cuartoId}">
-        <div class="form-inline-header">
-            <i class="fas fa-plus-circle"></i>
-            <span>Nuevo Servicio</span>
-            <button type="button" class="btn-cerrar-inline" onclick="cerrarFormularioInline(${cuartoId})">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <form onsubmit="guardarServicioInline(event, ${cuartoId})">
-            <input type="text" 
-                    class="input-inline" 
-                    name="descripcion" 
-                    placeholder="Descripción del servicio..." 
-                    required 
-                    autocomplete="off">
-            
-            <div class="tipo-toggle-inline">
-                <label class="toggle-label">
-                    <input type="checkbox" 
-                            class="toggle-checkbox" 
-                            id="tipoToggle-${cuartoId}"
-                            onchange="toggleTipoServicioInline(${cuartoId})">
-                    <span class="toggle-switch"></span>
-                    <span class="toggle-text">
-                        <span class="tipo-averia">Avería</span>
-                        <span class="tipo-alerta">Alerta</span>
-                    </span>
-                </label>
-            </div>
-            
-            <!-- Selector de Estado del Mantenimiento -->
-            <div class="estado-mantenimiento-selector-inline">
-                <label class="estado-mant-label-inline">
-                    <i class="fas fa-tasks"></i> Estado del Servicio
-                </label>
-                <select class="input-inline" name="estado_mantenimiento">
-                    <option value="pendiente">Pendiente</option>
-                    <option value="en_proceso">En Proceso</option>
-                    <option value="completado">Completado</option>
-                    <option value="cancelado">Cancelado</option>
-                </select>
-            </div>
-            
-            <!-- Selector de Usuario Asignado (opcional) -->
-            <div class="usuario-asignado-selector-inline">
-                <label class="usuario-asignado-label-inline">
-                    <i class="fas fa-user-check"></i> Asignar a (Opcional)
-                </label>
-                <select class="input-inline" name="usuario_asignado_id">
-                    <option value="">-- Sin asignar --</option>
-                    ${opcionesUsuarios}
-                </select>
-            </div>
-            
-            <!-- Notas adicionales -->
-            <textarea class="input-inline" 
-                        name="notas" 
-                        placeholder="Notas adicionales (opcional)" 
-                        rows="2" 
-                        style="resize: vertical; font-family: inherit;"></textarea>
-            
-            <!-- Selector de Prioridad (siempre visible) -->
-            <div class="prioridad-selector-inline">
-                <label class="prioridad-label-inline">
-                    <i class="fas fa-traffic-light"></i> Prioridad
-                </label>
-                <div class="prioridad-inline">
-                    <label class="prioridad-item">
-                        <input type="radio" name="prioridad-${cuartoId}" value="baja" checked>
-                        <span class="prioridad-badge baja">🟢 Baja</span>
-                    </label>
-                    <label class="prioridad-item">
-                        <input type="radio" name="prioridad-${cuartoId}" value="media">
-                        <span class="prioridad-badge media">🟡 Media</span>
-                    </label>
-                    <label class="prioridad-item">
-                        <input type="radio" name="prioridad-${cuartoId}" value="alta">
-                        <span class="prioridad-badge alta">🔴 Alta</span>
-                    </label>
-                </div>
-            </div>
-            
-            <!-- Campos adicionales de Alerta (solo hora y día) -->
-            <div class="campos-alerta-inline" id="camposAlerta-${cuartoId}" style="display: none;">
-                <input type="time" class="input-inline" name="hora" placeholder="Hora">
-                <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
-            </div>
-            
-            <input type="hidden" name="tipo" value="normal">
-            <input type="hidden" id="estadoCuartoInline-${cuartoId}" name="estado_cuarto" value="${estadoCuarto}">
-            
-            <div class="form-inline-actions">
-                <button type="button" class="btn-inline btn-cancelar" onclick="cerrarFormularioInline(${cuartoId})">
-                    Cancelar
-                </button>
-                <button id="btn-guardar-${cuartoId}" class="btn-inline btn-guardar" onclick="deshabilitarBotonGuardarInline(${cuartoId}, true)">
-                    <i class="fas fa-check"></i> Guardar
-                </button>
-            </div>
-        </form>
-    </div>
-`;
-
-        // Insertar el formulario al inicio del contenedor
-        contenedorServicios.insertAdjacentHTML('afterbegin', formHTML);
-
-        // Preseleccionar el estado actual del cuarto
-        if (estadoCuarto) {
-            const btnEstado = contenedorServicios.querySelector(`.estado-pill-inline[data-estado="${estadoCuarto}"]`);
-            if (btnEstado) {
-                btnEstado.classList.add('activo');
-            }
-        }
-
-        // Reorganizar servicios existentes (mostrar máximo 1 servicio después del formulario)
-        reorganizarServiciosConForm(cuartoId);
-
-        // Focus en el input de descripción
-        setTimeout(() => {
-            const input = contenedorServicios.querySelector('.input-inline[name="descripcion"]');
-            if (input) input.focus();
-        }, 100);
-    }
-
-    /**
-     * Reorganizar servicios cuando se muestra el formulario inline
-     */
-    function reorganizarServiciosConForm(cuartoId) {
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (!contenedorServicios) return;
-
-        const servicios = contenedorServicios.querySelectorAll('.servicio-item');
-
-        // Ocultar todos excepto el primero
-        servicios.forEach((servicio, index) => {
-            if (index === 0) {
-                servicio.style.display = 'flex';
-            } else {
-                servicio.style.display = 'none';
-            }
-        });
-
-        // Ocultar el botón "Ver más" si existe
-        const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
-        if (verMas) {
-            verMas.style.display = 'none';
-        }
-    }
-
-    /**
-     * Cerrar formulario inline
-     */
-    window.cerrarFormularioInline = function (cuartoId) {
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (!contenedorServicios) return;
-
-        const form = contenedorServicios.querySelector('.form-servicio-inline');
-        if (form) {
-            form.remove();
-        }
-
-        // Restaurar visualización de servicios
-        const servicios = contenedorServicios.querySelectorAll('.servicio-item');
-        servicios.forEach((servicio, index) => {
-            if (index < 2) {
-                servicio.style.display = 'flex';
-            }
-        });
-
-        // Restaurar botón "Ver más" si existe
-        const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
-        if (verMas) {
-            verMas.style.display = 'flex';
-        }
-    };
-
-    /**
-     * Toggle tipo de servicio en formulario inline
-     */
-    window.toggleTipoServicioInline = function (cuartoId) {
-        const checkbox = document.getElementById(`tipoToggle-${cuartoId}`);
-        const camposAlerta = document.getElementById(`camposAlerta-${cuartoId}`);
-        const form = checkbox.closest('form');
-        const inputTipo = form.querySelector('input[name="tipo"]');
-
-        if (checkbox.checked) {
-            // Es alerta
-            camposAlerta.style.display = 'block';
-            inputTipo.value = 'rutina';
-        } else {
-            // Es avería
-            camposAlerta.style.display = 'none';
-            inputTipo.value = 'normal';
-        }
-    };
-
-    /**
-     * Seleccionar estado en formulario inline
-     */
-    window.seleccionarEstadoInline = async function (cuartoId, nuevoEstado, boton) {
-        try {
-            console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
-
-            const response = await fetch(`${API_BASE_URL}/api/cuartos/${cuartoId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ estado: nuevoEstado })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
-
-            const resultado = await response.json();
-            console.log('✅ Estado actualizado:', resultado);
-
-            // Actualizar el cuarto en el array local
-            const cuarto = cuartos.find(c => c.id === cuartoId);
-            if (cuarto) {
-                cuarto.estado = nuevoEstado;
-            }
-
-            // Remover clase activo de todos los botones de estado de este contenedor
-            const contenedorPills = boton.closest('.estado-pills-inline');
-            if (contenedorPills) {
-                const todosLosBotones = contenedorPills.querySelectorAll('.estado-pill-inline');
-                todosLosBotones.forEach(btn => btn.classList.remove('activo'));
-            }
-
-            // Agregar clase activo al botón seleccionado
-            boton.classList.add('activo');
-
-            // Actualizar el input hidden
-            const inputEstado = document.getElementById(`estadoCuartoInline-${cuartoId}`);
-            if (inputEstado) {
-                inputEstado.value = nuevoEstado;
-            }
-
-            // Recargar la visualización de cuartos para reflejar el nuevo estado
-            mostrarCuartos();
-
-            // Mapeo de estados a emojis y labels
-            const estadoEmojis = {
-                'disponible': '🟢',
-                'ocupado': '🔵',
-                'mantenimiento': '🟡',
-                'fuera_servicio': '🔴'
-            };
-
-            const estadoLabels = {
-                'disponible': 'Disponible',
-                'ocupado': 'Ocupado',
-                'mantenimiento': 'En Mantenimiento',
-                'fuera_servicio': 'Fuera de Servicio'
-            };
-
-            const emoji = estadoEmojis[nuevoEstado] || '⚪';
-            const label = estadoLabels[nuevoEstado] || nuevoEstado;
-
-            mostrarMensaje(`${emoji} Estado actualizado a: ${label}`, 'success');
-
-        } catch (error) {
-            console.error('❌ Error al actualizar estado:', error);
-            mostrarMensaje(`Error al actualizar estado: ${error.message}`, 'error');
-        }
-    };
-
-    function formularioEdicionInlineLleno(cuartoId) {
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (!contenedorServicios) return false;
-
-        const form = contenedorServicios.querySelector('.form-servicio-inline');
-        if (!form) return false;
-
-        const descripcion = form.querySelector('input[name="descripcion"]').value.trim();
-        const tipo = form.querySelector('input[name="tipo"]').value;
-
-        if (!descripcion) return false;
-
-        if (tipo === 'rutina') {
-            const hora = form.querySelector('input[name="hora"]').value;
-            const dia_alerta = form.querySelector('input[name="dia_alerta"]').value;
-            if (!hora || !dia_alerta) return false;
-        }
-
-        return true;
-    }
-
-    window.deshabilitarBotonGuardarInline = function (cuartoId, deshabilitar) {
-        const botonGuardar = document.getElementById(`btn-guardar-${cuartoId}`);
-        if (!botonGuardar) return;
-
-        // Guardar HTML original para poder restaurarlo
-        if (!botonGuardar.dataset.origHtml) {
-            botonGuardar.dataset.origHtml = botonGuardar.innerHTML;
-        }
-
-        if (deshabilitar && formularioEdicionInlineLleno(cuartoId)) {
-            botonGuardar.disabled = true;
-            botonGuardar.setAttribute('aria-busy', 'true');
-            botonGuardar.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Guardando...`;
-
-            // Intentar submit manual del formulario contenedor (solo una vez)
-            try {
-                const form = botonGuardar.closest('form');
-                if (form && !botonGuardar.dataset.submitted) {
-                    botonGuardar.dataset.submitted = '1';
-                    // Dejar que el DOM actualice el botón antes de enviar
-                    setTimeout(() => {
-                        try {
-                            if (typeof form.requestSubmit === 'function') {
-                                form.requestSubmit();
-                            } else {
-                                form.submit();
-                            }
-                        } catch (e) {
-                            console.warn('Error enviando el formulario automáticamente:', e);
-                        }
-                    }, 10);
-                }
-            } catch (e) {
-                console.warn('No se pudo realizar submit automático:', e);
-            }
-        } else {
-            botonGuardar.disabled = false;
-            botonGuardar.removeAttribute('aria-busy');
-            botonGuardar.innerHTML = botonGuardar.dataset.origHtml || 'Guardar';
-            delete botonGuardar.dataset.submitted;
-        }
-    };
-
-    /**
-     * Guardar servicio desde formulario inline
-     */
-    window.guardarServicioInline = async function (event, cuartoId) {
-        event.preventDefault();
-
-        const form = event.target;
-        const formData = new FormData(form);
-
-        // Obtener prioridad del radio button
-        const prioridadRadio = form.querySelector(`input[name="prioridad-${cuartoId}"]:checked`);
-
-        const datos = {
-            cuarto_id: cuartoId,
-            tipo: formData.get('tipo'),
-            descripcion: formData.get('descripcion'),
-            hora: formData.get('hora'),
-            dia_alerta: formData.get('dia_alerta'),
-            prioridad: prioridadRadio ? prioridadRadio.value : 'media',
-            estado_cuarto: formData.get('estado_cuarto'),
-            estado: formData.get('estado_mantenimiento') || 'pendiente',
-            usuario_asignado_id: formData.get('usuario_asignado_id') || null,
-            notas: formData.get('notas') || null
-        };
-
-        // Nota: usuario_creador_id no se envía, el backend lo obtiene del JWT
-
-        console.log('📝 Enviando datos de servicio inline:', datos);
-
-        // Validaciones básicas
-        if (!datos.descripcion || datos.descripcion.trim() === '') {
-            mostrarMensaje('Por favor ingresa una descripción', 'error');
-            return;
-        }
-
-        if (datos.tipo === 'rutina') {
-            if (!datos.hora) {
-                mostrarMensaje('La hora es obligatoria para alertas', 'error');
-                return;
-            }
-            if (!datos.dia_alerta) {
-                mostrarMensaje('El día es obligatorio para alertas', 'error');
-                return;
-            }
-        }
-
-        try {
-            console.log('🌐 Enviando request a:', `${API_BASE_URL}/api/mantenimientos`);
-
-            // Obtener headers con autenticación (await porque es async)
-            const headers = await obtenerHeadersConAuth();
-            console.log('🔑 Headers con auth:', headers);
-
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos`, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(datos)
-            });
-
-            console.log('📡 Response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                deshabilitarBotonGuardarInline(cuartoId, false);
-                console.error('❌ Error response:', errorText);
-                throw new Error(`Error ${response.status}: ${errorText}`);
-            }
-
-            const resultado = await response.json();
-            console.log('✅ Servicio registrado exitosamente:', resultado);
-
-            // Cerrar formulario
-            cerrarFormularioInline(cuartoId);
-
-            // Marcar automáticamente las alertas pasadas (por si la nueva alerta ya pasó)
-            await marcarAlertasPasadasComoEmitidas();
-
-            // Recargar datos y actualizar toda la interfaz
-            await cargarDatos();
-            mostrarCuartos();
-            cargarCuartosEnSelect();
-            mostrarAlertasYRecientes();
-
-            // Actualizar paneles de alertas emitidas
-            await mostrarAlertasEmitidas();
-            await mostrarHistorialAlertas();
-
-            // Forzar actualización del sistema de notificaciones si es una rutina
-            if (datos.tipo === 'rutina') {
-                console.log('🔄 Nueva rutina agregada, verificando sistema de notificaciones...');
-                setTimeout(() => {
-                    verificarYEmitirAlertas();
-                }, 1500);
-            }
-
-            // Mostrar mensaje de éxito
-            mostrarMensaje('Servicio registrado exitosamente', 'success');
-
-        } catch (error) {
-            console.error('❌ Error al registrar servicio:', error);
-            mostrarMensaje(`Error al registrar servicio: ${error.message}`, 'error');
-        }
-    };
-
-    /**
-     * Toggle de mantenimientos (función esperada por los botones)
-     */
-    window.toggleMantenimientos = function (cuartoId, button) {
-        const lista = document.getElementById(`mantenimientos-${cuartoId}`);
-        if (!lista) return;
-
-        if (lista.style.display === 'none') {
-            lista.style.display = 'block';
-            button.textContent = 'Ocultar Mantenimientos';
-        } else {
-            lista.style.display = 'none';
-            button.textContent = 'Mostrar Mantenimientos';
-        }
-    };
-
-    /**
-     * Eliminar mantenimiento inline
-     */
-    window.eliminarMantenimientoInline = async function (mantenimientoId, cuartoId) {
-        console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
-
-        if (!confirm('¿Está seguro de eliminar este mantenimiento?')) {
-            console.log('❌ Eliminación cancelada por el usuario');
-            return;
-        }
-
-        try {
-            console.log('🌐 Enviando DELETE a:', `${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
-
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
-                method: 'DELETE'
-            });
-
-            console.log('📡 Response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Error response:', errorText);
-                throw new Error(`Error ${response.status}: ${errorText}`);
-            }
-
-            const result = await response.json();
-            console.log('✅ Resultado eliminación:', result);
-
-            // Recargar datos y actualizar vista
-            console.log('🔄 Recargando datos después de eliminación...');
-            await cargarDatos();
-            mostrarCuartos();
-            mostrarAlertasYRecientes();
-
-            mostrarMensaje('Mantenimiento eliminado exitosamente', 'success');
-            console.log('✅ Eliminación completada correctamente');
-
-        } catch (error) {
-            console.error('❌ Error eliminando mantenimiento:', error);
-            mostrarMensaje(`Error al eliminar mantenimiento: ${error.message}`, 'error');
-        }
-    };
-
-    /**
-     * Scroll a cuarto específico
-     */
-    window.scrollToCuarto = function (cuartoId) {
-        const cuarto = document.getElementById(`cuarto-${cuartoId}`);
-        if (cuarto) {
-            // Solo hacer scroll a la card sin seleccionarla
-            cuarto.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            // Highlight temporal para identificar la card
-            setTimeout(() => {
-                cuarto.style.transition = 'background-color 0.3s ease';
-                cuarto.style.backgroundColor = '#fffacd';
-                setTimeout(() => {
-                    cuarto.style.backgroundColor = '';
-                    setTimeout(() => {
-                        cuarto.style.transition = '';
-                    }, 300);
-                }, 2000);
-            }, 500);
-        }
-    };
-
 
     /**
      * Función que se ejecuta cuando se carga la página
@@ -1836,7 +682,7 @@
     /**
      * Generar HTML de servicios (estilo espacios comunes)
      */
-    function generarServiciosHTML(servicios, cuartoId, modoEdicion = false) {
+    function generarServiciosHTML(servicios, cuartoId, modoEdicion = false, esEspacio = false) {
 
         if (!servicios || servicios.length === 0) {
             return '<div style="padding: 1rem; text-align: center; color: var(--texto-secundario); font-style: italic; min-height: 78.99px;">No hay servicios registrados</div>';
@@ -1890,31 +736,8 @@
             // En modo edición, usar wrapper; en modo normal, solo el item
             if (modoEdicion) {
                 return `
-                <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
-                    <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${cuartoId})" style="cursor: pointer;">
-                        <div class="servicio-info">
-                            <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
-                            <div class="servicio-meta">
-                                <span class="servicio-tipo-badge">
-                                    <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                                    ${esAlerta ? 'Alerta' : 'Avería'}
-                                </span>
-                                ${estadoBadge}
-                                ${fechaHoraMostrar}
-                                ${usuarioAsignado}
-                                ${fechaFinalizacion}
-                            </div>
-                        </div>
-                        <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
-                    </div>
-                    <button class="btn-eliminar-inline" onclick="eliminarServicioInline(${servicio.id}, ${cuartoId}); event.stopPropagation();" title="Eliminar servicio">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
-            `;
-            } else {
-                return `
-                <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
+            <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
+                <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${cuartoId}, ${esEspacio})" style="cursor: pointer;">
                     <div class="servicio-info">
                         <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
                         <div class="servicio-meta">
@@ -1928,9 +751,32 @@
                             ${fechaFinalizacion}
                         </div>
                     </div>
-                    <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 1.2rem;"></i>
+                    <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
                 </div>
-            `;
+                <button class="btn-eliminar-inline" onclick="eliminarServicioInline(${servicio.id}, ${cuartoId}, ${esEspacio}); event.stopPropagation();" title="Eliminar servicio">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        `;
+            } else {
+                return `
+            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
+                <div class="servicio-info">
+                    <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
+                    <div class="servicio-meta">
+                        <span class="servicio-tipo-badge">
+                            <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
+                            ${esAlerta ? 'Alerta' : 'Avería'}
+                        </span>
+                        ${estadoBadge}
+                        ${fechaHoraMostrar}
+                        ${usuarioAsignado}
+                        ${fechaFinalizacion}
+                    </div>
+                </div>
+                <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 1.2rem;"></i>
+            </div>
+        `;
             }
         }).join('');
 
@@ -1938,11 +784,11 @@
         if (hayMasServicios) {
             const serviciosRestantes = servicios.length - 2;
             html += `
-            <div class="ver-mas-servicios" onclick="verDetallesServicios(${cuartoId}); event.stopPropagation();">
-                <i class="fas fa-eye"></i>
-                <span>Ver todos los servicios (${servicios.length})</span>
-            </div>
-        `;
+        <div class="ver-mas-servicios" onclick="verDetallesServicios(${cuartoId}, ${esEspacio}); event.stopPropagation();">
+            <i class="fas fa-eye"></i>
+            <span>Ver todos los servicios (${servicios.length})</span>
+        </div>
+    `;
         }
 
         return html;
@@ -2049,9 +895,10 @@
                 li.className = 'rutina-item';
                 li.id = `rutina-${alerta.id}`;
 
-                // Usar datos directamente de la API (ya incluye JOIN con cuartos)
-                const nombreCuarto = alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+                const isEspacioComun = !!alerta.espacio_comun_id;
+                const nombreUbicacion = isEspacioComun ? alerta.espacio_nombre : (alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`);
                 const nombreEdificio = alerta.edificio_nombre || '';
+                const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
 
                 // Extraer fecha de dia_alerta si es timestamp
                 const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
@@ -2064,8 +911,8 @@
                 li.dataset.horaRaw = alerta.hora || '';
                 li.dataset.diaRaw = fechaAlerta || '';
                 li.dataset.descripcion = alerta.descripcion || '';
-                li.dataset.cuartoNombre = nombreCuarto;
-                li.dataset.cuartoId = alerta.cuarto_id || '';
+                li.dataset.cuartoNombre = nombreUbicacion;
+                li.dataset.cuartoId = ubicacionId || '';
 
                 li.innerHTML = `
                 <span class="rutina-hora">
@@ -2074,7 +921,7 @@
                 </span>
                 <span class="rutina-info">
                     <span class="rutina-cuarto" title="${escapeHtml(nombreEdificio)}">
-                        ${escapeHtml(nombreCuarto)}
+                        ${escapeHtml(nombreUbicacion)}
                     </span>
                     <span class="rutina-descripcion">
                         ${escapeHtml(alerta.descripcion)}
@@ -2083,7 +930,7 @@
                         ${estadoTexto}
                     </span>
                 </span>
-                <button class="boton-ir-rutina" onclick="scrollToCuarto(${alerta.cuarto_id})" title="Ver detalles">&#10148;</button>
+                <button class="boton-ir-rutina" onclick="scrollToElement(${ubicacionId}, ${isEspacioComun})" title="Ver detalles">&#10148;</button>
             `;
                 listaAlertas.appendChild(li);
             });
@@ -2792,6 +1639,29 @@
     window.seleccionarCuarto = seleccionarCuarto;
     window.seleccionarCuartoDesdeSelect = seleccionarCuartoDesdeSelect;
 
+    function scrollToElement(id, isEspacio) {
+        if (isEspacio) {
+            const tabButton = document.querySelector(`button[data-tab="espacios"]`);
+            if (tabButton) {
+                tabButton.click();
+                setTimeout(() => {
+                    const elemento = document.querySelector(`[data-espacio-id="${id}"]`);
+                    if (elemento) {
+                        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        elemento.classList.add('highlight');
+                        setTimeout(() => elemento.classList.remove('highlight'), 2000);
+                    }
+                }, 200); // give time for the tab to switch
+            }
+        } else {
+            // scrollToCuarto is defined in app-loader-habitaciones.js and attached to window
+            if (window.scrollToCuarto) {
+                window.scrollToCuarto(id);
+            }
+        }
+    }
+    window.scrollToElement = scrollToElement;
+
     /**
      * SISTEMA DE NOTIFICACIONES AUTOMÁTICAS
      */
@@ -2925,14 +1795,25 @@
                 console.error(`❌ Error actualizando alerta ${alerta.id}:`, error);
             }
 
-            // Obtener información del cuarto
-            const cuarto = cuartos.find(c => c.id === alerta.cuarto_id);
-            const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${alerta.cuarto_id}`;
-            const edificio = edificios.find(e => e.id === (cuarto ? cuarto.edificio_id : null));
-            const nombreEdificio = edificio ? edificio.nombre : '';
+            // Obtener información de la ubicación (cuarto o espacio)
+            const isEspacioComun = !!alerta.espacio_comun_id;
+            const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
+            let nombreUbicacion, edificio, nombreEdificio;
+
+            if (isEspacioComun) {
+                const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === ubicacionId);
+                nombreUbicacion = espacio ? espacio.nombre : `Espacio ${ubicacionId}`;
+                edificio = espacio ? edificios.find(e => e.id === espacio.edificio_id) : null;
+                nombreEdificio = edificio ? edificio.nombre : '';
+            } else {
+                const cuarto = cuartos.find(c => c.id === ubicacionId);
+                nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${ubicacionId}`;
+                edificio = cuarto ? edificios.find(e => e.id === cuarto.edificio_id) : null;
+                nombreEdificio = edificio ? edificio.nombre : '';
+            }
 
             const titulo = `🔔 Alerta de Mantenimiento`;
-            const mensaje = `${nombreCuarto}${nombreEdificio ? ` (${nombreEdificio})` : ''}\n${alerta.descripcion}`;
+            const mensaje = `${nombreUbicacion}${nombreEdificio ? ` (${nombreEdificio})` : ''}\n${alerta.descripcion}`;
 
             // Reproducir sonido (con manejo de restricciones)
             reproducirSonidoAlerta();
@@ -3072,7 +1953,9 @@
 
                 notification.onclick = function () {
                     window.focus();
-                    scrollToCuarto(alerta.cuarto_id);
+                    const isEspacioComun = !!alerta.espacio_comun_id;
+                    const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
+                    scrollToElement(ubicacionId, isEspacioComun);
                     notification.close();
                 };
 
@@ -3145,14 +2028,31 @@
      * Abrir modal de detalle de un servicio específico
      */
     window.abrirModalDetalleServicio = function (servicioId, desdeLista = false) {
-        const servicio = mantenimientos.find(m => m.id === servicioId);
+        let servicio = mantenimientos.find(m => m.id === servicioId);
+
+        // Si no se encuentra en mantenimientos de cuartos, buscar en espacios comunes
+        if (!servicio && typeof window.appLoaderState.mantenimientosEspacios !== 'undefined') {
+            servicio = window.appLoaderState.mantenimientosEspacios.find(m => m.id === servicioId);
+        }
+
         if (!servicio) {
             console.error('Servicio no encontrado:', servicioId);
             return;
         }
 
-        const cuarto = cuartos.find(c => c.id === servicio.cuarto_id);
-        const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${servicio.cuarto_id}`;
+        let nombreUbicacion = '';
+        let labelUbicacion = 'Habitación';
+        let iconUbicacion = 'fa-door-closed';
+
+        if (servicio.espacio_comun_id) {
+            const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === servicio.espacio_comun_id);
+            nombreUbicacion = espacio ? espacio.nombre : `Espacio ${servicio.espacio_comun_id}`;
+            labelUbicacion = 'Espacio Común';
+            iconUbicacion = 'fa-building';
+        } else {
+            const cuarto = cuartos.find(c => c.id === servicio.cuarto_id);
+            nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${servicio.cuarto_id}`;
+        }
 
         const modal = document.getElementById('modalDetallesServicio');
         const titulo = document.getElementById('modalDetallesTitulo');
@@ -3163,8 +2063,8 @@
         // Generar contenido del modal
         let contenido = `
         <div class="detalle-item">
-            <div class="detalle-label"><i class="fas fa-door-closed"></i> Habitación</div>
-            <div class="detalle-valor">${escapeHtml(nombreCuarto)}</div>
+            <div class="detalle-label"><i class="fas ${iconUbicacion}"></i> ${labelUbicacion}</div>
+            <div class="detalle-valor">${escapeHtml(nombreUbicacion)}</div>
         </div>
         
         <div class="detalle-item">
@@ -3306,11 +2206,16 @@
         }
 
         // Si viene desde la lista, agregar botón de volver
-        const botonVolver = desdeLista ? `
-        <button class="btn-volver-lista" onclick="verDetallesServicios(${servicio.cuarto_id})">
-            <i class="fas fa-arrow-left"></i>
-        </button>
-    ` : '';
+        let botonVolver = '';
+        if (desdeLista) {
+            const idVolver = servicio.espacio_comun_id || servicio.cuarto_id;
+            const esEspacioVolver = !!servicio.espacio_comun_id;
+            botonVolver = `
+            <button class="btn-volver-lista" onclick="verDetallesServicios(${idVolver}, ${esEspacioVolver})">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+        `;
+        }
 
         titulo.innerHTML = `
         ${botonVolver}
@@ -3326,24 +2231,35 @@
     };
 
     /**
-     * Ver detalles de todos los servicios de una habitación
+     * Ver detalles de todos los servicios de una habitación o espacio
      */
-    window.verDetallesServicios = function (cuartoId) {
-        const cuarto = cuartos.find(c => c.id === cuartoId);
-        const nombreCuarto = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${cuartoId}`;
-        const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
+    window.verDetallesServicios = function (id, esEspacio = false) {
+        let nombreUbicacion = '';
+        let serviciosUbicacion = [];
+        let iconUbicacion = 'fa-door-closed';
+
+        if (esEspacio) {
+            const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === id);
+            nombreUbicacion = espacio ? espacio.nombre : `Espacio ${id}`;
+            serviciosUbicacion = window.appLoaderState.mantenimientosEspacios.filter(m => m.espacio_comun_id === id);
+            iconUbicacion = 'fa-building';
+        } else {
+            const cuarto = cuartos.find(c => c.id === id);
+            nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${id}`;
+            serviciosUbicacion = mantenimientos.filter(m => m.cuarto_id === id);
+        }
 
         const modal = document.getElementById('modalDetallesServicio');
         const titulo = document.getElementById('modalDetallesTitulo');
         const body = document.getElementById('modalDetallesBody');
 
-        if (serviciosCuarto.length === 0) {
-            titulo.innerHTML = `<i class="fas fa-door-closed"></i> ${escapeHtml(nombreCuarto)}`;
+        if (serviciosUbicacion.length === 0) {
+            titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> ${escapeHtml(nombreUbicacion)}`;
             body.innerHTML = `
             <div style="padding: 2rem; text-align: center; color: var(--texto-secundario);">
                 <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
                 <p style="font-size: 1.1rem; font-weight: 600;">No hay servicios registrados</p>
-                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Esta habitación no tiene servicios activos.</p>
+                <p style="font-size: 0.9rem; margin-top: 0.5rem;">Esta ubicación no tiene servicios activos.</p>
             </div>
         `;
             modal.style.display = 'flex';
@@ -3351,7 +2267,7 @@
         }
 
         // Generar lista de todos los servicios con opción de editar y eliminar
-        let contenido = serviciosCuarto.map(servicio => {
+        let contenido = serviciosUbicacion.map(servicio => {
             const esAlerta = servicio.tipo === 'rutina';
             const prioridadIndicador = servicio.prioridad ? `
             <span class="semaforo-indicator" style="
@@ -3386,10 +2302,10 @@
                     <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 0.9rem;"></i>
                 </div>
                 <div class="detalle-item-acciones">
-                    <button class="btn-editar-servicio" onclick="editarServicioDesdeModal(${servicio.id}, ${cuartoId}); event.stopPropagation();" title="Editar servicio">
+                    <button class="btn-editar-servicio" onclick="editarServicioDesdeModal(${servicio.id}, ${id}, ${esEspacio}); event.stopPropagation();" title="Editar servicio">
                         <i class="fas fa-pencil-alt"></i>
                     </button>
-                    <button class="btn-eliminar-servicio" onclick="eliminarServicioDesdeModal(${servicio.id}, ${cuartoId}); event.stopPropagation();" title="Eliminar servicio">
+                    <button class="btn-eliminar-servicio" onclick="eliminarServicioDesdeModal(${servicio.id}, ${id}, ${esEspacio}); event.stopPropagation();" title="Eliminar servicio">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
@@ -3397,7 +2313,7 @@
         `;
         }).join('');
 
-        titulo.innerHTML = `<i class="fas fa-door-closed"></i> Servicios de ${escapeHtml(nombreCuarto)}`;
+        titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> Servicios de ${escapeHtml(nombreUbicacion)}`;
         body.innerHTML = contenido;
         modal.style.display = 'flex';
     };
@@ -3405,33 +2321,49 @@
     /**
      * Eliminar servicio desde el modal
      */
-    window.eliminarServicioDesdeModal = async function (servicioId, cuartoId) {
+    window.eliminarServicioDesdeModal = async function (servicioId, id, esEspacio = false) {
         if (!confirm('¿Está seguro de eliminar este servicio?')) {
             return;
         }
 
+        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+
         // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
-        const servicioIndex = mantenimientos.findIndex(m => m.id === servicioId);
+        const servicioIndex = listaMantenimientos.findIndex(m => m.id === servicioId);
         if (servicioIndex === -1) return;
 
-        const servicioEliminado = mantenimientos[servicioIndex];
+        const servicioEliminado = listaMantenimientos[servicioIndex];
 
         // Eliminar del array local inmediatamente
-        mantenimientos.splice(servicioIndex, 1);
+        listaMantenimientos.splice(servicioIndex, 1);
 
-        // Actualizar el modal si aún está abierto
-        const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-        if (serviciosCuarto.length > 0) {
-            verDetallesServicios(cuartoId);
-        } else {
-            cerrarModalDetalles();
+        // Si es un servicio de espacio, también eliminarlo del array mantenimientos
+        if (esEspacio) {
+            const indexEnMantenimientos = mantenimientos.findIndex(m => m.id === servicioId);
+            if (indexEnMantenimientos !== -1) {
+                mantenimientos.splice(indexEnMantenimientos, 1);
+            }
         }
 
+        // Actualizar modal inmediatamente
+        verDetallesServicios(id, esEspacio);
+
+        // Actualizar card en el fondo
+        if (esEspacio) {
+            renderizarServiciosEspacio(id);
+        } else {
+            const contenedorServicios = document.getElementById(`servicios-${id}`);
+            if (contenedorServicios) {
+                const serviciosUbicacion = listaMantenimientos.filter(m => m.cuarto_id === id);
+                contenedorServicios.innerHTML = generarServiciosHTML(serviciosUbicacion, id, false, false);
+            }
+        }
         mostrarAlertasYRecientes();
+
         mostrarMensaje('✨ Servicio eliminado', 'success');
 
         try {
-            console.log('🗑️ Eliminando servicio:', servicioId);
+            console.log('🗑️ Eliminando servicio desde modal:', servicioId);
 
             const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
                 method: 'DELETE'
@@ -3447,10 +2379,27 @@
             console.error('❌ Error eliminando servicio:', error);
 
             // ⚡ ROLLBACK: Restaurar servicio eliminado
-            mantenimientos.splice(servicioIndex, 0, servicioEliminado);
+            listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
 
-            // Actualizar modal para reflejar el rollback
-            verDetallesServicios(cuartoId);
+            // Si es un servicio de espacio, también restaurarlo en el array mantenimientos
+            if (esEspacio) {
+                const indexEnMantenimientos = mantenimientos.findIndex(m => m.id === servicioId);
+                if (indexEnMantenimientos === -1) {
+                    // Si no existe, agregarlo
+                    mantenimientos.push(servicioEliminado);
+                }
+            }
+
+            // Actualizar UI para reflejar el rollback
+            verDetallesServicios(id, esEspacio);
+            if (esEspacio) {
+                renderizarServiciosEspacio(id);
+            } else {
+                if (contenedorServicios) {
+                    const serviciosUbicacion = listaMantenimientos.filter(m => m.cuarto_id === id);
+                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosUbicacion, id, false, false);
+                }
+            }
             mostrarAlertasYRecientes();
 
             mostrarMensaje('❌ Error al eliminar: ' + error.message, 'error');
@@ -3460,8 +2409,8 @@
     /**
      * Editar servicio desde el modal
      */
-    window.editarServicioDesdeModal = function (servicioId, cuartoId) {
-        console.log('✏️ Editando servicio desde modal:', servicioId, 'Cuarto:', cuartoId);
+    window.editarServicioDesdeModal = function (servicioId, id, esEspacio = false) {
+        console.log('✏️ Editando servicio desde modal:', servicioId, 'ID:', id);
 
         // Cerrar el modal
         cerrarModalDetalles();
@@ -3469,78 +2418,92 @@
         // Esperar a que el modal se cierre antes de activar la edición
         setTimeout(() => {
             // Activar modo edición en la card
-            const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
+            const botonEditar = document.getElementById(esEspacio ? `btn-editar-espacio-${id}` : `btn-editar-${id}`);
             if (botonEditar && !botonEditar.classList.contains('modo-edicion-activo')) {
                 // Si no está en modo edición, activarlo
-                toggleModoEdicion(cuartoId);
+                if (esEspacio) {
+                    toggleModoEdicionEspacio(id);
+                } else {
+                    toggleModoEdicion(id);
+                }
             }
 
             // Esperar un poco más para que se renderice el modo edición
             setTimeout(() => {
                 // IMPORTANTE: Expandir TODOS los servicios en modo edición
-                const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-                if (contenedorServicios) {
-                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
+                if (esEspacio) {
+                    renderizarServiciosEspacio(id);
 
-                    // Regenerar con TODOS los servicios (sin límite de 2)
-                    let html = serviciosCuarto.map(servicio => {
-                        const esAlerta = servicio.tipo === 'rutina';
+                    // Activar edición del servicio específico
+                    setTimeout(() => {
+                        activarEdicionServicio(servicioId, id, esEspacio);
+                    }, 100);
+                } else {
+                    const contenedorServicios = document.getElementById(`servicios-${id}`);
+                    if (contenedorServicios) {
+                        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+                        const serviciosUbicacion = listaMantenimientos.filter(m => esEspacio ? m.espacio_comun_id === id : m.cuarto_id === id);
 
-                        let fechaHoraMostrar = '';
-                        if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
-                            const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
-                            const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
-                            fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
-                        } else if (servicio.fecha_registro) {
-                            fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
-                        }
+                        // Regenerar con TODOS los servicios (sin límite de 2)
+                        let html = serviciosUbicacion.map(servicio => {
+                            const esAlerta = servicio.tipo === 'rutina';
 
-                        return `
-                        <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
-                            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${cuartoId})" style="cursor: pointer;">
-                                <div class="servicio-info">
-                                    <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
-                                    <div class="servicio-meta">
-                                        <span class="servicio-tipo-badge">
-                                            <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                                            ${esAlerta ? 'Alerta' : 'Avería'}
-                                        </span>
-                                        ${fechaHoraMostrar}
+                            let fechaHoraMostrar = '';
+                            if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
+                                const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
+                                const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
+                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
+                            } else if (servicio.fecha_registro) {
+                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
+                            }
+
+                            return `
+                            <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
+                                <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${id})" style="cursor: pointer;">
+                                    <div class="servicio-info">
+                                        <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
+                                        <div class="servicio-meta">
+                                            <span class="servicio-tipo-badge">
+                                                <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
+                                                ${esAlerta ? 'Alerta' : 'Avería'}
+                                            </span>
+                                            ${fechaHoraMostrar}
+                                        </div>
                                     </div>
+                                    <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
                                 </div>
-                                <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
+                                <button class="btn-eliminar-inline" onclick="eliminarServicioInline(${servicio.id}, ${id}); event.stopPropagation();" title="Eliminar servicio">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
                             </div>
-                            <button class="btn-eliminar-inline" onclick="eliminarServicioInline(${servicio.id}, ${cuartoId}); event.stopPropagation();" title="Eliminar servicio">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        </div>
-                    `;
-                    }).join('');
+                        `;
+                        }).join('');
 
-                    contenedorServicios.innerHTML = html;
+                        contenedorServicios.innerHTML = html;
+
+                        // Activar edición del servicio específico
+                        setTimeout(() => {
+                            activarEdicionServicio(servicioId, id);
+                        }, 100);
+                    }
                 }
 
-                // Hacer scroll a la card de la habitación
-                const cardCuarto = document.querySelector(`[data-cuarto-id="${cuartoId}"]`);
-                if (cardCuarto) {
-                    cardCuarto.scrollIntoView({
+                // Hacer scroll a la card
+                const selector = esEspacio ? `[data-espacio-id="${id}"]` : `[data-cuarto-id="${id}"]`;
+                const card = document.querySelector(selector);
+                if (card) {
+                    card.scrollIntoView({
                         behavior: 'smooth',
                         block: 'center'
                     });
 
-                    // Resaltar brevemente la card
-                    cardCuarto.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+                    card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
                     setTimeout(() => {
-                        cardCuarto.style.boxShadow = '';
+                        card.style.boxShadow = '';
                     }, 1500);
                 }
-
-                // Esperar un poco más antes de activar la edición del servicio específico
-                setTimeout(() => {
-                    activarEdicionServicio(servicioId, cuartoId);
-                }, 200);
             }, 300);
-        }, 250);
+        }, 200);
     };
 
     /**
@@ -3612,8 +2575,9 @@
     /**
      * Activar edición de un servicio específico inline
      */
-    window.activarEdicionServicio = function (servicioId, cuartoId) {
-        const servicio = mantenimientos.find(m => m.id === servicioId);
+    window.activarEdicionServicio = function (servicioId, id, esEspacio = false) {
+        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+        const servicio = listaMantenimientos.find(m => m.id === servicioId);
         if (!servicio) return;
 
         const wrapper = document.querySelector(`.servicio-item-wrapper[data-servicio-id="${servicioId}"]`);
@@ -3713,10 +2677,10 @@
             </div>
             
             <div class="form-inline-acciones">
-                <button class="btn-form-inline btn-cancelar" onclick="cancelarEdicionServicio(${servicioId}, ${cuartoId})">
+                <button class="btn-form-inline btn-cancelar" onclick="cancelarEdicionServicio(${servicioId}, ${id}, ${esEspacio})">
                     <i class="fas fa-times"></i> Cancelar
                 </button>
-                <button class="btn-form-inline btn-guardar" onclick="guardarEdicionServicio(${servicioId}, ${cuartoId})">
+                <button class="btn-form-inline btn-guardar" onclick="guardarEdicionServicio(${servicioId}, ${id}, ${esEspacio})">
                     <i class="fas fa-save"></i> Guardar
                 </button>
             </div>
@@ -3727,18 +2691,23 @@
     /**
      * Cancelar edición de servicio
      */
-    window.cancelarEdicionServicio = function (servicioId, cuartoId) {
-        // Regenerar la vista en modo edición (sin formulario)
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-        contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, true);
+    window.cancelarEdicionServicio = function (servicioId, id, esEspacio = false) {
+        if (esEspacio) {
+            renderizarServiciosEspacio(id);
+        } else {
+            // Regenerar la vista en modo edición (sin formulario)
+            const contenedorServicios = document.getElementById(`servicios-${id}`);
+            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+        }
     };
 
     /**
      * Guardar edición de servicio
      */
-    window.guardarEdicionServicio = async function (servicioId, cuartoId) {
-        const servicio = mantenimientos.find(m => m.id === servicioId);
+    window.guardarEdicionServicio = async function (servicioId, id, esEspacio = false) {
+        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+        const servicio = listaMantenimientos.find(m => m.id === servicioId);
         if (!servicio) return;
 
         const esAlerta = servicio.tipo === 'rutina';
@@ -3803,10 +2772,14 @@
         Object.assign(servicio, datosActualizados);
 
         // Actualizar UI inmediatamente
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        if (contenedorServicios) {
-            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, true);
+        if (esEspacio) {
+            renderizarServiciosEspacio(id);
+        } else {
+            const contenedorServicios = document.getElementById(`servicios-${id}`);
+            if (contenedorServicios) {
+                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+            }
         }
         mostrarAlertasYRecientes();
 
@@ -3840,13 +2813,21 @@
             console.log('✅ Servicio actualizado correctamente en servidor');
 
             // Recargar datos completos desde la API para obtener nombres de usuarios
-            await cargarDatos();
+            if (esEspacio) {
+                // Para espacios, recargar y sincronizar datos
+                await window.recargarMantenimientosEspacios();
+                // Actualizar UI con datos frescos
+                renderizarServiciosEspacio(id);
+            } else {
+                // Para cuartos, recargar datos generales
+                await cargarDatos();
 
-            // Actualizar UI con datos frescos
-            const contenedorServiciosActualizado = document.getElementById(`servicios-${cuartoId}`);
-            if (contenedorServiciosActualizado) {
-                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-                contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, true);
+                // Actualizar UI con datos frescos
+                const contenedorServiciosActualizado = document.getElementById(`servicios-${id}`);
+                if (contenedorServiciosActualizado) {
+                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+                    contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                }
             }
             mostrarAlertasYRecientes();
 
@@ -3861,9 +2842,13 @@
             Object.assign(servicio, datosOriginales);
 
             // Actualizar UI para reflejar el rollback
-            if (contenedorServicios) {
-                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, true);
+            if (esEspacio) {
+                renderizarServiciosEspacio(id);
+            } else {
+                if (contenedorServicios) {
+                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                }
             }
             mostrarAlertasYRecientes();
 
@@ -3874,32 +2859,38 @@
     /**
      * Eliminar servicio inline (desde la vista de edición)
      */
-    window.eliminarServicioInline = async function (servicioId, cuartoId) {
+    window.eliminarServicioInline = async function (servicioId, id, esEspacio = false) {
         if (!confirm('¿Está seguro de eliminar este servicio?')) {
             return;
         }
 
+        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+
         // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
-        const servicioIndex = mantenimientos.findIndex(m => m.id === servicioId);
+        const servicioIndex = listaMantenimientos.findIndex(m => m.id === servicioId);
         if (servicioIndex === -1) return;
 
-        const servicioEliminado = mantenimientos[servicioIndex];
+        const servicioEliminado = listaMantenimientos[servicioIndex];
 
         // Eliminar del array local inmediatamente
-        mantenimientos.splice(servicioIndex, 1);
+        listaMantenimientos.splice(servicioIndex, 1);
 
         // Actualizar UI inmediatamente
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
-        const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+        if (esEspacio) {
+            renderizarServiciosEspacio(id);
+        } else {
+            const contenedorServicios = document.getElementById(`servicios-${id}`);
+            const botonEditar = document.getElementById(`btn-editar-${id}`);
+            const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
 
-        if (contenedorServicios) {
-            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, enModoEdicion);
+            if (contenedorServicios) {
+                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
 
-            if (serviciosCuarto.length === 0 && botonEditar) {
-                botonEditar.classList.remove('modo-edicion-activo');
-                botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+                if (serviciosCuarto.length === 0 && botonEditar) {
+                    botonEditar.classList.remove('modo-edicion-activo');
+                    botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+                }
             }
         }
         mostrarAlertasYRecientes();
@@ -3923,12 +2914,16 @@
             console.error('❌ Error eliminando servicio:', error);
 
             // ⚡ ROLLBACK: Restaurar servicio eliminado
-            mantenimientos.splice(servicioIndex, 0, servicioEliminado);
+            listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
 
             // Actualizar UI para reflejar el rollback
-            if (contenedorServicios) {
-                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, enModoEdicion);
+            if (esEspacio) {
+                renderizarServiciosEspacio(id);
+            } else {
+                if (contenedorServicios) {
+                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
+                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
+                }
             }
             mostrarAlertasYRecientes();
 
@@ -3936,32 +2931,7 @@
         }
     };
 
-    /**
-     * Actualizar selector de estado con el estado actual del cuarto
-     */
-    function actualizarSelectorEstado(cuartoId) {
-        const estadoSelector = document.getElementById('estadoCuartoSelector');
-        if (!estadoSelector) return;
-
-        // Buscar el cuarto en el array
-        const cuarto = cuartos.find(c => c.id === cuartoId);
-
-        // Remover clase activo de todos los pills
-        const pills = document.querySelectorAll('.estado-pill');
-        pills.forEach(pill => pill.classList.remove('activo'));
-
-        if (cuarto && cuarto.estado) {
-            estadoSelector.value = cuarto.estado;
-
-            // Activar el pill correspondiente
-            const pillActivo = document.querySelector(`.estado-pill[data-estado="${cuarto.estado}"]`);
-            if (pillActivo) {
-                pillActivo.classList.add('activo');
-            }
-        } else {
-            estadoSelector.value = '';
-        }
-    }
+    
 
     /**
      * Seleccionar estado usando pills (función global llamada desde el HTML)
@@ -4062,542 +3032,8 @@
      * ========================================
      */
 
-    // Variables globales para espacios comunes
-    let espaciosComunes = [];
-    let mantenimientosEspacios = [];
-
-    /**
-     * Mostrar skeletons instantáneos al cambiar al tab de espacios
-     */
-    window.mostrarSkeletonsEspacios = function () {
-        const listaEspacios = document.getElementById('listaEspaciosComunes');
-        if (!listaEspacios) return;
-
-        listaEspacios.style.display = 'grid';
-        listaEspacios.innerHTML = '';
-
-        // Crear 4 skeletons iniciales para dar feedback inmediato
-        const fragment = document.createDocumentFragment();
-        for (let i = 0; i < 4; i++) {
-            const li = document.createElement('li');
-            li.className = 'cuarto cuarto-lazy';
-            li.innerHTML = `
-            <div class="card-placeholder skeleton-card">
-                <div class="skeleton-header">
-                    <div class="skeleton-icon"></div>
-                    <div class="skeleton-text-group">
-                        <div class="skeleton-line skeleton-title"></div>
-                        <div class="skeleton-line skeleton-subtitle"></div>
-                    </div>
-                    <div class="skeleton-badge"></div>
-                </div>
-                <div class="skeleton-content">
-                    <div class="skeleton-line"></div>
-                    <div class="skeleton-line"></div>
-                </div>
-                <div class="skeleton-actions">
-                    <div class="skeleton-button"></div>
-                    <div class="skeleton-button"></div>
-                </div>
-            </div>
-        `;
-            fragment.appendChild(li);
-        }
-        listaEspacios.appendChild(fragment);
-    };
-
-    /**
-     * Cargar datos de espacios comunes desde API
-     */
-
-    /**
-     * Cargar datos de espacios comunes desde API
-     */
-    window.cargarEspaciosComunes = async function () {
-        try {
-            console.log('📥 [ESPACIOS] Cargando datos de espacios comunes...');
-
-            const [espaciosResponse, mantenimientosResponse] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/espacios-comunes`),
-                fetch(`${API_BASE_URL}/api/mantenimientos/espacios`)
-            ]);
-
-            if (espaciosResponse.ok && mantenimientosResponse.ok) {
-                espaciosComunes = await espaciosResponse.json();
-                mantenimientosEspacios = await mantenimientosResponse.json();
-                console.log(`✅ [ESPACIOS] Datos cargados: ${espaciosComunes.length} espacios, ${mantenimientosEspacios.length} mantenimientos`);
-
-                // Actualizar AppState para que otras funciones tengan acceso
-                if (window.AppState) {
-                    window.AppState.espaciosComunes = espaciosComunes;
-                    window.AppState.mantenimientosEspacios = mantenimientosEspacios;
-                }
-
-                // Sincronizar filtros y mostrar  
-                sincronizarEspaciosFiltrados();
-                mostrarEspaciosComunes();
-
-                // Cargar alertas de espacios
-                if (window.cargarAlertasEspacios) {
-                    await window.cargarAlertasEspacios();
-                }
-            } else {
-                console.error('❌ [ESPACIOS] Error cargando datos');
-                espaciosComunes = [];
-                mantenimientosEspacios = [];
-                mostrarEspaciosComunes();
-            }
-        } catch (error) {
-            console.error('❌ [ESPACIOS] Error:', error);
-            espaciosComunes = [];
-            mantenimientosEspacios = [];
-            mostrarEspaciosComunes();
-        }
-    };
-
-    /**
-     * Sincronizar estado base de espacios filtrados y paginación
-     */
-    function sincronizarEspaciosFiltrados(mantenerPagina = false) {
-        espaciosComunesFiltradosActual = Array.isArray(espaciosComunes) ? [...espaciosComunes] : [];
-        totalPaginasEspacios = espaciosComunesFiltradosActual.length > 0
-            ? Math.ceil(espaciosComunesFiltradosActual.length / ESPACIOS_POR_PAGINA)
-            : 1;
-
-        if (!mantenerPagina || paginaActualEspacios > totalPaginasEspacios) {
-            paginaActualEspacios = espaciosComunesFiltradosActual.length > 0 ? 1 : 1;
-        }
-    }
-
-    /**
-     * Actualizar estadísticas de espacios comunes
-     */
-    function actualizarEstadisticasEspacios() {
-        const total = espaciosComunes.length;
-        const disponibles = espaciosComunes.filter(e => e.estado === 'disponible').length;
-        const ocupados = espaciosComunes.filter(e => e.estado === 'ocupado').length;
-        const mantenimiento = espaciosComunes.filter(e => e.estado === 'mantenimiento').length;
-        const fueraServicio = espaciosComunes.filter(e => e.estado === 'fuera_servicio').length;
-
-        // Update DOM elements
-        const elDisponibles = document.getElementById('espaciosStatsDisponibles');
-        const elOcupados = document.getElementById('espaciosStatsOcupados');
-        const elMantenimiento = document.getElementById('espaciosStatsMantenimiento');
-        const elFuera = document.getElementById('espaciosStatsFuera');
-        const elCaption = document.getElementById('espaciosStatsCaption');
-        const elHighlight = document.getElementById('espaciosStatsHighlight');
-        const elProgress = document.getElementById('espaciosStatsProgress');
-
-        if (elDisponibles) elDisponibles.textContent = disponibles;
-        if (elOcupados) elOcupados.textContent = ocupados;
-        if (elMantenimiento) elMantenimiento.textContent = mantenimiento;
-        if (elFuera) elFuera.textContent = fueraServicio;
-
-        if (elCaption) elCaption.textContent = `Total de espacios: ${total}`;
-        if (elHighlight) elHighlight.textContent = `Disponibles: ${disponibles} · Ocupados: ${ocupados} · En mantto.: ${mantenimiento}`;
-
-        // Calculate progress percentage (e.g., available / total)
-        if (elProgress && total > 0) {
-            const percent = Math.round((disponibles / total) * 100);
-            elProgress.style.setProperty('--progress-value', `${percent}%`);
-            elProgress.setAttribute('data-percent', `${percent}%`);
-        } else if (elProgress) {
-            elProgress.style.setProperty('--progress-value', `0%`);
-            elProgress.setAttribute('data-percent', `0%`);
-        }
-    }
-
-    /**
-     * Mostrar espacios comunes con paginación y lazy loading
-     */
-    window.mostrarEspaciosComunes = function () {
-        actualizarEstadisticasEspacios();
-        console.log('=== MOSTRANDO ESPACIOS COMUNES ===');
-
-        const listaEspacios = document.getElementById('listaEspaciosComunes');
-        const mensajeNoResultados = document.getElementById('mensajeNoEspacios');
-
-        if (!listaEspacios) {
-            console.error('Elemento listaEspaciosComunes no encontrado');
-            return;
-        }
-
-        if (mensajeNoResultados) {
-            mensajeNoResultados.style.display = 'none';
-        }
-
-        // Usar espacios filtrados si existen, sino todos
-        const espaciosParaMostrar = espaciosComunesFiltradosActual.length > 0 ? espaciosComunesFiltradosActual : espaciosComunes;
-        const totalEspacios = espaciosParaMostrar.length;
-
-        if (totalEspacios === 0) {
-            console.warn('No hay espacios para mostrar');
-            listaEspacios.style.display = 'grid';
-            listaEspacios.innerHTML = '<li class="mensaje-no-cuartos">No hay espacios comunes registrados en el sistema.</li>';
-            renderizarPaginacionEspacios(0);
-            // Actualizar estadísticas incluso si no hay espacios
-            if (window.actualizarEstadisticasEspacios) {
-                window.actualizarEstadisticasEspacios();
-            }
-            return;
-        }
-
-        totalPaginasEspacios = Math.max(1, Math.ceil(totalEspacios / ESPACIOS_POR_PAGINA));
-
-        if (paginaActualEspacios > totalPaginasEspacios) {
-            paginaActualEspacios = totalPaginasEspacios;
-        }
-        if (paginaActualEspacios < 1) {
-            paginaActualEspacios = 1;
-        }
-
-        const inicio = (paginaActualEspacios - 1) * ESPACIOS_POR_PAGINA;
-        const fin = Math.min(inicio + ESPACIOS_POR_PAGINA, totalEspacios);
-        const espaciosPagina = espaciosComunesFiltradosActual.slice(inicio, fin);
-
-        console.log(`Espacios comunes: ${totalEspacios} | Página ${paginaActualEspacios}/${totalPaginasEspacios}`);
-
-        listaEspacios.style.display = 'grid';
-        listaEspacios.innerHTML = '';
-
-        // Crear caché de mantenimientos por espacio
-        window.mantenimientosPorEspacio = new Map();
-        if (mantenimientosEspacios && mantenimientosEspacios.length > 0) {
-            mantenimientosEspacios.forEach(m => {
-                if (!window.mantenimientosPorEspacio.has(m.espacio_comun_id)) {
-                    window.mantenimientosPorEspacio.set(m.espacio_comun_id, []);
-                }
-                window.mantenimientosPorEspacio.get(m.espacio_comun_id).push(m);
-            });
-            console.log(`📦 Caché de mantenimientos de espacios: ${window.mantenimientosPorEspacio.size} espacios con servicios`);
-        }
-
-        // Lazy loading: crear cards con skeletons
-        espaciosPagina.forEach((espacio, index) => {
-            try {
-                const li = document.createElement('li');
-                li.className = 'cuarto cuarto-lazy';
-                li.id = `espacio-${espacio.id}`;
-                li.setAttribute('loading', 'lazy');
-
-                // Guardar datos en dataset
-                li.dataset.espacioId = espacio.id;
-                li.dataset.nombre = espacio.nombre || '';
-                li.dataset.edificioNombre = espacio.edificio_nombre || '';
-                li.dataset.estado = espacio.estado || 'disponible';
-                li.dataset.tipo = espacio.tipo || '';
-
-                // Card placeholder con skeleton (idéntico a habitaciones)
-                li.innerHTML = `
-            <div class="card-placeholder skeleton-card">
-                <div class="skeleton-header">
-                    <div class="skeleton-icon"></div>
-                    <div class="skeleton-text-group">
-                        <div class="skeleton-line skeleton-title"></div>
-                        <div class="skeleton-line skeleton-subtitle"></div>
-                    </div>
-                    <div class="skeleton-badge"></div>
-                </div>
-                <div class="skeleton-content">
-                    <div class="skeleton-line"></div>
-                    <div class="skeleton-line"></div>
-                </div>
-                <div class="skeleton-actions">
-                    <div class="skeleton-button"></div>
-                    <div class="skeleton-button"></div>
-                </div>
-            </div>
-        `;
-
-                listaEspacios.appendChild(li);
-            } catch (error) {
-                console.error(`Error procesando espacio ${index}:`, error, espacio);
-            }
-        });
-
-        // IntersectionObserver para lazy loading
-        if (window.espacioObserver) {
-            window.espacioObserver.disconnect();
-        }
-        window.espacioObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const li = entry.target;
-                    if (!li.dataset.loaded) {
-                        li.dataset.loaded = 'true';
-                        const espacioId = parseInt(li.dataset.espacioId);
-                        const espacio = espaciosComunes.find(e => e.id === espacioId);
-
-                        if (espacio) {
-                            cargarContenidoEspacio(li, espacio);
-                        }
-
-                        observer.unobserve(li);
-                    }
-                }
-            });
-        }, {
-            root: null,
-            rootMargin: '50px',
-            threshold: 0.1
-        });
-
-        // Observar todas las cards
-        document.querySelectorAll('.cuarto-lazy').forEach(card => {
-            window.espacioObserver.observe(card);
-        });
-
-        renderizarPaginacionEspacios(totalEspacios);
-
-        // Actualizar estadísticas
-        if (window.actualizarEstadisticasEspacios) {
-            window.actualizarEstadisticasEspacios();
-        }
-
-        console.log('=== FIN MOSTRANDO ESPACIOS COMUNES ===');
-    };
-
-    /**
-     * Cargar contenido de un espacio (llamado por IntersectionObserver)
-     */
-    function cargarContenidoEspacio(li, espacio) {
-        const mantenimientosEspacio = window.mantenimientosPorEspacio.get(espacio.id) || [];
-        const { estadoBadgeClass, estadoIcon, estadoText } = getEstadoBadgeInfoEspacio(espacio.estado);
-
-        li.className = 'habitacion-card';
-        li.innerHTML = `
-            <div class="habitacion-header">
-                <div class="habitacion-titulo">
-                     <i class="habitacion-icon fas ${espacio.nombre.toLowerCase() === 'restaurante' ? 'fa-utensils' : 'fa-building'}"></i>
-                    <div>
-                        <div class="habitacion-nombre">${escapeHtml(espacio.nombre)}</div>
-                        <div class="habitacion-edificio">
-                            <i class="fas fa-building"></i> ${escapeHtml(espacio.edificio_nombre || 'Sin edificio')}
-                        </div>
-                    </div>
-                </div>
-                <div class="habitacion-estado-badge ${estadoBadgeClass}">
-                    <i class="fas ${estadoIcon}"></i> ${estadoText}
-                </div>
-            </div>
-            <div class="habitacion-servicios" id="servicios-espacio-${espacio.id}">
-                ${generarServiciosHTML(mantenimientosEspacio, espacio.id, false)}
-            </div>
-            <div class="habitacion-acciones">
-                ${mantenimientosEspacio.length > 0 ? `
-                    <button class="habitacion-boton boton-editar" id="btn-editar-espacio-${espacio.id}" onclick="toggleModoEdicionEspacio(${espacio.id})">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                ` : ''}
-                <button class="habitacion-boton boton-principal" onclick="seleccionarEspacioComun(${espacio.id})">
-                    <i class="fas fa-plus"></i> Agregar Servicio
-                </button>
-                <button class="habitacion-boton boton-estado" onclick="cambiarEstadoEspacio(${espacio.id})">
-                    <i class="fas fa-exchange-alt"></i> Cambiar Estado
-                </button>
-            </div>
-        `;
-    }
-
-    /**
-     * Obtener información de badge de estado para espacios
-     */
-    function getEstadoBadgeInfoEspacio(estado) {
-        const estadoMap = {
-            'disponible': { class: 'estado-disponible', icon: 'fa-check-circle', text: 'Disponible' },
-            'ocupado': { class: 'estado-ocupado', icon: 'fa-users', text: 'Ocupado' },
-            'mantenimiento': { class: 'estado-mantenimiento', icon: 'fa-tools', text: 'Mantenimiento' },
-            'fuera_servicio': { class: 'estado-fuera-servicio', icon: 'fa-times-circle', text: 'Fuera de Servicio' }
-        };
-
-        const info = estadoMap[estado] || estadoMap['disponible'];
-        return {
-            estadoBadgeClass: info.class,
-            estadoIcon: info.icon,
-            estadoText: info.text
-        };
-    }
-
-    /**
-     * Renderizar paginación de espacios comunes
-     */
-    function renderizarPaginacionEspacios(totalEspacios) {
-        const contenedorPaginacion = document.getElementById('espaciosPagination');
-        if (!contenedorPaginacion) {
-            return;
-        }
-
-        if (!totalEspacios || totalEspacios <= ESPACIOS_POR_PAGINA) {
-            contenedorPaginacion.innerHTML = '';
-            contenedorPaginacion.style.display = 'none';
-            return;
-        }
-
-        const totalPaginasCalculadas = Math.max(1, Math.ceil(totalEspacios / ESPACIOS_POR_PAGINA));
-        totalPaginasEspacios = totalPaginasCalculadas;
-
-        contenedorPaginacion.style.display = 'flex';
-        contenedorPaginacion.innerHTML = `
-            <button class="pagination-btn" id="espaciosPrevBtn" ${paginaActualEspacios === 1 ? 'disabled' : ''}>
-                <i class="fas fa-chevron-left"></i> Anterior
-            </button>
-            <span class="pagination-info">
-                Página <strong>${paginaActualEspacios}</strong> de <strong>${totalPaginasEspacios}</strong>
-            </span>
-            <select class="pagination-selector" id="espaciosPageSelector">
-                ${Array.from({ length: totalPaginasEspacios }, (_, i) => i + 1).map(num =>
-            `<option value="${num}" ${num === paginaActualEspacios ? 'selected' : ''}>Página ${num}</option>`
-        ).join('')}
-            </select>
-            <button class="pagination-btn" id="espaciosNextBtn" ${paginaActualEspacios === totalPaginasEspacios ? 'disabled' : ''}>
-                Siguiente <i class="fas fa-chevron-right"></i>
-            </button>
-        `;
-
-        const prevBtn = document.getElementById('espaciosPrevBtn');
-        const nextBtn = document.getElementById('espaciosNextBtn');
-        const selectorPaginas = document.getElementById('espaciosPageSelector');
-
-        if (prevBtn) {
-            prevBtn.addEventListener('click', () => {
-                if (paginaActualEspacios > 1) {
-                    paginaActualEspacios--;
-                    mostrarEspaciosComunes();
-                    setTimeout(() => desplazarListaEspaciosAlInicio(), 100);
-                }
-            });
-        }
-
-        if (nextBtn) {
-            nextBtn.addEventListener('click', () => {
-                if (paginaActualEspacios < totalPaginasEspacios) {
-                    paginaActualEspacios++;
-                    mostrarEspaciosComunes();
-                    setTimeout(() => desplazarListaEspaciosAlInicio(), 100);
-                }
-            });
-        }
-
-        if (selectorPaginas) {
-            selectorPaginas.addEventListener('change', (event) => {
-                const nuevaPagina = parseInt(event.target.value, 10);
-                if (!Number.isNaN(nuevaPagina) && nuevaPagina >= 1 && nuevaPagina <= totalPaginasEspacios) {
-                    paginaActualEspacios = nuevaPagina;
-                    mostrarEspaciosComunes();
-                    setTimeout(() => desplazarListaEspaciosAlInicio(), 100);
-                }
-            });
-        }
-    }
-
-    /**
-     * Scroll al inicio de la lista de espacios
-     */
-    function desplazarListaEspaciosAlInicio() {
-        const tabEspacios = document.getElementById('tab-espacios');
-        if (tabEspacios) {
-            const rect = tabEspacios.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const targetY = rect.top + scrollTop;
-            const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-            const finalY = Math.max(0, targetY - headerOffset);
-
-            window.scrollTo({
-                top: finalY,
-                behavior: 'smooth'
-            });
-        }
-    }
-
-    /**
-     * Toggle modo edición para espacio común
-     */
-    window.toggleModoEdicionEspacio = function (espacioId) {
-        const contenedorServicios = document.getElementById(`servicios-espacio-${espacioId}`);
-        const botonEditar = document.getElementById(`btn-editar-espacio-${espacioId}`);
-        const contenedorEstadoSelecciónCuartoInline = document.querySelector("");
-
-        if (!contenedorServicios || !botonEditar) return;
-
-        const enModoEdicion = botonEditar.classList.contains('modo-edicion-activo');
-
-        if (enModoEdicion) {
-            botonEditar.classList.remove('modo-edicion-activo');
-            botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
-
-            const serviciosEspacio = mantenimientosEspacios.filter(m => m.espacio_comun_id === espacioId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosEspacio, espacioId, false);
-        } else {
-
-            botonEditar.classList.add('modo-edicion-activo');
-            botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
-
-            const serviciosEspacio = mantenimientosEspacios.filter(m => m.espacio_comun_id === espacioId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosEspacio, espacioId, true);
-        }
-    };
-
-    /**
-     * Seleccionar espacio común (placeholder para agregar servicio)
-     */
-    window.seleccionarEspacioComun = function (espacioId) {
-        console.log('Seleccionando espacio común:', espacioId);
-        // TODO: Implementar modal o formulario para agregar servicio
-        mostrarMensaje('Funcionalidad en desarrollo', 'info');
-    };
-
-    /**
-     * Cambiar estado de espacio común
-     */
-    window.cambiarEstadoEspacio = async function (espacioId) {
-        const espacio = espaciosComunes.find(e => e.id === espacioId);
-        if (!espacio) return;
-
-        const estados = [
-            { valor: 'disponible', label: 'Disponible', emoji: '🟢' },
-            { valor: 'ocupado', label: 'Ocupado', emoji: '🔴' },
-            { valor: 'mantenimiento', label: 'Mantenimiento', emoji: '🟡' },
-            { valor: 'fuera_servicio', label: 'Fuera de Servicio', emoji: '⚫' }
-        ];
-
-        const estadosHTML = estados.map(e =>
-            `<option value="${e.valor}" ${espacio.estado === e.valor ? 'selected' : ''}>${e.emoji} ${e.label}</option>`
-        ).join('');
-
-        const nuevoEstado = prompt(`Cambiar estado de ${espacio.nombre}:\n\nEstados:\n1 = 🟢 Disponible\n2 = 🔴 Ocupado\n3 = 🟡 Mantenimiento\n4 = ⚫ Fuera de Servicio\n\nIngrese número (1-4):`, '1');
-
-        if (!nuevoEstado) return;
-
-        const estadoMap = {
-            '1': 'disponible',
-            '2': 'ocupado',
-            '3': 'mantenimiento',
-            '4': 'fuera_servicio'
-        };
-
-        const estado = estadoMap[nuevoEstado];
-        if (!estado) {
-            mostrarMensaje('Estado inválido', 'error');
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/espacios-comunes/${espacioId}`, {
-                method: 'PUT',
-                headers: await obtenerHeadersConAuth(),
-                body: JSON.stringify({ estado })
-            });
-
-            if (!response.ok) throw new Error(`Error ${response.status}`);
-
-            espacio.estado = estado;
-            mostrarEspaciosComunes();
-            mostrarMensaje('Estado actualizado correctamente', 'success');
-        } catch (error) {
-            console.error('Error actualizando estado:', error);
-            mostrarMensaje('Error al actualizar estado', 'error');
-        }
-    };
+    // Funciones cargo desde el archivo app-loader-espacios-comunes.js
+    // Exponer funciones necesarias para app-loader-espacios-comunes.js
 
     /**
      * ========================================
@@ -4605,6 +3041,27 @@
      * ========================================
      */
 
-    console.log('App Loader cargado - JW Mantto v1.3 con Edición Inline Completa');
+    // Exponer funciones necesarias para app-loader-habitaciones.js
+    window.API_BASE_URL = API_BASE_URL;
+    window.generarServiciosHTML = generarServiciosHTML;
+    window.escapeHtml = escapeHtml;
+    window.obtenerHeadersConAuth = obtenerHeadersConAuth;
+    window.formatearFecha = formatearFecha;
+    window.formatearFechaCompleta = formatearFechaCompleta;
+    window.formatearFechaCorta = formatearFechaCorta;
+    window.formatearHora = formatearHora;
+    window.formatearDiaAlerta = formatearDiaAlerta;
+    window.mostrarMensaje = mostrarMensaje;
+    window.cargarDatos = cargarDatos;
+    window.mostrarAlertasYRecientes = mostrarAlertasYRecientes;
+    window.marcarAlertasPasadasComoEmitidas = marcarAlertasPasadasComoEmitidas;
+    window.cargarCuartosEnSelect = cargarCuartosEnSelect;
+    window.mostrarAlertasEmitidas = mostrarAlertasEmitidas;
+    window.mostrarHistorialAlertas = mostrarHistorialAlertas;
+    window.verificarYEmitirAlertas = verificarYEmitirAlertas;
+    window.actualizarSelectorEstado = actualizarSelectorEstado;
+    console.log('✅ Funciones auxiliares exportadas a window para módulos externos');
+
+    console.log('App Loader cargado - JW Mantto v1.3 con Edición Inline Completa Modular completo pendiente');
 
 })();

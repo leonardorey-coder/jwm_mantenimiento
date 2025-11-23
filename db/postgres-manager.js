@@ -640,10 +640,16 @@ class PostgresManager {
      */
     async getAlertasPendientes() {
         const query = `
-            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            SELECT 
+                m.*, 
+                c.numero as cuarto_numero, 
+                ec.nombre as espacio_nombre,
+                COALESCE(e_cuarto.nombre, e_espacio.nombre) as edificio_nombre
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
-            LEFT JOIN edificios e ON c.edificio_id = e.id
+            LEFT JOIN edificios e_cuarto ON c.edificio_id = e_cuarto.id
+            LEFT JOIN espacios_comunes ec ON m.espacio_comun_id = ec.id
+            LEFT JOIN edificios e_espacio ON ec.edificio_id = e_espacio.id
             WHERE m.tipo = 'rutina'
             AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
             ORDER BY m.dia_alerta ASC, m.hora ASC
