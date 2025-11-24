@@ -377,7 +377,7 @@ async function submitCrearTarea(event) {
     });
 
     const tareaData = {
-        nombre: nombre,
+        titulo: nombre,  // Backend espera 'titulo'
         descripcion: descripcion,
         ubicacion: ubicacion,
         prioridad: formData.get('prioridad'),
@@ -499,7 +499,7 @@ async function submitEditarTarea(event) {
     });
 
     const tareaData = {
-        nombre: nombre,
+        titulo: nombre,  // Backend espera 'titulo', no 'nombre'
         descripcion: descripcion,
         ubicacion: formData.get('ubicacion')?.trim(),
         prioridad: formData.get('prioridad'),
@@ -532,10 +532,14 @@ async function submitEditarTarea(event) {
         const tareaActualizada = await response.json();
         console.log('Tarea actualizada con éxito:', tareaActualizada);
 
+        // Guardar el ID antes de cerrar el modal (porque cerrarModal resetea tareaIdActual)
+        const tareaId = tareaIdActual;
+
         cerrarModal('modalEditarTarea');
         mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
 
-        await refrescarTarjetasTareas();
+        // Actualizar solo la tarjeta específica en lugar de recargar todas
+        await actualizarTarjetaTarea(tareaId);
         await actualizarSelectoresTareas();
 
     } catch (error) {
@@ -650,15 +654,21 @@ async function poblarFormularioEdicion(tarea) {
     if (selectEstado) selectEstado.value = tarea.estado || 'pendiente';
 
     // Formatear fecha para input type="date"
+    // Formatear fecha para input type="date"
     const inputFecha = document.getElementById('editarTareaFecha');
-    if (inputFecha && tarea.fecha_limite) {
-        const fecha = new Date(tarea.fecha_limite);
+    // Intentar con fecha_vencimiento (backend) o fecha_limite (frontend legacy)
+    const fechaValor = tarea.fecha_vencimiento || tarea.fecha_limite;
+
+    if (inputFecha && fechaValor) {
+        const fecha = new Date(fechaValor);
+        // Ajustar zona horaria si es necesario, pero split('T')[0] suele funcionar para ISO strings
         inputFecha.value = fecha.toISOString().split('T')[0];
-        inputFecha.min = new Date().toISOString().split('T')[0];
     }
 
     // Cargar y seleccionar responsable
-    await cargarUsuariosEnSelect('editarTareaResponsable', tarea.responsable_id);
+    // Intentar con asignado_a (backend) o responsable_id (frontend legacy)
+    const responsableId = tarea.asignado_a || tarea.responsable_id;
+    await cargarUsuariosEnSelect('editarTareaResponsable', responsableId);
 
     // Actualizar semáforo de prioridad
     setTimeout(() => actualizarSemaforoPrioridad('editarTareaPrioridad', 'semaforoPrioridadEditar'), 100);
@@ -670,26 +680,6 @@ async function poblarFormularioEdicion(tarea) {
             tagsContainer.innerHTML = '';
             tarea.tags.forEach(tag => {
                 agregarTagAlDOM(tag, tagsContainer);
-            });
-        }
-    }
-
-    // Cargar historial si existe
-    if (tarea.historial && Array.isArray(tarea.historial) && tarea.historial.length > 0) {
-        const historialList = document.getElementById('tareaEditHistorial');
-        if (historialList) {
-            historialList.innerHTML = '';
-            tarea.historial.forEach(cambio => {
-                const li = document.createElement('li');
-                const time = document.createElement('time');
-                time.textContent = new Date(cambio.fecha).toLocaleString('es-ES');
-                li.appendChild(time);
-
-                const texto = document.createElement('span');
-                texto.textContent = cambio.descripcion || cambio.mensaje;
-                li.appendChild(texto);
-
-                historialList.appendChild(li);
             });
         }
     }
@@ -877,6 +867,57 @@ async function cargarTareasEnSelector(selectId, selectedTaskId = null) {
     } catch (error) {
         console.error('Error cargando tareas en selector:', error);
         select.innerHTML = '<option value="">Error al cargar tareas</option>';
+    }
+}
+
+/**
+ * Actualiza solo una tarjeta específica de tarea en lugar de recargar todas
+ * @param {number} tareaId - ID de la tarea a actualizar
+ */
+async function actualizarTarjetaTarea(tareaId) {
+    console.log(`🔄 Actualizando tarjeta de tarea ${tareaId}...`);
+
+    try {
+        // Obtener los datos actualizados de la tarea desde el backend
+        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+            headers: obtenerHeadersConAuth()
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al obtener datos de la tarea');
+        }
+
+        const tareaActualizada = await response.json();
+        console.log('Tarea obtenida:', tareaActualizada);
+
+        // Actualizar en el array local
+        const indice = todasLasTareas.findIndex(t => t.id == tareaId);
+        if (indice !== -1) {
+            todasLasTareas[indice] = tareaActualizada;
+        }
+
+        // Buscar la tarjeta en el DOM
+        const tarjetaExistente = document.querySelector(`li[data-tarea-id="${tareaId}"]`);
+
+        if (tarjetaExistente) {
+            // Crear nueva tarjeta con datos actualizados
+            const nuevaTarjeta = crearTarjetaTarea(tareaActualizada);
+
+            // Reemplazar la tarjeta antigua con la nueva
+            tarjetaExistente.replaceWith(nuevaTarjeta);
+            console.log(`✅ Tarjeta ${tareaId} actualizada en el DOM`);
+        } else {
+            console.warn(`⚠️ No se encontró la tarjeta ${tareaId} en el DOM, puede estar filtrada`);
+        }
+
+        // Actualizar el resumen de tareas
+        if (typeof actualizarResumenTareas === 'function') {
+            actualizarResumenTareas();
+        }
+
+    } catch (error) {
+        console.error('Error al actualizar tarjeta de tarea:', error);
+        mostrarNotificacion('Error al actualizar la vista de la tarea', 'error');
     }
 }
 
@@ -1203,6 +1244,33 @@ function actualizarResumenTareas() {
     if (elCompletadas) elCompletadas.textContent = completadas;
     if (elUrgentes) elUrgentes.textContent = urgentes;
     if (elTotal) elTotal.textContent = total;
+
+    // Actualizar Monitor Operativo
+    const statsPendientes = document.getElementById('tareasStatsPendientes');
+    const statsActivas = document.getElementById('tareasStatsActivas');
+    const statsCompletadas = document.getElementById('tareasStatsCompletadas');
+    const statsProgress = document.getElementById('tareasStatsProgress');
+    const statsCaption = document.getElementById('tareasStatsCaption');
+    const statsHighlight = document.getElementById('tareasStatsHighlight');
+
+    if (statsPendientes) statsPendientes.textContent = pendientes;
+    if (statsActivas) statsActivas.textContent = enProceso;
+    if (statsCompletadas) statsCompletadas.textContent = completadas;
+
+    // Actualizar progress bar (porcentaje de completadas)
+    if (statsProgress && total > 0) {
+        const porcentaje = Math.round((completadas / total) * 100);
+        statsProgress.setAttribute('data-percent', `${porcentaje}%`);
+        statsProgress.style.setProperty('--progress-value', `${porcentaje}%`);
+    }
+
+    // Actualizar caption
+    if (statsCaption) {
+        statsCaption.textContent = `Total de tareas: ${total}`;
+    }
+    if (statsHighlight) {
+        statsHighlight.textContent = `${completadas} completadas · ${pendientes} pendientes`;
+    }
 
     // Actualizar también el texto del rol
     actualizarRolResumen();
@@ -1773,10 +1841,9 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
             mostrarNotificacion('¡Tarea completada con éxito!', 'success');
         }
 
-        // Refrescar las tarjetas de tareas si existe la función
-        if (typeof refrescarTarjetasTareas === 'function') {
-            await refrescarTarjetasTareas();
-        }
+
+        // Actualizar solo la tarjeta específica en lugar de recargar todas
+        await actualizarTarjetaTarea(tareaId);
 
     } catch (error) {
         console.error('❌ Error al accionar tarea:', error);

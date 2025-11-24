@@ -684,22 +684,23 @@
                                 </p>
                             </div>
                             <div class="card-actions">
-                                <button class="action-button like-button" type="button" aria-label="Tareas activas">
+                                <button class="action-button like-button" type="button" aria-label="Tareas pendientes">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Pendientes</span>
+                                        <strong id="tareasStatsPendientes">0</strong>
+                                    </div>
+                                </button>
+                                <button class="action-button" type="button" aria-label="Tareas activas">
                                     <div class="action-button-metric">
                                         <span class="metric-label">Activas</span>
                                         <strong id="tareasStatsActivas">0</strong>
                                     </div>
                                 </button>
-                                <button class="action-button" type="button" aria-label="En proceso">
+                                <button class="action-button comment-button" type="button"
+                                    aria-label="Tareas completadas">
                                     <div class="action-button-metric">
-                                        <span class="metric-label">Proceso</span>
-                                        <strong id="tareasStatsProceso">0</strong>
-                                    </div>
-                                </button>
-                                <button class="action-button comment-button" type="button" aria-label="Completadas">
-                                    <div class="action-button-metric">
-                                        <span class="metric-label">Done</span>
-                                        <strong id="tareasStatsDone">0</strong>
+                                        <span class="metric-label">Completadas</span>
+                                        <strong id="tareasStatsCompletadas">0</strong>
                                     </div>
                                 </button>
                             </div>
@@ -2020,14 +2021,6 @@
                         <input type="file" id="editarTareaAdjuntos" multiple style="display:none;">
                         <div id="filePreviewEditar" class="file-preview"></div>
                     </div>
-                </div>
-
-                <div class="tarea-edit-section">
-                    <div class="section-header">
-                        <h4>Historial de cambios</h4>
-                        <p>Seguimiento automático de modificaciones.</p>
-                    </div>
-                    <ul id="tareaEditHistorial" class="tarea-edit-historial"></ul>
                 </div>
 
                 <div class="tarea-edit-actions">
