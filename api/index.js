@@ -457,6 +457,7 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
             estado = 'pendiente',
             usuario_creador_id,
             usuario_asignado_id,
+            tarea_id,  // Asignación de tarea
             notas,
             estado_cuarto
         } = req.body;
@@ -466,7 +467,7 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
 
         console.log('📝 Creando mantenimiento:', {
             cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
-            usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_cuarto,
+            usuario_creador_id: creadorId, usuario_asignado_id, tarea_id, notas, estado_cuarto,
             usuario_jwt: req.usuario?.nombre
         });
 
@@ -481,10 +482,10 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
             const query = `
                 INSERT INTO mantenimientos (
                     cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad,
-                    estado, usuario_creador_id, usuario_asignado_id, notas,
+                    estado, usuario_creador_id, usuario_asignado_id, tarea_id, notas,
                     fecha_finalizacion, fecha_creacion
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, CURRENT_TIMESTAMP)
                 RETURNING *
             `;
 
@@ -498,6 +499,7 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
                 estado,
                 creadorId, // Usuario del JWT autenticado
                 usuario_asignado_id ? parseInt(usuario_asignado_id) : null,
+                tarea_id ? parseInt(tarea_id) : null,  // Tarea asignada
                 notas || null,
                 fecha_finalizacion
             ];
@@ -547,11 +549,12 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
             prioridad,
             estado,
             usuario_asignado_id,
-            notas
+            notas,
+            tarea_id
         } = req.body;
         const mantenimientoId = parseInt(id);
 
-        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, prioridad, estado, usuario_asignado_id, notas });
+        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, prioridad, estado, usuario_asignado_id, notas, tarea_id });
 
         if (postgresManager) {
             // Obtener el registro actual para comparar cambios
@@ -608,6 +611,10 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
             if (notas !== undefined) {
                 campos.push(`notas = $${contador++}`);
                 valores.push(notas || null);
+            }
+            if (tarea_id !== undefined) {
+                campos.push(`tarea_id = $${contador++}`);
+                valores.push(tarea_id ? parseInt(tarea_id) : null);
             }
             if (fecha_finalizacion !== undefined) {
                 campos.push(`fecha_finalizacion = $${contador++}`);
@@ -1305,6 +1312,111 @@ app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req,
     } catch (error) {
         console.error('❌ Error al obtener sábanas por servicio:', error);
         res.status(500).json({ error: 'Error al obtener sábanas', details: error.message });
+    }
+});
+
+// ====================================
+// RUTAS DE TAREAS
+// ====================================
+
+// Obtener todas las tareas
+app.get('/api/tareas', async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+        const filters = {
+            estado: req.query.estado,
+            prioridad: req.query.prioridad,
+            asignado_a: req.query.asignado_a
+        };
+        const tareas = await postgresManager.getTareas(filters);
+        res.json(tareas);
+    } catch (error) {
+        console.error('Error al obtener tareas:', error);
+        res.status(500).json({ error: 'Error al obtener tareas', details: error.message });
+    }
+});
+
+// Obtener tarea por ID
+app.get('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+        const tarea = await postgresManager.getTareaById(req.params.id);
+        if (!tarea) {
+            return res.status(404).json({ error: 'Tarea no encontrada' });
+        }
+        res.json(tarea);
+    } catch (error) {
+        console.error('Error al obtener tarea:', error);
+        res.status(500).json({ error: 'Error al obtener tarea', details: error.message });
+    }
+});
+
+// Crear nueva tarea
+app.post('/api/tareas', async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        console.log('📝 Creando tarea:', req.body);
+
+        // Mapear campos del frontend a la base de datos
+        const data = {
+            titulo: req.body.nombre,
+            descripcion: req.body.descripcion,
+            estado: req.body.estado,
+            prioridad: req.body.prioridad,
+            fecha_vencimiento: req.body.fecha_limite,
+            asignado_a: req.body.responsable_id ? parseInt(req.body.responsable_id) : null,
+            ubicacion: req.body.ubicacion,
+            tags: req.body.tags,
+            creado_por: req.body.usuario_creador_id || 3 // Default a usuario sistema si no hay auth
+        };
+
+        const nuevaTarea = await postgresManager.createTarea(data);
+        console.log('✅ Tarea creada:', nuevaTarea);
+        res.status(201).json(nuevaTarea);
+    } catch (error) {
+        console.error('Error al crear tarea:', error);
+        res.status(500).json({ error: 'Error al crear tarea', details: error.message });
+    }
+});
+
+// Actualizar tarea
+app.put('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+        const tareaActualizada = await postgresManager.updateTarea(req.params.id, req.body);
+        if (!tareaActualizada) {
+            return res.status(404).json({ error: 'Tarea no encontrada' });
+        }
+        res.json(tareaActualizada);
+    } catch (error) {
+        console.error('Error al actualizar tarea:', error);
+        res.status(500).json({ error: 'Error al actualizar tarea', details: error.message });
+    }
+});
+
+// Eliminar tarea
+app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+        const tareaEliminada = await postgresManager.deleteTarea(req.params.id);
+        if (!tareaEliminada) {
+            return res.status(404).json({ error: 'Tarea no encontrada' });
+        }
+        res.json({ success: true, message: 'Tarea eliminada correctamente' });
+    } catch (error) {
+        console.error('Error al eliminar tarea:', error);
+        res.status(500).json({ error: 'Error al eliminar tarea', details: error.message });
     }
 });
 

@@ -882,9 +882,23 @@
             console.log(`📋 Alertas pendientes desde BD: ${alertasPendientes.length}`);
             console.log('🔍 Detalle de alertas:', alertasPendientes.map(r => `ID${r.id}(${r.dia_alerta} ${r.hora} - ${r.descripcion.substring(0, 20)}...)`));
 
+            // Buscar el mensaje de "no hay alertas"
+            const mensajeNoAlertas = document.getElementById('mensaje-no-alertas-encontradas');
+
             if (alertasPendientes.length === 0) {
-                listaAlertas.innerHTML = '<li class="mensaje-no-items">No hay alertas pendientes</li>';
+                listaAlertas.innerHTML = '';
+                listaAlertas.style.display = 'none';
+                if (mensajeNoAlertas) {
+                    mensajeNoAlertas.style.display = 'block';
+                    mensajeNoAlertas.innerHTML = '<i class="fas fa-check-circle"></i> No hay alertas programadas';
+                }
                 return;
+            }
+
+            // Hay alertas, mostrar la lista y ocultar el mensaje
+            listaAlertas.style.display = 'block';
+            if (mensajeNoAlertas) {
+                mensajeNoAlertas.style.display = 'none';
             }
 
             listaAlertas.innerHTML = '';
@@ -2675,6 +2689,23 @@
                     <span class="semaforo-circle red"></span>
                 </label>
             </div>
+
+                    <!-- Botón de editar Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
+            <div class="tarea-asignada-selector-inline">
+                <label class="tarea-asignada-label-inline">
+                    <i class="fas fa-tasks"></i> Asignar Tarea (Opcional)
+                </label>
+                <div class="tarea-asignada-inputs-inline" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; margin-top: 10px;">
+                <button style="font-size: 0.7rem; display: flex; align-items: center; gap: 5px; flex-direction: row; flex-wrap: nowrap;" type="button" class="btn-inline btn-crear-tarea" onclick="abrirModalCrearTarea(${id})">
+                    <i class="fas fa-plus"></i> Crear
+                </button>
+                <!-- Se deberá seleccionar la tarea asignada si el servicio tiene una tarea asignada-->
+                    <select class="input-inline" id="tarea_asignada_edit-${servicioId}" name="tarea_asignada_edit-${servicioId}">
+                        <option value="">-- Sin asignar existente --</option>
+                        
+                    </select>
+                </div>
+            </div>        
             
             <div class="form-inline-acciones">
                 <button class="btn-form-inline btn-cancelar" onclick="cancelarEdicionServicio(${servicioId}, ${id}, ${esEspacio})">
@@ -2686,6 +2717,12 @@
             </div>
         </div>
     `;
+
+        // Cargar tareas en el selector después de crear el formulario
+        if (window.cargarTareasEnSelector) {
+            // Usar el ID del selector y pasar el tarea_id para pre-selección
+            window.cargarTareasEnSelector(`tarea_asignada_edit-${servicioId}`, servicio.tarea_id);
+        }
     };
 
     /**
@@ -2748,6 +2785,12 @@
             datosActualizados.notas = notasInput.value.trim() || null;
         }
 
+        // Obtener tarea asignada
+        const tareaSelector = document.querySelector(`select[name="tarea_asignada_edit-${servicioId}"]`);
+        if (tareaSelector) {
+            datosActualizados.tarea_id = tareaSelector.value || null;
+        }
+
         // Si es alerta, incluir campos adicionales
         if (esAlerta) {
             const diaInput = document.getElementById(`edit-dia-${servicioId}`);
@@ -2779,6 +2822,14 @@
             if (contenedorServicios) {
                 const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
                 contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                
+                // Actualizar selectores de tareas para todos los servicios del cuarto
+                serviciosCuarto.forEach(servicio => {
+                    const selectorId = `tarea_asignada_edit-${servicio.id}`;
+                    if (window.cargarTareasEnSelector) {
+                        window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
+                    }
+                });
             }
         }
         mostrarAlertasYRecientes();
@@ -2827,6 +2878,14 @@
                 if (contenedorServiciosActualizado) {
                     const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
                     contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                    
+                    // Actualizar selectores de tareas para todos los servicios del cuarto
+                    serviciosCuarto.forEach(servicio => {
+                        const selectorId = `tarea_asignada_edit-${servicio.id}`;
+                        if (window.cargarTareasEnSelector) {
+                            window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
+                        }
+                    });
                 }
             }
             mostrarAlertasYRecientes();
@@ -2931,7 +2990,7 @@
         }
     };
 
-    
+
 
     /**
      * Seleccionar estado usando pills (función global llamada desde el HTML)

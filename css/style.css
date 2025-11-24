@@ -923,8 +923,10 @@ body.admin .tab-content.admin-only.active {
     font-size: 13px;
     border-width: 2px;
     /* Aumentar área táctil en móvil */
-    min-height: 40px;
+    min-height: 44px;
     border-radius: 6px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
 
   .premium-select select:focus {
@@ -934,6 +936,11 @@ body.admin .tab-content.admin-only.active {
   .premium-select .icono-select {
     right: 7px;
     font-size: 10px;
+  }
+
+  .select-container.premium-select select {
+    min-height: 44px;
+    padding: 10px 35px 10px 10px;
   }
 }
 
@@ -1431,7 +1438,7 @@ body.admin .tab-content.admin-only.active {
 .mensaje-cargando,
 .mensaje-no-items {
   text-align: center;
-  padding: 1.5rem;
+  padding: 0.5rem;
   color: var(--texto-secundario);
   font-style: italic;
   font-size: 0.9rem;
@@ -2086,14 +2093,25 @@ body.admin .tab-content.admin-only.active {
 /* ========================================
    MENSAJES
    ======================================== */
-.mensaje-cargando,
-.mensaje-no-cuartos,
-.mensaje-no-items {
+.mensaje-cargando {
   text-align: center;
-  padding: 3rem 2rem;
   color: var(--gris-grafito);
   font-style: italic;
   font-size: 1.1rem;
+  /* Loading messages should be visible by default */
+}
+
+.mensaje-no-cuartos,
+.mensaje-no-items {
+  text-align: center;
+  color: var(--gris-grafito);
+  font-style: italic;
+  display: none;
+  /* Default hidden, toggled by JS */
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
 }
 
 .mensaje-no-cuartos i {
@@ -2174,13 +2192,33 @@ body.admin .tab-content.admin-only.active {
     display: none;
   }
 
+  /* Cuando se muestra (por JS con display:block), usar layout horizontal */
+  .vista-duo .columna-lateral[style*="display: block"],
+  .vista-duo .columna-lateral[style*="display:block"] {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  /* Los paneles dentro de columna-lateral en mobile tienen ancho mínimo */
+  .vista-duo .columna-lateral[style*="display: block"]>.panel,
+  .vista-duo .columna-lateral[style*="display:block"]>.panel,
+  .vista-duo .columna-lateral[style*="display: block"]>.card-container,
+  .vista-duo .columna-lateral[style*="display:block"]>.card-container {
+    flex: 1 1 280px;
+    /* Crecer, encoger, base 280px */
+    min-width: 280px;
+    max-width: 400px;
+  }
+
   /* La columna principal se muestra por defecto */
   .vista-duo .columna-principal {
     display: block;
   }
 
   .header-content {
-    grid-template-columns: 1fr;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
   }
@@ -2220,6 +2258,7 @@ body.admin .tab-content.admin-only.active {
    RESPONSIVE HEADER - MÓVIL
    ======================================== */
 @media (max-width: 768px) {
+
 
   /* Header superior compacto */
   .premium-header {
@@ -2495,6 +2534,7 @@ body.admin .tab-content.admin-only.active {
   }
 
   .busqueda-filtros {
+    display: none;
     grid-template-columns: 1fr;
   }
 
@@ -3321,7 +3361,7 @@ body.admin .tab-content.admin-only.active {
 .filtros-bitacora-header {
   background: var(--verde-oliva);
   color: var(--blanco);
-  padding: 1.5rem;
+  padding: 1rem;
   border-radius: var(--radio-medio);
   margin-bottom: 1.5rem;
   display: flex;
@@ -6685,7 +6725,6 @@ body.dark-mode .skeleton-card {
   padding: 0.6rem;
   background: var(--gris-claro);
   border-radius: var(--radio-pequeno);
-  margin-bottom: 0.8rem;
 }
 
 .semaforo-label-inline {
@@ -6750,6 +6789,7 @@ body.dark-mode .skeleton-card {
 .form-inline-acciones {
   display: flex;
   gap: 0.5rem;
+  margin-top: 0.8rem;
 }
 
 .btn-form-inline {
@@ -6814,6 +6854,7 @@ body.dark-mode .skeleton-card {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .servicio-tipo-badge {
@@ -6913,7 +6954,7 @@ body.dark-mode .skeleton-card {
   background: var(--bg-principal);
   color: var(--texto-principal);
   font-weight: 700;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   cursor: pointer;
   transition: var(--transicion-rapida);
   border-radius: var(--radio-medio);
@@ -6934,7 +6975,7 @@ body.dark-mode .skeleton-card {
   background: var(--verde-oliva);
   color: var(--blanco);
   border-color: var(--verde-oliva);
-  font-size: 0.8rem;
+  font-size: 0.7rem;
 }
 
 .habitacion-boton.boton-secundario {
@@ -7243,6 +7284,65 @@ body.dark-mode .skeleton-card {
   margin-right: 0.3rem;
 }
 
+/* Botón de crear tarea inline */
+.btn-crear-tarea {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border: 2px solid var(--negro-carbon);
+  padding: 0.6rem 1rem;
+  border-radius: var(--radio-pequeno);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-crear-tarea:hover {
+  background: #5a7246;
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+}
+
+.btn-crear-tarea:active {
+  transform: translateY(0);
+  box-shadow: 1px 1px 0 var(--negro-carbon);
+}
+
+.btn-crear-tarea i {
+  margin-right: 0.3rem;
+}
+
+/* Contenedor de selector de tareas inline */
+.tarea-asignada-selector-inline {
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.tarea-asignada-label-inline {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--negro-carbon);
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.tarea-asignada-label-inline i {
+  color: var(--verde-oliva);
+  margin-right: 0.3rem;
+}
+
+.tarea-asignada-inputs-inline {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.tarea-asignada-inputs-inline select {
+  flex: 1;
+}
+
 /* Selector de Estado Inline */
 
 .estado-label-inline {
@@ -7469,6 +7569,44 @@ body.dark-mode .skeleton-card {
 .usuario-acciones .btn-editar:hover {
   background: var(--verde-oliva);
   color: var(--blanco);
+}
+
+.usuario-acciones .tarea-edit-tags .tag button:hover {
+  background: var(--rojo-vino);
+  color: var(--blanco);
+}
+
+/* Tag item styles (for dynamically added tags) */
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--gris-claro);
+  border: 2px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-principal);
+  transition: var(--transicion-rapida);
+}
+
+.tag-item .tag-remove {
+  background: none;
+  border: none;
+  color: var(--rojo-vino);
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.25rem;
+  line-height: 1;
+  transition: var(--transicion-rapida);
+}
+
+.tag-item .tag-remove:hover {
+  color: var(--borgoña);
+  transform: scale(1.2);
 }
 
 .usuario-acciones .btn-desactivar:hover {
@@ -7770,6 +7908,18 @@ tr[data-lazy="true"] {
     height: 20px;
   }
 
+  .filtros-table td[data-label="Edificio"],
+  .filtros-table td[data-label="Habitación"],
+  .filtros-table td[data-label="Programada"],
+  .filtros-table td[data-label="Realizada"],
+  .filtros-table td[data-label="Responsable"],
+  .filtros-table td[data-label="Observaciones"],
+  .filtros-table td[data-label="Estado"] {
+    width: auto;
+    gap: 0;
+    justify-content: start;
+  }
+
   .filtros-actions-container {
     flex-direction: column;
     gap: 0.5rem;
@@ -8020,6 +8170,18 @@ tr[data-lazy="true"] {
   scroll-behavior: smooth;
 }
 
+.alerta-espacio-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.alerta-espacio-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .lista-alertas-dia-limitada {
   max-height: 230px;
 }
@@ -8031,4 +8193,1338 @@ tr[data-lazy="true"] {
 .lista-alertas-espacios::-webkit-scrollbar-thumb {
   background: var(--negro-carbon);
   border-radius: 10px;
+}
+
+/* ========================================
+   MÓDULO DE TAREAS
+   ======================================== */
+
+/* Cards de Tareas */
+.tarea-card {
+  background: var(--bg-principal);
+  border: 3px solid var(--border-color);
+  border-radius: var(--radio-grande);
+  padding: 1.5rem;
+  box-shadow: 8px 8px 0 var(--gris-oscuro);
+  transition: var(--transicion-normal);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  height: 100%;
+}
+
+.tarea-card:hover {
+  transform: translate(-4px, -4px);
+  box-shadow: 12px 12px 0 var(--gris-oscuro);
+}
+
+.tarea-card.prioridad-alta {
+  border-color: var(--prioridad-alta);
+}
+
+.tarea-card.prioridad-media {
+  border-color: var(--prioridad-media);
+}
+
+.tarea-card.prioridad-baja {
+  border-color: var(--verde-oliva);
+}
+
+.tarea-card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.tarea-card-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tarea-header-line {
+  height: 2px;
+  background: var(--gris-separador);
+  width: 100%;
+  display: block;
+}
+
+.tarea-estado-pill {
+  padding: 0.3rem 0.8rem;
+  border-radius: var(--radio-pequeno);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  border: 2px solid currentColor;
+}
+
+.estado-pendiente {
+  color: var(--prioridad-media);
+  background: #fff8e1;
+}
+
+.estado-en-proceso {
+  color: var(--azul-principal);
+  background: #e3f2fd;
+}
+
+.estado-completada {
+  color: var(--verde-oliva);
+  background: #e8f5e9;
+}
+
+.nivel-alerta-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.semaforo-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #2196F3;
+  box-shadow: 0 0 4px rgba(33, 150, 243, 0.5);
+}
+
+.nivel-alerta-alta .semaforo-indicator {
+  background: var(--prioridad-alta);
+  box-shadow: 0 0 4px var(--prioridad-alta);
+}
+
+.nivel-alerta-media .semaforo-indicator {
+  background: var(--prioridad-media);
+}
+
+.nivel-alerta-baja .semaforo-indicator,
+.semaforo-indicator.prioridad-baja {
+  background: var(--verde-oliva);
+}
+
+.semaforo-indicator.prioridad-media {
+  background: var(--prioridad-media);
+}
+
+.semaforo-indicator.prioridad-alta {
+  background: var(--prioridad-alta);
+  box-shadow: 0 0 4px var(--prioridad-alta);
+}
+
+.tarea-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  line-height: 1.4;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tarea-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarea-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+}
+
+.tarea-meta-item i {
+  width: 16px;
+  text-align: center;
+  color: var(--gris-grafito);
+}
+
+.tarea-card-vence {
+  margin-top: 0.5rem;
+}
+
+.vence-indicador {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radio-pequeno);
+  background: var(--gris-claro);
+}
+
+.vence-alerta-alta {
+  color: var(--prioridad-alta);
+  background: #ffebee;
+}
+
+.vence-alerta-media {
+  color: var(--prioridad-media);
+  background: #fff8e1;
+}
+
+.vence-alerta-baja {
+  color: var(--verde-oliva);
+  background: #e8f5e9;
+}
+
+.tarea-tags-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.tarea-tag-pill {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.4rem;
+  background: var(--gris-claro);
+  border: 1px solid var(--gris-separador);
+  border-radius: 4px;
+  color: var(--texto-secundario);
+}
+
+.tarea-card-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 2px dashed var(--gris-separador);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tarea-responsable-block {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.tarea-avatar {
+  width: 32px;
+  height: 32px;
+  background: var(--negro-carbon);
+  color: var(--blanco);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tarea-responsable-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+}
+
+.tarea-responsable-info .label {
+  font-size: 0.65rem;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+}
+
+.tarea-responsable-info strong {
+  font-size: 0.8rem;
+  color: var(--texto-principal);
+}
+
+.tarea-card-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-tarea-view,
+.btn-tarea-edit {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Resumen y Stats */
+.resumen-tarea-item-mejorado {
+  background: var(--blanco);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radio-medio);
+  padding: 1rem;
+  transition: var(--transicion-rapida);
+}
+
+.resumen-tarea-item-mejorado:hover {
+  transform: translateY(-2px);
+  border-color: var(--negro-carbon);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+.badge-numero-simple {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.badge-numero-simple.pendiente {
+  color: var(--prioridad-media);
+}
+
+.badge-numero-simple.en-proceso {
+  color: var(--azul-principal);
+}
+
+.badge-numero-simple.completada {
+  color: var(--verde-oliva);
+}
+
+.badge-numero-simple.urgente {
+  color: var(--prioridad-alta);
+}
+
+.alerta-extra-resumen {
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--gris-separador);
+  font-size: 0.9rem;
+  color: var(--texto-secundario);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Timeline */
+.lista-timeline-vencimientos {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.lista-timeline-vencimientos .alerta-espacio-item {
+  border-left: 4px solid var(--gris-grafito);
+}
+
+.lista-timeline-vencimientos .alerta-espacio-item:hover {
+  border-left-color: var(--negro-carbon);
+  background: var(--gris-claro);
+}
+
+/* Modals específicos de Tareas */
+.tarea-edit-tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-pequeno);
+  min-height: 40px;
+}
+
+.tarea-edit-tag {
+  background: var(--blanco);
+  border: 1px solid var(--gris-separador);
+  padding: 0.2rem 0.6rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.tarea-edit-tag button {
+  background: none;
+  border: none;
+  color: var(--rojo-vino);
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+}
+
+.tarea-edit-adjuntos-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarea-edit-adjuntos-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.85rem;
+}
+
+.tarea-edit-historial {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.tarea-edit-historial li {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--gris-separador);
+  font-size: 0.85rem;
+}
+
+.tarea-edit-historial li:last-child {
+  border-bottom: none;
+}
+
+.tarea-edit-historial time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  margin-bottom: 0.2rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .tarea-card-footer {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+
+  .tarea-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* ========================================
+   MODAL DE TAREAS - CREAR Y EDITAR
+   ======================================== */
+
+/* Modal específico para tareas - AMBOS modales usan los mismos estilos */
+.modal-editar-tarea .modal-detalles-contenido,
+.modal-crear-tarea .modal-detalles-contenido {
+  max-width: 700px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-detalles-subtitulo {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.9;
+  margin: 0 0 0.25rem 0;
+  font-weight: 500;
+}
+
+/* Contenedor principal del formulario de tarea */
+.tarea-edit-modal {
+  font-family: 'Montserrat', sans-serif;
+}
+
+.tarea-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  padding-bottom: 1.5rem;
+}
+
+/* Grid para los campos del formulario */
+.tarea-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  padding: 0 1.5rem;
+  margin-top: 1rem;
+}
+
+.tarea-edit-grid .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tarea-edit-grid .form-group.full {
+  grid-column: 1 / -1;
+}
+
+.tarea-edit-grid label {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tarea-edit-grid input[type="text"],
+.tarea-edit-grid input[type="date"],
+.tarea-edit-grid textarea,
+.tarea-edit-grid select {
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radio-pequeno);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-edit-grid input[type="text"]:focus,
+.tarea-edit-grid input[type="date"]:focus,
+.tarea-edit-grid textarea:focus,
+.tarea-edit-grid select:focus {
+  outline: none;
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(76, 84, 76, 0.1);
+}
+
+.tarea-edit-grid textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Select con semáforo de prioridad */
+.select-container.premium-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.select-container.premium-select select {
+  flex: 1;
+  padding-right: 2.5rem;
+  appearance: none;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+.select-container.premium-select .icono-select {
+  position: absolute;
+  right: 0.75rem;
+  pointer-events: none;
+  color: var(--texto-secundario);
+  font-size: 0.8rem;
+  z-index: 2;
+}
+
+.select-container.premium-select .semaforo-indicator {
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Semáforo de prioridad en modal */
+.semaforo {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--negro-carbon);
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+  box-shadow: var(--sombra-suave);
+}
+
+.semaforo.alta {
+  background-color: var(--prioridad-alta);
+  box-shadow: 0 0 8px var(--prioridad-alta);
+}
+
+.semaforo.media {
+  background-color: var(--prioridad-media);
+  box-shadow: 0 0 8px var(--prioridad-media);
+}
+
+.semaforo.baja {
+  background-color: var(--prioridad-baja);
+  box-shadow: 0 0 8px var(--prioridad-baja);
+}
+
+/* Secciones dentro del formulario */
+.tarea-edit-section {
+  padding: 1rem 1.5rem;
+  border-top: 2px solid var(--gris-separador);
+}
+
+.tarea-edit-section .section-header {
+  margin-bottom: 1rem;
+}
+
+.tarea-edit-section .section-header h4 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin: 0 0 0.25rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tarea-edit-section .section-header p {
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  margin: 0;
+}
+
+/* Tags en el formulario */
+.tarea-edit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  min-height: 40px;
+  padding: 0.5rem;
+  border: 2px dashed var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  background: var(--bg-secundario);
+}
+
+.tarea-edit-tags .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.8rem;
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  border: 2px solid var(--negro-carbon);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-edit-tags .tag button {
+  background: transparent;
+  border: none;
+  color: var(--blanco);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: var(--transicion-rapida);
+}
+
+.tarea-edit-tags .tag button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.tarea-edit-tags-input {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tarea-edit-tags-input input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radio-pequeno);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.9rem;
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-edit-tags-input input:focus {
+  outline: none;
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(76, 84, 76, 0.1);
+}
+
+/* Botón de agregar tag - más específico */
+.tarea-edit-tags-input .btn-cuarto-action {
+  flex: 0 0 auto;
+  min-width: 120px;
+  padding: 0.75rem 1.5rem;
+  height: auto;
+  border-radius: var(--radio-pequeno);
+}
+
+/* Archivos adjuntos */
+.tarea-edit-attachments {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.upload-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--gris-claro);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radio-pequeno);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+  align-self: flex-start;
+  width: -webkit-fill-available;
+  max-width: -webkit-fill-available;
+  justify-content: center;
+  height: 90px;
+}
+
+.upload-label:hover,
+.upload-label.highlight {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border-color: var(--negro-carbon);
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+  transform: translateY(-2px);
+}
+
+.upload-label i {
+  font-size: 1.2rem;
+}
+
+.file-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Header de sección con búsqueda */
+.tarea-edit-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tarea-edit-section .section-header-title {
+  flex: 1;
+}
+
+.tarea-edit-section .section-header input[type="search"] {
+  padding: 0.5rem 0.8rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radio-pequeno);
+  font-family: 'Montserrat', sans-serif;
+  font-size: 0.85rem;
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  transition: var(--transicion-rapida);
+  width: 200px;
+}
+
+.tarea-edit-section .section-header input[type="search"]:focus {
+  outline: none;
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(76, 84, 76, 0.1);
+}
+
+/* Lista de selección de servicios */
+.lista-servicios-seleccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 150px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  background: var(--bg-secundario);
+  border-radius: var(--radio-pequeno);
+  border: 1px solid var(--border-color);
+}
+
+.servicio-checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.5rem;
+  background: var(--bg-principal);
+  border-radius: var(--radio-pequeno);
+  border: 1px solid var(--border-color);
+  transition: var(--transicion-rapida);
+}
+
+.servicio-checkbox-item:hover {
+  border-color: var(--verde-oliva);
+  background: var(--gris-claro);
+}
+
+.servicio-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--verde-oliva);
+  cursor: pointer;
+}
+
+.servicio-checkbox-item label {
+  font-size: 0.85rem;
+  color: var(--texto-principal);
+  cursor: pointer;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.servicio-checkbox-item .servicio-meta {
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.file-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-secundario);
+  border: 2px solid var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.85rem;
+  color: var(--texto-principal);
+}
+
+.file-preview-item::before {
+  content: '\f15b';
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  color: var(--verde-oliva);
+  font-size: 1.2rem;
+}
+
+/* Historial de cambios */
+.tarea-edit-historial {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.tarea-edit-historial li {
+  padding: 0.8rem;
+  border-left: 3px solid var(--verde-oliva);
+  background: var(--bg-secundario);
+  margin-bottom: 0.75rem;
+  border-radius: var(--radio-pequeno);
+  font-size: 0.85rem;
+  color: var(--texto-principal);
+}
+
+.tarea-edit-historial li:last-child {
+  margin-bottom: 0;
+}
+
+.tarea-edit-historial time {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  margin-bottom: 0.3rem;
+  font-weight: 600;
+}
+
+/* Acciones del modal */
+.tarea-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 3px solid var(--gris-separador);
+  background: var(--bg-secundario);
+}
+
+/* Botones del modal de tareas - más específicos para evitar conflictos */
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-light,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-light,
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-primary,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-primary,
+.btn-tarea-light,
+.btn-tarea-primary {
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radio-pequeno);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: auto;
+  height: auto;
+}
+
+
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-light,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-light,
+.btn-tarea-light {
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  box-shadow: none;
+}
+
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-light:hover,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-light:hover,
+.btn-tarea-light:hover {
+  background: var(--gris-claro);
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+  transform: translateY(-2px);
+}
+
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-primary,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-primary,
+.btn-tarea-primary {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border-color: var(--negro-carbon);
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+}
+
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-primary:hover,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-primary:hover,
+.btn-tarea-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.btn-tarea-primary:active,
+.btn-tarea-light:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+/* Responsive para modales de tareas */
+@media (max-width: 768px) {
+  .modal-editar-tarea .modal-detalles-contenido {
+    max-width: 95%;
+    max-height: 95vh;
+  }
+
+  .tarea-edit-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem;
+  }
+
+  .tarea-edit-section {
+    padding: 1rem;
+  }
+
+  .tarea-edit-actions {
+    flex-direction: column-reverse;
+    padding: 1rem;
+  }
+
+  .btn-tarea-light,
+  .btn-tarea-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ==================== MODAL DETALLE TAREA ==================== */
+/* Estilos específicos para el modal de ver detalle de tarea */
+
+.tarea-modal-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 0;
+  border-bottom: 3px solid var(--gris-separador);
+  margin-bottom: 1rem;
+}
+
+.tarea-modal-heading h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+/* Pills inline (prioridad y estado) */
+.tarea-modal-pills-inline {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tarea-modal-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  border: 3px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-modal-pill:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--negro-carbon);
+}
+
+/* Colores de prioridad */
+.tarea-modal-pill.prioridad-alta {
+  background: var(--rojo-vino);
+  color: var(--blanco);
+}
+
+.tarea-modal-pill.prioridad-media {
+  background: var(--amarillo-dorado);
+  color: var(--negro-carbon);
+}
+
+.tarea-modal-pill.prioridad-baja {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+/* Colores de estado */
+.tarea-modal-pill.estado-pendiente {
+  background: var(--gris-claro);
+  color: var(--texto-principal);
+}
+
+.tarea-modal-pill.estado-en_proceso {
+  background: var(--azul-profundo);
+  color: var(--blanco);
+}
+
+.tarea-modal-pill.estado-completada {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+.tarea-modal-pill.estado-cancelada {
+  background: var(--rojo-vino);
+  color: var(--blanco);
+}
+
+/* Descripción de la tarea */
+.tarea-modal-descripcion {
+  padding: 1rem;
+  background: var(--bg-secundario);
+  border: 3px solid var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--texto-principal);
+}
+
+/* Grid de información */
+.tarea-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tarea-modal-info {
+  padding: 1rem;
+  background: var(--bg-principal);
+  border: 3px solid var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-modal-info:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.15);
+}
+
+.tarea-modal-info strong {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.tarea-modal-info span,
+.tarea-modal-info p {
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+  margin: 0;
+}
+
+/* Tags y acciones */
+.tarea-modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tarea-modal-tag {
+  padding: 0.4rem 0.8rem;
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border: 2px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+/* Contenedor de tags en modal de detalle */
+#tareaModalTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Tags como chips en modal de detalle */
+.tarea-tag-mini {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border: 2px solid var(--negro-carbon);
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.tarea-tag-mini:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+}
+
+.tarea-modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 3px solid var(--gris-separador);
+  padding-bottom: 2rem;
+}
+
+.tarea-modal-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 3px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tarea-modal-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.tarea-modal-btn:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+.tarea-modal-btn.btn-primary {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+.tarea-modal-btn.btn-danger {
+  background: var(--rojo-vino);
+  color: var(--blanco);
+}
+
+/* Servicios asignados */
+.tarea-modal-servicios {
+  margin-top: 1.5rem;
+}
+
+.servicios-asignados-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+.servicio-asignado-item {
+  padding: 1rem;
+  background: var(--bg-principal);
+  border: 4px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+  position: relative;
+  overflow: hidden;
+}
+
+.servicio-asignado-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--verde-oliva);
+}
+
+.servicio-asignado-item:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: 9px 9px 0 var(--negro-carbon);
+}
+
+.servicio-asignado-item h5 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin: 0 0 0.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.servicio-asignado-item h5 i {
+  color: var(--verde-oliva);
+  font-size: 1.1rem;
+}
+
+.servicio-asignado-item p {
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  margin: 0.3rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.servicio-asignado-item p i {
+  width: 16px;
+  color: var(--texto-terciario);
+  font-size: 0.85rem;
+}
+
+.servicio-estado-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.6rem;
+  border: 2px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  margin-top: 0.5rem;
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+.servicio-estado-badge.activo {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+.servicio-estado-badge.inactivo {
+  background: var(--gris-oscuro);
+  color: var(--blanco);
+}
+
+/* Mensaje cuando no hay servicios */
+.no-servicios-mensaje {
+  padding: 2rem;
+  text-align: center;
+  background: var(--bg-secundario);
+  border: 3px dashed var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  color: var(--texto-secundario);
+  font-size: 0.9rem;
+}
+
+.no-servicios-mensaje i {
+  font-size: 2.5rem;
+  color: var(--texto-terciario);
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tarea-modal-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .servicios-asignados-lista {
+    grid-template-columns: 1fr;
+  }
+
+  .tarea-modal-actions {
+    flex-direction: column;
+  }
+
+  .tarea-modal-btn {
+    width: 100%;
+  }
+}
+
+/* Scrollbar personalizado para modales de tareas */
+.modal-detalles-body::-webkit-scrollbar,
+.tarea-edit-historial::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modal-detalles-body::-webkit-scrollbar-track,
+.tarea-edit-historial::-webkit-scrollbar-track {
+  background: var(--gris-separador);
+  border-radius: 10px;
+}
+
+.modal-detalles-body::-webkit-scrollbar-thumb,
+.tarea-edit-historial::-webkit-scrollbar-thumb {
+  background: var(--verde-oliva);
+  border-radius: 10px;
+}
+
+.modal-detalles-body::-webkit-scrollbar-thumb:hover,
+.tarea-edit-historial::-webkit-scrollbar-thumb:hover {
+  background: var(--gris-grafito);
 }
