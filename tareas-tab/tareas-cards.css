@@ -98,8 +98,8 @@
 /* Priority badges - con indicador circular */
 .badge.prioridad-alta {
     background: #FFEBEE;
-    color: var(--prioridad-alta);
     border-color: var(--negro-carbon);
+    padding: 0rem 0.7rem 0rem 0.7rem;
 }
 
 .badge.prioridad-alta::before {
@@ -122,8 +122,8 @@
 
 .badge.prioridad-baja {
     background: #E8F5E9;
-    color: var(--prioridad-baja);
     border-color: var(--negro-carbon);
+    padding: 0rem 0.7rem 0rem 0.7rem;
 }
 
 .badge.prioridad-baja::before {
@@ -369,9 +369,12 @@
 }
 
 @keyframes skeleton-pulse {
-    0%, 100% {
+
+    0%,
+    100% {
         opacity: 0.8;
     }
+
     50% {
         opacity: 0.5;
     }
@@ -524,6 +527,7 @@
     0% {
         background-position: -200% 0;
     }
+
     100% {
         background-position: 200% 0;
     }
@@ -540,6 +544,7 @@
         opacity: 0;
         transform: translate3d(-20px, -20px, 0) scale(0.9);
     }
+
     100% {
         opacity: 1;
         transform: translate3d(0, 0, 0) scale(1);
