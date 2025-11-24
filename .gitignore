@@ -34,6 +34,7 @@ bootstrap.php
 # Base de datos de desarrollo (mantener solo schema)
 db/*.db
 db/*.sqlite
+db/backups/
 !db/schema.sql
 
 # Logs
