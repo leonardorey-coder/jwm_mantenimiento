@@ -1,0 +1,591 @@
+/* =================================
+   TASK CARDS STYLES - BRUTAL DESIGN
+   ================================= */
+
+/* Card container - Estilo brutal consistente con habitaciones */
+.lista-cuartos .cuarto-item {
+    background: var(--bg-principal);
+    border: 4px solid var(--border-color);
+    border-radius: var(--radio-grande);
+    padding: 0;
+    box-shadow: 8px 8px 0 var(--gris-oscuro);
+    transition: var(--transicion-normal);
+    position: relative;
+    overflow: hidden;
+    will-change: transform, box-shadow;
+}
+
+/* Borde superior colorido como en las cards de habitaciones */
+.lista-cuartos .cuarto-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, var(--verde-oliva) 0%, var(--rojo-vino) 100%);
+}
+
+.lista-cuartos .cuarto-item:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: 11px 11px 0 var(--gris-oscuro);
+}
+
+/* Card content wrapper */
+.cuarto-contenido {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header section with badges */
+.cuarto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+    gap: 1rem;
+    border-bottom: 3px solid var(--border-color);
+}
+
+.cuarto-numero-container {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+}
+
+/* Badge base styles - estilo brutal y consistente */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 24px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    border: 2px solid var(--negro-carbon);
+}
+
+/* Status badges - colores consistentes */
+.badge.status-completed {
+    background: var(--prioridad-baja);
+    color: var(--blanco);
+    border-color: var(--negro-carbon);
+}
+
+.badge.status-pending {
+    background: #FFF8E1;
+    color: var(--negro-carbon);
+    border-color: var(--negro-carbon);
+}
+
+.badge.status-progress {
+    background: #E3F2FD;
+    color: var(--negro-carbon);
+    border-color: var(--negro-carbon);
+}
+
+.badge.status-cancelled {
+    background: var(--gris-claro);
+    color: var(--texto-secundario);
+    border-color: var(--negro-carbon);
+}
+
+/* Priority badges - con indicador circular */
+.badge.prioridad-alta {
+    background: #FFEBEE;
+    color: var(--prioridad-alta);
+    border-color: var(--negro-carbon);
+}
+
+.badge.prioridad-alta::before {
+    content: '●';
+    font-size: 1.2rem;
+    color: var(--prioridad-alta);
+}
+
+.badge.prioridad-media {
+    background: #FFF8E1;
+    color: var(--prioridad-media);
+    border-color: var(--negro-carbon);
+}
+
+.badge.prioridad-media::before {
+    content: '●';
+    font-size: 1.2rem;
+    color: var(--prioridad-media);
+}
+
+.badge.prioridad-baja {
+    background: #E8F5E9;
+    color: var(--prioridad-baja);
+    border-color: var(--negro-carbon);
+}
+
+.badge.prioridad-baja::before {
+    content: '●';
+    font-size: 1.2rem;
+    color: var(--prioridad-baja);
+}
+
+/* Main content section */
+.cuarto-info {
+    padding: 1.5rem 1.5rem 1.25rem;
+    border-bottom: 3px solid var(--border-color);
+}
+
+.tarea-titulo {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    color: var(--texto-principal);
+    line-height: 1.3;
+}
+
+/* Location - estilo consistente */
+.tarea-ubicacion {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    color: var(--texto-secundario);
+    font-weight: 500;
+}
+
+.tarea-ubicacion i {
+    color: var(--verde-oliva);
+    font-size: 1.1rem;
+}
+
+/* Due date badge - estilo brutal */
+.tarea-vencimiento {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 24px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid var(--negro-carbon);
+    margin-bottom: 1rem;
+}
+
+.tarea-vencimiento.vencido {
+    background: #FFEBEE;
+    color: var(--prioridad-alta);
+}
+
+.tarea-vencimiento.proximo {
+    background: #FFEBEE;
+    color: var(--prioridad-alta);
+}
+
+.tarea-vencimiento.normal {
+    background: #E3F2FD;
+    color: var(--negro-carbon);
+}
+
+.tarea-vencimiento i {
+    font-size: 0.9rem;
+}
+
+/* Tags - estilo consistente con sistema */
+.tarea-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.tarea-tags .tag {
+    background: var(--gris-claro);
+    color: var(--texto-principal);
+    padding: 0.4rem 0.9rem;
+    border-radius: 24px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid var(--negro-carbon);
+}
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 2px solid #2c2c2c;
+}
+
+/* Footer section - estilo brutal consistente */
+.cuarto-acciones {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.25rem 1.5rem;
+}
+
+.tarea-responsable {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.tarea-responsable-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--bg-principal);
+    border: 3px solid var(--negro-carbon);
+    color: var(--negro-carbon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.tarea-responsable-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.tarea-responsable-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--texto-secundario);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tarea-responsable-nombre {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--texto-principal);
+}
+
+/* Action buttons - estilo brutal */
+.tarea-acciones-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-cuarto-action {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radio-pequeno);
+    border: 3px solid var(--negro-carbon);
+    background: var(--bg-principal);
+    color: var(--negro-carbon);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transicion-rapida);
+    box-shadow: 3px 3px 0 var(--gris-oscuro);
+}
+
+.btn-cuarto-action:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 5px 5px 0 var(--gris-oscuro);
+}
+
+.btn-cuarto-action.btn-edit {
+    background: var(--verde-oliva);
+    color: var(--blanco);
+}
+
+.btn-cuarto-action.btn-edit:hover {
+    background: var(--gris-grafito);
+}
+
+.btn-cuarto-action i {
+    font-size: 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .lista-cuartos .cuarto-item {
+        box-shadow: 5px 5px 0 var(--gris-oscuro);
+    }
+
+    .lista-cuartos .cuarto-item:hover {
+        transform: translate(-2px, -2px);
+        box-shadow: 7px 7px 0 var(--gris-oscuro);
+    }
+
+    .cuarto-header {
+        padding: 1rem 1.25rem;
+        flex-wrap: wrap;
+    }
+
+    .cuarto-info {
+        padding: 1.25rem;
+    }
+
+    .cuarto-acciones {
+        padding: 1rem 1.25rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .tarea-titulo {
+        font-size: 1.15rem;
+    }
+
+    .btn-cuarto-action {
+        width: 40px;
+        height: 40px;
+    }
+}
+
+
+/* Card container adjustments */
+.lista-cuartos .cuarto-item {
+    background: white;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.lista-cuartos .cuarto-item:hover {
+    border-color: #4c544c;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+/* Card header with badges */
+.cuarto-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.75rem;
+    gap: 0.5rem;
+}
+
+.cuarto-numero-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.cuarto-numero {
+    font-size: 0.75rem;
+    color: #666;
+    font-weight: 600;
+}
+
+/* Badge base styles */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+/* Priority badges */
+.badge.prioridad-alta {
+    background: #fff3f3;
+    color: #d32f2f;
+    border: 1.5px solid #d32f2f;
+}
+
+.badge.prioridad-media {
+    background: #fff8e1;
+    color: #f57c00;
+    border: 1.5px solid #f57c00;
+}
+
+.badge.prioridad-baja {
+    background: #e8f5e9;
+    color: #388e3c;
+    border: 1.5px solid #388e3c;
+}
+
+/* Status badges */
+.badge.status-pending {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1.5px solid #2e7d32;
+}
+
+.badge.status-progress {
+    background: #fff8e1;
+    color: #f57c00;
+    border: 1.5px solid #f57c00;
+}
+
+.badge.status-completed {
+    background: #e8f5e9;
+    color: #2e7d32;
+    border: 1.5px solid #2e7d32;
+}
+
+.badge.status-cancelled {
+    background: #f5f5f5;
+    color: #666;
+    border: 1.5px solid #999;
+}
+
+/* Task content */
+.cuarto-info {
+    margin-bottom: 1rem;
+}
+
+.tarea-titulo {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0.75rem;
+    color: #1a1a1a;
+    line-height: 1.4;
+}
+
+.tarea-descripcion {
+    font-size: 0.85rem;
+    color: #666;
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Meta information */
+.tarea-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.tarea-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.tarea-meta i {
+    color: #4c544c;
+    width: 16px;
+    text-align: center;
+}
+
+/* Due date badge */
+.tarea-meta .badge {
+    background: #e3f2fd;
+    color: #1976d2;
+    border: 1.5px solid #1976d2;
+    font-size: 0.65rem;
+    padding: 0.25rem 0.6rem;
+}
+
+/* Tags */
+.tarea-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+}
+
+.tarea-tags .tag {
+    background: #f5f5f5;
+    color: #333;
+    padding: 0.3rem 0.7rem;
+    border-radius: 16px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    border: 1px solid #ddd;
+}
+
+/* Footer with responsible and actions */
+.cuarto-acciones {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e0e0e0;
+}
+
+.tarea-responsable {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.tarea-responsable-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #4c544c;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+}
+
+.tarea-acciones-btns {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-cuarto-action {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1.5px solid #ddd;
+    background: white;
+    color: #666;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-cuarto-action:hover {
+    border-color: #4c544c;
+    background: #f5f5f5;
+    color: #333;
+}
+
+.btn-cuarto-action i {
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .lista-cuartos .cuarto-item {
+        padding: 1rem;
+    }
+
+    .tarea-titulo {
+        font-size: 0.95rem;
+    }
+
+    .cuarto-header {
+        flex-direction: column;
+    }
+}

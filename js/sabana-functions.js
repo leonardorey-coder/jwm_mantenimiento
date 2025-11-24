@@ -112,6 +112,16 @@ async function cambiarServicioActual(sabanaId) {
             }
         }
 
+        const periodoEl = document.getElementById('periodoActual');
+        if (periodoEl && sabana.fecha_creacion) {
+            const fechaCreacion = new Date(sabana.fecha_creacion);
+            periodoEl.textContent = `Creación: ${fechaCreacion.toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            })}`;
+        }
+
         renderSabanaTable(currentSabanaItems, sabana.archivada);
 
         // Poblar el select de edificios
@@ -329,7 +339,58 @@ async function toggleRealizadoSabana(itemId, realizado) {
             throw new Error('Error al actualizar item');
         }
 
-        await cambiarServicioActual(currentSabanaId);
+        const data = await response.json();
+        console.log('✅ Item actualizado:', data);
+
+        if (data.success && data.item) {
+            const localItem = currentSabanaItems.find(i => i.id === itemId);
+            if (localItem) {
+                localItem.realizado = realizado;
+                localItem.fecha_realizado = data.item.fecha_realizado;
+                if (data.item.responsable) {
+                    localItem.responsable = data.item.responsable;
+                    localItem.responsable_nombre = data.item.responsable;
+                    localItem.usuario_responsable_id = data.item.usuario_responsable_id;
+                }
+            }
+
+            const checkbox = document.querySelector(`input.checkbox-sabana[data-item-id="${itemId}"]`);
+            if (checkbox) {
+                const row = checkbox.closest('tr');
+                if (row) {
+                    const fechaRealizadoCell = row.cells[3];
+                    if (fechaRealizadoCell) {
+                        const fechaRealizado = data.item.fecha_realizado
+                            ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                            : null;
+                        
+                        fechaRealizadoCell.innerHTML = fechaRealizado
+                            ? `<span class="fecha-realizado">${fechaRealizado}</span>`
+                            : '<span style="color: #999;">-</span>';
+                        
+                        fechaRealizadoCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
+                        setTimeout(() => {
+                            fechaRealizadoCell.style.backgroundColor = '';
+                        }, 1000);
+                    }
+
+                    if (data.item.responsable) {
+                        const responsableCell = row.cells[4];
+                        if (responsableCell) {
+                            responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
+                            responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
+                            setTimeout(() => {
+                                responsableCell.style.backgroundColor = '';
+                            }, 1000);
+                        }
+                        poblarPersonalSabana(currentSabanaItems);
+                    }
+                }
+            }
+
+            actualizarContadoresSabana(currentSabanaItems);
+        }
+
         mostrarMensajeSabana(realizado ? 'Marcado como realizado' : 'Marcado como pendiente', 'success');
 
     } catch (error) {
@@ -384,7 +445,7 @@ async function guardarObservacionSabana(itemId, observaciones) {
                         if (responsableCell) {
                             responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
                             // Efecto visual de actualización
-                            responsableCell.style.backgroundColor = '#e8f5e9';
+                            responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
                             setTimeout(() => {
                                 responsableCell.style.backgroundColor = '';
                             }, 1000);

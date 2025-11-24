@@ -18,28 +18,28 @@ class PostgresManager {
     async initialize() {
         try {
             console.log('🔌 Inicializando conexión a PostgreSQL...');
-            
+
             // Validar configuración
             validateConfig();
             displayConfig();
-            
+
             // Crear pool de conexiones
             this.pool = new Pool(dbConfig);
-            
+
             // Manejar errores del pool
             this.pool.on('error', (err) => {
                 console.error('❌ Error inesperado en el pool de PostgreSQL:', err);
             });
-            
+
             // Probar conexión
             const client = await this.pool.connect();
             const result = await client.query('SELECT NOW()');
             console.log('✅ Conexión a PostgreSQL establecida:', result.rows[0].now);
             client.release();
-            
+
             // Crear tablas si no existen
             await this.createTables();
-            
+
             console.log('✅ Base de datos PostgreSQL inicializada correctamente');
         } catch (error) {
             console.error('❌ Error inicializando PostgreSQL:', error);
@@ -59,15 +59,15 @@ class PostgresManager {
                 WHERE table_schema = 'public' 
                 AND table_name IN ('edificios', 'cuartos', 'mantenimientos')
             `);
-            
+
             const tablesExist = parseInt(result.rows[0].count) === 3;
-            
+
             if (tablesExist) {
                 console.log('✅ Las tablas ya existen, verificando migraciones...');
                 await this.runMigrations();
                 return;
             }
-            
+
             // Si no existen, crear las tablas básicas (sin DROP ni INSERT)
             console.log('📄 Creando tablas en la base de datos...');
             await this.createBasicTables();
@@ -90,22 +90,22 @@ class PostgresManager {
                 WHERE table_name = 'mantenimientos' 
                 AND column_name = 'dia_alerta'
             `);
-            
+
             if (columnCheck.rows.length > 0 && columnCheck.rows[0].data_type === 'integer') {
                 console.log('🔄 Migrando dia_alerta de INTEGER a DATE...');
-                
+
                 // 1. Limpiar columna temporal si existe de intentos anteriores
                 await this.pool.query(`
                     ALTER TABLE mantenimientos 
                     DROP COLUMN IF EXISTS dia_alerta_temp
                 `);
-                
+
                 // 2. Eliminar vista que depende de dia_alerta (si existe)
                 await this.pool.query(`DROP VIEW IF EXISTS vista_mantenimientos_completa CASCADE`);
-                
+
                 // 3. Agregar columna temporal
                 await this.pool.query(`ALTER TABLE mantenimientos ADD COLUMN dia_alerta_temp DATE`);
-                
+
                 // 4. Migrar datos existentes
                 await this.pool.query(`
                     UPDATE mantenimientos 
@@ -117,16 +117,16 @@ class PostgresManager {
                     WHERE dia_alerta IS NOT NULL 
                     AND dia_alerta BETWEEN 1 AND 31
                 `);
-                
+
                 // 5. Eliminar columna antigua
                 await this.pool.query(`ALTER TABLE mantenimientos DROP COLUMN dia_alerta`);
-                
+
                 // 6. Renombrar columna temporal
                 await this.pool.query(`ALTER TABLE mantenimientos RENAME COLUMN dia_alerta_temp TO dia_alerta`);
-                
+
                 console.log('✅ Migración de dia_alerta completada (INTEGER → DATE)');
             }
-            
+
             // Verificar si existe columna prioridad
             const prioridadCheck = await this.pool.query(`
                 SELECT column_name 
@@ -134,7 +134,7 @@ class PostgresManager {
                 WHERE table_name = 'mantenimientos' 
                 AND column_name = 'prioridad'
             `);
-            
+
             if (prioridadCheck.rows.length === 0) {
                 console.log('🔄 Agregando columna prioridad...');
                 await this.pool.query(`
@@ -144,7 +144,7 @@ class PostgresManager {
                 `);
                 console.log('✅ Columna prioridad agregada');
             }
-            
+
             // Verificar si existe columna alerta_emitida
             const alertaEmitidaCheck = await this.pool.query(`
                 SELECT column_name 
@@ -152,7 +152,7 @@ class PostgresManager {
                 WHERE table_name = 'mantenimientos' 
                 AND column_name = 'alerta_emitida'
             `);
-            
+
             if (alertaEmitidaCheck.rows.length === 0) {
                 console.log('🔄 Agregando columna alerta_emitida...');
                 await this.pool.query(`
@@ -161,7 +161,53 @@ class PostgresManager {
                 `);
                 console.log('✅ Columna alerta_emitida agregada');
             }
-            
+
+            // Verificar si existe tabla tareas
+            const tareasTableCheck = await this.pool.query(`
+                SELECT COUNT(*) as count 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'tareas'
+            `);
+
+            if (parseInt(tareasTableCheck.rows[0].count) === 0) {
+                console.log('🔄 Creando tabla tareas...');
+                await this.pool.query(`
+                    CREATE TABLE IF NOT EXISTS tareas (
+                        id SERIAL PRIMARY KEY,
+                        titulo VARCHAR(255) NOT NULL,
+                        descripcion TEXT,
+                        estado VARCHAR(50) DEFAULT 'pendiente',
+                        prioridad VARCHAR(50) DEFAULT 'media',
+                        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        fecha_vencimiento DATE,
+                        creado_por INTEGER REFERENCES usuarios(id),
+                        asignado_a INTEGER REFERENCES usuarios(id),
+                        ubicacion VARCHAR(255),
+                        tags TEXT[],
+                        archivos TEXT[]
+                    )
+                `);
+                console.log('✅ Tabla tareas creada');
+            }
+
+            // Verificar si existe columna tarea_id en mantenimientos
+            const tareaIdCheck = await this.pool.query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'mantenimientos' 
+                AND column_name = 'tarea_id'
+            `);
+
+            if (tareaIdCheck.rows.length === 0) {
+                console.log('🔄 Agregando columna tarea_id a mantenimientos...');
+                await this.pool.query(`
+                    ALTER TABLE mantenimientos 
+                    ADD COLUMN tarea_id INTEGER REFERENCES tareas(id) ON DELETE SET NULL
+                `);
+                console.log('✅ Columna tarea_id agregada');
+            }
+
         } catch (error) {
             console.error('⚠️ Error ejecutando migraciones:', error);
             // No lanzar error para no bloquear la aplicación
@@ -263,7 +309,7 @@ class PostgresManager {
         if (!estadosPermitidos.includes(nuevoEstado)) {
             throw new Error(`Estado no válido. Debe ser uno de: ${estadosPermitidos.join(', ')}`);
         }
-        
+
         const query = `
             UPDATE cuartos 
             SET estado = $1,
@@ -271,13 +317,13 @@ class PostgresManager {
             WHERE id = $2
             RETURNING *
         `;
-        
+
         const result = await this.pool.query(query, [nuevoEstado, id]);
-        
+
         if (result.rows.length === 0) {
             throw new Error('Cuarto no encontrado');
         }
-        
+
         // Obtener el cuarto completo con información del edificio
         return await this.getCuartoById(id);
     }
@@ -314,7 +360,7 @@ class PostgresManager {
             ORDER BY cantidad DESC
         `;
         const result = await this.pool.query(query);
-        
+
         // Convertir a objeto con formato { disponible: 10, ocupado: 5, ... }
         const estadisticas = {
             disponible: 0,
@@ -323,12 +369,12 @@ class PostgresManager {
             fuera_servicio: 0,
             total: 0
         };
-        
+
         result.rows.forEach(row => {
             estadisticas[row.estado] = parseInt(row.cantidad);
             estadisticas.total += parseInt(row.cantidad);
         });
-        
+
         return estadisticas;
     }
 
@@ -396,23 +442,23 @@ class PostgresManager {
     async getEstadisticasConColores() {
         const estadisticas = await this.getEstadisticasEstados();
         const configuracion = this.getConfiguracionEstados();
-        
+
         // Combinar estadísticas con configuración de colores
         const resultado = {
             total: estadisticas.total,
             estados: {}
         };
-        
+
         Object.keys(configuracion).forEach(estado => {
             resultado.estados[estado] = {
                 ...configuracion[estado],
                 cantidad: estadisticas[estado] || 0,
-                porcentaje: estadisticas.total > 0 
+                porcentaje: estadisticas.total > 0
                     ? ((estadisticas[estado] || 0) / estadisticas.total * 100).toFixed(1)
                     : 0
             };
         });
-        
+
         return resultado;
     }
 
@@ -437,15 +483,15 @@ class PostgresManager {
             LEFT JOIN usuarios ua ON m.usuario_asignado_id = ua.id
             LEFT JOIN roles r ON ua.rol_id = r.id
         `;
-        
+
         let params = [];
         if (cuartoId) {
             query += ' WHERE m.cuarto_id = $1';
             params.push(cuartoId);
         }
-        
+
         query += ' ORDER BY m.fecha_creacion DESC';
-        
+
         const result = await this.pool.query(query, params);
         return result.rows;
     }
@@ -460,7 +506,7 @@ class PostgresManager {
             ) VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING *
         `;
-        
+
         const values = [
             data.cuarto_id,
             data.descripcion,
@@ -469,9 +515,9 @@ class PostgresManager {
             data.dia_alerta || null,  // Ahora acepta fecha completa YYYY-MM-DD
             data.prioridad || 'media'
         ];
-        
+
         const result = await this.pool.query(query, values);
-        
+
         // Obtener el registro completo con joins
         if (result.rows[0]) {
             const fullQuery = `
@@ -484,7 +530,7 @@ class PostgresManager {
             const fullResult = await this.pool.query(fullQuery, [result.rows[0].id]);
             return fullResult.rows[0];
         }
-        
+
         return result.rows[0];
     }
 
@@ -497,14 +543,14 @@ class PostgresManager {
         const currentQuery = 'SELECT dia_alerta, hora FROM mantenimientos WHERE id = $1';
         const currentResult = await this.pool.query(currentQuery, [id]);
         const currentRecord = currentResult.rows[0];
-        
+
         // Determinar si cambió la fecha o la hora
         const fechaCambio = currentRecord && data.dia_alerta && currentRecord.dia_alerta !== data.dia_alerta;
         const horaCambio = currentRecord && data.hora && currentRecord.hora !== data.hora;
-        
+
         let query;
         let values;
-        
+
         if (fechaCambio || horaCambio) {
             // Si cambió fecha u hora, resetear alerta_emitida a FALSE
             console.log(`🔄 Reseteando alerta_emitida para mantenimiento ${id} (fecha cambió: ${fechaCambio}, hora cambió: ${horaCambio})`);
@@ -523,7 +569,7 @@ class PostgresManager {
                 RETURNING *
             `;
         }
-        
+
         values = [
             data.descripcion,
             data.hora,
@@ -531,7 +577,7 @@ class PostgresManager {
             data.prioridad || 'media',
             id
         ];
-        
+
         const result = await this.pool.query(query, values);
         return result.rows[0];
     }
@@ -579,11 +625,11 @@ class PostgresManager {
         `;
         const result = await this.pool.query(query);
         const count = result.rows.length;
-        
+
         if (count > 0) {
             console.log(`✅ Marcadas ${count} alertas pasadas como emitidas:`, result.rows.map(r => r.id));
         }
-        
+
         return count;
     }
 
@@ -620,16 +666,16 @@ class PostgresManager {
             WHERE m.tipo = 'rutina'
             AND m.alerta_emitida = TRUE
         `;
-        
+
         const params = [];
-        
+
         if (fecha) {
             query += ` AND m.dia_alerta = $1`;
             params.push(fecha);
         }
-        
+
         query += ` ORDER BY m.dia_alerta DESC, m.hora DESC`;
-        
+
         const result = await this.pool.query(query, params);
         return result.rows;
     }
@@ -654,7 +700,7 @@ class PostgresManager {
             AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
             ORDER BY m.dia_alerta ASC, m.hora ASC
         `;
-        
+
         const result = await this.pool.query(query);
         return result.rows;
     }
@@ -685,7 +731,7 @@ class PostgresManager {
      * @returns {Promise<Array>} Lista de usuarios
      */
     async getUsuarios(includeInactive = false) {
-        const condition = includeInactive 
+        const condition = includeInactive
             ? '1=1'
             : 'u.activo = TRUE AND u.fecha_baja IS NULL';
 
@@ -1015,7 +1061,7 @@ class PostgresManager {
         if (!this.pool) {
             return { connected: false };
         }
-        
+
         return {
             connected: true,
             totalCount: this.pool.totalCount,
@@ -1030,26 +1076,26 @@ class PostgresManager {
 
     async createSabana(data) {
         const { nombre, servicio_id, servicio_nombre, usuario_creador_id, notas, cuartos } = data;
-        
+
         const client = await this.pool.connect();
         try {
             await client.query('BEGIN');
-            
+
             const querySabana = `
                 INSERT INTO sabanas (nombre, servicio_id, servicio_nombre, usuario_creador_id, notas)
                 VALUES ($1, $2, $3, $4, $5)
                 RETURNING *
             `;
             const resultSabana = await client.query(querySabana, [
-                nombre, 
-                servicio_id, 
-                servicio_nombre, 
-                usuario_creador_id || null, 
+                nombre,
+                servicio_id,
+                servicio_nombre,
+                usuario_creador_id || null,
                 notas || null
             ]);
-            
+
             const sabana = resultSabana.rows[0];
-            
+
             if (cuartos && cuartos.length > 0) {
                 const queryItems = `
                     INSERT INTO sabanas_items (
@@ -1059,7 +1105,7 @@ class PostgresManager {
                     )
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                 `;
-                
+
                 for (const cuarto of cuartos) {
                     await client.query(queryItems, [
                         sabana.id,
@@ -1076,7 +1122,7 @@ class PostgresManager {
                     ]);
                 }
             }
-            
+
             await client.query('COMMIT');
             return await this.getSabanaById(sabana.id);
         } catch (error) {
@@ -1103,7 +1149,7 @@ class PostgresManager {
 
     async getSabanaById(id) {
         console.log('🔍 [DB] Buscando sábana con ID:', id);
-        
+
         const querySabana = `
             SELECT s.*, 
                    u.nombre as creador_nombre,
@@ -1113,15 +1159,15 @@ class PostgresManager {
             WHERE s.id = $1
         `;
         const resultSabana = await this.pool.query(querySabana, [id]);
-        
+
         if (resultSabana.rows.length === 0) {
             console.log('❌ [DB] Sábana no encontrada con ID:', id);
             return null;
         }
-        
+
         const sabana = resultSabana.rows[0];
         console.log('✅ [DB] Sábana encontrada:', sabana.nombre);
-        
+
         const queryItems = `
             SELECT si.id,
                    si.sabana_id,
@@ -1147,20 +1193,20 @@ class PostgresManager {
             ORDER BY e.nombre, c.numero
         `;
         const resultItems = await this.pool.query(queryItems, [id]);
-        
+
         sabana.items = resultItems.rows;
         console.log('📦 [DB] Items cargados:', resultItems.rows.length);
-        
+
         return sabana;
     }
 
     async updateSabanaItem(itemId, data) {
         const { fecha_realizado, responsable, usuario_responsable_id, observaciones, realizado } = data;
-        
+
         const campos = [];
         const valores = [];
         let contador = 1;
-        
+
         if (fecha_realizado !== undefined) {
             campos.push(`fecha_realizado = $${contador++}`);
             valores.push(fecha_realizado);
@@ -1180,33 +1226,33 @@ class PostgresManager {
         if (realizado !== undefined) {
             campos.push(`realizado = $${contador++}`);
             valores.push(realizado);
-            
+
             if (realizado && !fecha_realizado) {
                 campos.push(`fecha_realizado = $${contador++}`);
                 valores.push(new Date());
             }
         }
-        
+
         if (campos.length === 0) {
             throw new Error('No hay campos para actualizar');
         }
-        
+
         valores.push(itemId);
-        
+
         const query = `
             UPDATE sabanas_items
             SET ${campos.join(', ')}
             WHERE id = $${contador}
             RETURNING *
         `;
-        
+
         const result = await this.pool.query(query, valores);
         return result.rows[0];
     }
 
     async archivarSabana(sabanaId) {
         console.log('🗄️ [DB] Archivando sábana ID:', sabanaId);
-        
+
         const query = `
             UPDATE sabanas
             SET archivada = true,
@@ -1215,18 +1261,18 @@ class PostgresManager {
             RETURNING *
         `;
         const result = await this.pool.query(query, [sabanaId]);
-        
+
         if (result.rows.length === 0) {
             throw new Error(`Sábana con ID ${sabanaId} no encontrada`);
         }
-        
+
         console.log('✅ [DB] Sábana archivada:', {
             id: result.rows[0].id,
             nombre: result.rows[0].nombre,
             archivada: result.rows[0].archivada,
             fecha_archivado: result.rows[0].fecha_archivado
         });
-        
+
         return result.rows[0];
     }
 
@@ -1271,6 +1317,140 @@ class PostgresManager {
         `;
         const result = await this.pool.query(query, [servicioId, includeArchivadas]);
         return result.rows;
+    }
+    // =====================================
+    // Gestión de Tareas
+    // =====================================
+
+    /**
+     * Obtener tareas con filtros opcionales
+     */
+    async getTareas(filters = {}) {
+        let query = `
+            SELECT t.*, 
+                   uc.nombre as creado_por_nombre,
+                   ua.nombre as asignado_a_nombre,
+                   ua.rol_id as asignado_a_rol_id,
+                   r.nombre as asignado_a_rol_nombre,
+                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id) as total_mantenimientos,
+                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id AND m.estado = 'completado') as mantenimientos_completados
+            FROM tareas t
+            LEFT JOIN usuarios uc ON t.creado_por = uc.id
+            LEFT JOIN usuarios ua ON t.asignado_a = ua.id
+            LEFT JOIN roles r ON ua.rol_id = r.id
+            WHERE 1=1
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (filters.estado) {
+            query += ` AND t.estado = $${paramCount++}`;
+            params.push(filters.estado);
+        }
+
+        if (filters.prioridad) {
+            query += ` AND t.prioridad = $${paramCount++}`;
+            params.push(filters.prioridad);
+        }
+
+        if (filters.asignado_a) {
+            query += ` AND t.asignado_a = $${paramCount++}`;
+            params.push(filters.asignado_a);
+        }
+
+        query += ' ORDER BY t.fecha_creacion DESC';
+
+        const result = await this.pool.query(query, params);
+        return result.rows;
+    }
+
+    /**
+     * Obtener una tarea por ID
+     */
+    async getTareaById(id) {
+        const query = `
+            SELECT t.*, 
+                   uc.nombre as creado_por_nombre,
+                   ua.nombre as asignado_a_nombre,
+                   ua.rol_id as asignado_a_rol_id,
+                   r.nombre as asignado_a_rol_nombre
+            FROM tareas t
+            LEFT JOIN usuarios uc ON t.creado_por = uc.id
+            LEFT JOIN usuarios ua ON t.asignado_a = ua.id
+            LEFT JOIN roles r ON ua.rol_id = r.id
+            WHERE t.id = $1
+        `;
+        const result = await this.pool.query(query, [id]);
+        return result.rows[0];
+    }
+
+    /**
+     * Crear una nueva tarea
+     */
+    async createTarea(data) {
+        const query = `
+            INSERT INTO tareas (
+                titulo, descripcion, estado, prioridad, fecha_vencimiento, 
+                creado_por, asignado_a, ubicacion, tags
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING *
+        `;
+
+        const values = [
+            data.titulo,
+            data.descripcion,
+            data.estado || 'pendiente',
+            data.prioridad || 'media',
+            data.fecha_vencimiento || null,
+            data.creado_por,
+            data.asignado_a || null,
+            data.ubicacion || null,
+            data.tags || []
+        ];
+
+        const result = await this.pool.query(query, values);
+        return result.rows[0];
+    }
+
+    /**
+     * Actualizar una tarea existente
+     */
+    async updateTarea(id, data) {
+        const campos = [];
+        const valores = [];
+        let contador = 1;
+
+        if (data.titulo !== undefined) { campos.push(`titulo = $${contador++}`); valores.push(data.titulo); }
+        if (data.descripcion !== undefined) { campos.push(`descripcion = $${contador++}`); valores.push(data.descripcion); }
+        if (data.estado !== undefined) { campos.push(`estado = $${contador++}`); valores.push(data.estado); }
+        if (data.prioridad !== undefined) { campos.push(`prioridad = $${contador++}`); valores.push(data.prioridad); }
+        if (data.fecha_vencimiento !== undefined) { campos.push(`fecha_vencimiento = $${contador++}`); valores.push(data.fecha_vencimiento); }
+        if (data.asignado_a !== undefined) { campos.push(`asignado_a = $${contador++}`); valores.push(data.asignado_a); }
+        if (data.ubicacion !== undefined) { campos.push(`ubicacion = $${contador++}`); valores.push(data.ubicacion); }
+        if (data.tags !== undefined) { campos.push(`tags = $${contador++}`); valores.push(data.tags); }
+
+        if (campos.length === 0) return null;
+
+        valores.push(id);
+        const query = `
+            UPDATE tareas
+            SET ${campos.join(', ')}
+            WHERE id = $${contador}
+            RETURNING *
+        `;
+
+        const result = await this.pool.query(query, valores);
+        return result.rows[0];
+    }
+
+    /**
+     * Eliminar una tarea
+     */
+    async deleteTarea(id) {
+        const query = 'DELETE FROM tareas WHERE id = $1 RETURNING *';
+        const result = await this.pool.query(query, [id]);
+        return result.rows[0];
     }
 }
 

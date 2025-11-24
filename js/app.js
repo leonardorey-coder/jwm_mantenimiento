@@ -447,18 +447,29 @@ function setupFiltrosToggle() {
     const contenedorFiltros = document.getElementById('contenedorFiltros');
 
     if (toggleBtn && contenedorFiltros) {
+        // Asegurar que empiece cerrado (remover clase 'show' si existe)
+        contenedorFiltros.classList.remove('show');
+        toggleBtn.classList.remove('active');
+
         toggleBtn.addEventListener('click', () => {
             contenedorFiltros.classList.toggle('show');
             toggleBtn.classList.toggle('active');
 
             const isOpen = contenedorFiltros.classList.contains('show');
             localStorage.setItem('filtrosOpen', isOpen);
+            console.log('🔄 Filtros toggled:', isOpen ? 'ABIERTO' : 'CERRADO');
         });
 
+        // Solo abrir si el usuario lo abrió previamente
         const filtrosOpen = localStorage.getItem('filtrosOpen');
+        console.log('📱 Estado inicial filtros desde localStorage:', filtrosOpen);
+
         if (filtrosOpen === 'true') {
             contenedorFiltros.classList.add('show');
             toggleBtn.classList.add('active');
+            console.log('✅ Filtros abiertos (preferencia guardada)');
+        } else {
+            console.log('✅ Filtros cerrados (estado por defecto)');
         }
     }
 
@@ -467,6 +478,10 @@ function setupFiltrosToggle() {
     const contenedorFiltrosEspacios = document.getElementById('contenedorFiltrosEspacios');
 
     if (toggleBtnEspacios && contenedorFiltrosEspacios) {
+        // Asegurar que empiece cerrado
+        contenedorFiltrosEspacios.classList.remove('show');
+        toggleBtnEspacios.classList.remove('active');
+
         toggleBtnEspacios.addEventListener('click', () => {
             contenedorFiltrosEspacios.classList.toggle('show');
             toggleBtnEspacios.classList.toggle('active');
@@ -487,6 +502,10 @@ function setupFiltrosToggle() {
     const contenedorFiltrosSabana = document.getElementById('contenedorFiltrosSabana');
 
     if (toggleBtnSabana && contenedorFiltrosSabana) {
+        // Asegurar que empiece cerrado
+        contenedorFiltrosSabana.classList.remove('show');
+        toggleBtnSabana.classList.remove('active');
+
         toggleBtnSabana.addEventListener('click', () => {
             contenedorFiltrosSabana.classList.toggle('show');
             toggleBtnSabana.classList.toggle('active');
@@ -499,6 +518,30 @@ function setupFiltrosToggle() {
         if (filtrosSabanaOpen === 'true') {
             contenedorFiltrosSabana.classList.add('show');
             toggleBtnSabana.classList.add('active');
+        }
+    }
+
+    // Toggle para Tareas
+    const toggleBtnTareas = document.getElementById('toggleFiltrosTareas');
+    const contenedorFiltrosTareas = document.getElementById('contenedorFiltrosTareas');
+
+    if (toggleBtnTareas && contenedorFiltrosTareas) {
+        // Asegurar que empiece cerrado
+        contenedorFiltrosTareas.classList.remove('show');
+        toggleBtnTareas.classList.remove('active');
+
+        toggleBtnTareas.addEventListener('click', () => {
+            contenedorFiltrosTareas.classList.toggle('show');
+            toggleBtnTareas.classList.toggle('active');
+
+            const isOpen = contenedorFiltrosTareas.classList.contains('show');
+            localStorage.setItem('filtrosTareasOpen', isOpen);
+        });
+
+        const filtrosTareasOpen = localStorage.getItem('filtrosTareasOpen');
+        if (filtrosTareasOpen === 'true') {
+            contenedorFiltrosTareas.classList.add('show');
+            toggleBtnTareas.classList.add('active');
         }
     }
 }
@@ -682,7 +725,7 @@ function setupMobileViewSelector() {
                 button.classList.add('active');
 
                 // Alternar visibilidad de columnas
-                if (view === 'habitaciones') {
+                if (view === 'habitaciones' || view === 'tareas') {
                     if (columnaHabitaciones) columnaHabitaciones.style.display = 'block';
                     if (columnaAlertas) columnaAlertas.style.display = 'none';
                 } else if (view === 'alertas') {
@@ -760,8 +803,17 @@ function loadTabData(tabId) {
             }
             break;
         case 'tareas':
+            // Ensure module is loaded
             if (window.ensureTareasModule) {
                 window.ensureTareasModule();
+            }
+            // Load task cards
+            if (window.refrescarTarjetasTareas) {
+                window.refrescarTarjetasTareas();
+            }
+            // Load upcoming deadlines
+            if (window.cargarProximosVencimientos) {
+                window.cargarProximosVencimientos();
             }
             break;
     }
@@ -1005,14 +1057,9 @@ function updateServiciosStats(data) {
 
     const completadosEl = document.getElementById('serviciosCompletados');
     const totalesEl = document.getElementById('serviciosTotales');
-    const periodoEl = document.getElementById('periodoActual');
 
     if (completadosEl) completadosEl.textContent = completados;
     if (totalesEl) totalesEl.textContent = total;
-    if (periodoEl) {
-        const fecha = new Date();
-        periodoEl.textContent = `${fecha.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' })}`;
-    }
 }
 
 function toggleServicioRealizado(tipoServicio, cuartoId) {
@@ -1545,9 +1592,19 @@ async function cargarAlertasEspacios() {
             return !m.alerta_emitida;
         });
 
+        const mensajeNoAlertasEspacios = document.getElementById('mensaje-no-alertas-espacios');
+
         if (alertasPendientes.length === 0) {
-            listaAlertas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas pendientes</li>';
+            listaAlertas.innerHTML = '';
+            listaAlertas.style.display = 'none';
+            if (mensajeNoAlertasEspacios) {
+                mensajeNoAlertasEspacios.style.display = 'block';
+            }
         } else {
+            listaAlertas.style.display = 'block';
+            if (mensajeNoAlertasEspacios) {
+                mensajeNoAlertasEspacios.style.display = 'none';
+            }
             listaAlertas.innerHTML = alertasPendientes.map(alerta => `
                 <li class="alerta-item prioridad-${alerta.prioridad || 'media'}">
                     <div class="alerta-info">
@@ -1580,9 +1637,19 @@ async function cargarAlertasEspacios() {
             return fechaAlerta.getTime() === hoy.getTime();
         });
 
+        const mensajeNoAlertasEmitidas = document.getElementById('mensaje-no-alertas-emitidas-espacios');
+
         if (alertasEmitidas.length === 0) {
-            listaEmitidas.innerHTML = '<li class="mensaje-no-items"><i class="fas fa-check-circle"></i> No hay alertas del día</li>';
+            listaEmitidas.innerHTML = '';
+            listaEmitidas.style.display = 'none';
+            if (mensajeNoAlertasEmitidas) {
+                mensajeNoAlertasEmitidas.style.display = 'block';
+            }
         } else {
+            listaEmitidas.style.display = 'block';
+            if (mensajeNoAlertasEmitidas) {
+                mensajeNoAlertasEmitidas.style.display = 'none';
+            }
             listaEmitidas.innerHTML = alertasEmitidas.map(alerta => `
                 <li class="alerta-item alerta-emitida prioridad-${alerta.prioridad || 'media'}">
                     <div class="alerta-info">

@@ -75,7 +75,7 @@ function mostrarSkeletonsIniciales() {
  */
 function mostrarCuartos() {
     console.log('=== MOSTRANDO CUARTOS ===');
-    
+
     // Usar referencias directas al estado compartido
     const s = getState();
     const cuartos = s.cuartos;
@@ -275,19 +275,19 @@ function mostrarCuartos() {
                         <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
                             <label class="estado-label-inline">Estado de Habitación</label>
                             <div class="estado-pills-inline">
-                                <button type="button" class="estado-pill-inline ${estadoText ==="Disponible" ? 'estado-pill-inline-activo' : '' } disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
+                                <button type="button" ${estadoText === "Disponible" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Disponible" ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Disp.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline ${estadoText ==="Ocupado" ? 'estado-pill-inline-activo' : '' } ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
+                                <button type="button" ${estadoText === "Ocupado" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Ocupado" ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Ocup.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline ${estadoText ==="En Mantenimiento" ? 'estado-pill-inline-activo' : '' } mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
+                                <button type="button" ${estadoText === "En Mantenimiento" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "En Mantenimiento" ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Mant.</span>
                                 </button>
-                                <button type="button" class="estado-pill-inline ${estadoText ==="Fuera de Servicio" ? 'estado-pill-inline-activo' : '' } fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
+                                <button type="button" ${estadoText === "Fuera de Servicio" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Fuera de Servicio" ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Fuera</span>
                                 </button>
@@ -413,8 +413,8 @@ function renderizarPaginacionCuartos(totalCuartos) {
 
     if (botonAnterior) {
         botonAnterior.addEventListener('click', () => {
-            if (paginaActualCuartos > 1) {
-                paginaActualCuartos -= 1;
+            if (window.appLoaderState.paginaActualCuartos > 1) {
+                window.appLoaderState.paginaActualCuartos -= 1;
                 mostrarCuartos();
                 // Esperar a que el DOM se actualice antes de hacer scroll
                 setTimeout(() => desplazarListaCuartosAlInicio(), 100);
@@ -424,8 +424,8 @@ function renderizarPaginacionCuartos(totalCuartos) {
 
     if (botonSiguiente) {
         botonSiguiente.addEventListener('click', () => {
-            if (paginaActualCuartos < totalPaginasCuartos) {
-                paginaActualCuartos += 1;
+            if (window.appLoaderState.paginaActualCuartos < window.appLoaderState.totalPaginasCuartos) {
+                window.appLoaderState.paginaActualCuartos += 1;
                 mostrarCuartos();
                 // Esperar a que el DOM se actualice antes de hacer scroll
                 setTimeout(() => desplazarListaCuartosAlInicio(), 100);
@@ -603,6 +603,12 @@ function actualizarCardCuartoEnUI(cuartoId) {
     // Actualizar caché de mantenimientos primero
     window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
     const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
+    // Ordenar por fecha de creación descendente (más recientes primero)
+    mantenimientosCuarto.sort((a, b) => {
+        const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+        const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+        return fechaB - fechaA;
+    });
     window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
 
     const cardElement = document.getElementById(`cuarto-${cuartoId}`);
@@ -677,29 +683,29 @@ function seleccionarCuarto(cuartoId) {
 /**
      * Actualizar selector de estado con el estado actual del cuarto
      */
-    function actualizarSelectorEstado(cuartoId) {
-        const estadoSelector = document.getElementById('estadoCuartoSelector');
-        if (!estadoSelector) return;
+function actualizarSelectorEstado(cuartoId) {
+    const estadoSelector = document.getElementById('estadoCuartoSelector');
+    if (!estadoSelector) return;
 
-        // Buscar el cuarto en el array
-        const cuarto = cuartos.find(c => c.id === cuartoId);
+    // Buscar el cuarto en el array
+    const cuarto = cuartos.find(c => c.id === cuartoId);
 
-        // Remover clase activo de todos los pills
-        const pills = document.querySelectorAll('.estado-pill');
-        pills.forEach(pill => pill.classList.remove('activo'));
+    // Remover clase activo de todos los pills
+    const pills = document.querySelectorAll('.estado-pill');
+    pills.forEach(pill => pill.classList.remove('activo'));
 
-        if (cuarto && cuarto.estado) {
-            estadoSelector.value = cuarto.estado;
+    if (cuarto && cuarto.estado) {
+        estadoSelector.value = cuarto.estado;
 
-            // Activar el pill correspondiente
-            const pillActivo = document.querySelector(`.estado-pill[data-estado="${cuarto.estado}"]`);
-            if (pillActivo) {
-                pillActivo.classList.add('activo');
-            }
-        } else {
-            estadoSelector.value = '';
+        // Activar el pill correspondiente
+        const pillActivo = document.querySelector(`.estado-pill[data-estado="${cuarto.estado}"]`);
+        if (pillActivo) {
+            pillActivo.classList.add('activo');
         }
+    } else {
+        estadoSelector.value = '';
     }
+}
 
 /**
  * Seleccionar cuarto desde el select (sin scroll automático)
@@ -747,6 +753,7 @@ function mostrarFormularioInline(cuartoId) {
             </button>
         </div>
         <form onsubmit="guardarServicioInline(event, ${cuartoId})">
+        <div class="name-tipo-toggle-inline-container" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px;">
             <input type="text" 
                     class="input-inline" 
                     name="descripcion" 
@@ -767,6 +774,7 @@ function mostrarFormularioInline(cuartoId) {
                     </span>
                 </label>
             </div>
+        </div>
             
             <!-- Selector de Estado del Mantenimiento -->
             <div class="estado-mantenimiento-selector-inline">
@@ -804,18 +812,18 @@ function mostrarFormularioInline(cuartoId) {
                 <label class="prioridad-label-inline">
                     <i class="fas fa-traffic-light"></i> Prioridad
                 </label>
-                <div class="prioridad-inline">
-                    <label class="prioridad-item">
+                <div class="semaforo-edicion-inline">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="baja" checked>
-                        <span class="prioridad-badge baja">🟢 Baja</span>
+                        <span class="semaforo-circle green"></span>
                     </label>
-                    <label class="prioridad-item">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="media">
-                        <span class="prioridad-badge media">🟡 Media</span>
+                        <span class="semaforo-circle yellow"></span>
                     </label>
-                    <label class="prioridad-item">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="alta">
-                        <span class="prioridad-badge alta">🔴 Alta</span>
+                        <span class="semaforo-circle red"></span>
                     </label>
                 </div>
             </div>
@@ -829,6 +837,23 @@ function mostrarFormularioInline(cuartoId) {
             <input type="hidden" name="tipo" value="normal">
             <input type="hidden" id="estadoCuartoInline-${cuartoId}" name="estado_cuarto" value="${estadoCuarto}">
             
+                    <!-- Botón de Crear Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
+            <div class="tarea-asignada-selector-inline">
+                <label class="tarea-asignada-label-inline">
+                    <i class="fas fa-tasks"></i> Asignar Tarea (Opcional)
+                </label>
+                <div class="tarea-asignada-inputs-inline" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; margin-top: 10px;">
+                <button style="font-size: 0.7rem; display: flex; align-items: center; gap: 5px; flex-direction: row; flex-wrap: nowrap;" type="button" class="btn-inline btn-crear-tarea" onclick="abrirModalCrearTarea(${cuartoId})">
+                    <i class="fas fa-plus"></i> Crear
+                </button>
+                <!-- Se deberá deshabilitar si el input "tareaAsignadaInline-${cuartoId}" tiene un valor y el option pasará a estar vacío-->
+                    <select id="tareaAsignadaInline-${cuartoId}" class="input-inline selector-tarea-servicio" name="tarea_asignada_id">
+                        <option value="">-- Sin asignar existente --</option>
+                        
+                    </select>
+                </div>
+            </div>
+
             <div class="form-inline-actions">
                 <button type="button" class="btn-inline btn-cancelar" onclick="cerrarFormularioInline(${cuartoId})">
                     Cancelar
@@ -854,6 +879,12 @@ function mostrarFormularioInline(cuartoId) {
 
     // Reorganizar servicios existentes (mostrar máximo 1 servicio después del formulario)
     reorganizarServiciosConForm(cuartoId);
+
+    // Poblar selector de tareas con las tareas disponibles
+    const selectorTareas = document.getElementById(`tareaAsignadaInline-${cuartoId}`);
+    if (selectorTareas && typeof window.cargarTareasEnSelector === 'function') {
+        window.cargarTareasEnSelector(`tareaAsignadaInline-${cuartoId}`);
+    }
 
     // Focus en el input de descripción
     setTimeout(() => {
@@ -890,7 +921,7 @@ function reorganizarServiciosConForm(cuartoId) {
 /**
  * Cerrar formulario inline
  */
-function cerrarFormularioInline (cuartoId) {
+function cerrarFormularioInline(cuartoId) {
     const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
     if (!contenedorServicios) return;
 
@@ -918,7 +949,7 @@ window.cerrarFormularioInline = cerrarFormularioInline;
 /**
  * Toggle tipo de servicio en formulario inline
  */
-function toggleTipoServicioInline (cuartoId) {
+function toggleTipoServicioInline(cuartoId) {
     const checkbox = document.getElementById(`tipoToggle-${cuartoId}`);
     const camposAlerta = document.getElementById(`camposAlerta-${cuartoId}`);
     const form = checkbox.closest('form');
@@ -939,7 +970,7 @@ window.toggleTipoServicioInline = toggleTipoServicioInline;
 /**
  * Seleccionar estado en formulario inline
  */
-async function seleccionarEstadoInline (cuartoId, nuevoEstado, boton) {
+async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
     const s = getState();
     try {
         console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
@@ -1032,7 +1063,7 @@ function formularioEdicionInlineLleno(cuartoId) {
     return true;
 }
 
-function deshabilitarBotonGuardarInline (cuartoId, deshabilitar) {
+function deshabilitarBotonGuardarInline(cuartoId, deshabilitar) {
     const botonGuardar = document.getElementById(`btn-guardar-${cuartoId}`);
     if (!botonGuardar) return;
 
@@ -1079,7 +1110,7 @@ window.deshabilitarBotonGuardarInline = deshabilitarBotonGuardarInline;
 /**
  * Guardar servicio desde formulario inline
  */
-async function guardarServicioInline (event, cuartoId) {
+async function guardarServicioInline(event, cuartoId) {
     event.preventDefault();
 
     const form = event.target;
@@ -1087,6 +1118,7 @@ async function guardarServicioInline (event, cuartoId) {
 
     // Obtener prioridad del radio button
     const prioridadRadio = form.querySelector(`input[name="prioridad-${cuartoId}"]:checked`);
+
 
     const datos = {
         cuarto_id: cuartoId,
@@ -1098,6 +1130,7 @@ async function guardarServicioInline (event, cuartoId) {
         estado_cuarto: formData.get('estado_cuarto'),
         estado: formData.get('estado_mantenimiento') || 'pendiente',
         usuario_asignado_id: formData.get('usuario_asignado_id') || null,
+        tarea_id: formData.get('tarea_asignada_id') || null,  // Asignar tarea al servicio
         notas: formData.get('notas') || null
     };
 
@@ -1126,7 +1159,7 @@ async function guardarServicioInline (event, cuartoId) {
         console.log('🌐 Enviando request a:', `${window.API_BASE_URL}/api/mantenimientos`);
 
         // Obtener headers con autenticación (await porque es async)
-        const headers = await obtenerHeadersConAuth();
+        const headers = window.obtenerHeadersConAuth ? await window.obtenerHeadersConAuth() : { 'Content-Type': 'application/json' };
         console.log('🔑 Headers con auth:', headers);
 
         const response = await fetch(`${window.API_BASE_URL}/api/mantenimientos`, {
@@ -1150,12 +1183,38 @@ async function guardarServicioInline (event, cuartoId) {
         // Cerrar formulario
         cerrarFormularioInline(cuartoId);
 
+        // Actualizar array de mantenimientos localmente
+        const s = getState();
+        if (s.mantenimientos && Array.isArray(s.mantenimientos)) {
+            // Agregar el nuevo servicio al principio del array
+            s.mantenimientos.unshift(resultado);
+            
+            // Ordenar por fecha de creación descendente (más recientes primero)
+            s.mantenimientos.sort((a, b) => {
+                const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+                const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+                return fechaB - fechaA;
+            });
+            
+            // Actualizar caché de mantenimientos por cuarto
+            window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
+            const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
+            // Ordenar también la caché
+            mantenimientosCuarto.sort((a, b) => {
+                const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+                const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+                return fechaB - fechaA;
+            });
+            window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
+        }
+
+        // Actualizar solo el contenedor de servicios de esta habitación
+        actualizarCardCuartoEnUI(cuartoId);
+
         // Marcar automáticamente las alertas pasadas (por si la nueva alerta ya pasó)
         await window.marcarAlertasPasadasComoEmitidas();
 
-        // Recargar datos y actualizar toda la interfaz
-        await window.cargarDatos();
-        mostrarCuartos();
+        // Actualizar selectores y alertas sin recargar todas las cards
         window.cargarCuartosEnSelect();
         window.mostrarAlertasYRecientes();
 
@@ -1184,7 +1243,7 @@ window.guardarServicioInline = guardarServicioInline;
 /**
  * Toggle de mantenimientos (función esperada por los botones)
  */
-function toggleMantenimientos (cuartoId, button) {
+function toggleMantenimientos(cuartoId, button) {
     const lista = document.getElementById(`mantenimientos-${cuartoId}`);
     if (!lista) return;
 
@@ -1201,7 +1260,7 @@ window.toggleMantenimientos = toggleMantenimientos;
 /**
  * Eliminar mantenimiento inline
  */
-async function eliminarMantenimientoInline (mantenimientoId, cuartoId) {
+async function eliminarMantenimientoInline(mantenimientoId, cuartoId) {
     console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
 
     if (!confirm('¿Está seguro de eliminar este mantenimiento?')) {
@@ -1246,7 +1305,7 @@ window.eliminarMantenimientoInline = eliminarMantenimientoInline;
 /**
  * Scroll a cuarto específico
  */
-function scrollToCuarto (cuartoId) {
+function scrollToCuarto(cuartoId) {
     const cuarto = document.getElementById(`cuarto-${cuartoId}`);
     if (cuarto) {
         // Solo hacer scroll a la card sin seleccionarla

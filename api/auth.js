@@ -9,7 +9,7 @@ const crypto = require('crypto');
 
 // Configuración JWT
 const JWT_SECRET = process.env.JWT_SECRET || 'jwm_mant_secret_key_2025_change_in_production';
-const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '1h'; // 1 hora
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION || '8h'; // 8 horas (aumentado para desarrollo)
 const REFRESH_TOKEN_EXPIRATION = process.env.REFRESH_TOKEN_EXPIRATION || '7d'; // 7 días
 
 /**
@@ -36,7 +36,7 @@ function generarJWT(usuario) {
 
     // Calcular fecha de expiración
     const expiration = new Date();
-    expiration.setHours(expiration.getHours() + 1); // 1 hora
+    expiration.setHours(expiration.getHours() + 8); // 8 horas
 
     return {
         token,
@@ -50,7 +50,7 @@ function generarJWT(usuario) {
  */
 function generarRefreshToken() {
     const token = crypto.randomBytes(64).toString('hex');
-    
+
     // Calcular fecha de expiración (7 días)
     const expiration = new Date();
     expiration.setDate(expiration.getDate() + 7);
@@ -92,7 +92,7 @@ function verificarJWT(token) {
 function verificarAutenticacion(req, res, next) {
     // Obtener token del header Authorization
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({
             error: 'No autorizado',
@@ -227,12 +227,12 @@ function extraerInfoDispositivo(userAgent) {
  * @returns {string} IP del cliente
  */
 function obtenerIPCliente(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0] || 
-           req.headers['x-real-ip'] || 
-           req.connection?.remoteAddress || 
-           req.socket?.remoteAddress || 
-           req.ip || 
-           'unknown';
+    return req.headers['x-forwarded-for']?.split(',')[0] ||
+        req.headers['x-real-ip'] ||
+        req.connection?.remoteAddress ||
+        req.socket?.remoteAddress ||
+        req.ip ||
+        'unknown';
 }
 
 module.exports = {

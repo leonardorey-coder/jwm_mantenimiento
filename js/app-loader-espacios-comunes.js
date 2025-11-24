@@ -58,7 +58,7 @@ function mostrarSkeletonsEspacios() {
 async function cargarEspaciosComunes() {
     try {
         console.log('📥 [ESPACIOS] Cargando datos de espacios comunes...');
-        
+
         // Usar window.API_BASE_URL para asegurar acceso a la variable global
         const baseUrl = window.API_BASE_URL || '';
 
@@ -610,18 +610,18 @@ function mostrarFormularioInlineEspacio(espacioId) {
                 <label class="prioridad-label-inline">
                     <i class="fas fa-traffic-light"></i> Prioridad
                 </label>
-                <div class="prioridad-inline">
-                    <label class="prioridad-item">
+                <div class="semaforo-edicion-inline">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="baja" checked>
-                        <span class="prioridad-badge baja">🟢 Baja</span>
+                        <span class="semaforo-circle green"></span>
                     </label>
-                    <label class="prioridad-item">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="media">
-                        <span class="prioridad-badge media">🟡 Media</span>
+                        <span class="semaforo-circle yellow"></span>
                     </label>
-                    <label class="prioridad-item">
+                    <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="alta">
-                        <span class="prioridad-badge alta">🔴 Alta</span>
+                        <span class="semaforo-circle red"></span>
                     </label>
                 </div>
             </div>
@@ -721,15 +721,15 @@ async function recargarMantenimientosEspacios() {
 
             // Actualizar mantenimientosEspacios locales
             mantenimientosEspacios = nuevosMantenimientosEspacios;
-            
+
             // Actualizar AppState
             if (window.appLoaderState) {
                 window.appLoaderState.mantenimientosEspacios = mantenimientosEspacios;
-                
+
                 // Sincronizar también con el array general de mantenimientos del loader principal
                 // Si mantenimientos es una referencia a appLoaderState.mantenimientos
                 const mantenimientosGenerales = window.appLoaderState.mantenimientos;
-                
+
                 nuevosMantenimientosEspacios.forEach(servicioActualizado => {
                     const indexEnMantenimientos = mantenimientosGenerales.findIndex(m => m.id === servicioActualizado.id);
                     if (indexEnMantenimientos !== -1) {
@@ -831,7 +831,7 @@ async function guardarServicioEspacioInline(event, espacioId) {
 
         // Actualizar localmente
         mantenimientosEspacios.unshift(nuevoServicio);
-        
+
         // Actualizar estado global si existe
         if (window.appLoaderState && window.appLoaderState.mantenimientosEspacios) {
             window.appLoaderState.mantenimientosEspacios = mantenimientosEspacios;
@@ -934,7 +934,7 @@ async function cambiarEstadoEspacio(espacioId) {
     try {
         const baseUrl = window.API_BASE_URL || '';
         const headers = window.obtenerHeadersConAuth ? await window.obtenerHeadersConAuth() : { 'Content-Type': 'application/json' };
-        
+
         const response = await fetch(`${baseUrl}/api/espacios-comunes/${espacioId}`, {
             method: 'PUT',
             headers: headers,
