@@ -9,6 +9,7 @@ logs/
 .env.local
 .env.development
 .env.test
+db/backups/
 
 # Documentación
 docs/
