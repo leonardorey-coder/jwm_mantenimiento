@@ -55,6 +55,68 @@
     flex: 1;
 }
 
+/* Progress bar container - barra delgada de progreso */
+.tarea-progress-container {
+    width: 100%;
+    height: 6px;
+    background: var(--gris-claro);
+    border-bottom: 2px solid var(--border-color);
+    position: relative;
+    overflow: hidden;
+}
+
+.tarea-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--verde-oliva) 0%, var(--prioridad-baja) 100%);
+    transition: width 0.5s ease-in-out;
+    position: relative;
+}
+
+.tarea-progress-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        rgba(255, 255, 255, 0.3) 0%, 
+        rgba(255, 255, 255, 0) 50%, 
+        rgba(255, 255, 255, 0.3) 100%);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+/* Progreso completo - color especial */
+.tarea-progress-bar.completed {
+    background: linear-gradient(90deg, var(--prioridad-baja) 0%, #43A047 100%);
+}
+
+/* Info del progreso - tooltip */
+.tarea-progress-info {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: var(--negro-carbon);
+    color: var(--blanco);
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    z-index: 5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.tarea-progress-container:hover .tarea-progress-info {
+    opacity: 1;
+}
+
 /* Badge base styles - estilo brutal y consistente */
 .badge {
     display: inline-flex;

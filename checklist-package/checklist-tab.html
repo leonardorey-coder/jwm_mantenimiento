@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Checklist - Paquete</title>
+  <link rel="stylesheet" href="checklist-styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+  <!-- Pestaña Checklist (fragmento listo para insertar) -->
+  <div class="tab-content" id="tab-checklist" data-aos="fade-in">
+    <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
+    <h2 class="titulos t-secundario">Control de Calidad de Habitaciones · JW Marriott</h2>
+
+    <div class="vista-duo">
+      <div class="columna columna-principal">
+        <div class="panel panel-filtros" data-aos="fade-down">
+          <div class="checklist-categorias-toggle-bar">
+            <button class="checklist-categorias-toggle" type="button" aria-expanded="false" id="toggleCategoriasBtn">
+              <i class="fas fa-sliders-h"></i>
+              <span>Filtros por categoría</span>
+              <i class="fas fa-chevron-down toggle-indicator" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="checklist-categorias-wrapper" id="checklistCategoriasWrapper" data-mobile-open="false">
+            <div class="checklist-categorias-filtro" id="checklistCategoriasFiltro" role="tablist">
+              <button class="categoria-btn active" type="button" data-categoria="" aria-pressed="true" data-categoria-btn>
+                <div class="categoria-btn-icon" aria-hidden="true"><i class="fas fa-th"></i></div>
+                <div class="categoria-btn-text"><span class="categoria-btn-label">Todas</span><small>Muestra todo</small></div>
+              </button>
+            </div>
+          </div>
+
+          <div class="busqueda-filtros">
+            <div class="campo-busqueda premium-search">
+              <i class="fas fa-search icono-busqueda"></i>
+              <input type="text" id="buscarChecklist" placeholder="Buscar ítem (ej: sofá, aire acondicionado)...">
+            </div>
+
+            <div class="select-container premium-select">
+              <select id="filtroEdificioChecklist">
+                <option value="">Todos los edificios</option>
+                <option value="Edificio A">Edificio A</option>
+                <option value="Edificio B">Edificio B</option>
+                <option value="Edificio C">Edificio C</option>
+              </select>
+              <i class="fas fa-chevron-down icono-select"></i>
+            </div>
+
+            <div class="select-container premium-select" data-semaforo-wrapper="estado">
+              <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+              <select id="filtroEstadoChecklist" data-semaforo-select="estado">
+                <option value="">Todos los estados</option>
+                <option value="bueno">Bueno</option>
+                <option value="regular">Regular</option>
+                <option value="malo">Malo</option>
+              </select>
+              <i class="fas fa-chevron-down icono-select"></i>
+            </div>
+
+            <div class="select-container premium-select">
+              <select id="filtroEditorChecklist" name="editor">
+                <option value="">Todos los editores</option>
+                <option value="Sofia">Sofía</option>
+                <option value="Carlos">Carlos</option>
+                <option value="Maria">María</option>
+                <option value="Juan">Juan</option>
+                <option value="Ana">Ana</option>
+                <option value="Luis">Luis</option>
+              </select>
+              <i class="fas fa-chevron-down icono-select"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="checklist-grid" id="checklistGrid">
+          <div class="mensaje-cargando">Cargando checklists...</div>
+        </div>
+
+        <div class="habitaciones-pagination checklist-pagination" id="checklistPaginacion" aria-live="polite"></div>
+      </div>
+
+      <div class="columna columna-lateral">
+        <div class="panel formulario-mantenimiento-lateral brutalist-card">
+          <div class="brutalist-card__header">
+            <div class="brutalist-card__icon"><i class="fas fa-layer-group"></i></div>
+            <div class="brutalist-card__alert">Nueva sección</div>
+          </div>
+          <p class="brutalist-card__message">Crea bloques adicionales (ej. "Decoración") y define ítems base.</p>
+          <form id="formNuevaSeccionChecklist" class="brutalist-card__form">
+            <label for="seccionNombre">Nombre de la sección</label>
+            <input type="text" id="seccionNombre" name="seccionNombre" class="brutalist-input" placeholder="Ej. Decoración" required>
+            <label for="seccionIcono">Icono</label>
+            <div class="select-container premium-select">
+              <select id="seccionIcono" name="seccionIcono" class="brutalist-input">
+                <option value="fa-layer-group">Genérico</option>
+                <option value="fa-couch">Mobiliario</option>
+                <option value="fa-temperature-half">Climatización</option>
+                <option value="fa-plug">Electrónica</option>
+              </select>
+              <i class="fas fa-chevron-down icono-select"></i>
+            </div>
+            <label for="seccionItems">Ítems iniciales (coma o salto de línea)</label>
+            <textarea id="seccionItems" name="seccionItems" class="brutalist-input" rows="3" placeholder="Ej. Cuadros, Alfombras, Iluminación"></textarea>
+            <button type="submit" class="brutalist-card__button brutalist-card__button--mark"><i class="fas fa-plus-circle"></i> Guardar sección</button>
+            <span class="checklist-add-feedback" id="checklistAddFeedback" aria-live="polite"></span>
+          </form>
+        </div>
+
+        <div class="panel panel-alertas-espacios gradient-card checklist-recientes-panel">
+          <div class="panel-header-alertas"><h2><i class="fas fa-clipboard-list"></i> Inspecciones</h2></div>
+          <div class="checklist-recientes-search premium-search"><i class="fas fa-search icono-busqueda"></i><input type="text" id="buscarInspeccionReciente" placeholder="Buscar inspección..."></div>
+          <div class="lista-inspecciones-wrapper">
+            <ul class="lista-inspecciones-resumen" id="listaInspeccionesRecientes">
+              <li class="inspeccion-placeholder"><i class="fas fa-spinner fa-spin"></i><span>Cargando inspecciones...</span></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="panel panel-vista-rutinas gradient-card admin-only">
+          <h2><i class="fas fa-file-export"></i> Acciones</h2>
+          <button class="brutalist-card__button brutalist-card__button--read" id="btnExportarChecklist"><i class="fas fa-file-excel"></i> Exportar Checklist</button>
+          <button class="brutalist-card__button brutalist-card__button--mark" id="btnGenerarReporte"><i class="fas fa-file-pdf"></i> Generar Reporte</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="checklist-scripts.js"></script>
+</body>
+</html>

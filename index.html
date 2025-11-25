@@ -559,6 +559,7 @@
                             <option value="pendiente">Pendiente</option>
                             <option value="en_proceso">En proceso</option>
                             <option value="completada">Completada</option>
+                            <option value="cancelada">Cancelada</option>
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
@@ -701,6 +702,12 @@
                                     <div class="action-button-metric">
                                         <span class="metric-label">Completadas</span>
                                         <strong id="tareasStatsCompletadas">0</strong>
+                                    </div>
+                                </button>
+                                <button class="action-button" type="button" aria-label="Tareas canceladas">
+                                    <div class="action-button-metric">
+                                        <span class="metric-label">Canceladas</span>
+                                        <strong id="tareasStatsCanceladas">0</strong>
                                     </div>
                                 </button>
                             </div>
@@ -1198,105 +1205,129 @@
             <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
             <h2 class="titulos t-secundario">Control de Calidad de Habitaciones</h2>
 
-            <!-- Selector de vistas para móvil -->
-            <div class="mobile-view-selector">
-                <button class="view-btn active" data-view="habitaciones">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Checklists</span>
-                </button>
-                <button class="view-btn" data-view="alertas">
-                    <i class="fas fa-bell"></i>
-                    <span>Alertas</span>
-                </button>
+            <!-- Toggle Categorías (Móvil) -->
+            <button class="checklist-categorias-toggle" type="button" id="toggleCategoriasBtn" aria-expanded="false"
+                aria-controls="checklistCategoriasWrapper">
+                <span><i class="fas fa-tags"></i> Categorías</span>
+                <i class="fas fa-chevron-down toggle-icon"></i>
+            </button>
+
+            <!-- Categorías Filtro -->
+            <div class="checklist-categorias-wrapper" id="checklistCategoriasWrapper" data-mobile-open="false">
+                <div class="checklist-categorias-filtro" id="checklistCategoriasFiltro">
+                    <button class="categoria-btn active" data-categoria="" aria-pressed="true" type="button"
+                        onclick="filtrarChecklistPorCategoria('')">
+                        <div class="categoria-btn-icon"><i class="fas fa-border-all"></i></div>
+                        <div class="categoria-btn-text"><span class="categoria-btn-label">Todas</span><small>Ver
+                                todo</small></div>
+                    </button>
+                    <!-- Las categorías se cargarán dinámicamente -->
+                </div>
             </div>
 
-            <!-- Estructura de vista duo (igual que Habitaciones) -->
-            <div class="vista-duo">
-                <!-- Columna izquierda (3/4) - Área de contenido dinámico -->
-                <div class="columna columna-principal">
-                    <!-- Buscador de Checklist -->
-                    <div class="panel panel-filtros" data-aos="fade-down">
-                        <div class="busqueda-filtros">
-                            <div class="campo-busqueda premium-search">
-                                <i class="fas fa-search icono-busqueda"></i>
-                                <input type="text" id="buscarChecklist"
-                                    placeholder="Buscar por item (ej: sofá, aire acondicionado)...">
-                            </div>
-                            <div class="select-container premium-select">
-                                <select id="filtroEstadoChecklist">
-                                    <option value="">Todos los estados</option>
-                                    <option value="bueno">Buen Estado</option>
-                                    <option value="regular">Regular</option>
-                                    <option value="malo">Malo</option>
-                                </select>
-                                <i class="fas fa-chevron-down icono-select"></i>
-                            </div>
-                        </div>
+            <!-- Buscador de Checklist (4 columnas) -->
+            <div class="panel panel-filtros checklist-search-panel" data-aos="fade-down">
+                <div class="checklist-search-grid">
+                    <div class="campo-busqueda premium-search">
+                        <i class="fas fa-search icono-busqueda"></i>
+                        <input type="text" id="buscarChecklist" placeholder="Buscar ítem (ej: sofá, aire...)">
                     </div>
-
-                    <!-- Grid de Habitaciones con Checklist -->
-                    <div class="checklist-grid" id="checklistGrid">
-                        <!-- Las habitaciones con checklist se cargarán aquí -->
-                        <div class="mensaje-cargando">Cargando checklists...</div>
+                    <div class="select-container premium-select">
+                        <select id="filtroEdificioChecklist">
+                            <option value="">Todos los edificios</option>
+                        </select>
+                        <i class="fas fa-building icono-select"></i>
                     </div>
-                </div>
-
-                <!-- Columna derecha (1/4) - Inspecciones Recientes -->
-                <div class="columna columna-lateral">
-                    <!-- Panel de Inspecciones Recientes -->
-                    <div class="panel panel-vista-recientes gradient-card" data-aos="fade-left">
-                        <h2><i class="fas fa-clipboard-list"></i> Inspecciones Recientes</h2>
-                        <ul class="lista-vista-recientes" id="listaInspeccionesRecientes">
-                            <li class="item-reciente">
-                                <div class="item-info">
-                                    <strong>101 - Revisión Aire Acondicionado</strong>
-                                    <span class="item-tecnico">Juan Pérez</span>
-                                </div>
-                                <span class="item-fecha">Hoy 10:30 AM</span>
-                                <span class="badge-aprobado">✓ Aprobada</span>
-                            </li>
-                            <li class="item-reciente">
-                                <div class="item-info">
-                                    <strong>102 - Reparación Plomería</strong>
-                                    <span class="item-tecnico">María López</span>
-                                </div>
-                                <span class="item-fecha">Hoy 09:15 AM</span>
-                                <span class="badge-pendiente">⏳ Pendiente</span>
-                            </li>
-                            <li class="item-reciente">
-                                <div class="item-info">
-                                    <strong>201 - Cambio de Filtros</strong>
-                                    <span class="item-tecnico">Carlos Ruiz</span>
-                                </div>
-                                <span class="item-fecha">Ayer 16:45 PM</span>
-                                <span class="badge-aprobado">✓ Aprobada</span>
-                            </li>
-                            <li class="item-reciente">
-                                <div class="item-info">
-                                    <strong>203 - Revisión TV</strong>
-                                    <span class="item-tecnico">Ana García</span>
-                                </div>
-                                <span class="item-fecha">Ayer 14:20 PM</span>
-                                <span class="badge-aprobado">✓ Aprobada</span>
-                            </li>
-                        </ul>
+                    <div class="select-container premium-select">
+                        <select id="filtroEstadoChecklist">
+                            <option value="">Todos los estados</option>
+                            <option value="bueno">Buen Estado</option>
+                            <option value="regular">Regular</option>
+                            <option value="malo">Malo</option>
+                        </select>
+                        <i class="fas fa-traffic-light icono-select"></i>
                     </div>
-
-                    <!-- Panel de Exportación (Solo Admin) -->
-                    <div class="panel panel-vista-rutinas gradient-card admin-only" data-aos="fade-left"
-                        data-aos-delay="100">
-                        <h2><i class="fas fa-file-export"></i> Acciones</h2>
-                        <button class="brutalist-card__button brutalist-card__button--read"
-                            onclick="exportarChecklistExcel()" style="width: 100%; margin-bottom: 1rem;">
-                            <i class="fas fa-file-excel"></i> Exportar Checklist
-                        </button>
-                        <button class="brutalist-card__button brutalist-card__button--mark"
-                            onclick="generarReporteChecklist()" style="width: 100%;">
-                            <i class="fas fa-file-pdf"></i> Generar Reporte
-                        </button>
+                    <div class="select-container premium-select">
+                        <select id="filtroEditorChecklist">
+                            <option value="">Todos los editores</option>
+                        </select>
+                        <i class="fas fa-user-edit icono-select"></i>
                     </div>
                 </div>
             </div>
+
+            <!-- Grid de Habitaciones con Checklist -->
+            <div class="checklist-grid" id="checklistGrid">
+                <div class="mensaje-cargando">Cargando checklists...</div>
+            </div>
+
+            <!-- Paginación -->
+            <div class="checklist-pagination" id="checklistPaginacion"></div>
+
+            <!-- Panel Lateral: Nueva Sección -->
+            <aside class="checklist-lateral-panel admin-only" id="panelNuevaSeccion" data-aos="fade-left">
+                <div class="panel-seccion-header">
+                    <h3><i class="fas fa-plus-circle"></i> Nueva Sección</h3>
+                    <p>Añade categorías personalizadas al checklist</p>
+                </div>
+                <form class="form-nueva-seccion" id="formNuevaSeccionChecklist">
+                    <div class="form-group">
+                        <label for="seccionNombre">Nombre de la sección</label>
+                        <input type="text" id="seccionNombre" placeholder="Ej: Electrodomésticos" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="seccionIcono">Icono</label>
+                        <select id="seccionIcono">
+                            <option value="fa-layer-group">📦 General</option>
+                            <option value="fa-plug">🔌 Eléctrico</option>
+                            <option value="fa-couch">🛋️ Mobiliario</option>
+                            <option value="fa-shower">🚿 Plomería</option>
+                            <option value="fa-temperature-half">🌡️ Climatización</option>
+                            <option value="fa-door-open">🚪 Estructura</option>
+                            <option value="fa-tv">📺 Electrónica</option>
+                            <option value="fa-concierge-bell">🔔 Amenidades</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="seccionItems">Ítems (separados por coma)</label>
+                        <textarea id="seccionItems" rows="3" placeholder="Ej: Microondas, Cafetera, Minibar"></textarea>
+                    </div>
+                    <button type="submit" class="btn-agregar-seccion">
+                        <i class="fas fa-plus"></i> Agregar Sección
+                    </button>
+                    <span class="checklist-add-feedback" id="checklistAddFeedback"></span>
+                </form>
+            </aside>
+
+            <!-- Panel Lateral: Inspecciones Recientes -->
+            <aside class="checklist-recientes-panel" id="panelInspeccionesRecientes" data-aos="fade-left"
+                data-aos-delay="100">
+                <div class="recientes-panel-header">
+                    <h3><i class="fas fa-clipboard-list"></i> Inspecciones Recientes</h3>
+                    <div class="recientes-busqueda">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="buscarInspeccionReciente" placeholder="Filtrar...">
+                    </div>
+                </div>
+                <ul class="lista-inspecciones-recientes" id="listaInspeccionesRecientes">
+                    <li class="inspeccion-placeholder"><i class="fas fa-clipboard-check"></i><span>Cargando
+                            inspecciones...</span></li>
+                </ul>
+            </aside>
+
+            <!-- Panel Lateral: Acciones Admin -->
+            <aside class="checklist-actions-panel admin-only" id="panelAccionesChecklist" data-aos="fade-left"
+                data-aos-delay="200">
+                <h3><i class="fas fa-cogs"></i> Acciones</h3>
+                <button class="btn-checklist-action" id="btnExportarChecklist">
+                    <i class="fas fa-file-excel"></i>
+                    <span>Exportar Checklist</span>
+                </button>
+                <button class="btn-checklist-action" id="btnGenerarReporte">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Generar Reporte</span>
+                </button>
+            </aside>
         </div>
 
         <!-- Tab Content: Gestión de Usuarios (Solo Admin) -->
@@ -2039,6 +2070,7 @@
     <link rel="stylesheet" href="tareas-tab/tareas-cards.css">
     <link rel="stylesheet" href="tareas-tab/tareas-timeline.css">
     <script src="tareas-tab/tareas-module.js"></script>
+    <script src="checklist-tab/checklist-tab.js"></script>
 </body>
 
 </html>
