@@ -2732,10 +2732,13 @@
         if (esEspacio) {
             renderizarServiciosEspacio(id);
         } else {
-            // Regenerar la vista en modo edición (sin formulario)
+            // Regenerar la vista respetando el estado del botón de edición
             const contenedorServicios = document.getElementById(`servicios-${id}`);
             const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+            // Verificar si el botón de edición está activo antes de renderizar
+            const botonEditar = document.getElementById(`btn-editar-${id}`);
+            const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
         }
     };
 
@@ -2821,7 +2824,10 @@
             const contenedorServicios = document.getElementById(`servicios-${id}`);
             if (contenedorServicios) {
                 const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                // Verificar si el botón de edición está activo antes de renderizar
+                const botonEditar = document.getElementById(`btn-editar-${id}`);
+                const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
 
                 // Actualizar selectores de tareas para todos los servicios del cuarto
                 serviciosCuarto.forEach(servicio => {
@@ -2877,7 +2883,10 @@
                 const contenedorServiciosActualizado = document.getElementById(`servicios-${id}`);
                 if (contenedorServiciosActualizado) {
                     const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                    contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                    // Verificar si el botón de edición está activo antes de renderizar
+                    const botonEditar = document.getElementById(`btn-editar-${id}`);
+                    const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+                    contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
 
                     // Actualizar selectores de tareas para todos los servicios del cuarto
                     serviciosCuarto.forEach(servicio => {
@@ -2920,7 +2929,10 @@
             } else {
                 if (contenedorServicios) {
                     const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
+                    // Verificar si el botón de edición está activo antes de renderizar
+                    const botonEditar = document.getElementById(`btn-editar-${id}`);
+                    const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
                 }
             }
             mostrarAlertasYRecientes();

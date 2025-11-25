@@ -1,4 +1,4 @@
-// tareas-tab/tareas-module.js
+// views/tareas/tareas-module.js
 
 /**
  * Módulo para la gestión de tareas, incluyendo la creación, edición,
@@ -34,6 +34,50 @@ const obtenerHeadersConAuth = () => {
 
     return headers;
 };
+
+/**
+ * Obtiene el rol del usuario actual
+ * @returns {string|null} El rol del usuario en formato normalizado (admin, supervisor, tecnico) o null
+ */
+function obtenerRolUsuarioActual() {
+    let userRole = null;
+
+    // Intentar obtener desde AppState
+    if (window.AppState && window.AppState.currentUser) {
+        userRole = window.AppState.currentUser.role || window.AppState.currentUser.rol;
+    }
+
+    // Si no está en AppState, intentar desde localStorage/sessionStorage
+    if (!userRole) {
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+            if (storedUser) {
+                userRole = storedUser.role || storedUser.rol;
+            }
+        } catch (e) {
+            console.warn('Error obteniendo usuario de storage:', e);
+        }
+    }
+
+    if (userRole) {
+        // Normalizar el rol a minúsculas
+        const roleMap = {
+            'admin': 'admin',
+            'supervisor': 'supervisor',
+            'tecnico': 'tecnico',
+            'administrador': 'admin',
+            'Administrador': 'admin',
+            'Supervisor': 'supervisor',
+            'Técnico': 'tecnico',
+            'TECNICO': 'tecnico',
+            'ADMIN': 'admin',
+            'SUPERVISOR': 'supervisor'
+        };
+        return roleMap[userRole] || roleMap[userRole.toLowerCase()] || userRole.toLowerCase();
+    }
+
+    return null;
+}
 
 
 // ------------------------------
@@ -304,6 +348,15 @@ async function abrirModalEditarTarea(tareaId) {
         }
         const tarea = await response.json();
 
+        // Verificar permisos de edición
+        const rolUsuario = obtenerRolUsuarioActual();
+
+        // Si el usuario es técnico y la tarea está completada o cancelada, mostrar modal de advertencia
+        if (rolUsuario === 'tecnico' && (tarea.estado === 'completada' || tarea.estado === 'cancelada')) {
+            mostrarModalAdvertenciaEdicion();
+            return;
+        }
+
         // Poblar formulario con los datos de la tarea
         await poblarFormularioEdicion(tarea);
 
@@ -558,6 +611,34 @@ async function submitEditarTarea(event) {
 // ------------------------------
 
 /**
+ * Muestra el modal de advertencia cuando un técnico intenta editar una tarea completada o cancelada
+ */
+function mostrarModalAdvertenciaEdicion() {
+    const modal = document.getElementById('modalAdvertenciaEdicion');
+    if (!modal) {
+        console.error('El modal de advertencia no se encuentra en el DOM.');
+        mostrarNotificacion('Contacta a administrador o supervisor', 'warning');
+        return;
+    }
+
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+}
+
+/**
+ * Cierra el modal de advertencia
+ */
+function cerrarModalAdvertenciaEdicion() {
+    const modal = document.getElementById('modalAdvertenciaEdicion');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+    }
+}
+
+/**
  * Muestra una notificación al usuario
  * @param {string} mensaje - El mensaje a mostrar
  * @param {string} tipo - El tipo de notificación ('success', 'error', 'warning', 'info')
@@ -623,9 +704,11 @@ function limpiarFormulario(formId) {
 /**
  * Retorna las opciones de estado permitidas según el estado actual de la tarea
  * @param {string} estadoActual - Estado actual de la tarea
+ * @param {boolean} progresoCompleto - Si la barra de progreso está al 100%
+ * @param {boolean} tieneServicios - Si la tarea tiene servicios asignados
  * @returns {Array} Array de objetos {value, label}
  */
-function obtenerOpcionesEstadoPermitidas(estadoActual) {
+function obtenerOpcionesEstadoPermitidas(estadoActual, progresoCompleto = true, tieneServicios = false) {
     const todasLasOpciones = [
         { value: 'pendiente', label: 'Pendiente' },
         { value: 'en_proceso', label: 'En Proceso' },
@@ -635,7 +718,15 @@ function obtenerOpcionesEstadoPermitidas(estadoActual) {
 
     switch (estadoActual) {
         case 'completada':
-            // Solo puede cambiar a cancelada o quedarse completada
+            // Si NO tiene servicios, permitir volver a cualquier estado (incluyendo pendiente)
+            if (!tieneServicios) {
+                return todasLasOpciones;
+            }
+            // Si tiene servicios pero el progreso no está completo, permitir volver a 'en_proceso'
+            if (!progresoCompleto) {
+                return todasLasOpciones.filter(o => o.value === 'completada' || o.value === 'en_proceso' || o.value === 'cancelada');
+            }
+            // Si el progreso está completo, solo puede cambiar a cancelada o quedarse completada
             return todasLasOpciones.filter(o => o.value === 'completada' || o.value === 'cancelada');
 
         case 'en_proceso':
@@ -686,7 +777,14 @@ async function poblarFormularioEdicion(tarea) {
     // Cargar opciones de estado según el estado actual (condicional)
     const selectEstado = document.getElementById('editarTareaEstado');
     if (selectEstado) {
-        const opciones = obtenerOpcionesEstadoPermitidas(tarea.estado || 'pendiente');
+        // Calcular si el progreso está completo basándose en los servicios
+        const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
+        const totalServicios = serviciosAsignados.length;
+        const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
+        const progresoCompleto = totalServicios > 0 && serviciosCompletados === totalServicios;
+        const tieneServicios = totalServicios > 0;
+
+        const opciones = obtenerOpcionesEstadoPermitidas(tarea.estado || 'pendiente', progresoCompleto, tieneServicios);
         selectEstado.innerHTML = opciones.map(opcion =>
             `<option value="${opcion.value}" ${opcion.value === tarea.estado ? 'selected' : ''}>${opcion.label}</option>`
         ).join('');
@@ -939,8 +1037,8 @@ async function actualizarTarjetaTarea(tareaId) {
             serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId);
         }
 
-        // Ajustar el estado de la tarea según el progreso real de sus servicios (solo si no está cancelada)
-        if (tareaActualizada.estado !== 'cancelada') {
+        // Ajustar el estado de la tarea según el progreso real de sus servicios (solo si no está cancelada ni completada)
+        if (tareaActualizada.estado !== 'cancelada' && tareaActualizada.estado !== 'completada') {
             const estadoDerivado = calcularEstadoDesdeServicios(serviciosAsignados) || tareaActualizada.estado;
             if (estadoDerivado && estadoDerivado !== tareaActualizada.estado) {
                 tareaActualizada.estado = estadoDerivado;
@@ -1195,6 +1293,12 @@ function aplicarFiltrosTareas() {
             const rolBuscado = rolMap[rolFiltro] || rolMap[rolFiltro.toLowerCase()] || rolFiltro.toUpperCase();
             console.log('🔍 Filtro por rol específico:', { rolFiltro, rolBuscado, tareaRol: tarea.asignado_a_rol_nombre });
             if (tarea.asignado_a_rol_nombre !== rolBuscado) {
+                return false;
+            }
+        } else if (rolFiltro === 'todos') {
+            // Si el usuario es supervisor, no mostrar tareas de ADMIN
+            const userRole = obtenerRolUsuarioActual();
+            if (userRole === 'supervisor' && tarea.asignado_a_rol_nombre === 'ADMIN') {
                 return false;
             }
         }
@@ -1453,9 +1557,9 @@ async function verificarYActualizarTareaIndividual(tareaId) {
 
         const tarea = await response.json();
 
-        // No cambiar tareas canceladas automáticamente
-        if (tarea.estado === 'cancelada') {
-            console.log(`⏭️ Tarea ${tareaId} está cancelada, no se actualiza automáticamente`);
+        // No cambiar tareas canceladas o completadas automáticamente
+        if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
+            console.log(`⏭️ Tarea ${tareaId} está ${tarea.estado}, no se actualiza automáticamente`);
             return false;
         }
 
@@ -1570,8 +1674,8 @@ async function verificarYActualizarTareasCompletadas() {
             }
         }
 
-        // 2. Solo procesar tareas que NO están canceladas (las canceladas se respetan)
-        if (tarea.estado === 'cancelada') {
+        // 2. Solo procesar tareas que NO están canceladas o completadas (se respetan)
+        if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
             continue;
         }
 
@@ -1679,6 +1783,30 @@ async function refrescarTarjetasTareas() {
 }
 
 /**
+ * Determina si el usuario actual puede editar una tarea
+ * @param {Object} tarea - Objeto de tarea
+ * @returns {boolean} true si puede editar, false en caso contrario
+ */
+function puedeEditarTarea(tarea) {
+    const rolUsuario = obtenerRolUsuarioActual();
+
+    if (rolUsuario === 'admin') {
+        return true;
+    }
+
+    if (rolUsuario === 'supervisor') {
+        return tarea.asignado_a_rol_nombre !== 'ADMIN';
+    }
+
+    if (rolUsuario === 'tecnico') {
+        return tarea.asignado_a_rol_nombre === 'TECNICO' &&
+            tarea.estado !== 'cancelada';
+    }
+
+    return false;
+}
+
+/**
  * Crea una tarjeta HTML para una tarea
  * @param {Object} tarea - Objeto de tarea
  * @param {Array} todosServicios - Array de todos los servicios para calcular progreso
@@ -1704,7 +1832,7 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
         'cancelada': { label: 'Cancelada', class: 'status-cancelled' }
     };
     let estadoVisual = tarea.estado;
-    if (estadoVisual !== 'cancelada') {
+    if (estadoVisual !== 'cancelada' && estadoVisual !== 'completada') {
         const derivado = calcularEstadoDesdeServicios(serviciosAsignados);
         if (derivado) {
             estadoVisual = derivado;
@@ -1802,9 +1930,11 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <button class="btn-cuarto-action" onclick="verDetalleTarea(${tarea.id})" title="Ver detalles">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn-cuarto-action btn-edit" onclick="abrirModalEditarTarea(${tarea.id})" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
+                    ${puedeEditarTarea(tarea) ? `
+                        <button class="btn-cuarto-action btn-edit" onclick="abrirModalEditarTarea(${tarea.id})" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                    ` : ''}
                 </div>
             </div>
         </div>
@@ -2000,6 +2130,18 @@ async function verDetalleTarea(tareaId) {
                 btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
                 btnAccionar.className = 'tarea-modal-btn btn-success'; // Cambiar color a verde
                 btnAccionar.onclick = () => accionarTarea(tarea.id, 'completada');
+
+                // Verificar si hay servicios pendientes para cambiar el texto
+                if (typeof todosLosServiciosCache !== 'undefined') {
+                    const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
+                    const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
+
+                    if (serviciosAsignados.length > serviciosCompletados) {
+                        btnAccionar.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
+                        // Opcional: añadir un tooltip o title explicando por qué
+                        btnAccionar.title = `Hay ${serviciosAsignados.length - serviciosCompletados} servicios pendientes`;
+                    }
+                }
             } else if (tarea.estado === 'completada') {
                 nextStepText.textContent = 'Finalizada';
                 btnAccionar.innerHTML = '<i class="fas fa-check-double"></i> Completada';
@@ -2205,7 +2347,48 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
                 btnAccionar.onclick = () => accionarTarea(tareaId, 'completada');
             }
             if (nextStepText) nextStepText.textContent = 'Completar';
+
+            // Actualizar servicios asociados: cambiar los que están en 'pendiente' a 'en_proceso'
+            try {
+                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId);
+                const serviciosPendientes = serviciosAsignados.filter(s => s.estado === 'pendiente');
+
+                if (serviciosPendientes.length > 0) {
+                    console.log(`📋 Iniciando ${serviciosPendientes.length} servicios pendientes...`);
+
+                    // Actualizar cada servicio pendiente a 'en_proceso'
+                    const promesasActualizacion = serviciosPendientes.map(async (servicio) => {
+                        try {
+                            const respuesta = await fetch(`${API_URL}/mantenimientos/${servicio.id}`, {
+                                method: 'PUT',
+                                headers: obtenerHeadersConAuth(),
+                                body: JSON.stringify({ estado: 'en_proceso' })
+                            });
+
+                            if (respuesta.ok) {
+                                console.log(`✅ Servicio ${servicio.id} iniciado`);
+                                // Actualizar en cache
+                                servicio.estado = 'en_proceso';
+                                return true;
+                            }
+                            return false;
+                        } catch (error) {
+                            console.error(`❌ Error al iniciar servicio ${servicio.id}:`, error);
+                            return false;
+                        }
+                    });
+
+                    await Promise.all(promesasActualizacion);
+
+                    // Recargar servicios en el modal
+                    await cargarServiciosAsignados(tareaId);
+                }
+            } catch (error) {
+                console.error('❌ Error al actualizar servicios:', error);
+            }
+
             mostrarNotificacion('Tarea iniciada correctamente', 'success');
+
 
         } else if (nuevoEstado === 'completada') {
             if (estadoBadge) {
@@ -2349,6 +2532,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectRolTarea = document.getElementById('filtroRolTarea');
     if (selectRolTarea) {
+        // Configurar opciones del selector según el rol del usuario
+        const rolUsuario = obtenerRolUsuarioActual();
+        const opcionesActuales = Array.from(selectRolTarea.options);
+
+        // Limpiar opciones existentes excepto "Mi rol"
+        selectRolTarea.innerHTML = '<option value="mi-rol" selected>Mi rol</option>';
+
+        if (rolUsuario === 'admin') {
+            // Admin puede ver todos los roles
+            selectRolTarea.innerHTML += `
+                <option value="todos">Todos los roles</option>
+                <option value="admin">Administrador</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="tecnico">Técnico</option>
+            `;
+        } else if (rolUsuario === 'supervisor') {
+            // Supervisor puede ver todos excepto admin
+            selectRolTarea.innerHTML += `
+                <option value="todos">Todos los roles</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="tecnico">Técnico</option>
+            `;
+        } else if (rolUsuario === 'tecnico') {
+            // Técnico solo puede ver técnico
+            selectRolTarea.innerHTML += `
+                <option value="tecnico">Técnico</option>
+            `;
+        } else {
+            // Si no se puede determinar el rol, mostrar todas las opciones por defecto
+            selectRolTarea.innerHTML += `
+                <option value="todos">Todos los roles</option>
+                <option value="admin">Administrador</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="tecnico">Técnico</option>
+            `;
+        }
+
         selectRolTarea.addEventListener('change', () => {
             // Actualizar el texto del rol en el resumen inmediatamente
             actualizarRolResumen();
@@ -2377,17 +2597,26 @@ document.addEventListener('DOMContentLoaded', () => {
         el.addEventListener('click', () => cerrarModal('modalEditarTarea'));
     });
 
+    // Event listeners para cerrar modal de advertencia
+    document.querySelectorAll('[data-close-advertencia-modal]').forEach(el => {
+        el.addEventListener('click', () => cerrarModalAdvertenciaEdicion());
+    });
+
     // Cerrar con tecla Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             const modalCrear = document.getElementById('modalCrearTarea');
             const modalEditar = document.getElementById('modalEditarTarea');
+            const modalAdvertencia = document.getElementById('modalAdvertenciaEdicion');
 
             if (modalCrear && modalCrear.style.display === 'flex') {
                 cerrarModal('modalCrearTarea');
             }
             if (modalEditar && modalEditar.style.display === 'flex') {
                 cerrarModal('modalEditarTarea');
+            }
+            if (modalAdvertencia && modalAdvertencia.style.display === 'flex') {
+                cerrarModalAdvertenciaEdicion();
             }
         }
     });
@@ -2523,6 +2752,7 @@ window.cerrarModal = cerrarModal;
 window.cargarTareasEnSelector = cargarTareasEnSelector;
 window.verDetalleTarea = verDetalleTarea;
 window.cerrarModalDetalleTarea = cerrarModalDetalleTarea;
+window.cerrarModalAdvertenciaEdicion = cerrarModalAdvertenciaEdicion;
 
 // ------------------------------
 // PRÓXIMOS VENCIMIENTOS
