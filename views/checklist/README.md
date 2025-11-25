@@ -5,9 +5,8 @@ Este módulo reemplaza la vista básica de checklist con una implementación com
 ## Estructura de Archivos
 
 ```
-checklist-tab/
-├── checklist-tab.html    # Template HTML del tab (integrado en index.html)
-├── checklist-tab.css     # Estilos específicos del checklist
+views/checklist/
+├── checklist-styles.css  # Estilos específicos del checklist
 ├── checklist-tab.js      # Lógica JavaScript del módulo
 └── README.md             # Esta documentación
 ```
@@ -87,11 +86,8 @@ checklist-tab/
 
 Los archivos se cargan en `index.html`:
 ```html
-<!-- En el <head> -->
-<link rel="stylesheet" href="checklist-tab/checklist-tab.css">
-
 <!-- Al final del <body> -->
-<script src="checklist-tab/checklist-tab.js"></script>
+<script src="views/checklist/checklist-tab.js"></script>
 ```
 
 ## Dark Mode
