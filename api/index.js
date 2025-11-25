@@ -558,7 +558,7 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
 
         if (postgresManager) {
             // Obtener el registro actual para comparar cambios
-            const queryActual = 'SELECT estado, dia_alerta, hora FROM mantenimientos WHERE id = $1';
+            const queryActual = 'SELECT estado, dia_alerta, hora, fecha_finalizacion FROM mantenimientos WHERE id = $1';
             const resultActual = await postgresManager.pool.query(queryActual, [mantenimientoId]);
             const registroActual = resultActual.rows[0];
 
@@ -570,8 +570,16 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
 
             // Determinar si se debe actualizar fecha_finalizacion
             let fecha_finalizacion = undefined;
-            if (estado && (estado === 'completado' || estado === 'cancelado') && estadoActual !== estado) {
-                fecha_finalizacion = new Date();
+            if (estado) {
+                const esEstadoFinal = estado === 'completado' || estado === 'cancelado';
+                const esEstadoActivo = estado === 'pendiente' || estado === 'en_proceso';
+
+                if (esEstadoFinal && estadoActual !== estado) {
+                    fecha_finalizacion = new Date();
+                } else if (esEstadoActivo && registroActual.fecha_finalizacion) {
+                    // Reiniciar fecha de finalización si la tarea vuelve a un estado activo
+                    fecha_finalizacion = null;
+                }
             }
 
             // Determinar si cambió la fecha o la hora (para resetear alerta_emitida)

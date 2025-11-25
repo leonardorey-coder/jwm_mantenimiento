@@ -333,15 +333,22 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
         
         if (postgresManager) {
             // Obtener el mantenimiento actual para verificar cambio de estado
-            const queryActual = 'SELECT estado FROM mantenimientos WHERE id = $1';
+            const queryActual = 'SELECT estado, fecha_finalizacion FROM mantenimientos WHERE id = $1';
             const resultActual = await postgresManager.pool.query(queryActual, [mantenimientoId]);
-            const estadoActual = resultActual.rows[0]?.estado;
+            const registroActual = resultActual.rows[0] || {};
+            const estadoActual = registroActual.estado;
             
             // Determinar si se debe actualizar fecha_finalizacion
-            let fecha_finalizacion = null;
-            if (estado && (estado === 'completado' || estado === 'cancelado') && 
-                estadoActual !== 'completado' && estadoActual !== 'cancelado') {
-                fecha_finalizacion = new Date();
+            let fecha_finalizacion = undefined;
+            if (estado) {
+                const esEstadoFinal = estado === 'completado' || estado === 'cancelado';
+                const esEstadoActivo = estado === 'pendiente' || estado === 'en_proceso';
+
+                if (esEstadoFinal && estadoActual !== estado) {
+                    fecha_finalizacion = new Date();
+                } else if (esEstadoActivo && registroActual.fecha_finalizacion) {
+                    fecha_finalizacion = null;
+                }
             }
             
             // Construir query dinámica solo con los campos que vienen en el body
@@ -381,7 +388,7 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                 setClauses.push(`notas = $${paramIndex++}`);
                 values.push(notas || null);
             }
-            if (fecha_finalizacion) {
+            if (fecha_finalizacion !== undefined) {
                 setClauses.push(`fecha_finalizacion = $${paramIndex++}`);
                 values.push(fecha_finalizacion);
             }

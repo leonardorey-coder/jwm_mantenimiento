@@ -1230,6 +1230,11 @@ async function guardarServicioInline(event, cuartoId) {
             }, 1500);
         }
 
+        // Verificar progreso de la tarea asociada (si aplica)
+        if (resultado.tarea_id && typeof window.verificarYActualizarTareaIndividual === 'function') {
+            await window.verificarYActualizarTareaIndividual(resultado.tarea_id);
+        }
+
         // Mostrar mensaje de éxito
         window.mostrarMensaje('Servicio registrado exitosamente', 'success');
 

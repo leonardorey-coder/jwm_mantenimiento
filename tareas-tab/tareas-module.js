@@ -13,6 +13,7 @@ const API_URL = '/api'; // URL base para la API
 let cuartoIdActual = null; // Almacena el ID del cuarto al crear una tarea
 let tareaIdActual = null; // Almacena el ID de la tarea al editar
 let archivosSeleccionados = []; // Almacena archivos seleccionados
+let todosLosServiciosCache = []; // Cache de servicios para calcular progreso de tareas
 
 // Headers para peticiones autenticadas
 const obtenerHeadersConAuth = () => {
@@ -377,7 +378,8 @@ async function submitCrearTarea(event) {
     });
 
     const tareaData = {
-        titulo: nombre,  // Backend espera 'titulo'
+        titulo: nombre,  // Se usa internamente
+        nombre: nombre,  // Backend legacy espera 'nombre'
         descripcion: descripcion,
         ubicacion: ubicacion,
         prioridad: formData.get('prioridad'),
@@ -617,6 +619,37 @@ function limpiarFormulario(formId) {
     }
 }
 
+
+/**
+ * Retorna las opciones de estado permitidas según el estado actual de la tarea
+ * @param {string} estadoActual - Estado actual de la tarea
+ * @returns {Array} Array de objetos {value, label}
+ */
+function obtenerOpcionesEstadoPermitidas(estadoActual) {
+    const todasLasOpciones = [
+        { value: 'pendiente', label: 'Pendiente' },
+        { value: 'en_proceso', label: 'En Proceso' },
+        { value: 'completada', label: 'Completada' },
+        { value: 'cancelada', label: 'Cancelada' }
+    ];
+
+    switch (estadoActual) {
+        case 'completada':
+            // Solo puede cambiar a cancelada o quedarse completada
+            return todasLasOpciones.filter(o => o.value === 'completada' || o.value === 'cancelada');
+
+        case 'en_proceso':
+            // Puede cambiar a completada, cancelada o quedarse en proceso
+            // No puede volver a pendiente
+            return todasLasOpciones.filter(o => o.value !== 'pendiente');
+
+        case 'pendiente':
+        default:
+            // Puede cambiar a cualquier estado
+            return todasLasOpciones;
+    }
+}
+
 /**
  * Puebla el formulario de edición con los datos de una tarea.
  * @param {object} tarea - El objeto de la tarea con sus datos.
@@ -650,8 +683,14 @@ async function poblarFormularioEdicion(tarea) {
     const selectPrioridad = document.getElementById('editarTareaPrioridad');
     if (selectPrioridad) selectPrioridad.value = tarea.prioridad || 'media';
 
+    // Cargar opciones de estado según el estado actual (condicional)
     const selectEstado = document.getElementById('editarTareaEstado');
-    if (selectEstado) selectEstado.value = tarea.estado || 'pendiente';
+    if (selectEstado) {
+        const opciones = obtenerOpcionesEstadoPermitidas(tarea.estado || 'pendiente');
+        selectEstado.innerHTML = opciones.map(opcion =>
+            `<option value="${opcion.value}" ${opcion.value === tarea.estado ? 'selected' : ''}>${opcion.label}</option>`
+        ).join('');
+    }
 
     // Formatear fecha para input type="date"
     // Formatear fecha para input type="date"
@@ -890,10 +929,35 @@ async function actualizarTarjetaTarea(tareaId) {
         const tareaActualizada = await response.json();
         console.log('Tarea obtenida:', tareaActualizada);
 
+        // Recargar servicios para tener datos actualizados
+        const responseServicios = await fetch(`${API_URL}/mantenimientos`, {
+            headers: obtenerHeadersConAuth()
+        });
+        let serviciosAsignados = [];
+        if (responseServicios.ok) {
+            todosLosServiciosCache = await responseServicios.json();
+            serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId);
+        }
+
+        // Ajustar el estado de la tarea según el progreso real de sus servicios (solo si no está cancelada)
+        if (tareaActualizada.estado !== 'cancelada') {
+            const estadoDerivado = calcularEstadoDesdeServicios(serviciosAsignados) || tareaActualizada.estado;
+            if (estadoDerivado && estadoDerivado !== tareaActualizada.estado) {
+                tareaActualizada.estado = estadoDerivado;
+            }
+        }
+
         // Actualizar en el array local
         const indice = todasLasTareas.findIndex(t => t.id == tareaId);
         if (indice !== -1) {
             todasLasTareas[indice] = tareaActualizada;
+        }
+
+        if (Array.isArray(tareasFiltradas)) {
+            const idxFiltrado = tareasFiltradas.findIndex(t => t.id == tareaId);
+            if (idxFiltrado !== -1) {
+                tareasFiltradas[idxFiltrado] = tareaActualizada;
+            }
         }
 
         // Buscar la tarjeta en el DOM
@@ -901,7 +965,7 @@ async function actualizarTarjetaTarea(tareaId) {
 
         if (tarjetaExistente) {
             // Crear nueva tarjeta con datos actualizados
-            const nuevaTarjeta = crearTarjetaTarea(tareaActualizada);
+            const nuevaTarjeta = crearTarjetaTarea(tareaActualizada, todosLosServiciosCache);
 
             // Reemplazar la tarjeta antigua con la nueva
             tarjetaExistente.replaceWith(nuevaTarjeta);
@@ -994,7 +1058,7 @@ function renderizarLoteTareas(container) {
     const fragment = document.createDocumentFragment();
 
     siguienteLote.forEach((tarea, index) => {
-        const card = crearTarjetaTarea(tarea);
+        const card = crearTarjetaTarea(tarea, todosLosServiciosCache);
         card.classList.add('tarea-lazy');
 
         // Añadir animación con delay progresivo
@@ -1031,11 +1095,13 @@ function aplicarFiltrosTareas() {
     const selectEstado = document.getElementById('filtroEstadoTarea');
     const selectPrioridad = document.getElementById('filtroPrioridadTarea');
     const selectRol = document.getElementById('filtroRolTarea');
+    const selectTag = document.getElementById('filtroTagTarea');
 
     const terminoBusqueda = inputBusqueda ? inputBusqueda.value.toLowerCase().trim() : '';
     const estadoFiltro = selectEstado ? selectEstado.value : '';
     const prioridadFiltro = selectPrioridad ? selectPrioridad.value : '';
     const rolFiltro = selectRol ? selectRol.value : '';
+    const tagFiltro = selectTag ? selectTag.value : '';
 
     // Obtener el rol del usuario actual si es necesario
     let rolUsuarioActual = null;
@@ -1133,6 +1199,14 @@ function aplicarFiltrosTareas() {
             }
         }
 
+        // Filtro de tag
+        if (tagFiltro) {
+            const tagsTarea = Array.isArray(tarea.tags) ? tarea.tags : [];
+            if (!tagsTarea.includes(tagFiltro)) {
+                return false;
+            }
+        }
+
         return true;
     });
 
@@ -1192,6 +1266,48 @@ function aplicarFiltrosTareas() {
 }
 
 /**
+ * Pobla el select de tags con todos los tags únicos de las tareas
+ */
+function poblarSelectTags() {
+    const selectTag = document.getElementById('filtroTagTarea');
+    if (!selectTag) return;
+
+    // Obtener todos los tags únicos de todas las tareas
+    const todosLosTags = new Set();
+    todasLasTareas.forEach(tarea => {
+        if (tarea.tags && Array.isArray(tarea.tags)) {
+            tarea.tags.forEach(tag => {
+                if (tag && tag.trim()) {
+                    todosLosTags.add(tag.trim());
+                }
+            });
+        }
+    });
+
+    // Ordenar tags alfabéticamente
+    const tagsOrdenados = Array.from(todosLosTags).sort();
+
+    // Guardar el valor seleccionado actual
+    const valorSeleccionado = selectTag.value;
+
+    // Limpiar opciones existentes (excepto "Todos los tags")
+    selectTag.innerHTML = '<option value="">Todos los tags</option>';
+
+    // Agregar cada tag como opción
+    tagsOrdenados.forEach(tag => {
+        const option = document.createElement('option');
+        option.value = tag;
+        option.textContent = tag;
+        selectTag.appendChild(option);
+    });
+
+    // Restaurar el valor seleccionado si aún existe
+    if (valorSeleccionado && tagsOrdenados.includes(valorSeleccionado)) {
+        selectTag.value = valorSeleccionado;
+    }
+}
+
+/**
  * Actualiza el texto del rol en el resumen según el filtro seleccionado
  */
 function actualizarRolResumen() {
@@ -1227,11 +1343,13 @@ function actualizarResumenTareas() {
     const pendientes = tareasFiltradas.filter(t => t.estado === 'pendiente').length;
     const enProceso = tareasFiltradas.filter(t => t.estado === 'en_proceso').length;
     const completadas = tareasFiltradas.filter(t => t.estado === 'completada').length;
+    const canceladas = tareasFiltradas.filter(t => t.estado === 'cancelada').length;
     const urgentes = tareasFiltradas.filter(t =>
         t.prioridad === 'alta' ||
         (t.fecha_vencimiento && new Date(t.fecha_vencimiento) < new Date())
     ).length;
     const total = tareasFiltradas.length;
+    const totalActivas = total - canceladas;
 
     const elPendientes = document.getElementById('tareasResumenPendientes');
     const elEnProceso = document.getElementById('tareasResumenEnProceso');
@@ -1249,6 +1367,7 @@ function actualizarResumenTareas() {
     const statsPendientes = document.getElementById('tareasStatsPendientes');
     const statsActivas = document.getElementById('tareasStatsActivas');
     const statsCompletadas = document.getElementById('tareasStatsCompletadas');
+    const statsCanceladas = document.getElementById('tareasStatsCanceladas');
     const statsProgress = document.getElementById('tareasStatsProgress');
     const statsCaption = document.getElementById('tareasStatsCaption');
     const statsHighlight = document.getElementById('tareasStatsHighlight');
@@ -1256,17 +1375,20 @@ function actualizarResumenTareas() {
     if (statsPendientes) statsPendientes.textContent = pendientes;
     if (statsActivas) statsActivas.textContent = enProceso;
     if (statsCompletadas) statsCompletadas.textContent = completadas;
+    if (statsCanceladas) statsCanceladas.textContent = canceladas;
 
-    // Actualizar progress bar (porcentaje de completadas)
-    if (statsProgress && total > 0) {
-        const porcentaje = Math.round((completadas / total) * 100);
+    // Actualizar progress bar (porcentaje de completadas, excluyendo canceladas)
+    if (statsProgress) {
+        const porcentaje = totalActivas > 0 ? Math.round((completadas / totalActivas) * 100) : 0;
         statsProgress.setAttribute('data-percent', `${porcentaje}%`);
         statsProgress.style.setProperty('--progress-value', `${porcentaje}%`);
     }
 
     // Actualizar caption
     if (statsCaption) {
-        statsCaption.textContent = `Total de tareas: ${total}`;
+        statsCaption.textContent = totalActivas > 0
+            ? `Total activas: ${totalActivas}`
+            : 'Sin tareas activas';
     }
     if (statsHighlight) {
         statsHighlight.textContent = `${completadas} completadas · ${pendientes} pendientes`;
@@ -1274,6 +1396,228 @@ function actualizarResumenTareas() {
 
     // Actualizar también el texto del rol
     actualizarRolResumen();
+}
+
+/**
+ * Calcula el estado que debería mostrar una tarea en base a sus servicios
+ * ignorando los que están cancelados.
+ * @param {Array} serviciosAsignados
+ * @returns {'pendiente'|'en_proceso'|'completada'|null}
+ */
+function calcularEstadoDesdeServicios(serviciosAsignados = []) {
+    const serviciosActivos = serviciosAsignados.filter(s => s.estado !== 'cancelado');
+    if (serviciosActivos.length === 0) {
+        return null;
+    }
+
+    const completados = serviciosActivos.filter(s => s.estado === 'completado').length;
+    const enProceso = serviciosActivos.filter(s => s.estado === 'en_proceso').length;
+
+    if (completados === serviciosActivos.length) {
+        return 'completada';
+    }
+
+    if (enProceso > 0 || completados > 0) {
+        return 'en_proceso';
+    }
+
+    // Todos los servicios activos están pendientes
+    return 'pendiente';
+}
+
+/**
+ * Determina el estado automático de una tarea basado en sus servicios
+ * @param {Array} serviciosAsignados - Servicios asignados a la tarea (sin filtrar)
+ * @returns {string|null} 'completada', 'en_proceso', 'pendiente' o null (sin cambio automático)
+ */
+function determinarEstadoAutomatico(serviciosAsignados) {
+    return calcularEstadoDesdeServicios(serviciosAsignados);
+}
+
+/**
+ * Verifica y actualiza automáticamente el estado de una tarea individual
+ * basado en el estado de sus servicios asociados
+ * @param {number} tareaId - ID de la tarea a verificar
+ * @returns {Promise<boolean>} true si se actualizó la tarea, false si no
+ */
+async function verificarYActualizarTareaIndividual(tareaId) {
+    console.log(`🔍 Verificando tarea individual ${tareaId}...`);
+
+    try {
+        // Obtener datos actuales de la tarea
+        const response = await fetch(`${API_URL}/tareas/${tareaId}`, { headers: obtenerHeadersConAuth() });
+        if (!response.ok) {
+            console.error(`Error al obtener tarea ${tareaId}`);
+            return false;
+        }
+
+        const tarea = await response.json();
+
+        // No cambiar tareas canceladas automáticamente
+        if (tarea.estado === 'cancelada') {
+            console.log(`⏭️ Tarea ${tareaId} está cancelada, no se actualiza automáticamente`);
+            return false;
+        }
+
+        // Obtener servicios asignados a esta tarea (recargar para tener datos frescos)
+        const responseServicios = await fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() });
+        if (!responseServicios.ok) {
+            console.error('Error al obtener servicios');
+            return false;
+        }
+
+        const todosServicios = await responseServicios.json();
+        const serviciosAsignados = todosServicios.filter(s => s.tarea_id == tareaId);
+
+        // Si no tiene servicios asignados, no hacer nada
+        if (serviciosAsignados.length === 0) {
+            console.log(`⏭️ Tarea ${tareaId} no tiene servicios asignados`);
+            return false;
+        }
+
+        // Determinar el estado que debería tener según sus servicios
+        const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
+
+        // Si no hay cambio sugerido o el estado ya es el correcto, no hacer nada
+        if (!estadoSugerido || estadoSugerido === tarea.estado) {
+            console.log(`✅ Tarea ${tareaId} ya tiene el estado correcto: ${tarea.estado}`);
+            return false;
+        }
+
+        console.log(`🔄 Tarea ${tareaId} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`);
+
+        // Actualizar tarea con el nuevo estado
+        const responseUpdate = await fetch(`${API_URL}/tareas/${tareaId}`, {
+            method: 'PUT',
+            headers: obtenerHeadersConAuth(),
+            body: JSON.stringify({ estado: estadoSugerido })
+        });
+
+        if (responseUpdate.ok) {
+            console.log(`✅ Tarea ${tareaId} actualizada a "${estadoSugerido}" automáticamente`);
+
+            // Actualizar en el array local si existe
+            const tareaLocal = todasLasTareas?.find(t => t.id == tareaId);
+            if (tareaLocal) {
+                tareaLocal.estado = estadoSugerido;
+            }
+
+            // Actualizar cache de servicios
+            todosLosServiciosCache = todosServicios;
+
+            // Refrescar la tarjeta individual
+            await actualizarTarjetaTarea(tareaId);
+
+            // Notificar al usuario
+            const serviciosActivos = serviciosAsignados.filter(s => s.estado !== 'cancelado');
+            const completados = serviciosActivos.filter(s => s.estado === 'completado').length;
+            mostrarNotificacion(
+                `Tarea "${tarea.titulo}" actualizada a "${estadoSugerido}" (${completados}/${serviciosActivos.length} servicios completados)`,
+                'success'
+            );
+
+            return true;
+        } else {
+            console.error(`❌ Error al actualizar tarea ${tareaId}:`, responseUpdate.statusText);
+            return false;
+        }
+
+    } catch (error) {
+        console.error(`❌ Error verificando tarea ${tareaId}:`, error);
+        return false;
+    }
+}
+
+/**
+ * Verifica si todas las tareas con todos sus servicios completados 
+ * deberían marcarse automáticamente como completadas (o en proceso)
+ * Esta función se llama al cargar la pestaña de tareas
+ */
+async function verificarYActualizarTareasCompletadas() {
+    console.log('🔍 Verificando todas las tareas...');
+
+    let tareasActualizadas = 0;
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0); // Normalizar a medianoche
+
+    for (const tarea of todasLasTareas) {
+        // 1. PRIMERO: Verificar si la tarea está vencida y debe cancelarse
+        if (tarea.fecha_vencimiento && tarea.estado !== 'cancelada' && tarea.estado !== 'completada') {
+            const fechaVencimiento = new Date(tarea.fecha_vencimiento);
+            fechaVencimiento.setHours(0, 0, 0, 0);
+
+            // Si la fecha de vencimiento es anterior a hoy, cancelar automáticamente
+            if (fechaVencimiento < hoy) {
+                console.log(`⏰ Tarea ${tarea.id} "${tarea.titulo}" está vencida. Cancelando automáticamente...`);
+
+                try {
+                    const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
+                        method: 'PUT',
+                        headers: obtenerHeadersConAuth(),
+                        body: JSON.stringify({ estado: 'cancelada' })
+                    });
+
+                    if (response.ok) {
+                        tarea.estado = 'cancelada';
+                        tareasActualizadas++;
+                        console.log(`✅ Tarea ${tarea.id} cancelada automáticamente por vencimiento`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error al cancelar tarea ${tarea.id}:`, error);
+                }
+
+                continue; // Pasar a la siguiente tarea
+            }
+        }
+
+        // 2. Solo procesar tareas que NO están canceladas (las canceladas se respetan)
+        if (tarea.estado === 'cancelada') {
+            continue;
+        }
+
+        // Obtener servicios asignados a esta tarea (excluir cancelados para el cálculo)
+        const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id);
+
+        // Si no tiene servicios asignados, no hacer nada
+        if (serviciosAsignados.length === 0) {
+            continue;
+        }
+
+        // Determinar estado sugerido
+        const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
+
+        // Si no hay sugerencia o ya tiene el estado correcto, continuar
+        if (!estadoSugerido || estadoSugerido === tarea.estado) {
+            continue;
+        }
+
+        console.log(`🔄 Tarea ${tarea.id} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`);
+
+        try {
+            // Actualizar tarea
+            const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
+                method: 'PUT',
+                headers: obtenerHeadersConAuth(),
+                body: JSON.stringify({ estado: estadoSugerido })
+            });
+
+            if (response.ok) {
+                // Actualizar en el array local
+                tarea.estado = estadoSugerido;
+                tareasActualizadas++;
+                console.log(`✅ Tarea ${tarea.id} actualizada a "${estadoSugerido}" automáticamente`);
+            } else {
+                console.error(`❌ Error al actualizar tarea ${tarea.id}:`, response.statusText);
+            }
+        } catch (error) {
+            console.error(`❌ Error al actualizar tarea ${tarea.id}:`, error);
+        }
+    }
+
+    if (tareasActualizadas > 0) {
+        console.log(`✅ ${tareasActualizadas} tarea(s) actualizada(s) automáticamente`);
+        mostrarNotificacion(`${tareasActualizadas} tarea(s) actualizada(s) automáticamente`, 'success');
+    }
 }
 
 /**
@@ -1302,12 +1646,26 @@ async function refrescarTarjetasTareas() {
             listaTareas.appendChild(crearSkeletonTarea());
         }
 
-        // Fetch tasks from API
-        const response = await fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) throw new Error('Error al cargar tareas');
+        // Fetch tasks and services from API
+        const [responseTareas, responseServicios] = await Promise.all([
+            fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() }),
+            fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() })
+        ]);
 
-        todasLasTareas = await response.json();
+        if (!responseTareas.ok) throw new Error('Error al cargar tareas');
+        if (!responseServicios.ok) throw new Error('Error al cargar servicios');
+
+        todasLasTareas = await responseTareas.json();
+        todosLosServiciosCache = await responseServicios.json();
+
         console.log(`📋 ${todasLasTareas.length} tareas cargadas`);
+        console.log(`🔧 ${todosLosServiciosCache.length} servicios cargados`);
+
+        // Verificar y actualizar tareas que deberían estar completadas
+        await verificarYActualizarTareasCompletadas();
+
+        // Poblar select de tags
+        poblarSelectTags();
 
         // Aplicar filtros iniciales
         aplicarFiltrosTareas();
@@ -1323,12 +1681,20 @@ async function refrescarTarjetasTareas() {
 /**
  * Crea una tarjeta HTML para una tarea
  * @param {Object} tarea - Objeto de tarea
+ * @param {Array} todosServicios - Array de todos los servicios para calcular progreso
  * @returns {HTMLElement} Elemento li con la tarjeta
  */
-function crearTarjetaTarea(tarea) {
+function crearTarjetaTarea(tarea, todosServicios = []) {
     const li = document.createElement('li');
     li.className = 'cuarto-item';
     li.dataset.tareaId = tarea.id;
+
+    // Calculate progress from assigned services (excluding cancelled ones)
+    const serviciosAsignados = todosServicios.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
+    const totalServicios = serviciosAsignados.length;
+    const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
+    const porcentajeProgreso = totalServicios > 0 ? Math.round((serviciosCompletados / totalServicios) * 100) : 0;
+    const progresoCompleto = porcentajeProgreso === 100 && totalServicios > 0;
 
     // Status mapping
     const estadoMap = {
@@ -1337,7 +1703,14 @@ function crearTarjetaTarea(tarea) {
         'completada': { label: 'Completada', class: 'status-completed' },
         'cancelada': { label: 'Cancelada', class: 'status-cancelled' }
     };
-    const estadoInfo = estadoMap[tarea.estado] || { label: tarea.estado, class: 'status-pending' };
+    let estadoVisual = tarea.estado;
+    if (estadoVisual !== 'cancelada') {
+        const derivado = calcularEstadoDesdeServicios(serviciosAsignados);
+        if (derivado) {
+            estadoVisual = derivado;
+        }
+    }
+    const estadoInfo = estadoMap[estadoVisual] || { label: estadoVisual, class: 'status-pending' };
 
     // Priority mapping (without emoji in text, CSS will add the dot)
     const prioridadMap = {
@@ -1387,6 +1760,13 @@ function crearTarjetaTarea(tarea) {
                 </div>
                 <span class="badge ${prioridadInfo.class}">${prioridadInfo.label}</span>
             </div>
+            
+            ${totalServicios > 0 ? `
+                <div class="tarea-progress-container" title="${serviciosCompletados} de ${totalServicios} servicios completados">
+                    <div class="tarea-progress-bar ${progresoCompleto ? 'completed' : ''}" style="width: ${porcentajeProgreso}%"></div>
+                    <span class="tarea-progress-info">${serviciosCompletados}/${totalServicios} servicios</span>
+                </div>
+            ` : ''}
             
             <div class="cuarto-info">
                 <h3 class="tarea-titulo">${tarea.titulo}</h3>
@@ -1979,6 +2359,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const selectTagTarea = document.getElementById('filtroTagTarea');
+    if (selectTagTarea) {
+        selectTagTarea.addEventListener('change', () => {
+            if (todasLasTareas.length > 0) {
+                aplicarFiltrosTareas();
+            }
+        });
+    }
+
     // Event listeners para cerrar modales
     document.querySelectorAll('[data-close-crear-modal]').forEach(el => {
         el.addEventListener('click', () => cerrarModal('modalCrearTarea'));
@@ -2263,7 +2652,8 @@ async function cargarProximosVencimientos() {
     }
 }
 
-// Exponer función al scope global
+// Exponer funciones al scope global
 window.cargarProximosVencimientos = cargarProximosVencimientos;
+window.verificarYActualizarTareaIndividual = verificarYActualizarTareaIndividual;
 
 console.log('Módulo tareas-module.js cargado.');

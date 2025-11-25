@@ -2822,7 +2822,7 @@
             if (contenedorServicios) {
                 const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
                 contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
-                
+
                 // Actualizar selectores de tareas para todos los servicios del cuarto
                 serviciosCuarto.forEach(servicio => {
                     const selectorId = `tarea_asignada_edit-${servicio.id}`;
@@ -2878,7 +2878,7 @@
                 if (contenedorServiciosActualizado) {
                     const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
                     contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, true);
-                    
+
                     // Actualizar selectores de tareas para todos los servicios del cuarto
                     serviciosCuarto.forEach(servicio => {
                         const selectorId = `tarea_asignada_edit-${servicio.id}`;
@@ -2893,6 +2893,20 @@
             // Actualizar paneles de alertas
             await mostrarAlertasEmitidas();
             await mostrarHistorialAlertas();
+
+            // 🎯 NUEVO: Verificar y actualizar estado de tarea si el servicio está asignado a una
+            if (datosActualizados.tarea_id && typeof window.verificarYActualizarTareaIndividual === 'function') {
+                console.log(`🔄 Verificando tarea ${datosActualizados.tarea_id} después de actualizar servicio...`);
+                await window.verificarYActualizarTareaIndividual(datosActualizados.tarea_id);
+            }
+
+            // También verificar si se DESASIGNÓ de una tarea (tarea_id cambió de una tarea a otra o a null)
+            if (datosOriginales.tarea_id && datosOriginales.tarea_id !== datosActualizados.tarea_id) {
+                if (typeof window.verificarYActualizarTareaIndividual === 'function') {
+                    console.log(`🔄 Verificando tarea anterior ${datosOriginales.tarea_id} después de reasignar servicio...`);
+                    await window.verificarYActualizarTareaIndividual(datosOriginales.tarea_id);
+                }
+            }
 
         } catch (error) {
             console.error('❌ Error actualizando servicio:', error);
