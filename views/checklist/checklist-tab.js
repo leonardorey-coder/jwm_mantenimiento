@@ -99,6 +99,8 @@ const CUSTOM_CHECKLIST_CATEGORIES_KEY = 'customChecklistCategorias';
 const CUSTOM_CHECKLIST_ITEMS_KEY = 'customChecklistItems';
 const DEFAULT_CHECKLIST_CATEGORY_IDS = new Set(AppState.checklistCategorias.map(cat => cat.id));
 const DEFAULT_CHECKLIST_ITEM_KEYS = new Set(AppState.checklistItems.map(item => `${item.categoria}||${item.nombre.toLowerCase()}`));
+const CHECKLIST_MOCK_DATA_PATH = '/data/checklist-mock.json';
+let checklistMockCache = null;
 
 const tareaModalElements = {
     modal: null,
@@ -678,19 +680,19 @@ let tareasModuleInitialized = false;
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Inicializando JW Marriott Sistema de Mantenimiento...');
-    
+
     // Verificar autenticación
     checkAuthentication();
-    
+
     // Inicializar tema
     initializeTheme();
-    
+
     // Configurar event listeners
     setupEventListeners();
-    
+
     // Inicializar navegación
     initializeNavigation();
-    
+
     // Cargar datos iniciales
     loadInitialData();
 });
@@ -701,29 +703,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function checkAuthentication() {
     const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-    
+
     if (!currentUser || !currentUser.token) {
         // Redirigir al login si no hay sesión
         window.location.href = 'login.html';
         return false;
     }
-    
+
     // Verificar si el token sigue vigente (opcional - implementar expiración)
     AppState.currentUser = currentUser;
-    
+
     // Actualizar UI con info del usuario
     updateUserInfo();
-    
+
     // Aplicar permisos según el rol
     applyRolePermissions(currentUser.role);
-    
+
     console.log('✅ Usuario autenticado:', currentUser.name, '-', currentUser.role);
     return true;
 }
 
 function updateUserInfo() {
     const { name, role } = AppState.currentUser;
-    
+
     document.getElementById('userName').textContent = name;
     document.getElementById('userRole').textContent = role.toUpperCase();
 }
@@ -731,7 +733,7 @@ function updateUserInfo() {
 function applyRolePermissions(role) {
     // Agregar clase al body según el rol
     document.body.classList.add(role);
-    
+
     if (role === 'admin') {
         // Mostrar elementos exclusivos de admin (solo botones y links de navegación, no tabs)
         document.querySelectorAll('.admin-only').forEach(el => {
@@ -755,7 +757,7 @@ function applyRolePermissions(role) {
             // Los tabs se controlan solo por CSS
         });
     }
-    
+
     console.log('👤 Permisos aplicados para rol:', role);
 }
 
@@ -775,7 +777,7 @@ function initializeTheme() {
     AppState.theme = savedTheme;
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
-    
+
     console.log('🎨 Tema inicializado:', savedTheme);
 }
 function toggleTheme() {
@@ -784,7 +786,7 @@ function toggleTheme() {
     document.documentElement.setAttribute('data-theme', newTheme);
     localStorage.setItem('theme', newTheme);
     updateThemeIcon(newTheme);
-    
+
     console.log('🎨 Tema cambiado a:', newTheme);
 }
 
@@ -807,13 +809,13 @@ function setupEventListeners() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
     }
-    
+
     // Switch de tema
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
     }
-    
+
     // Navegación entre tabs - Desktop y móvil
     document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -822,7 +824,7 @@ function setupEventListeners() {
             switchTab(tabId);
         });
     });
-    
+
     // Buscadores
     setupSearchListeners();
 
@@ -836,7 +838,7 @@ function setupEventListeners() {
     if (formCrearSabana) {
         formCrearSabana.addEventListener('submit', handleCrearSabanaSubmit);
     }
-    
+
     console.log('✅ Event listeners configurados');
 }
 
@@ -848,7 +850,7 @@ function setupSearchListeners() {
             filterSabana(e.target.value);
         });
     }
-    
+
     const sabanaTipoSelect = document.getElementById('sabanaTipoSelect');
     if (sabanaTipoSelect) {
         sabanaTipoSelect.addEventListener('change', (e) => {
@@ -865,7 +867,7 @@ function setupSearchListeners() {
             filterSabanaByEstado(e.target.value);
         });
     }
-    
+
     // Buscador de Checklist
     const buscarChecklist = document.getElementById('buscarChecklist');
     if (buscarChecklist) {
@@ -873,7 +875,7 @@ function setupSearchListeners() {
             filterChecklist(e.target.value);
         });
     }
-    
+
     // Filtro de edificios en checklist
     const filtroEdificioChecklist = document.getElementById('filtroEdificioChecklist');
     if (filtroEdificioChecklist) {
@@ -941,7 +943,7 @@ function initializeNavigation() {
     // Verificar si hay un parámetro de URL
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get('view');
-    
+
     if (view) {
         switchTab(view === 'admin' ? 'usuarios' : 'habitaciones');
     } else {
@@ -954,7 +956,7 @@ function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     // Desactivar todos los enlaces de navegación - Desktop y móvil
     document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
         link.classList.remove('active');
@@ -971,12 +973,12 @@ function switchTab(tabId) {
     selectedButtons.forEach(button => {
         button.classList.add('active');
     });
-    
+
     AppState.currentTab = tabId;
-    
+
     // Cargar datos específicos del tab
     loadTabData(tabId);
-    
+
     console.log('📄 Tab activo:', tabId);
 }
 
@@ -987,7 +989,7 @@ function loadTabData(tabId) {
             loadSabanaData();
             break;
         case 'checklist':
-            loadChecklistData();
+            loadChecklistData().catch(error => console.error('❌ Error al cargar checklist:', error));
             break;
         case 'usuarios':
             if (AppState.currentUser.role === 'admin') {
@@ -1008,18 +1010,18 @@ function loadTabData(tabId) {
 async function loadInitialData() {
     try {
         console.log('📥 Cargando datos iniciales...');
-        
+
         // Aquí normalmente cargarías desde la API
         // Por ahora usamos datos de ejemplo
-        
+
         AppState.edificios = [
             { id: 1, nombre: 'Edificio A' },
             { id: 2, nombre: 'Edificio B' },
             { id: 3, nombre: 'Edificio C' }
         ];
-        
+
         AppState.cuartos = generateMockCuartos();
-        
+
         console.log('✅ Datos iniciales cargados');
     } catch (error) {
         console.error('❌ Error cargando datos iniciales:', error);
@@ -1030,7 +1032,7 @@ function generateMockCuartos() {
     const cuartos = [];
     const edificios = ['A', 'B', 'C'];
     let id = 1;
-    
+
     edificios.forEach((edificio, edifIndex) => {
         for (let piso = 1; piso <= 5; piso++) {
             for (let num = 1; num <= 8; num++) {
@@ -1044,7 +1046,7 @@ function generateMockCuartos() {
             }
         }
     });
-    
+
     return cuartos;
 }
 
@@ -1648,10 +1650,10 @@ function exportarSabanaExcel() {
         alert('Solo los administradores pueden exportar datos');
         return;
     }
-    
+
     // Mostrar spinner
     document.getElementById('downloadSpinner').style.display = 'flex';
-    
+
     setTimeout(() => {
         const sabana = getSelectedSabana();
         if (!sabana) {
@@ -1659,13 +1661,13 @@ function exportarSabanaExcel() {
             document.getElementById('downloadSpinner').style.display = 'none';
             return;
         }
-        
+
         const registros = sabana.registros;
         let csv = 'Edificio,Habitación,Fecha Programada,Fecha Realizada,Responsable,Observaciones,Realizado\n';
         registros.forEach(row => {
             csv += `${row.edificio},${row.habitacion},${row.fechaProgramada || 'Pendiente'},${row.fechaRealizada || '—'},${row.responsable},${row.observaciones},${row.realizado ? 'Sí' : 'No'}\n`;
         });
-        
+
         // Descargar archivo
         const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
         const url = window.URL.createObjectURL(blob);
@@ -1674,7 +1676,7 @@ function exportarSabanaExcel() {
         a.download = `sabana_filtros_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
-        
+
         document.getElementById('downloadSpinner').style.display = 'none';
         alert('Sábana exportada exitosamente');
     }, 1500);
@@ -1860,9 +1862,156 @@ function syncChecklistDataWithNewItems(nuevosItems) {
     localStorage.setItem('checklistData', JSON.stringify(updated));
 }
 
-function loadChecklistData() {
+async function getChecklistMockHabitaciones() {
+    if (Array.isArray(checklistMockCache)) {
+        return checklistMockCache;
+    }
+
+    try {
+        const response = await fetch(CHECKLIST_MOCK_DATA_PATH, { cache: 'no-store' });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const payload = await response.json();
+        if (!payload || !Array.isArray(payload.habitaciones)) {
+            throw new Error('Formato inválido en checklist-mock.json');
+        }
+
+        checklistMockCache = payload.habitaciones;
+    } catch (error) {
+        console.warn('⚠️ No se pudo cargar el JSON de mock, usando fallback interno.', error);
+        checklistMockCache = buildInlineChecklistMockData();
+    }
+
+    return checklistMockCache;
+}
+
+function buildInlineChecklistMockData() {
+    return [
+        {
+            numero: 'A101',
+            edificio_nombre: 'Edificio A',
+            estado: 'disponible',
+            ultimo_editor: 'Equipo Demo',
+            items: [
+                { categoria: 'climatizacion', nombre: 'Aire acondicionado', estado: 'bueno' },
+                { categoria: 'electronica', nombre: 'Televisión', estado: 'regular' },
+                { categoria: 'mobiliario', nombre: 'Cama', estado: 'bueno' }
+            ]
+        },
+        {
+            numero: 'A102',
+            edificio_nombre: 'Edificio A',
+            estado: 'mantenimiento',
+            ultimo_editor: 'Equipo Demo',
+            items: [
+                { categoria: 'climatizacion', nombre: 'Aire acondicionado', estado: 'malo' },
+                { categoria: 'sanitarios', nombre: 'Inodoro', estado: 'malo' },
+                { categoria: 'amenidades', nombre: 'Minibar', estado: 'regular' }
+            ]
+        }
+    ];
+}
+
+function mergeMockChecklistItems(mockItems = [], habitacionLabel = '') {
+    const normalizedItems = Array.isArray(mockItems) ? mockItems : [];
+    const itemsByName = normalizedItems.reduce((acc, item) => {
+        if (item && item.nombre) {
+            acc[item.nombre.toLowerCase()] = item;
+        }
+        return acc;
+    }, {});
+
+    const merged = AppState.checklistItems.map(defaultItem => {
+        const key = defaultItem.nombre.toLowerCase();
+        const mock = itemsByName[key];
+        return {
+            nombre: defaultItem.nombre,
+            categoria: defaultItem.categoria,
+            estado: mock?.estado || 'bueno',
+            notas: mock?.observacion || mock?.notas || '',
+            ultima_revision: mock?.ultima_revision || null
+        };
+    });
+
+    normalizedItems.forEach(item => {
+        const normalizedName = (item?.nombre || '').toLowerCase();
+        const exists = AppState.checklistItems.some(defaultItem => defaultItem.nombre.toLowerCase() === normalizedName);
+        if (!exists && item?.nombre) {
+            merged.push({
+                nombre: item.nombre,
+                categoria: item.categoria || 'custom',
+                estado: item.estado || 'bueno',
+                notas: item.observacion || item.notas || '',
+                ultima_revision: item.ultima_revision || null,
+                origen: habitacionLabel
+            });
+        }
+    });
+
+    return merged;
+}
+
+function normalizeMockHabitaciones(habitaciones = []) {
+    if (!Array.isArray(habitaciones)) {
+        return [];
+    }
+
+    const cuartos = Array.isArray(AppState.cuartos) ? AppState.cuartos : [];
+
+    return habitaciones.map((habitacion, index) => {
+        const matchingCuarto = cuartos.find(cuarto => cuarto.numero === habitacion.numero) || cuartos[index] || {};
+        const items = mergeMockChecklistItems(habitacion.items, habitacion.numero);
+
+        return {
+            cuarto_id: habitacion.cuarto_id || matchingCuarto.id || Date.now() + index,
+            numero: habitacion.numero || matchingCuarto.numero || `HAB-${index + 1}`,
+            edificio: habitacion.edificio || habitacion.edificio_nombre || matchingCuarto.edificio_nombre || 'Sin edificio',
+            edificio_nombre: habitacion.edificio_nombre || habitacion.edificio || matchingCuarto.edificio_nombre || 'Sin edificio',
+            nivel: habitacion.nivel || matchingCuarto.nivel || null,
+            estado_cuarto: habitacion.estado || habitacion.estado_cuarto || matchingCuarto.estado || 'disponible',
+            ultimo_editor: habitacion.ultimo_editor || 'Mock Loader',
+            fecha_ultima_edicion: habitacion.fecha_ultima_edicion || new Date().toISOString(),
+            metadata: habitacion.metadata || habitacion.detalles || null,
+            items
+        };
+    });
+}
+
+async function ensureChecklistStorageSeeded() {
+    if (localStorage.getItem('checklistData')) {
+        return;
+    }
+
+    const habitacionesMock = await getChecklistMockHabitaciones();
+    const normalized = normalizeMockHabitaciones(habitacionesMock);
+    localStorage.setItem('checklistData', JSON.stringify(normalized));
+}
+
+function exposeMockChecklistHelpers() {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    window.MockChecklistLoader = {
+        async recargarDesdeMock() {
+            localStorage.removeItem('checklistData');
+            checklistMockCache = null;
+            await loadChecklistData();
+        },
+        async obtenerMock() {
+            const habitaciones = await getChecklistMockHabitaciones();
+            return { habitaciones };
+        }
+    };
+}
+
+exposeMockChecklistHelpers();
+
+async function loadChecklistData() {
     console.log('📋 Cargando datos de checklist...');
-    
+
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
 
@@ -1870,44 +2019,46 @@ function loadChecklistData() {
 
     renderChecklistCategorias();
     loadInspeccionesRecientes();
-    
-    // Generar checklist para cada habitación
-    if (!localStorage.getItem('checklistData')) {
-        const checklistData = AppState.cuartos.slice(0, 20).map(cuarto => ({
-            cuarto_id: cuarto.id,
-            numero: cuarto.numero,
-            edificio: cuarto.edificio_nombre,
-            items: AppState.checklistItems.map(item => ({
-                nombre: item.nombre,
-                categoria: item.categoria,
-                estado: 'bueno' // bueno, regular, malo
-            }))
-        }));
-        localStorage.setItem('checklistData', JSON.stringify(checklistData));
+
+    try {
+        await ensureChecklistStorageSeeded();
+    } catch (error) {
+        console.warn('⚠️ No se pudo preparar el mock de checklist.', error);
     }
-    
-    const checklistData = JSON.parse(localStorage.getItem('checklistData'));
+
+    const storedData = localStorage.getItem('checklistData');
+    let checklistData = [];
+
+    try {
+        checklistData = storedData ? JSON.parse(storedData) : [];
+    } catch (error) {
+        console.warn('⚠️ No se pudo leer checklistData almacenado. Reiniciando.', error);
+        localStorage.removeItem('checklistData');
+        checklistData = [];
+    }
+
     AppState.checklistFiltradas = Array.isArray(checklistData) ? checklistData : [];
-    renderChecklistGrid(checklistData);
+    renderChecklistGrid(AppState.checklistFiltradas);
 }
+
 
 function renderChecklistGrid(data) {
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
-    
+
     grid.innerHTML = '';
-    
+
     if (!data || data.length === 0) {
         grid.innerHTML = '<div class="mensaje-cargando">No hay habitaciones para mostrar</div>';
         return;
     }
-    
+
     // Aplicar paginación
     const { page, perPage } = AppState.checklistPagination;
     const start = (page - 1) * perPage;
     const end = start + perPage;
     const paginatedData = data.slice(start, end);
-    
+
     paginatedData.forEach(habitacion => {
         const card = document.createElement('div');
         card.className = 'checklist-card';
@@ -1929,7 +2080,7 @@ function renderChecklistGrid(data) {
         const edificioNombre = sanitizeText(habitacion.edificio || habitacion.edificio_nombre || '');
         const edificioLabel = edificioNombre || 'Sin edificio';
         const totalItems = habitacion.items.length;
-        
+
         // Obtener estado de la habitación (disponible por defecto si no existe)
         const estadoHabitacion = habitacion.estado_cuarto || habitacion.estado || 'disponible';
         const estadoConfig = {
@@ -1950,10 +2101,10 @@ function renderChecklistGrid(data) {
                 <span class="checklist-card-stat-value">${counts[estado]}</span>
             </div>
         `).join('');
-        
+
         // Obtener información del último editor
         const ultimoEditor = habitacion.ultimo_editor || null;
-        
+
         card.innerHTML = `
             <div class="checklist-card-header">
                 <div class="checklist-header-top">
@@ -2009,20 +2160,20 @@ function renderChecklistGrid(data) {
                 ${itemsHTML}
             </div>
         `;
-        
+
         grid.appendChild(card);
-        
+
         // Configurar búsqueda dentro de la card
         const searchInput = card.querySelector('.checklist-search-input');
         const clearBtn = card.querySelector('.checklist-search-clear');
         const itemsContainer = card.querySelector('.checklist-items');
-        
+
         searchInput.addEventListener('input', (e) => {
             const searchTerm = e.target.value.toLowerCase().trim();
             const items = itemsContainer.querySelectorAll('.checklist-item');
-            
+
             clearBtn.style.display = searchTerm ? 'flex' : 'none';
-            
+
             items.forEach(item => {
                 const itemName = item.getAttribute('data-item') || '';
                 if (itemName.includes(searchTerm)) {
@@ -2032,7 +2183,7 @@ function renderChecklistGrid(data) {
                 }
             });
         });
-        
+
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
             clearBtn.style.display = 'none';
@@ -2040,7 +2191,7 @@ function renderChecklistGrid(data) {
             items.forEach(item => item.style.display = '');
             searchInput.focus();
         });
-        
+
         // Configurar botón de acción (tres puntos)
         const actionBtn = card.querySelector('.checklist-action-btn');
         if (actionBtn) {
@@ -2184,20 +2335,20 @@ function getInspeccionEstadoLabel(estado) {
 function updateChecklistEstado(cuartoId, itemIndex, nuevoEstado) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (habitacion) {
         habitacion.items[itemIndex].estado = nuevoEstado;
-        
+
         // Guardar información del usuario que editó
         if (AppState.currentUser && AppState.currentUser.name) {
             habitacion.ultimo_editor = AppState.currentUser.name;
             habitacion.fecha_ultima_edicion = new Date().toISOString();
         }
-        
+
         localStorage.setItem('checklistData', JSON.stringify(checklistData));
         console.log(`✅ Estado actualizado: ${habitacion.numero} - ${habitacion.items[itemIndex].nombre} -> ${nuevoEstado}`);
         updateChecklistCardSummary(habitacion);
-        
+
         // Actualizar la información del editor en la card
         updateChecklistEditorInfo(habitacion);
     }
@@ -2229,27 +2380,27 @@ function updateChecklistCardSummary(habitacion) {
 function updateChecklistEditorInfo(habitacion) {
     const card = document.querySelector(`.checklist-card[data-cuarto-id="${habitacion.cuarto_id}"]`);
     if (!card) return;
-    
+
     const metaGroup = card.querySelector('.checklist-meta-group');
     if (!metaGroup) return;
-    
+
     // Buscar si ya existe el editor tag
     let editorTag = metaGroup.querySelector('.checklist-editor-tag');
-    
+
     if (habitacion.ultimo_editor) {
         if (!editorTag) {
             // Crear el separador
             const divider = document.createElement('span');
             divider.className = 'checklist-meta-divider';
-            
+
             // Crear el tag del editor
             editorTag = document.createElement('span');
             editorTag.className = 'checklist-meta-item checklist-editor-tag';
-            
+
             metaGroup.appendChild(divider);
             metaGroup.appendChild(editorTag);
         }
-        
+
         // Actualizar el contenido
         editorTag.innerHTML = `<i class="fas fa-user-edit"></i><span>${habitacion.ultimo_editor}</span>`;
     }
@@ -2262,12 +2413,12 @@ function updateChecklistEditorInfo(habitacion) {
 function openChecklistDetailsModal(cuartoId) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (!habitacion) {
         console.error('Habitación no encontrada');
         return;
     }
-    
+
     // Crear modal si no existe
     let modal = document.getElementById('checklist-details-modal');
     if (!modal) {
@@ -2276,16 +2427,16 @@ function openChecklistDetailsModal(cuartoId) {
         modal.className = 'checklist-modal';
         document.body.appendChild(modal);
     }
-    
+
     // Obtener historial de ediciones (agrupadas por item)
     const historialHTML = buildHistorialHTML(habitacion);
-    
+
     // Obtener estadísticas
     const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
         acc[estado] = habitacion.items.filter(item => item.estado === estado).length;
         return acc;
     }, {});
-    
+
     const estadoHabitacion = habitacion.estado_cuarto || habitacion.estado || 'disponible';
     const estadoConfig = {
         'disponible': { label: 'Disponible', icon: 'fa-circle-check', class: 'estado-disponible' },
@@ -2294,7 +2445,7 @@ function openChecklistDetailsModal(cuartoId) {
         'fuera-servicio': { label: 'Fuera de Servicio', icon: 'fa-ban', class: 'estado-fuera-servicio' }
     };
     const estadoInfo = estadoConfig[estadoHabitacion] || estadoConfig['disponible'];
-    
+
     // Detectar si es móvil
     const isMobile = window.matchMedia('(max-width: 600px)').matches;
     // Helper para acordeón
@@ -2313,16 +2464,15 @@ function openChecklistDetailsModal(cuartoId) {
         `;
     }
     // Bloques de contenido
-    const infoBlock = `<div class="checklist-modal-info">${
-        [
-            `<div class="checklist-info-item"><i class="fas fa-building"></i><div class="info-content"><strong>Edificio</strong><span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span></div></div>`,
-            `<div class="checklist-info-item"><i class="fas fa-clipboard-list"></i><div class="info-content"><strong>Total de ítems</strong><span>${habitacion.items.length} elementos registrados</span></div></div>`,
-            `<div class="checklist-info-item"><i class="fas fa-user-edit"></i><div class="info-content"><strong>Último editor</strong><span>${habitacion.ultimo_editor || 'Sin ediciones'}</span></div></div>`,
-            `<div class="checklist-info-item"><i class="fas fa-clock"></i><div class="info-content"><strong>Última actualización</strong><span>${habitacion.fecha_ultima_edicion ? formatDate(habitacion.fecha_ultima_edicion) : 'Sin fecha'}</span></div></div>`,
-            `<div class="checklist-info-item"><i class="fas fa-calendar-plus"></i><div class="info-content"><strong>Fecha de creación</strong><span>${habitacion.fecha_creacion ? new Date(habitacion.fecha_creacion).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No registrada'}</span></div></div>`,
-            `<div class="checklist-info-item"><i class="fas fa-hashtag"></i><div class="info-content"><strong>ID de habitación</strong><span>${habitacion.cuarto_id}</span></div></div>`
-        ].join('')
-    }</div>`;
+    const infoBlock = `<div class="checklist-modal-info">${[
+        `<div class="checklist-info-item"><i class="fas fa-building"></i><div class="info-content"><strong>Edificio</strong><span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span></div></div>`,
+        `<div class="checklist-info-item"><i class="fas fa-clipboard-list"></i><div class="info-content"><strong>Total de ítems</strong><span>${habitacion.items.length} elementos registrados</span></div></div>`,
+        `<div class="checklist-info-item"><i class="fas fa-user-edit"></i><div class="info-content"><strong>Último editor</strong><span>${habitacion.ultimo_editor || 'Sin ediciones'}</span></div></div>`,
+        `<div class="checklist-info-item"><i class="fas fa-clock"></i><div class="info-content"><strong>Última actualización</strong><span>${habitacion.fecha_ultima_edicion ? formatDate(habitacion.fecha_ultima_edicion) : 'Sin fecha'}</span></div></div>`,
+        `<div class="checklist-info-item"><i class="fas fa-calendar-plus"></i><div class="info-content"><strong>Fecha de creación</strong><span>${habitacion.fecha_creacion ? new Date(habitacion.fecha_creacion).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : 'No registrada'}</span></div></div>`,
+        `<div class="checklist-info-item"><i class="fas fa-hashtag"></i><div class="info-content"><strong>ID de habitación</strong><span>${habitacion.cuarto_id}</span></div></div>`
+    ].join('')
+        }</div>`;
     const statsBlock = `<div class="checklist-modal-stats"><h3>Resumen de Estados</h3><div class="checklist-stats-grid">${CHECKLIST_ESTADOS.map(estado => `
         <div class="checklist-stat-item ${estado}"><span class="semaforo-dot"></span><span class="stat-label">${CHECKLIST_ESTADO_LABELS[estado]}</span><span class="stat-value">${counts[estado]}</span></div>
     `).join('')}</div></div>`;
@@ -2363,27 +2513,27 @@ function openChecklistDetailsModal(cuartoId) {
             </div>
             <div class="modal-detalles-body checklist-details-body">
                 ${isMobile
-                    ? [
-                        accordionBlock('Información', infoBlock, 'accordion-info', true),
-                        accordionBlock('Resumen de Estados', statsBlock, 'accordion-stats'),
-                        accordionBlock('Evidencias Fotográficas', evidenciasBlock, 'accordion-evidencias'),
-                        accordionBlock('Historial de Ediciones', historyBlock, 'accordion-history')
-                    ].join('')
-                    : [infoBlock, statsBlock, evidenciasBlock, historyBlock].join('')
-                }
+            ? [
+                accordionBlock('Información', infoBlock, 'accordion-info', true),
+                accordionBlock('Resumen de Estados', statsBlock, 'accordion-stats'),
+                accordionBlock('Evidencias Fotográficas', evidenciasBlock, 'accordion-evidencias'),
+                accordionBlock('Historial de Ediciones', historyBlock, 'accordion-history')
+            ].join('')
+            : [infoBlock, statsBlock, evidenciasBlock, historyBlock].join('')
+        }
             </div>
             <div class="checklist-modal-footer" style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
                 ${exportBtns}
             </div>
         </div>
     `;
-    
+
     modal.style.display = 'flex';
     modal.style.zIndex = '2000';
     document.body.style.overflow = 'hidden';
-    
+
     console.log('Modal abierto:', modal);
-    
+
     // Agregar event listeners después de crear el HTML
     setTimeout(() => {
         const overlay = modal.querySelector('.modal-detalles-overlay');
@@ -2391,24 +2541,24 @@ function openChecklistDetailsModal(cuartoId) {
         const excelBtn = modal.querySelector('.btn-excel');
         const pdfBtn = modal.querySelector('.btn-pdf');
         const footer = modal.querySelector('.checklist-modal-footer');
-        
+
         console.log('Elementos encontrados:', { overlay, closeBtn, excelBtn, pdfBtn, footer });
-        
+
         if (overlay) {
             overlay.addEventListener('click', closeChecklistDetailsModal);
         }
-        
+
         if (closeBtn) {
             closeBtn.addEventListener('click', closeChecklistDetailsModal);
         }
-        
+
         if (excelBtn) {
             excelBtn.addEventListener('click', () => {
                 console.log('Exportando a Excel:', cuartoId);
                 exportChecklistToExcel(cuartoId);
             });
         }
-        
+
         if (pdfBtn) {
             pdfBtn.addEventListener('click', () => {
                 console.log('Exportando a PDF:', cuartoId);
@@ -2450,22 +2600,22 @@ function buildHistorialHTML(habitacion) {
     if (!habitacion.items || habitacion.items.length === 0) {
         return '<p class="no-history">No hay elementos registrados</p>';
     }
-    
+
     const itemsConEstado = habitacion.items.map((item, index) => ({
         ...item,
         index,
         editado: item.estado !== 'bueno' // Considerar editado si no está en estado bueno
     }));
-    
+
     // Agrupar por estado
     const itemsPorEstado = {
         malo: itemsConEstado.filter(item => item.estado === 'malo'),
         regular: itemsConEstado.filter(item => item.estado === 'regular'),
         bueno: itemsConEstado.filter(item => item.estado === 'bueno')
     };
-    
+
     let html = '';
-    
+
     if (itemsPorEstado.malo.length > 0) {
         html += '<div class="history-group">';
         html += '<h4><span class="semaforo-dot malo"></span> En Mal Estado</h4>';
@@ -2478,7 +2628,7 @@ function buildHistorialHTML(habitacion) {
         });
         html += '</ul></div>';
     }
-    
+
     if (itemsPorEstado.regular.length > 0) {
         html += '<div class="history-group">';
         html += '<h4><span class="semaforo-dot regular"></span> Estado Regular</h4>';
@@ -2491,7 +2641,7 @@ function buildHistorialHTML(habitacion) {
         });
         html += '</ul></div>';
     }
-    
+
     if (itemsPorEstado.bueno.length > 0) {
         html += '<div class="history-group">';
         html += '<h4><span class="semaforo-dot bueno"></span> En Buen Estado</h4>';
@@ -2504,7 +2654,7 @@ function buildHistorialHTML(habitacion) {
         });
         html += '</ul></div>';
     }
-    
+
     return html || '<p class="no-history">No hay ediciones registradas</p>';
 }
 
@@ -2515,31 +2665,31 @@ function formatDate(isoString) {
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    
+
     if (minutes < 1) return 'Justo ahora';
     if (minutes < 60) return `Hace ${minutes} min`;
     if (hours < 24) return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
     if (days < 7) return `Hace ${days} día${days > 1 ? 's' : ''}`;
-    
+
     return date.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function buildEvidenciasHTML(habitacion) {
     const evidencias = habitacion.evidencias || [];
-    
+
     if (evidencias.length === 0) {
         return '<div class="no-history" style="grid-column: 1 / -1;">No hay evidencias fotográficas</div>';
     }
-    
+
     return evidencias.map((evidencia, index) => `
         <div class="evidencia-item" onclick="viewEvidencia('${habitacion.cuarto_id}', ${index})">
-            ${evidencia.type === 'image' ? 
-                `<img src="${evidencia.url}" alt="Evidencia ${index + 1}">` :
-                `<div class="evidencia-item-placeholder">
+            ${evidencia.type === 'image' ?
+            `<img src="${evidencia.url}" alt="Evidencia ${index + 1}">` :
+            `<div class="evidencia-item-placeholder">
                     <i class="fas fa-file"></i>
                     <span>${evidencia.name}</span>
                 </div>`
-            }
+        }
             <div class="evidencia-overlay">
                 <button class="btn-ver-evidencia" onclick="event.stopPropagation(); viewEvidencia('${habitacion.cuarto_id}', ${index})">
                     <i class="fas fa-eye"></i> Ver
@@ -2553,16 +2703,16 @@ function buildEvidenciasHTML(habitacion) {
 function handleEvidenciaUpload(event, cuartoId) {
     const files = event.target.files;
     if (!files || files.length === 0) return;
-    
+
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (!habitacion) return;
-    
+
     if (!habitacion.evidencias) {
         habitacion.evidencias = [];
     }
-    
+
     Array.from(files).forEach(file => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -2573,15 +2723,15 @@ function handleEvidenciaUpload(event, cuartoId) {
                 fecha: new Date().toISOString(),
                 uploadedBy: AppState.currentUser?.name || 'Usuario'
             });
-            
+
             localStorage.setItem('checklistData', JSON.stringify(checklistData));
-            
+
             // Actualizar grid de evidencias
             const grid = document.getElementById(`evidencias-grid-${cuartoId}`);
             if (grid) {
                 grid.innerHTML = buildEvidenciasHTML(habitacion);
             }
-            
+
             showNotification('✅ Evidencia agregada correctamente', 'success');
         };
         reader.readAsDataURL(file);
@@ -2591,11 +2741,11 @@ function handleEvidenciaUpload(event, cuartoId) {
 function viewEvidencia(cuartoId, index) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (!habitacion || !habitacion.evidencias || !habitacion.evidencias[index]) return;
-    
+
     const evidencia = habitacion.evidencias[index];
-    
+
     // Crear modal de visualización
     let viewer = document.getElementById('evidencia-viewer-modal');
     if (!viewer) {
@@ -2604,25 +2754,25 @@ function viewEvidencia(cuartoId, index) {
         viewer.className = 'evidencia-viewer-modal';
         document.body.appendChild(viewer);
     }
-    
+
     viewer.innerHTML = `
         <div class="evidencia-viewer-content">
             <button class="evidencia-viewer-close" onclick="closeEvidenciaViewer()">
                 <i class="fas fa-times"></i>
             </button>
-            ${evidencia.type === 'image' ? 
-                `<img src="${evidencia.url}" alt="${evidencia.name}">` :
-                `<div style="color: white; padding: 2rem;">Archivo no visualizable: ${evidencia.name}</div>`
-            }
+            ${evidencia.type === 'image' ?
+            `<img src="${evidencia.url}" alt="${evidencia.name}">` :
+            `<div style="color: white; padding: 2rem;">Archivo no visualizable: ${evidencia.name}</div>`
+        }
             <div class="evidencia-info">
                 <p><strong>${evidencia.name}</strong></p>
                 <p>Subido por ${evidencia.uploadedBy} • ${new Date(evidencia.fecha).toLocaleString('es-MX')}</p>
             </div>
         </div>
     `;
-    
+
     viewer.style.display = 'flex';
-    
+
     // Cerrar al hacer click en el fondo
     viewer.onclick = (e) => {
         if (e.target === viewer) {
@@ -2641,12 +2791,12 @@ function closeEvidenciaViewer() {
 function exportChecklistToExcel(cuartoId) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (!habitacion) return;
-    
+
     // Crear CSV (compatible con Excel)
     let csv = 'Habitación,Edificio,Estado Habitación,Elemento,Estado,Último Editor,Fecha Edición\n';
-    
+
     habitacion.items.forEach(item => {
         const row = [
             habitacion.numero,
@@ -2659,32 +2809,32 @@ function exportChecklistToExcel(cuartoId) {
         ];
         csv += row.map(field => `"${field}"`).join(',') + '\n';
     });
-    
+
     // Crear y descargar archivo
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = `checklist_${habitacion.numero}_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
-    
+
     showNotification(`✅ Excel exportado: ${habitacion.numero}`, 'success');
 }
 
 function exportChecklistToPDF(cuartoId) {
     const checklistData = JSON.parse(localStorage.getItem('checklistData'));
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    
+
     if (!habitacion) return;
-    
+
     // Crear contenido HTML para impresión
     const printWindow = window.open('', '', 'width=800,height=600');
-    
+
     const estadoHabitacion = habitacion.estado_cuarto || habitacion.estado || 'disponible';
     const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
         acc[estado] = habitacion.items.filter(item => item.estado === estado).length;
         return acc;
     }, {});
-    
+
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
@@ -2785,9 +2935,9 @@ function exportChecklistToPDF(cuartoId) {
         </body>
         </html>
     `);
-    
+
     printWindow.document.close();
-    
+
     // Esperar a que cargue y abrir diálogo de impresión
     setTimeout(() => {
         printWindow.print();
@@ -2809,19 +2959,19 @@ function applyChecklistFilters() {
         renderChecklistGrid([]);
         return;
     }
-    
+
     const allData = JSON.parse(checklistDataRaw);
     const searchLower = (AppState.checklistFilters.busqueda || '').toLowerCase();
     const categoriaActiva = AppState.checklistFilters.categoria;
     const edificioActivo = AppState.checklistFilters.edificio;
     const estadoActivo = AppState.checklistFilters.estado;
-    
+
     // Filtrar habitaciones por edificio
     let habitacionesFiltradas = allData;
     if (edificioActivo) {
         habitacionesFiltradas = allData.filter(hab => hab.edificio === edificioActivo || hab.edificio_nombre === edificioActivo);
     }
-    
+
     // Filtrar ítems si hay criterios por categoría, búsqueda o estado
     const requiereFiltradoItems = Boolean(categoriaActiva || searchLower || estadoActivo);
     if (requiereFiltradoItems) {
@@ -2835,7 +2985,7 @@ function applyChecklistFilters() {
                 const cumpleEstado = !estadoActivo || estadoItem === estadoActivo;
                 return cumpleCategoria && cumpleBusqueda && cumpleEstado;
             });
-            
+
             if (itemsFiltrados.length > 0) {
                 return {
                     ...habitacion,
@@ -2845,7 +2995,7 @@ function applyChecklistFilters() {
             return null;
         }).filter(Boolean);
     }
-    
+
     AppState.checklistFiltradas = habitacionesFiltradas;
 
     // Calcular paginación
@@ -2853,7 +3003,7 @@ function applyChecklistFilters() {
     if (AppState.checklistPagination.page > AppState.checklistPagination.totalPages) {
         AppState.checklistPagination.page = 1;
     }
-    
+
     renderChecklistGrid(habitacionesFiltradas);
     renderChecklistPagination();
 }
@@ -2961,15 +3111,15 @@ function handleNuevaSeccionSubmit(event) {
 function createChecklistSlug(texto) {
     return texto
         .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .substring(0, 40) || `seccion-${Date.now()}`;
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 40) || `seccion-${Date.now()}`;
 }
 
 function filtrarChecklistPorCategoria(categoriaId) {
     AppState.checklistFilters.categoria = categoriaId;
     AppState.checklistPagination.page = 1; // Reset a página 1
-    
+
     // Actualizar botones activos
     document.querySelectorAll('.categoria-btn').forEach(btn => {
         btn.classList.remove('active');
@@ -2992,7 +3142,7 @@ function filtrarChecklistPorCategoria(categoriaId) {
             toggleButton.setAttribute('aria-expanded', 'false');
         }
     }
-    
+
     applyChecklistFilters();
 }
 
@@ -3076,7 +3226,7 @@ function renderChecklistPagination() {
 function changeChecklistPage(newPage) {
     const { totalPages } = AppState.checklistPagination;
     if (newPage < 1 || newPage > totalPages) return;
-    
+
     AppState.checklistPagination.page = newPage;
     applyChecklistFilters();
 }
@@ -3086,26 +3236,26 @@ function exportarChecklistExcel() {
         alert('Solo los administradores pueden exportar datos');
         return;
     }
-    
+
     document.getElementById('downloadSpinner').style.display = 'flex';
-    
+
     setTimeout(() => {
         const checklistData = JSON.parse(localStorage.getItem('checklistData'));
-        
+
         let csv = 'Habitación,Edificio,Item,Estado\n';
         checklistData.forEach(habitacion => {
             habitacion.items.forEach(item => {
                 csv += `${habitacion.numero},${habitacion.edificio},${item.nombre},${item.estado}\n`;
             });
         });
-        
+
         const blob = new Blob([csv], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `checklist_inspecciones_${new Date().toISOString().split('T')[0]}.csv`;
         a.click();
-        
+
         document.getElementById('downloadSpinner').style.display = 'none';
         alert('Checklist exportado exitosamente');
     }, 1500);
@@ -4062,7 +4212,7 @@ function eliminarTareaRapida() {
 
     const query = referencia.trim().toLowerCase();
     const tarea = tareas.find(t => t.id?.toLowerCase() === query) ||
-                  tareas.find(t => (t.titulo || '').toLowerCase().includes(query));
+        tareas.find(t => (t.titulo || '').toLowerCase().includes(query));
 
     if (!tarea) {
         showQuickToast(`<strong>No encontrada</strong><p>No se encontró una tarea que coincida con "${sanitizeText(referencia)}".</p>`);
@@ -4527,7 +4677,7 @@ function buildTareaTagsPreviewHTML(etiquetas = []) {
 
 function buildTareaCardHTML(tarea) {
     const estadoClass = tarea.estado === 'completada' ? 'estado-completada' :
-                       tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
+        tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
     const estadoLabel = getEstadoLabel(tarea.estado);
     const prioridadLabel = getPrioridadLabel(tarea.prioridad);
     const venceInfo = getTareaVenceInfo(tarea.vence);
@@ -4722,9 +4872,9 @@ function abrirModalDetalleTarea(tarea) {
     document.body.classList.add('modal-open');
 
     const estadoClass = tarea.estado === 'completada' ? 'estado-completada' :
-                       tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
+        tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
     const prioridadClass = tarea.prioridad === 'alta' ? 'alerta-prioridad-alta' :
-                          tarea.prioridad === 'media' ? 'alerta-prioridad-media' : 'alerta-prioridad-baja';
+        tarea.prioridad === 'media' ? 'alerta-prioridad-media' : 'alerta-prioridad-baja';
     const prioridadLabel = tarea.prioridad.charAt(0).toUpperCase() + tarea.prioridad.slice(1);
     const estadoLabel = getEstadoLabel(tarea.estado);
     const action = getTareaAccionConfig(tarea);
@@ -5204,7 +5354,7 @@ function updateTareasResumen(tareas) {
     const pendientes = tareasRol.filter(t => t.estado === 'pendiente').length;
     const enProceso = tareasRol.filter(t => t.estado === 'en_proceso').length;
     const completadas = tareasRol.filter(t => t.estado === 'completada').length;
-    
+
     // Calcular tareas urgentes (alta prioridad o vencidas)
     const hoy = new Date();
     const urgentes = tareasRol.filter(t => {
@@ -5213,7 +5363,7 @@ function updateTareasResumen(tareas) {
         const diasRestantes = Math.ceil((vence - hoy) / (1000 * 60 * 60 * 24));
         return t.prioridad === 'alta' || diasRestantes < 0;
     }).length;
-    
+
     const total = tareasRol.length;
 
     const pendEl = document.getElementById('tareasResumenPendientes');
@@ -5228,7 +5378,7 @@ function updateTareasResumen(tareas) {
     if (compEl) compEl.textContent = completadas;
     if (urgentesEl) urgentesEl.textContent = urgentes;
     if (totalEl) totalEl.textContent = total;
-    
+
     // Mostrar rol en español
     if (rolEl) {
         const rolesEspanol = {
@@ -5249,7 +5399,7 @@ function renderTareasPorHacer(tareasRol) {
     const contador = document.getElementById('contadorTareasPorHacer');
 
     console.log('📝 Renderizando tareas por hacer, total tareas rol:', tareasRol.length);
-    
+
     if (!container) {
         console.error('❌ No se encontró el contenedor listaTareasPorHacer');
         return;
@@ -5269,7 +5419,7 @@ function renderTareasPorHacer(tareasRol) {
         });
 
     console.log('✅ Tareas pendientes filtradas:', tareasPendientes.length);
-    
+
     if (contador) contador.textContent = tareasPendientes.length;
 
     if (tareasPendientes.length === 0) {
@@ -5285,17 +5435,17 @@ function renderTareasPorHacer(tareasRol) {
         const hoy = new Date();
         const diasRestantes = Math.ceil((fechaVence - hoy) / (1000 * 60 * 60 * 24));
         const venceTexto = diasRestantes < 0 ? `Vencida hace ${Math.abs(diasRestantes)}d` :
-                          diasRestantes === 0 ? 'Vence hoy' :
-                          diasRestantes === 1 ? 'Vence mañana' :
-                          `Vence en ${diasRestantes}d`;
+            diasRestantes === 0 ? 'Vence hoy' :
+                diasRestantes === 1 ? 'Vence mañana' :
+                    `Vence en ${diasRestantes}d`;
 
         const prioridadClass = `prioridad-${tarea.prioridad}`;
         const prioridadLabel = tarea.prioridad.charAt(0).toUpperCase() + tarea.prioridad.slice(1);
         const estadoTexto = tarea.estado === 'en_proceso' ? 'En proceso' : 'Pendiente';
         const estadoClass = tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
-        
+
         const tagsHTML = tarea.etiquetas.map(tag => `<span class="tarea-tag-mini">${sanitizeText(tag)}</span>`).join('');
-        
+
         const isUrgente = tarea.prioridad === 'alta' || diasRestantes <= 1;
         const urgenteBadge = isUrgente ? '<span class="badge-urgente-mini"><i class="fas fa-exclamation-triangle"></i> Urgente</span>' : '';
 
@@ -5365,9 +5515,9 @@ function updateTareasTimeline(tareas) {
 
     container.innerHTML = proximas.map(t => {
         const diasTexto = t.diasRestantes < 0 ? `Vencida (${Math.abs(t.diasRestantes)}d)` :
-                         t.diasRestantes === 0 ? 'Vence hoy' :
-                         t.diasRestantes === 1 ? 'Vence mañana' :
-                         `Vence en ${t.diasRestantes} días`;
+            t.diasRestantes === 0 ? 'Vence hoy' :
+                t.diasRestantes === 1 ? 'Vence mañana' :
+                    `Vence en ${t.diasRestantes} días`;
 
         return `
             <li class="alerta-espacio-item">
@@ -5402,4 +5552,5 @@ window.closeCrearSabanaModal = closeCrearSabanaModal;
 console.log('✅ App.js cargado completamente');
 
 // El selector de editores usa ahora un `select` nativo; no requiere JS adicional.
+
 

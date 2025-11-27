@@ -6,6 +6,7 @@
 // Variables locales del módulo
 let espaciosComunes = [];
 let mantenimientosEspacios = [];
+let espaciosComunesCargados = false; // Flag para controlar si ya se cargaron los datos
 // Paginación local
 const ESPACIOS_POR_PAGINA = 10;
 let espaciosComunesFiltradosActual = [];
@@ -81,6 +82,9 @@ async function cargarEspaciosComunes() {
             // Sincronizar filtros y mostrar  
             sincronizarEspaciosFiltrados();
             mostrarEspaciosComunes();
+
+            // Marcar como cargados por primera vez
+            espaciosComunesCargados = true;
 
             // Cargar alertas de espacios si la función existe
             if (window.cargarAlertasEspacios) {
@@ -968,6 +972,12 @@ window.seleccionarEstadoEspacioInline = seleccionarEstadoEspacioInline;
 window.cambiarEstadoEspacio = cambiarEstadoEspacio;
 window.renderizarServiciosEspacio = renderizarServiciosEspacio;
 window.recargarMantenimientosEspacios = recargarMantenimientosEspacios;
+
+// Exportar el flag de carga como getter/setter
+Object.defineProperty(window, 'espaciosComunesCargados', {
+    get: () => espaciosComunesCargados,
+    set: (value) => { espaciosComunesCargados = value; }
+});
 
 console.log('✅ [APP-LOADER-ESPACIOS] Funciones exportadas a window');
 

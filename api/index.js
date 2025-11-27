@@ -1400,7 +1400,27 @@ app.put('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
-        const tareaActualizada = await postgresManager.updateTarea(req.params.id, req.body);
+
+        console.log(`📝 Actualizando tarea ${req.params.id}:`, req.body);
+
+        // Mapear campos del frontend a la base de datos
+        // El frontend envía: nombre/titulo, fecha_limite, responsable_id
+        // La BD espera: titulo, fecha_vencimiento, asignado_a
+        const data = {
+            titulo: req.body.titulo || req.body.nombre,
+            descripcion: req.body.descripcion,
+            estado: req.body.estado,
+            prioridad: req.body.prioridad,
+            fecha_vencimiento: req.body.fecha_limite || req.body.fecha_vencimiento,
+            asignado_a: req.body.responsable_id ? parseInt(req.body.responsable_id) : (req.body.asignado_a ? parseInt(req.body.asignado_a) : undefined),
+            ubicacion: req.body.ubicacion,
+            tags: req.body.tags
+        };
+
+        // Eliminar campos undefined para no sobrescribir con null/undefined si no se enviaron
+        Object.keys(data).forEach(key => data[key] === undefined && delete data[key]);
+
+        const tareaActualizada = await postgresManager.updateTarea(req.params.id, data);
         if (!tareaActualizada) {
             return res.status(404).json({ error: 'Tarea no encontrada' });
         }

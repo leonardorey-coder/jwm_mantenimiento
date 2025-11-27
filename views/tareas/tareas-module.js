@@ -1093,6 +1093,8 @@ let tareasFiltradas = [];
 let tareasRenderizadas = 0;
 const TAREAS_POR_LOTE = 6;
 let observerTareas = null;
+let tareasCargadas = false; // Flag para controlar si ya se cargaron las tareas
+
 
 /**
  * Crea un skeleton card para tareas
@@ -1744,10 +1746,12 @@ async function refrescarTarjetasTareas() {
     }
 
     try {
-        // Mostrar skeletons mientras carga
-        listaTareas.innerHTML = '';
-        for (let i = 0; i < TAREAS_POR_LOTE; i++) {
-            listaTareas.appendChild(crearSkeletonTarea());
+        // Mostrar skeletons solo si es la primera carga
+        if (!tareasCargadas) {
+            listaTareas.innerHTML = '';
+            for (let i = 0; i < TAREAS_POR_LOTE; i++) {
+                listaTareas.appendChild(crearSkeletonTarea());
+            }
         }
 
         // Fetch tasks and services from API
@@ -1764,6 +1768,9 @@ async function refrescarTarjetasTareas() {
 
         console.log(`📋 ${todasLasTareas.length} tareas cargadas`);
         console.log(`🔧 ${todosLosServiciosCache.length} servicios cargados`);
+
+        // Marcar como cargadas por primera vez
+        tareasCargadas = true;
 
         // Verificar y actualizar tareas que deberían estar completadas
         await verificarYActualizarTareasCompletadas();
@@ -2753,6 +2760,13 @@ window.cargarTareasEnSelector = cargarTareasEnSelector;
 window.verDetalleTarea = verDetalleTarea;
 window.cerrarModalDetalleTarea = cerrarModalDetalleTarea;
 window.cerrarModalAdvertenciaEdicion = cerrarModalAdvertenciaEdicion;
+
+// Exportar el flag de carga como getter/setter
+Object.defineProperty(window, 'tareasCargadas', {
+    get: () => tareasCargadas,
+    set: (value) => { tareasCargadas = value; }
+});
+
 
 // ------------------------------
 // PRÓXIMOS VENCIMIENTOS
