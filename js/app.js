@@ -23,46 +23,16 @@ const AppState = {
     usuariosLoading: false,
     usuarioFormMode: 'create',
     usuarioEdicion: null,
-    checklistItems: [
-        { nombre: 'Aire acondicionado', categoria: 'climatizacion' },
-        { nombre: 'Calefacción', categoria: 'climatizacion' },
-        { nombre: 'Ventilación', categoria: 'climatizacion' },
-        { nombre: 'Televisión', categoria: 'electronica' },
-        { nombre: 'Teléfono', categoria: 'electronica' },
-        { nombre: 'Control remoto', categoria: 'electronica' },
-        { nombre: 'Iluminación', categoria: 'electronica' },
-        { nombre: 'Sofá', categoria: 'mobiliario' },
-        { nombre: 'Cama', categoria: 'mobiliario' },
-        { nombre: 'Cama King/Queen', categoria: 'mobiliario' },
-        { nombre: 'Closet', categoria: 'mobiliario' },
-        { nombre: 'Mesa de noche', categoria: 'mobiliario' },
-        { nombre: 'Silla', categoria: 'mobiliario' },
-        { nombre: 'Escritorio', categoria: 'mobiliario' },
-        { nombre: 'Baño', categoria: 'sanitarios' },
-        { nombre: 'Regadera', categoria: 'sanitarios' },
-        { nombre: 'Lavabo', categoria: 'sanitarios' },
-        { nombre: 'Inodoro', categoria: 'sanitarios' },
-        { nombre: 'Minibar', categoria: 'amenidades' },
-        { nombre: 'Caja fuerte', categoria: 'amenidades' },
-        { nombre: 'Cafetera', categoria: 'amenidades' },
-        { nombre: 'Ventanas', categoria: 'estructura' },
-        { nombre: 'Cortinas', categoria: 'estructura' },
-        { nombre: 'Puertas', categoria: 'estructura' },
-        { nombre: 'Pisos', categoria: 'estructura' }
-    ],
-    checklistCategorias: [
-        { id: 'climatizacion', nombre: 'Climatización', icono: 'fa-temperature-half' },
-        { id: 'electronica', nombre: 'Electrónica', icono: 'fa-plug' },
-        { id: 'mobiliario', nombre: 'Mobiliario', icono: 'fa-couch' },
-        { id: 'sanitarios', nombre: 'Sanitarios', icono: 'fa-shower' },
-        { id: 'amenidades', nombre: 'Amenidades', icono: 'fa-concierge-bell' },
-        { id: 'estructura', nombre: 'Estructura', icono: 'fa-door-open' }
-    ],
+    // Los ítems y categorías de checklist se cargan desde la API de PostgreSQL
+    checklistItems: [],
+    checklistCategorias: [],
     checklistFilters: {
         categoria: '',
         busqueda: '',
+        habitacion: '',
         edificio: '',
-        estado: ''
+        estado: '',
+        editor: ''
     },
     checklistPagination: {
         page: 1,
@@ -400,6 +370,72 @@ async function logout() {
 // TEMA (CLARO/OSCURO)
 // ========================================
 
+// Función de notificaciones toast
+function showNotification(message, type = 'info') {
+    // Buscar o crear contenedor de notificaciones
+    let container = document.getElementById('notification-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'notification-container';
+        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;';
+        document.body.appendChild(container);
+    }
+
+    // Crear notificación
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    
+    // Estilos según tipo
+    const colors = {
+        success: { bg: '#10b981', icon: '✅' },
+        error: { bg: '#ef4444', icon: '❌' },
+        warning: { bg: '#f59e0b', icon: '⚠️' },
+        info: { bg: '#3b82f6', icon: 'ℹ️' }
+    };
+    const config = colors[type] || colors.info;
+    
+    notification.style.cssText = `
+        background: ${config.bg};
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 14px;
+        font-weight: 500;
+        animation: slideIn 0.3s ease;
+        max-width: 350px;
+    `;
+    
+    notification.innerHTML = `<span>${config.icon}</span><span>${message}</span>`;
+    container.appendChild(notification);
+
+    // Agregar animación CSS si no existe
+    if (!document.getElementById('notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Auto-remover después de 4 segundos
+    setTimeout(() => {
+        notification.style.animation = 'slideOut 0.3s ease forwards';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+
 function initializeTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
     AppState.theme = savedTheme;
@@ -616,6 +652,16 @@ function setupSearchListeners() {
     if (buscarChecklist) {
         buscarChecklist.addEventListener('input', (e) => {
             filterChecklist(e.target.value);
+        });
+    }
+
+    // Buscador de Habitación en Checklist
+    const buscarHabitacionChecklist = document.getElementById('buscarHabitacionChecklist');
+    if (buscarHabitacionChecklist) {
+        buscarHabitacionChecklist.addEventListener('input', (e) => {
+            AppState.checklistFilters.habitacion = e.target.value;
+            AppState.checklistPagination.page = 1;
+            applyChecklistFilters();
         });
     }
 
@@ -1264,10 +1310,188 @@ const DEFAULT_INSPECCIONES_RECIENTES = [
 ];
 
 function loadChecklistData() {
-    console.log('📋 Cargando datos de checklist...');
+    console.log('📋 [APP.JS] loadChecklistData() llamado');
+    
+    // Limpiar datos antiguos del localStorage para asegurar sincronización con BD
+    // Los datos frescos se cargarán desde la API
+    localStorage.removeItem('checklistData');
+    console.log('🗑️ [APP.JS] Cache de checklistData limpiado');
+    
+    // Si existe la función de checklist-tab.js que usa la API, usarla
+    if (typeof loadChecklistDataFromAPI === 'function') {
+        console.log('📋 [APP.JS] Delegando a loadChecklistDataFromAPI()...');
+        return loadChecklistDataFromAPI();
+    }
+    
+    // Si existe ChecklistAPI, cargar desde la API
+    if (typeof ChecklistAPI !== 'undefined') {
+        console.log('📋 [APP.JS] ChecklistAPI disponible, cargando desde BD...');
+        return loadChecklistFromAPIFallback();
+    }
+    
+    console.warn('⚠️ [APP.JS] ChecklistAPI no disponible, usando fallback local');
+    loadChecklistDataLocal();
+}
+
+// Función de fallback para cargar desde API
+async function loadChecklistFromAPIFallback() {
+    const grid = document.getElementById('checklistGrid');
+    if (!grid) return;
+    
+    grid.innerHTML = '<div class="mensaje-cargando"><i class="fas fa-spinner fa-spin"></i> Cargando checklist desde BD...</div>';
+    
+    try {
+        // Cargar categorías
+        const categorias = await ChecklistAPI.getCategorias();
+        console.log('📋 [APP.JS] Categorías desde API:', categorias.length);
+        
+        AppState.checklistCategorias = categorias.map(cat => ({
+            id: cat.slug || cat.id.toString(),
+            db_id: cat.id,
+            nombre: cat.nombre,
+            icono: cat.icono || 'fa-layer-group',
+            orden: cat.orden
+        }));
+        
+        // Cargar datos de checklist
+        const checklistData = await ChecklistAPI.getAllChecklistData();
+        console.log('📋 [APP.JS] Datos de cuartos desde API:', checklistData.length);
+        
+        // Guardar en localStorage como fuente de verdad para actualizaciones
+        localStorage.setItem('checklistData', JSON.stringify(checklistData));
+        console.log('💾 [APP.JS] Datos de checklist guardados en localStorage');
+        
+        AppState.checklistFiltradas = checklistData;
+        AppState.checklistPagination.totalPages = Math.ceil(checklistData.length / AppState.checklistPagination.perPage);
+        
+        // Poblar filtros de edificios y editores
+        poblarFiltroEdificiosChecklist();
+        poblarFiltroEditoresChecklist();
+        
+        renderChecklistCategorias();
+        loadInspeccionesRecientes();
+        renderChecklistGrid(checklistData);
+        renderChecklistPagination();
+        
+    } catch (error) {
+        console.error('❌ [APP.JS] Error cargando desde API:', error);
+        loadChecklistDataLocal();
+    }
+}
+
+/**
+ * Poblar el select de filtro de edificios con datos reales
+ */
+function poblarFiltroEdificiosChecklist() {
+    const select = document.getElementById('filtroEdificioChecklist');
+    if (!select) return;
+    
+    // Limpiar opciones existentes (excepto la primera "Todos")
+    select.innerHTML = '<option value="">Todos los edificios</option>';
+    
+    // Obtener edificios desde AppState o extraer de los datos de checklist
+    let edificios = [];
+    
+    if (AppState.edificios && AppState.edificios.length > 0) {
+        edificios = AppState.edificios.map(e => e.nombre);
+    } else {
+        // Extraer edificios únicos de los datos de checklist
+        const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+        const edificiosSet = new Set();
+        checklistData.forEach(hab => {
+            if (hab.edificio) edificiosSet.add(hab.edificio);
+            if (hab.edificio_nombre) edificiosSet.add(hab.edificio_nombre);
+        });
+        edificios = Array.from(edificiosSet);
+    }
+    
+    // Agregar opciones ordenadas
+    edificios.sort().forEach(edificio => {
+        const option = document.createElement('option');
+        option.value = edificio;
+        option.textContent = edificio;
+        select.appendChild(option);
+    });
+    
+    console.log('🏢 [APP.JS] Filtro de edificios poblado:', edificios);
+}
+
+/**
+ * Poblar el select de filtro de editores con usuarios de la BD
+ */
+function poblarFiltroEditoresChecklist() {
+    const select = document.getElementById('filtroEditorChecklist');
+    if (!select) return;
+    
+    // Limpiar opciones existentes (excepto la primera "Todos")
+    select.innerHTML = '<option value="">Todos los editores</option>';
+    
+    // Obtener usuarios desde AppState o localStorage
+    let usuarios = [];
+    
+    if (AppState.usuarios && AppState.usuarios.length > 0) {
+        usuarios = AppState.usuarios;
+    } else {
+        // Intentar desde localStorage
+        usuarios = JSON.parse(localStorage.getItem('users') || localStorage.getItem('usuariosData') || '[]');
+    }
+    
+    // También extraer editores únicos de los datos de checklist
+    const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    const editoresSet = new Set();
+    checklistData.forEach(hab => {
+        if (hab.ultimo_editor) editoresSet.add(hab.ultimo_editor);
+    });
+    
+    // Combinar usuarios de BD con editores encontrados en checklist
+    const todosEditores = new Set([
+        ...usuarios.map(u => u.nombre),
+        ...editoresSet
+    ]);
+    
+    // Agregar opciones ordenadas
+    Array.from(todosEditores).filter(Boolean).sort().forEach(editor => {
+        const option = document.createElement('option');
+        option.value = editor;
+        option.textContent = editor;
+        select.appendChild(option);
+    });
+    
+    console.log('👥 [APP.JS] Filtro de editores poblado:', Array.from(todosEditores));
+}
+
+// Función local para cuando no hay API disponible
+function loadChecklistDataLocal() {
+    console.log('📋 [APP.JS] Cargando datos locales/mock de checklist...');
 
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
+
+    // Si no hay categorías, usar defaults
+    if (AppState.checklistCategorias.length === 0) {
+        AppState.checklistCategorias = [
+            { id: 'climatizacion', nombre: 'Climatización', icono: 'fa-temperature-half' },
+            { id: 'electronica', nombre: 'Electrónica', icono: 'fa-plug' },
+            { id: 'mobiliario', nombre: 'Mobiliario', icono: 'fa-couch' },
+            { id: 'sanitarios', nombre: 'Sanitarios', icono: 'fa-shower' },
+            { id: 'amenidades', nombre: 'Amenidades', icono: 'fa-concierge-bell' },
+            { id: 'estructura', nombre: 'Estructura', icono: 'fa-door-open' }
+        ];
+    }
+    
+    // Si no hay items, usar defaults
+    if (AppState.checklistItems.length === 0) {
+        AppState.checklistItems = [
+            { nombre: 'Aire acondicionado', categoria: 'climatizacion' },
+            { nombre: 'Calefacción', categoria: 'climatizacion' },
+            { nombre: 'Televisión', categoria: 'electronica' },
+            { nombre: 'Sofá', categoria: 'mobiliario' },
+            { nombre: 'Cama', categoria: 'mobiliario' },
+            { nombre: 'Baño', categoria: 'sanitarios' },
+            { nombre: 'Minibar', categoria: 'amenidades' },
+            { nombre: 'Ventanas', categoria: 'estructura' }
+        ];
+    }
 
     // Renderizar categorías
     renderChecklistCategorias();
@@ -1275,19 +1499,12 @@ function loadChecklistData() {
     // Cargar inspecciones recientes
     loadInspeccionesRecientes();
 
-    // Limpiar localStorage para regenerar con datos correctos
-    localStorage.removeItem('checklistData');
-
-    // Generar checklist mock con datos estáticos si no hay cuartos cargados
+    // Usar cuartos de AppState si están disponibles
     const cuartosMock = AppState.cuartos.length > 0 ? AppState.cuartos.slice(0, 20) : [
-        { id: 1, numero: 'A101', edificio_nombre: 'Edificio A', estado: 'disponible' },
-        { id: 2, numero: 'A102', edificio_nombre: 'Edificio A', estado: 'disponible' },
-        { id: 3, numero: 'A103', edificio_nombre: 'Edificio A', estado: 'ocupado' },
-        { id: 4, numero: 'A104', edificio_nombre: 'Edificio A', estado: 'disponible' },
-        { id: 5, numero: 'B201', edificio_nombre: 'Edificio B', estado: 'mantenimiento' },
-        { id: 6, numero: 'B202', edificio_nombre: 'Edificio B', estado: 'disponible' },
-        { id: 7, numero: 'C301', edificio_nombre: 'Edificio C', estado: 'disponible' },
-        { id: 8, numero: 'C302', edificio_nombre: 'Edificio C', estado: 'ocupado' }
+        { id: 1, numero: 'S-A201', edificio_nombre: 'Alfa', estado: 'disponible' },
+        { id: 2, numero: 'A204', edificio_nombre: 'Alfa', estado: 'disponible' },
+        { id: 3, numero: 'A304', edificio_nombre: 'Alfa', estado: 'ocupado' },
+        { id: 4, numero: 'A306', edificio_nombre: 'Alfa', estado: 'mantenimiento' }
     ];
 
     // Función para generar estados aleatorios realistas
@@ -1303,15 +1520,13 @@ function loadChecklistData() {
         numero: cuarto.numero,
         edificio: cuarto.edificio_nombre,
         estado_cuarto: cuarto.estado || 'disponible',
-        ultimo_editor: ['SOFIA', 'Carlos', 'María', 'Juan'][idx % 4],
+        ultimo_editor: ['Fidel', 'María', 'gael', 'raul'][idx % 4],
         items: AppState.checklistItems.map(item => ({
             nombre: item.nombre,
             categoria: item.categoria,
             estado: generarEstadoAleatorio()
         }))
     }));
-
-    localStorage.setItem('checklistData', JSON.stringify(checklistData));
 
     AppState.checklistFiltradas = checklistData;
     AppState.checklistPagination.totalPages = Math.ceil(checklistData.length / AppState.checklistPagination.perPage);
@@ -1510,11 +1725,18 @@ function renderChecklistGrid(data) {
 function buildChecklistItemHTML(habitacion, item, itemIndex) {
     const safeNombre = item.nombre || '';
     const dataNombre = safeNombre.toLowerCase();
-    const groupName = `estado_${habitacion.cuarto_id}_${itemIndex}`;
+    // SIEMPRE usar el ID del ítem de la BD (nunca el índice)
+    // Los IDs de BD empiezan en 1, si no hay ID es un error de datos
+    const itemId = item.id;
+    if (!itemId) {
+        console.warn(`⚠️ [CHECKLIST] Ítem sin ID válido:`, item);
+        return ''; // No renderizar ítems sin ID
+    }
+    const groupName = `estado_${habitacion.cuarto_id}_${itemId}`;
 
     const optionsHTML = CHECKLIST_ESTADOS.map(estado => `
         <label class="checklist-semaforo-option ${estado}">
-            <input type="radio" name="${groupName}" class="estado-radio" ${item.estado === estado ? 'checked' : ''} onchange="updateChecklistEstado(${habitacion.cuarto_id}, ${itemIndex}, '${estado}')">
+            <input type="radio" name="${groupName}" class="estado-radio" value="${estado}" ${item.estado === estado ? 'checked' : ''} onchange="updateChecklistEstado(${habitacion.cuarto_id}, ${itemId}, '${estado}')">
             <span class="semaforo-visual">
                 <span class="semaforo-dot" aria-hidden="true"></span>
                 <span class="semaforo-text">${CHECKLIST_ESTADO_LABELS[estado]}</span>
@@ -1523,7 +1745,7 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
     `).join('');
 
     return `
-        <div class="checklist-item" data-item="${dataNombre}">
+        <div class="checklist-item" data-item="${dataNombre}" data-item-id="${itemId}">
             <div class="checklist-item-left">
                 <span class="checklist-item-name">${safeNombre}</span>
             </div>
@@ -1534,39 +1756,101 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
     `;
 }
 
-function updateChecklistEstado(cuartoId, itemIndex, nuevoEstado) {
-    const checklistData = JSON.parse(localStorage.getItem('checklistData'));
-    const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-
-    if (habitacion) {
-        habitacion.items[itemIndex].estado = nuevoEstado;
-
-        // Actualizar último editor
-        if (AppState.currentUser && AppState.currentUser.name) {
-            habitacion.ultimo_editor = AppState.currentUser.name;
+async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
+    console.log(`📝 [APP.JS] Actualizando estado: cuarto=${cuartoId}, item=${itemId}, estado=${nuevoEstado}`);
+    
+    const usuarioNombre = AppState.currentUser?.nombre || AppState.currentUser?.name || 'Usuario';
+    
+    try {
+        // Llamar a la API para guardar en BD
+        if (typeof ChecklistAPI !== 'undefined') {
+            console.log('📝 [APP.JS] Guardando en BD via ChecklistAPI...');
+            await ChecklistAPI.updateItemEstado(cuartoId, itemId, nuevoEstado);
+            console.log('✅ [APP.JS] Estado guardado en BD');
         }
+        
+        // Actualizar cache local (localStorage)
+        const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+        const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
 
-        localStorage.setItem('checklistData', JSON.stringify(checklistData));
-        console.log(`✅ Estado actualizado: ${habitacion.numero} - ${habitacion.items[itemIndex].nombre} -> ${nuevoEstado}`);
+        if (habitacion) {
+            // Buscar el ítem por ID (no por índice)
+            const item = habitacion.items.find(i => i.id === itemId);
+            if (item) {
+                item.estado = nuevoEstado;
+                console.log(`✅ [APP.JS] Ítem actualizado en cache: ${item.nombre} -> ${nuevoEstado}`);
+            }
 
-        // Actualizar contadores en la card
-        updateChecklistCardSummary(habitacion);
+            // Actualizar último editor
+            habitacion.ultimo_editor = usuarioNombre;
+            habitacion.fecha_ultima_edicion = new Date().toISOString();
+
+            localStorage.setItem('checklistData', JSON.stringify(checklistData));
+
+            // Actualizar contadores en la card (pasar cuartoId, no habitacion)
+            updateChecklistCardSummary(cuartoId);
+            updateChecklistEditorInfo(cuartoId);
+        }
+        
+        showNotification(`✅ Estado actualizado por ${usuarioNombre}`, 'success');
+        
+    } catch (error) {
+        console.error('❌ [APP.JS] Error actualizando estado:', error);
+        showNotification('❌ Error al guardar cambio', 'error');
     }
 }
 
-function updateChecklistCardSummary(habitacion) {
-    const card = document.querySelector(`.checklist-card[data-cuarto-id="${habitacion.cuarto_id}"]`);
+function updateChecklistCardSummary(cuartoId) {
+    const card = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
     if (!card) return;
 
+    // Obtener datos frescos del localStorage para asegurar sincronización
+    const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
+    if (!habitacion) return;
+
+    // Contar estados de TODOS los ítems de la habitación
     const counts = { bueno: 0, regular: 0, malo: 0 };
     habitacion.items.forEach(item => {
-        if (counts[item.estado] !== undefined) counts[item.estado]++;
+        const estado = item.estado || 'bueno';
+        if (counts[estado] !== undefined) {
+            counts[estado]++;
+        }
     });
+
+    console.log(`📊 [CHECKLIST] Contadores actualizados para cuarto ${cuartoId}:`, counts);
 
     CHECKLIST_ESTADOS.forEach(estado => {
         const valueEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"] .checklist-card-stat-value`);
-        if (valueEl) valueEl.textContent = counts[estado];
+        if (valueEl) {
+            valueEl.textContent = counts[estado];
+            // Animación de actualización
+            valueEl.classList.add('stat-updated');
+            setTimeout(() => valueEl.classList.remove('stat-updated'), 500);
+        }
     });
+}
+
+function updateChecklistEditorInfo(cuartoId) {
+    const card = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
+    if (!card) return;
+
+    // Obtener datos frescos del localStorage
+    const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
+    if (!habitacion) return;
+
+    const editorEl = card.querySelector('.checklist-card-editor');
+    if (editorEl && habitacion.ultimo_editor) {
+        const fecha = habitacion.fecha_ultima_edicion 
+            ? new Date(habitacion.fecha_ultima_edicion).toLocaleString('es-MX', { 
+                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
+              })
+            : 'Ahora';
+        editorEl.innerHTML = `<i class="fas fa-user-edit"></i> ${habitacion.ultimo_editor} · ${fecha}`;
+        editorEl.classList.add('editor-updated');
+        setTimeout(() => editorEl.classList.remove('editor-updated'), 500);
+    }
 }
 
 function applyChecklistFilters() {
@@ -1582,13 +1866,32 @@ function applyChecklistFilters() {
     const categoriaActiva = AppState.checklistFilters.categoria;
     const edificioActivo = AppState.checklistFilters.edificio;
     const estadoActivo = AppState.checklistFilters.estado;
+    const habitacionBusqueda = (AppState.checklistFilters.habitacion || '').toLowerCase().trim();
+    const editorActivo = AppState.checklistFilters.editor;
 
     let habitacionesFiltradas = allData;
+
+    // Filtrar por número de habitación
+    if (habitacionBusqueda) {
+        habitacionesFiltradas = habitacionesFiltradas.filter(hab => {
+            // El campo puede ser 'numero', 'numero_habitacion' o 'num_habitacion' según la fuente
+            const numHabitacion = (hab.numero || hab.numero_habitacion || hab.num_habitacion || '').toString().toLowerCase();
+            return numHabitacion.includes(habitacionBusqueda);
+        });
+        console.log(`🔍 [CHECKLIST] Buscando habitación: "${habitacionBusqueda}" - Encontradas: ${habitacionesFiltradas.length}`);
+    }
 
     // Filtrar por edificio
     if (edificioActivo) {
         habitacionesFiltradas = habitacionesFiltradas.filter(hab =>
             hab.edificio === edificioActivo || hab.edificio_nombre === edificioActivo
+        );
+    }
+
+    // Filtrar por editor (último editor que modificó)
+    if (editorActivo) {
+        habitacionesFiltradas = habitacionesFiltradas.filter(hab =>
+            hab.ultimo_editor === editorActivo
         );
     }
 
@@ -1651,6 +1954,11 @@ function renderChecklistPagination() {
             AppState.checklistPagination.page--;
             renderChecklistGrid(AppState.checklistFiltradas);
             renderChecklistPagination();
+            // Smooth scroll al inicio del grid
+            const gridContainer = document.getElementById('checklistGrid') || document.querySelector('.checklist-grid');
+            if (gridContainer) {
+                gridContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     });
 
@@ -1659,6 +1967,11 @@ function renderChecklistPagination() {
             AppState.checklistPagination.page++;
             renderChecklistGrid(AppState.checklistFiltradas);
             renderChecklistPagination();
+            // Smooth scroll al inicio del grid
+            const gridContainer = document.getElementById('checklistGrid') || document.querySelector('.checklist-grid');
+            if (gridContainer) {
+                gridContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
         }
     });
 }
@@ -1667,8 +1980,81 @@ function loadInspeccionesRecientes() {
     const lista = document.getElementById('listaInspeccionesRecientes');
     if (!lista) return;
 
-    AppState.inspeccionesRecientes = DEFAULT_INSPECCIONES_RECIENTES;
-    renderInspeccionesRecientes(AppState.inspeccionesRecientes);
+    // Cargar inspecciones desde los datos reales del checklist
+    const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    
+    // Filtrar habitaciones que tienen fecha de última edición (han sido inspeccionadas)
+    const inspeccionadas = checklistData
+        .filter(hab => hab.ultimo_editor && hab.fecha_ultima_edicion)
+        .map(hab => {
+            // Contar estados para determinar el estado general
+            const counts = { bueno: 0, regular: 0, malo: 0 };
+            (hab.items || []).forEach(item => {
+                if (counts[item.estado] !== undefined) counts[item.estado]++;
+            });
+            
+            // Determinar estado general: malo > regular > bueno
+            let estadoGeneral = 'aprobada'; // bueno = aprobada
+            if (counts.malo > 0) {
+                estadoGeneral = 'rechazada';
+            } else if (counts.regular > 0) {
+                estadoGeneral = 'pendiente';
+            }
+            
+            // Generar título basado en el estado
+            let titulo = 'Inspección completa';
+            if (counts.malo > 0) {
+                titulo = `${counts.malo} ítem(s) en mal estado`;
+            } else if (counts.regular > 0) {
+                titulo = `${counts.regular} ítem(s) requieren atención`;
+            } else {
+                titulo = 'Todo en buen estado';
+            }
+            
+            return {
+                habitacion: hab.numero || hab.numero_habitacion || 'N/A',
+                cuarto_id: hab.cuarto_id,
+                titulo: titulo,
+                tecnico: hab.ultimo_editor,
+                fecha: formatearFechaInspeccion(hab.fecha_ultima_edicion),
+                fecha_raw: new Date(hab.fecha_ultima_edicion),
+                estado: estadoGeneral,
+                edificio: hab.edificio || hab.edificio_nombre
+            };
+        })
+        // Ordenar por fecha más reciente
+        .sort((a, b) => b.fecha_raw - a.fecha_raw)
+        // Limitar a las últimas 10
+        .slice(0, 10);
+    
+    AppState.inspeccionesRecientes = inspeccionadas;
+    renderInspeccionesRecientes(inspeccionadas);
+    
+    console.log('📋 [APP.JS] Inspecciones recientes cargadas:', inspeccionadas.length);
+}
+
+/**
+ * Formatear fecha para mostrar en inspecciones
+ */
+function formatearFechaInspeccion(fechaStr) {
+    if (!fechaStr) return 'Sin fecha';
+    
+    const fecha = new Date(fechaStr);
+    const ahora = new Date();
+    const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    const ayer = new Date(hoy.getTime() - 24 * 60 * 60 * 1000);
+    const fechaSinHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+    
+    const hora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+    
+    if (fechaSinHora.getTime() === hoy.getTime()) {
+        return `Hoy · ${hora}`;
+    } else if (fechaSinHora.getTime() === ayer.getTime()) {
+        return `Ayer · ${hora}`;
+    } else {
+        const dia = fecha.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+        return `${dia} · ${hora}`;
+    }
 }
 
 function renderInspeccionesRecientes(data) {
@@ -1686,11 +2072,19 @@ function renderInspeccionesRecientes(data) {
         const li = document.createElement('li');
         li.className = 'inspeccion-item';
         li.dataset.estado = inspeccion.estado;
+        if (inspeccion.cuarto_id) {
+            li.dataset.cuartoId = inspeccion.cuarto_id;
+            li.style.cursor = 'pointer';
+            li.title = 'Clic para ver detalles';
+        }
+
+        const edificioInfo = inspeccion.edificio ? `<span class="inspeccion-edificio">${inspeccion.edificio}</span>` : '';
 
         li.innerHTML = `
             <div class="inspeccion-habitacion">
                 <i class="fas fa-bed"></i>
                 <span class="inspeccion-numero">${inspeccion.habitacion}</span>
+                ${edificioInfo}
             </div>
             <div class="inspeccion-titulo">${inspeccion.titulo}</div>
             <div class="inspeccion-footer">
@@ -1699,6 +2093,15 @@ function renderInspeccionesRecientes(data) {
             </div>
             <div class="inspeccion-estado estado-${inspeccion.estado}"></div>
         `;
+
+        // Agregar evento de clic para abrir modal de detalles
+        if (inspeccion.cuarto_id) {
+            li.addEventListener('click', () => {
+                if (typeof openChecklistDetailsModal === 'function') {
+                    openChecklistDetailsModal(inspeccion.cuarto_id);
+                }
+            });
+        }
 
         lista.appendChild(li);
     });
@@ -1808,6 +2211,16 @@ function initChecklistEventListeners() {
     if (filtroEstado) {
         filtroEstado.addEventListener('change', (e) => {
             AppState.checklistFilters.estado = e.target.value;
+            AppState.checklistPagination.page = 1;
+            applyChecklistFilters();
+        });
+    }
+
+    // Filtro por editor
+    const filtroEditor = document.getElementById('filtroEditorChecklist');
+    if (filtroEditor) {
+        filtroEditor.addEventListener('change', (e) => {
+            AppState.checklistFilters.editor = e.target.value;
             AppState.checklistPagination.page = 1;
             applyChecklistFilters();
         });
