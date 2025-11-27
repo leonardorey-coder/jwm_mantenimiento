@@ -11,7 +11,7 @@
     <meta name="robots" content="index, follow">
     <meta name="googlebot" content="index, follow">
 
-    <link rel="stylesheet" href="checklist-package/checklist-styles.css">
+    <link rel="stylesheet" href="views/checklist/checklist-styles.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/style-users-blocked.css">
 
@@ -734,7 +734,7 @@
         <!-- Tab Content: Inspecciones -->
         <div class="tab-content" id="tab-checklist" data-aos="fade-in">
             <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
-            <h2 class="titulos t-secundario">Control de Calidad de Habitaciones · JW Marriott</h2>
+            <h2 class="titulos t-secundario">Control de Calidad de Habitaciones</h2>
 
             <div class="vista-duo">
                 <div class="columna columna-principal">
@@ -802,6 +802,18 @@
                         </div>
                     </div>
 
+                    <!-- Selector de vistas para móvil -->
+                    <div class="mobile-view-selector">
+                        <button class="view-btn active" data-view="checklists">
+                            <i class="fas fa-clipboard-check"></i>
+                            <span>Checklists</span>
+                        </button>
+                        <button class="view-btn" data-view="inspecciones">
+                            <i class="fas fa-clipboard-list"></i>
+                            <span>Inspecciones</span>
+                        </button>
+                    </div>
+
                     <div class="checklist-grid" id="checklistGrid">
                         <div class="mensaje-cargando">Cargando checklists...</div>
                     </div>
@@ -860,8 +872,6 @@
                         <h2><i class="fas fa-file-export"></i> Acciones</h2>
                         <button class="brutalist-card__button brutalist-card__button--read" id="btnExportarChecklist"><i
                                 class="fas fa-file-excel"></i> Exportar Checklist</button>
-                        <button class="brutalist-card__button brutalist-card__button--mark" id="btnGenerarReporte"><i
-                                class="fas fa-file-pdf"></i> Generar Reporte</button>
                     </div>
                 </div>
             </div>

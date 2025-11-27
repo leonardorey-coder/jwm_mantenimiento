@@ -436,8 +436,8 @@ function renderizarPaginacionCuartos(totalCuartos) {
     if (selectorPaginas) {
         selectorPaginas.addEventListener('change', (event) => {
             const nuevaPagina = parseInt(event.target.value, 10);
-            if (!Number.isNaN(nuevaPagina) && nuevaPagina >= 1 && nuevaPagina <= totalPaginasCuartos) {
-                paginaActualCuartos = nuevaPagina;
+            if (!Number.isNaN(nuevaPagina) && nuevaPagina >= 1 && nuevaPagina <= totalPaginasCalculadas) {
+                s.paginaActualCuartos = nuevaPagina;
                 mostrarCuartos();
                 // Esperar a que el DOM se actualice antes de hacer scroll
                 setTimeout(() => desplazarListaCuartosAlInicio(), 100);
@@ -592,6 +592,75 @@ function mostrarCuartosFiltrados(cuartosFiltrados) {
     if (idCuartoSeleccionado &&
         cuartosFiltrados.some(c => c.id.toString() === idCuartoSeleccionado)) {
         setTimeout(() => seleccionarCuarto(parseInt(idCuartoSeleccionado)), 200);
+    }
+}
+
+/**
+ * Actualizar solo el badge de estado de una card específica
+ */
+function actualizarEstadoBadgeCard(cuartoId, nuevoEstado) {
+    const cardElement = document.getElementById(`cuarto-${cuartoId}`);
+    if (!cardElement) {
+        return;
+    }
+
+    const estadoBadge = cardElement.querySelector('.habitacion-estado-badge');
+    if (!estadoBadge) {
+        return;
+    }
+
+    let estadoBadgeClass = 'estado-vacio';
+    let estadoIcon = 'fa-check-circle';
+    let estadoText = 'Vacío';
+
+    switch (nuevoEstado.toLowerCase()) {
+        case 'disponible':
+        case 'vacio':
+            estadoBadgeClass = 'estado-vacio';
+            estadoIcon = 'fa-check-circle';
+            estadoText = 'Disponible';
+            break;
+        case 'ocupado':
+            estadoBadgeClass = 'estado-ocupado';
+            estadoIcon = 'fa-user';
+            estadoText = 'Ocupado';
+            break;
+        case 'en mantenimiento':
+        case 'mantenimiento':
+            estadoBadgeClass = 'estado-mantenimiento';
+            estadoIcon = 'fa-tools';
+            estadoText = 'En Mantenimiento';
+            break;
+        case 'fuera de servicio':
+        case 'fuera_servicio':
+            estadoBadgeClass = 'estado-fuera-servicio';
+            estadoIcon = 'fa-ban';
+            estadoText = 'Fuera de Servicio';
+            break;
+        default:
+            estadoBadgeClass = 'estado-vacio';
+            estadoIcon = 'fa-check-circle';
+            estadoText = 'Disponible';
+    }
+
+    estadoBadge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
+    estadoBadge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
+
+    const estadoSelector = cardElement.querySelector('.estado-selector-inline');
+    if (estadoSelector) {
+        const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
+        const estadoNormalizado = nuevoEstado.toLowerCase();
+        const estadoMapeado = estadoNormalizado === 'vacio' ? 'disponible' :
+            estadoNormalizado === 'en mantenimiento' ? 'mantenimiento' :
+                estadoNormalizado === 'fuera de servicio' ? 'fuera_servicio' :
+                    estadoNormalizado;
+
+        pills.forEach(pill => {
+            const estadoPill = pill.getAttribute('data-estado');
+            const isActive = estadoPill === estadoMapeado;
+            pill.classList.toggle('estado-pill-inline-activo', isActive);
+            pill.disabled = isActive;
+        });
     }
 }
 
@@ -1012,8 +1081,8 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
             inputEstado.value = nuevoEstado;
         }
 
-        // Recargar la visualización de cuartos para reflejar el nuevo estado
-        mostrarCuartos();
+        // Actualizar solo el badge de estado de la card específica
+        actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
 
         // Mapeo de estados a emojis y labels
         const estadoEmojis = {
@@ -1188,14 +1257,14 @@ async function guardarServicioInline(event, cuartoId) {
         if (s.mantenimientos && Array.isArray(s.mantenimientos)) {
             // Agregar el nuevo servicio al principio del array
             s.mantenimientos.unshift(resultado);
-            
+
             // Ordenar por fecha de creación descendente (más recientes primero)
             s.mantenimientos.sort((a, b) => {
                 const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
                 const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
                 return fechaB - fechaA;
             });
-            
+
             // Actualizar caché de mantenimientos por cuarto
             window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
             const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
@@ -1353,6 +1422,7 @@ window.guardarServicioInline = guardarServicioInline;
 window.toggleMantenimientos = toggleMantenimientos;
 window.eliminarMantenimientoInline = eliminarMantenimientoInline;
 window.actualizarSelectorEstado = actualizarSelectorEstado;
+window.actualizarEstadoBadgeCard = actualizarEstadoBadgeCard;
 
 console.log('✅ [APP-LOADER-HABITACIONES] Funciones exportadas a window');
 
@@ -1379,5 +1449,6 @@ export {
     toggleMantenimientos,
     eliminarMantenimientoInline,
     scrollToCuarto,
-    actualizarSelectorEstado
+    actualizarSelectorEstado,
+    actualizarEstadoBadgeCard
 };

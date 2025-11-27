@@ -28,6 +28,11 @@
   --color-peligro: #A15C5C;
   --color-info: #3A3A3A;
 
+  /* Estados del checklist */
+  --estado-bueno: #10b981;
+  --estado-regular: #f59e0b;
+  --estado-malo: #ef4444;
+
   /* Semáforo de prioridades */
   --prioridad-alta: #A15C5C;
   --prioridad-media: #FFB500;
@@ -84,6 +89,11 @@
   --color-advertencia: #FFD15C;
   --color-peligro: #C48C8C;
   --color-info: #C5C5C5;
+
+  /* Estados del checklist */
+  --estado-bueno: #10b981;
+  --estado-regular: #f59e0b;
+  --estado-malo: #ef4444;
 
   /* Semáforo de prioridades */
   --prioridad-alta: #ef0909;
@@ -767,6 +777,10 @@ body.admin .tab-content.admin-only.active {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+#tab-checklist .busqueda-filtros {
+  margin-top: 1.5rem;
 }
 
 @media (max-width: 1024px) {
@@ -2440,13 +2454,8 @@ body.admin .tab-content.admin-only.active {
     padding-bottom: 120px;
   }
 
-  .titulos {
-    margin-top: 1.5rem;
-  }
-
   .t-principal {
     font-size: 1.8rem;
-    margin-top: 1.5rem;
   }
 
   .t-secundario {
@@ -2742,13 +2751,8 @@ body.admin .tab-content.admin-only.active {
     padding-bottom: 110px;
   }
 
-  .titulos {
-    margin-top: 1.25rem;
-  }
-
   .t-principal {
     font-size: 1.5rem;
-    margin-top: 2rem;
   }
 
   /* Mostrar menú móvil en 480px también */

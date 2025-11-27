@@ -3065,8 +3065,13 @@
             pills.forEach(pill => pill.classList.remove('activo'));
             pillElement.classList.add('activo');
 
-            // Recargar la visualización de cuartos para reflejar el nuevo estado
-            mostrarCuartos();
+            // Actualizar solo el badge de estado de la card específica
+            if (window.actualizarEstadoBadgeCard) {
+                window.actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
+            } else {
+                // Fallback: recargar todas las cards si la función no está disponible
+                mostrarCuartos();
+            }
 
             // Mapeo de estados a emojis para el mensaje
             const estadoEmojis = {
