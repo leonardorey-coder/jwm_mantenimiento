@@ -761,17 +761,20 @@
 
                         <div class="busqueda-filtros">
                             <div class="campo-busqueda premium-search">
+                                <i class="fas fa-door-open icono-busqueda"></i>
+                                <input type="text" id="buscarHabitacionChecklist"
+                                    placeholder="Buscar habitación (ej: A101, 203...)">
+                            </div>
+                            
+                            <div class="campo-busqueda premium-search">
                                 <i class="fas fa-search icono-busqueda"></i>
                                 <input type="text" id="buscarChecklist"
-                                    placeholder="Buscar ítem (ej: sofá, aire acondicionado)...">
+                                    placeholder="Buscar ítem (ej: sofá, aire...)">
                             </div>
 
                             <div class="select-container premium-select">
                                 <select id="filtroEdificioChecklist">
                                     <option value="">Todos los edificios</option>
-                                    <option value="Edificio A">Edificio A</option>
-                                    <option value="Edificio B">Edificio B</option>
-                                    <option value="Edificio C">Edificio C</option>
                                 </select>
                                 <i class="fas fa-chevron-down icono-select"></i>
                             </div>
@@ -790,12 +793,7 @@
                             <div class="select-container premium-select">
                                 <select id="filtroEditorChecklist" name="editor">
                                     <option value="">Todos los editores</option>
-                                    <option value="Sofia">Sofía</option>
-                                    <option value="Carlos">Carlos</option>
-                                    <option value="Maria">María</option>
-                                    <option value="Juan">Juan</option>
-                                    <option value="Ana">Ana</option>
-                                    <option value="Luis">Luis</option>
+                                    <!-- Se carga dinámicamente desde la BD -->
                                 </select>
                                 <i class="fas fa-chevron-down icono-select"></i>
                             </div>
@@ -1774,6 +1772,8 @@
     <link rel="stylesheet" href="views/tareas/tareas-cards.css">
     <link rel="stylesheet" href="views/tareas/tareas-timeline.css">
     <script src="views/tareas/tareas-module.js"></script>
+    <!-- Checklist API y módulo -->
+    <script src="js/checklist-api.js"></script>
     <script src="views/checklist/checklist-tab.js"></script>
 </body>
 

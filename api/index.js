@@ -1448,6 +1448,385 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
     }
 });
 
+// ====================================
+// RUTAS DE CHECKLIST
+// ====================================
+
+// Inicializar tablas de checklist (ejecutar migración)
+app.post('/api/checklist/init', verificarAutenticacion, verificarAdmin, async (req, res) => {
+    try {
+        console.log('🔄 Inicializando tablas de checklist...');
+        
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        await postgresManager.runChecklistMigration();
+        
+        res.json({ 
+            success: true, 
+            message: 'Tablas de checklist inicializadas correctamente' 
+        });
+    } catch (error) {
+        console.error('❌ Error inicializando checklist:', error);
+        res.status(500).json({ error: 'Error al inicializar checklist', details: error.message });
+    }
+});
+
+// Obtener categorías del checklist
+app.get('/api/checklist/categorias', async (req, res) => {
+    try {
+        console.log('📥 ========================================');
+        console.log('📥 GET /api/checklist/categorias');
+        console.log('📥 postgresManager disponible:', !!postgresManager);
+        console.log('📥 ========================================');
+        
+        if (!postgresManager) {
+            console.log('📥 ⚠️ Sin conexión BD, retornando mock');
+            // Datos mock para fallback
+            const mockCategorias = [
+                { id: 1, nombre: 'Climatización', slug: 'climatizacion', icono: 'fa-temperature-half', orden: 1 },
+                { id: 2, nombre: 'Electrónica', slug: 'electronica', icono: 'fa-plug', orden: 2 },
+                { id: 3, nombre: 'Mobiliario', slug: 'mobiliario', icono: 'fa-couch', orden: 3 },
+                { id: 4, nombre: 'Sanitarios', slug: 'sanitarios', icono: 'fa-shower', orden: 4 },
+                { id: 5, nombre: 'Amenidades', slug: 'amenidades', icono: 'fa-concierge-bell', orden: 5 },
+                { id: 6, nombre: 'Estructura', slug: 'estructura', icono: 'fa-door-open', orden: 6 }
+            ];
+            return res.json(mockCategorias);
+        }
+
+        // Intentar ejecutar migración si las tablas no existen
+        try {
+            await postgresManager.runChecklistMigration();
+        } catch (migrationError) {
+            console.warn('📥 ⚠️ Migración ya ejecutada o error:', migrationError.message);
+        }
+
+        console.log('📥 Consultando categorías en BD...');
+        const categorias = await postgresManager.getChecklistCategorias();
+        console.log(`📥 ✅ Categorías obtenidas de BD: ${categorias.length}`);
+        console.log('📥 Categorías:', JSON.stringify(categorias, null, 2));
+        res.json(categorias);
+    } catch (error) {
+        console.error('📥 ❌ Error al obtener categorías:', error);
+        res.status(500).json({ error: 'Error al obtener categorías', details: error.message });
+    }
+});
+
+// Agregar nueva categoría
+app.post('/api/checklist/categorias', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📝 Creando categoría de checklist:', req.body);
+        
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const { nombre, icono, orden } = req.body;
+        
+        if (!nombre) {
+            return res.status(400).json({ error: 'El nombre es requerido' });
+        }
+
+        const nuevaCategoria = await postgresManager.addChecklistCategoria({ nombre, icono, orden });
+        console.log('✅ Categoría creada:', nuevaCategoria);
+        res.status(201).json(nuevaCategoria);
+    } catch (error) {
+        console.error('❌ Error al crear categoría:', error);
+        res.status(500).json({ error: 'Error al crear categoría', details: error.message });
+    }
+});
+
+// Eliminar categoría (soft delete)
+app.delete('/api/checklist/categorias/:id', verificarAutenticacion, verificarAdmin, async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const resultado = await postgresManager.deleteChecklistCategoria(req.params.id);
+        if (!resultado) {
+            return res.status(404).json({ error: 'Categoría no encontrada' });
+        }
+        res.json({ success: true, message: 'Categoría eliminada correctamente' });
+    } catch (error) {
+        console.error('❌ Error al eliminar categoría:', error);
+        res.status(500).json({ error: 'Error al eliminar categoría', details: error.message });
+    }
+});
+
+// Obtener ítems del catálogo de checklist
+app.get('/api/checklist/items', async (req, res) => {
+    try {
+        console.log('📥 GET /api/checklist/items');
+        
+        if (!postgresManager) {
+            // Datos mock para fallback
+            const mockItems = [
+                { id: 1, nombre: 'Aire acondicionado', categoria_id: 1, categoria_slug: 'climatizacion', orden: 1 },
+                { id: 2, nombre: 'Calefacción', categoria_id: 1, categoria_slug: 'climatizacion', orden: 2 },
+                { id: 3, nombre: 'Ventilación', categoria_id: 1, categoria_slug: 'climatizacion', orden: 3 },
+                { id: 4, nombre: 'Televisión', categoria_id: 2, categoria_slug: 'electronica', orden: 1 },
+                { id: 5, nombre: 'Teléfono', categoria_id: 2, categoria_slug: 'electronica', orden: 2 }
+            ];
+            return res.json(mockItems);
+        }
+
+        const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;
+        const items = await postgresManager.getChecklistCatalogItems(categoriaId);
+        console.log(`✅ Ítems obtenidos: ${items.length}`);
+        res.json(items);
+    } catch (error) {
+        console.error('❌ Error al obtener ítems:', error);
+        res.status(500).json({ error: 'Error al obtener ítems', details: error.message });
+    }
+});
+
+// Agregar nuevo ítem al catálogo
+app.post('/api/checklist/items', verificarAutenticacion, async (req, res) => {
+    try {
+        console.log('📝 Creando ítem de checklist:', req.body);
+        
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const { nombre, categoria_id, orden } = req.body;
+        
+        if (!nombre || !categoria_id) {
+            return res.status(400).json({ error: 'El nombre y categoria_id son requeridos' });
+        }
+
+        const nuevoItem = await postgresManager.addChecklistCatalogItem({ nombre, categoria_id, orden });
+        console.log('✅ Ítem creado:', nuevoItem);
+        res.status(201).json(nuevoItem);
+    } catch (error) {
+        console.error('❌ Error al crear ítem:', error);
+        res.status(500).json({ error: 'Error al crear ítem', details: error.message });
+    }
+});
+
+// Eliminar ítem del catálogo (soft delete)
+app.delete('/api/checklist/items/:id', verificarAutenticacion, verificarAdmin, async (req, res) => {
+    try {
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const resultado = await postgresManager.deleteChecklistCatalogItem(req.params.id);
+        if (!resultado) {
+            return res.status(404).json({ error: 'Ítem no encontrado' });
+        }
+        res.json({ success: true, message: 'Ítem eliminado correctamente' });
+    } catch (error) {
+        console.error('❌ Error al eliminar ítem:', error);
+        res.status(500).json({ error: 'Error al eliminar ítem', details: error.message });
+    }
+});
+
+// Obtener datos completos de checklist para todos los cuartos
+app.get('/api/checklist/cuartos', async (req, res) => {
+    try {
+        console.log('📥 ========================================');
+        console.log('📥 GET /api/checklist/cuartos');
+        console.log('📥 Query params:', req.query);
+        console.log('📥 postgresManager disponible:', !!postgresManager);
+        console.log('📥 ========================================');
+        
+        if (!postgresManager) {
+            console.log('📥 ⚠️ Sin conexión BD');
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Intentar ejecutar migración si las tablas no existen
+        try {
+            await postgresManager.runChecklistMigration();
+        } catch (migrationError) {
+            console.warn('📥 ⚠️ Migración ya ejecutada o error:', migrationError.message);
+        }
+
+        const filters = {};
+        if (req.query.edificio_id) {
+            filters.edificio_id = parseInt(req.query.edificio_id);
+        }
+        if (req.query.categoria_id) {
+            filters.categoria_id = parseInt(req.query.categoria_id);
+        }
+
+        console.log('📥 Filtros aplicados:', filters);
+        console.log('📥 Ejecutando getAllChecklistData...');
+        
+        const checklistData = await postgresManager.getAllChecklistData(filters);
+        
+        console.log('📥 ========================================');
+        console.log(`📥 ✅ Datos obtenidos: ${checklistData.length} cuartos`);
+        if (checklistData.length > 0) {
+            console.log('📥 Primer cuarto:', JSON.stringify(checklistData[0], null, 2));
+            console.log('📥 Items del primer cuarto:', checklistData[0].items?.length || 0);
+        } else {
+            console.log('📥 ⚠️ No se encontraron cuartos con items');
+        }
+        console.log('📥 ========================================');
+        
+        res.json(checklistData);
+    } catch (error) {
+        console.error('📥 ❌ Error al obtener datos de checklist:', error);
+        console.error('📥 Stack:', error.stack);
+        res.status(500).json({ error: 'Error al obtener datos de checklist', details: error.message });
+    }
+});
+
+// Obtener datos de checklist para un cuarto específico
+app.get('/api/checklist/cuartos/:id', async (req, res) => {
+    try {
+        console.log(`📥 GET /api/checklist/cuartos/${req.params.id}`);
+        
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const cuartoId = parseInt(req.params.id);
+        const items = await postgresManager.getChecklistByCuarto(cuartoId);
+        
+        if (items.length === 0) {
+            return res.status(404).json({ error: 'Cuarto no encontrado o sin ítems' });
+        }
+
+        // Agrupar en un solo objeto de cuarto
+        const cuartoData = {
+            cuarto_id: items[0].cuarto_id,
+            numero: items[0].numero,
+            estado_cuarto: items[0].estado_cuarto,
+            edificio_id: items[0].edificio_id,
+            edificio_nombre: items[0].edificio_nombre,
+            items: items.map(row => ({
+                id: row.item_id,
+                nombre: row.item_nombre,
+                categoria: row.categoria_slug,
+                categoria_id: row.categoria_id,
+                categoria_nombre: row.categoria_nombre,
+                estado: row.item_estado,
+                observacion: row.observacion,
+                foto_url: row.foto_url,
+                ultimo_editor: row.ultimo_editor,
+                fecha_ultima_edicion: row.fecha_ultima_edicion
+            }))
+        };
+
+        console.log(`✅ Datos de checklist para cuarto ${cuartoId}: ${cuartoData.items.length} ítems`);
+        res.json(cuartoData);
+    } catch (error) {
+        console.error('❌ Error al obtener checklist del cuarto:', error);
+        res.status(500).json({ error: 'Error al obtener checklist del cuarto', details: error.message });
+    }
+});
+
+// Actualizar estado de un ítem del checklist
+app.put('/api/checklist/cuartos/:cuartoId/items/:itemId', verificarAutenticacion, async (req, res) => {
+    try {
+        const cuartoId = parseInt(req.params.cuartoId);
+        const itemId = parseInt(req.params.itemId);
+        const { estado, observacion } = req.body;
+        const usuarioId = req.usuario?.id;
+
+        console.log(`📝 Actualizando ítem ${itemId} del cuarto ${cuartoId}:`, { estado, observacion });
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        if (!estado) {
+            return res.status(400).json({ error: 'El estado es requerido' });
+        }
+
+        const resultado = await postgresManager.updateChecklistItemEstado(
+            cuartoId, 
+            itemId, 
+            estado, 
+            usuarioId, 
+            observacion
+        );
+
+        console.log('✅ Ítem actualizado:', resultado);
+        res.json({ success: true, result: resultado });
+    } catch (error) {
+        console.error('❌ Error al actualizar ítem:', error);
+        res.status(500).json({ error: 'Error al actualizar ítem', details: error.message });
+    }
+});
+
+// Actualizar múltiples ítems a la vez
+app.put('/api/checklist/cuartos/:cuartoId/items', verificarAutenticacion, async (req, res) => {
+    try {
+        const cuartoId = parseInt(req.params.cuartoId);
+        const { items } = req.body;
+        const usuarioId = req.usuario?.id;
+
+        console.log(`📝 Actualizando ${items?.length || 0} ítems del cuarto ${cuartoId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Se requiere un array de ítems' });
+        }
+
+        const resultados = await postgresManager.updateChecklistItemsBulk(cuartoId, items, usuarioId);
+
+        const exitosos = resultados.filter(r => r.success).length;
+        const fallidos = resultados.filter(r => !r.success).length;
+
+        console.log(`✅ Actualización masiva: ${exitosos} exitosos, ${fallidos} fallidos`);
+        res.json({ 
+            success: fallidos === 0, 
+            exitosos, 
+            fallidos, 
+            resultados 
+        });
+    } catch (error) {
+        console.error('❌ Error en actualización masiva:', error);
+        res.status(500).json({ error: 'Error en actualización masiva', details: error.message });
+    }
+});
+
+// Obtener resumen de estados del checklist por cuarto
+app.get('/api/checklist/cuartos/:id/resumen', async (req, res) => {
+    try {
+        const cuartoId = parseInt(req.params.id);
+        console.log(`📥 GET /api/checklist/cuartos/${cuartoId}/resumen`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const resumen = await postgresManager.getChecklistResumenByCuarto(cuartoId);
+        console.log(`✅ Resumen para cuarto ${cuartoId}:`, resumen);
+        res.json(resumen);
+    } catch (error) {
+        console.error('❌ Error al obtener resumen:', error);
+        res.status(500).json({ error: 'Error al obtener resumen', details: error.message });
+    }
+});
+
+// Obtener resumen general de todos los cuartos
+app.get('/api/checklist/resumen', async (req, res) => {
+    try {
+        console.log('📥 GET /api/checklist/resumen');
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const resumen = await postgresManager.getChecklistResumenGeneral();
+        console.log(`✅ Resumen general: ${resumen.length} cuartos`);
+        res.json(resumen);
+    } catch (error) {
+        console.error('❌ Error al obtener resumen general:', error);
+        res.status(500).json({ error: 'Error al obtener resumen general', details: error.message });
+    }
+});
+
 // Manejar rutas no encontradas (debe ir al final, después de todas las rutas)
 app.use((req, res) => {
     res.status(404).json({ error: 'Ruta no encontrada', path: req.path });

@@ -1452,6 +1452,493 @@ class PostgresManager {
         const result = await this.pool.query(query, [id]);
         return result.rows[0];
     }
+
+    // ============================================
+    // MÉTODOS PARA CHECKLIST
+    // ============================================
+
+    /**
+     * Ejecutar migración del esquema de checklist
+     */
+    async runChecklistMigration() {
+        try {
+            // Verificar si las tablas ya existen
+            const tablesCheck = await this.pool.query(`
+                SELECT COUNT(*) as count 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name IN ('checklist_categorias', 'checklist_catalog_items', 'room_checklist_results')
+            `);
+
+            if (parseInt(tablesCheck.rows[0].count) >= 3) {
+                console.log('✅ Tablas de checklist ya existen');
+                return true;
+            }
+
+            console.log('📄 Creando tablas de checklist...');
+
+            // Crear tabla de categorías
+            await this.pool.query(`
+                CREATE TABLE IF NOT EXISTS checklist_categorias (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL UNIQUE,
+                    slug VARCHAR(50) NOT NULL UNIQUE,
+                    icono VARCHAR(50) DEFAULT 'fa-layer-group',
+                    activo BOOLEAN DEFAULT TRUE,
+                    orden INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Crear tabla de ítems del catálogo
+            await this.pool.query(`
+                CREATE TABLE IF NOT EXISTS checklist_catalog_items (
+                    id SERIAL PRIMARY KEY,
+                    nombre VARCHAR(100) NOT NULL,
+                    categoria_id INTEGER REFERENCES checklist_categorias(id) ON DELETE SET NULL,
+                    activo BOOLEAN DEFAULT TRUE,
+                    orden INTEGER DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            // Crear tabla de resultados de checklist
+            await this.pool.query(`
+                CREATE TABLE IF NOT EXISTS room_checklist_results (
+                    id SERIAL PRIMARY KEY,
+                    cuarto_id INTEGER REFERENCES cuartos(id) ON DELETE CASCADE,
+                    catalog_item_id INTEGER REFERENCES checklist_catalog_items(id) ON DELETE CASCADE,
+                    nombre_snapshot VARCHAR(100),
+                    categoria_id INTEGER REFERENCES checklist_categorias(id) ON DELETE SET NULL,
+                    estado VARCHAR(20) NOT NULL DEFAULT 'bueno' CHECK (estado IN ('bueno', 'regular', 'malo')),
+                    observacion TEXT,
+                    foto_url TEXT,
+                    ultimo_editor_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    UNIQUE(cuarto_id, catalog_item_id)
+                )
+            `);
+
+            // Crear índices
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_results_cuarto ON room_checklist_results(cuarto_id)`);
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_results_estado ON room_checklist_results(estado)`);
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_catalog_categoria ON checklist_catalog_items(categoria_id)`);
+
+            // Insertar categorías por defecto
+            await this.pool.query(`
+                INSERT INTO checklist_categorias (nombre, slug, icono, orden) VALUES
+                ('Climatización', 'climatizacion', 'fa-temperature-half', 1),
+                ('Electrónica', 'electronica', 'fa-plug', 2),
+                ('Mobiliario', 'mobiliario', 'fa-couch', 3),
+                ('Sanitarios', 'sanitarios', 'fa-shower', 4),
+                ('Amenidades', 'amenidades', 'fa-concierge-bell', 5),
+                ('Estructura', 'estructura', 'fa-door-open', 6)
+                ON CONFLICT (slug) DO NOTHING
+            `);
+
+            // Insertar ítems del catálogo
+            const itemsData = [
+                { nombre: 'Aire acondicionado', categoria: 'climatizacion', orden: 1 },
+                { nombre: 'Calefacción', categoria: 'climatizacion', orden: 2 },
+                { nombre: 'Ventilación', categoria: 'climatizacion', orden: 3 },
+                { nombre: 'Televisión', categoria: 'electronica', orden: 1 },
+                { nombre: 'Teléfono', categoria: 'electronica', orden: 2 },
+                { nombre: 'Control remoto', categoria: 'electronica', orden: 3 },
+                { nombre: 'Iluminación', categoria: 'electronica', orden: 4 },
+                { nombre: 'Sofá', categoria: 'mobiliario', orden: 1 },
+                { nombre: 'Cama', categoria: 'mobiliario', orden: 2 },
+                { nombre: 'Closet', categoria: 'mobiliario', orden: 3 },
+                { nombre: 'Mesa de noche', categoria: 'mobiliario', orden: 4 },
+                { nombre: 'Silla', categoria: 'mobiliario', orden: 5 },
+                { nombre: 'Baño', categoria: 'sanitarios', orden: 1 },
+                { nombre: 'Regadera', categoria: 'sanitarios', orden: 2 },
+                { nombre: 'Lavabo', categoria: 'sanitarios', orden: 3 },
+                { nombre: 'Inodoro', categoria: 'sanitarios', orden: 4 },
+                { nombre: 'Minibar', categoria: 'amenidades', orden: 1 },
+                { nombre: 'Caja fuerte', categoria: 'amenidades', orden: 2 },
+                { nombre: 'Cafetera', categoria: 'amenidades', orden: 3 },
+                { nombre: 'Ventanas', categoria: 'estructura', orden: 1 },
+                { nombre: 'Cortinas', categoria: 'estructura', orden: 2 },
+                { nombre: 'Puertas', categoria: 'estructura', orden: 3 },
+                { nombre: 'Pisos', categoria: 'estructura', orden: 4 }
+            ];
+
+            for (const item of itemsData) {
+                await this.pool.query(`
+                    INSERT INTO checklist_catalog_items (nombre, categoria_id, orden)
+                    SELECT $1, id, $2 FROM checklist_categorias WHERE slug = $3
+                    ON CONFLICT DO NOTHING
+                `, [item.nombre, item.orden, item.categoria]);
+            }
+
+            console.log('✅ Tablas de checklist creadas correctamente');
+            return true;
+        } catch (error) {
+            console.error('❌ Error en migración de checklist:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Obtener todas las categorías del checklist
+     */
+    async getChecklistCategorias() {
+        const result = await this.pool.query(`
+            SELECT id, nombre, slug, icono, activo, orden
+            FROM checklist_categorias
+            WHERE activo = TRUE
+            ORDER BY orden, id
+        `);
+        return result.rows;
+    }
+
+    /**
+     * Obtener todos los ítems del catálogo de checklist
+     */
+    async getChecklistCatalogItems(categoriaId = null) {
+        let query = `
+            SELECT 
+                ci.id,
+                ci.nombre,
+                ci.categoria_id,
+                ci.activo,
+                ci.orden,
+                cat.slug as categoria_slug,
+                cat.nombre as categoria_nombre,
+                cat.icono as categoria_icono
+            FROM checklist_catalog_items ci
+            LEFT JOIN checklist_categorias cat ON ci.categoria_id = cat.id
+            WHERE ci.activo = TRUE
+        `;
+        
+        const params = [];
+        if (categoriaId) {
+            query += ' AND ci.categoria_id = $1';
+            params.push(categoriaId);
+        }
+        
+        query += ' ORDER BY cat.orden, ci.orden, ci.id';
+        
+        const result = await this.pool.query(query, params);
+        return result.rows;
+    }
+
+    /**
+     * Agregar una nueva categoría al checklist
+     */
+    async addChecklistCategoria(data) {
+        const slug = data.slug || data.nombre.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+        
+        const result = await this.pool.query(`
+            INSERT INTO checklist_categorias (nombre, slug, icono, orden)
+            VALUES ($1, $2, $3, COALESCE($4, (SELECT COALESCE(MAX(orden), 0) + 1 FROM checklist_categorias)))
+            RETURNING *
+        `, [data.nombre, slug, data.icono || 'fa-layer-group', data.orden]);
+        
+        return result.rows[0];
+    }
+
+    /**
+     * Agregar un nuevo ítem al catálogo de checklist
+     */
+    async addChecklistCatalogItem(data) {
+        const result = await this.pool.query(`
+            INSERT INTO checklist_catalog_items (nombre, categoria_id, orden)
+            VALUES ($1, $2, COALESCE($3, (SELECT COALESCE(MAX(orden), 0) + 1 FROM checklist_catalog_items WHERE categoria_id = $2)))
+            RETURNING *
+        `, [data.nombre, data.categoria_id, data.orden]);
+        
+        return result.rows[0];
+    }
+
+    /**
+     * Obtener datos completos de checklist por cuarto con todos sus ítems
+     */
+    async getChecklistByCuarto(cuartoId) {
+        const result = await this.pool.query(`
+            SELECT 
+                c.id as cuarto_id,
+                c.numero,
+                c.estado as estado_cuarto,
+                e.id as edificio_id,
+                e.nombre as edificio_nombre,
+                ci.id as item_id,
+                ci.nombre as item_nombre,
+                ci.orden as item_orden,
+                cat.id as categoria_id,
+                cat.slug as categoria_slug,
+                cat.nombre as categoria_nombre,
+                cat.icono as categoria_icono,
+                cat.orden as categoria_orden,
+                COALESCE(rcr.estado, 'bueno') as item_estado,
+                rcr.observacion,
+                rcr.foto_url,
+                rcr.updated_at as fecha_ultima_edicion,
+                u.nombre as ultimo_editor
+            FROM cuartos c
+            LEFT JOIN edificios e ON c.edificio_id = e.id
+            CROSS JOIN checklist_catalog_items ci
+            LEFT JOIN checklist_categorias cat ON ci.categoria_id = cat.id
+            LEFT JOIN room_checklist_results rcr ON rcr.cuarto_id = c.id AND rcr.catalog_item_id = ci.id
+            LEFT JOIN usuarios u ON rcr.ultimo_editor_id = u.id
+            WHERE c.id = $1 AND ci.activo = TRUE AND (cat.activo = TRUE OR cat.activo IS NULL)
+            ORDER BY cat.orden, ci.orden
+        `, [cuartoId]);
+        
+        return result.rows;
+    }
+
+    /**
+     * Obtener datos completos de checklist para todos los cuartos
+     */
+    async getAllChecklistData(filters = {}) {
+        console.log('[PostgresManager.getAllChecklistData] Iniciando...');
+        console.log('[PostgresManager.getAllChecklistData] Filtros:', filters);
+        
+        let query = `
+            SELECT 
+                c.id as cuarto_id,
+                c.numero,
+                c.estado as estado_cuarto,
+                e.id as edificio_id,
+                e.nombre as edificio_nombre,
+                ci.id as item_id,
+                ci.nombre as item_nombre,
+                ci.orden as item_orden,
+                cat.id as categoria_id,
+                cat.slug as categoria_slug,
+                cat.nombre as categoria_nombre,
+                cat.icono as categoria_icono,
+                cat.orden as categoria_orden,
+                COALESCE(rcr.estado, 'bueno') as item_estado,
+                rcr.observacion,
+                rcr.foto_url,
+                rcr.updated_at as fecha_ultima_edicion,
+                u.nombre as ultimo_editor
+            FROM cuartos c
+            LEFT JOIN edificios e ON c.edificio_id = e.id
+            CROSS JOIN checklist_catalog_items ci
+            LEFT JOIN checklist_categorias cat ON ci.categoria_id = cat.id
+            LEFT JOIN room_checklist_results rcr ON rcr.cuarto_id = c.id AND rcr.catalog_item_id = ci.id
+            LEFT JOIN usuarios u ON rcr.ultimo_editor_id = u.id
+            WHERE ci.activo = TRUE AND (cat.activo = TRUE OR cat.activo IS NULL)
+        `;
+
+        const params = [];
+        let paramCount = 1;
+
+        if (filters.edificio_id) {
+            query += ` AND c.edificio_id = $${paramCount++}`;
+            params.push(filters.edificio_id);
+        }
+
+        if (filters.categoria_id) {
+            query += ` AND ci.categoria_id = $${paramCount++}`;
+            params.push(filters.categoria_id);
+        }
+
+        query += ' ORDER BY c.numero, cat.orden, ci.orden';
+
+        console.log('[PostgresManager.getAllChecklistData] Query:', query);
+        console.log('[PostgresManager.getAllChecklistData] Params:', params);
+        
+        const result = await this.pool.query(query, params);
+        
+        console.log('[PostgresManager.getAllChecklistData] Filas obtenidas:', result.rows.length);
+        if (result.rows.length > 0) {
+            console.log('[PostgresManager.getAllChecklistData] Primera fila:', result.rows[0]);
+        }
+        
+        // Agrupar resultados por cuarto
+        const cuartosMap = new Map();
+        
+        for (const row of result.rows) {
+            if (!cuartosMap.has(row.cuarto_id)) {
+                cuartosMap.set(row.cuarto_id, {
+                    cuarto_id: row.cuarto_id,
+                    numero: row.numero,
+                    estado_cuarto: row.estado_cuarto,
+                    edificio_id: row.edificio_id,
+                    edificio: row.edificio_nombre,
+                    edificio_nombre: row.edificio_nombre,
+                    ultimo_editor: null,
+                    fecha_ultima_edicion: null,
+                    items: []
+                });
+            }
+            
+            const cuarto = cuartosMap.get(row.cuarto_id);
+            
+            cuarto.items.push({
+                id: row.item_id,
+                nombre: row.item_nombre,
+                categoria: row.categoria_slug,
+                categoria_id: row.categoria_id,
+                categoria_nombre: row.categoria_nombre,
+                estado: row.item_estado,
+                observacion: row.observacion,
+                foto_url: row.foto_url
+            });
+            
+            // Actualizar último editor si hay una fecha más reciente
+            if (row.ultimo_editor && row.fecha_ultima_edicion) {
+                if (!cuarto.fecha_ultima_edicion || new Date(row.fecha_ultima_edicion) > new Date(cuarto.fecha_ultima_edicion)) {
+                    cuarto.ultimo_editor = row.ultimo_editor;
+                    cuarto.fecha_ultima_edicion = row.fecha_ultima_edicion;
+                }
+            }
+        }
+        
+        const resultado = Array.from(cuartosMap.values());
+        console.log('[PostgresManager.getAllChecklistData] Cuartos procesados:', resultado.length);
+        if (resultado.length > 0) {
+            console.log('[PostgresManager.getAllChecklistData] Primer cuarto:', resultado[0].numero);
+            console.log('[PostgresManager.getAllChecklistData] Items del primer cuarto:', resultado[0].items?.length);
+        }
+        return resultado;
+    }
+
+    /**
+     * Actualizar el estado de un ítem del checklist para un cuarto específico
+     */
+    async updateChecklistItemEstado(cuartoId, catalogItemId, estado, usuarioId, observacion = null) {
+        // Validar estado
+        const estadosValidos = ['bueno', 'regular', 'malo'];
+        if (!estadosValidos.includes(estado)) {
+            throw new Error(`Estado inválido. Debe ser uno de: ${estadosValidos.join(', ')}`);
+        }
+
+        // Obtener nombre del ítem del catálogo
+        const itemQuery = await this.pool.query(
+            'SELECT nombre, categoria_id FROM checklist_catalog_items WHERE id = $1',
+            [catalogItemId]
+        );
+        
+        if (itemQuery.rows.length === 0) {
+            throw new Error('Ítem del catálogo no encontrado');
+        }
+
+        const item = itemQuery.rows[0];
+
+        // Upsert del resultado
+        const result = await this.pool.query(`
+            INSERT INTO room_checklist_results 
+                (cuarto_id, catalog_item_id, nombre_snapshot, categoria_id, estado, observacion, ultimo_editor_id, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
+            ON CONFLICT (cuarto_id, catalog_item_id) 
+            DO UPDATE SET 
+                estado = EXCLUDED.estado,
+                observacion = EXCLUDED.observacion,
+                ultimo_editor_id = EXCLUDED.ultimo_editor_id,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING *
+        `, [cuartoId, catalogItemId, item.nombre, item.categoria_id, estado, observacion, usuarioId]);
+
+        return result.rows[0];
+    }
+
+    /**
+     * Actualizar múltiples ítems del checklist a la vez
+     */
+    async updateChecklistItemsBulk(cuartoId, items, usuarioId) {
+        const results = [];
+        
+        for (const item of items) {
+            try {
+                const result = await this.updateChecklistItemEstado(
+                    cuartoId,
+                    item.catalog_item_id || item.id,
+                    item.estado,
+                    usuarioId,
+                    item.observacion
+                );
+                results.push({ success: true, item: result });
+            } catch (error) {
+                results.push({ success: false, error: error.message, item_id: item.catalog_item_id || item.id });
+            }
+        }
+        
+        return results;
+    }
+
+    /**
+     * Obtener resumen de estados del checklist por cuarto
+     */
+    async getChecklistResumenByCuarto(cuartoId) {
+        const result = await this.pool.query(`
+            SELECT 
+                COALESCE(rcr.estado, 'bueno') as estado,
+                COUNT(*) as cantidad
+            FROM checklist_catalog_items ci
+            LEFT JOIN room_checklist_results rcr ON rcr.catalog_item_id = ci.id AND rcr.cuarto_id = $1
+            WHERE ci.activo = TRUE
+            GROUP BY COALESCE(rcr.estado, 'bueno')
+        `, [cuartoId]);
+        
+        const resumen = { bueno: 0, regular: 0, malo: 0, total: 0 };
+        
+        for (const row of result.rows) {
+            resumen[row.estado] = parseInt(row.cantidad);
+            resumen.total += parseInt(row.cantidad);
+        }
+        
+        return resumen;
+    }
+
+    /**
+     * Obtener resumen general de checklist de todos los cuartos
+     */
+    async getChecklistResumenGeneral() {
+        const result = await this.pool.query(`
+            SELECT 
+                c.id as cuarto_id,
+                c.numero,
+                e.nombre as edificio_nombre,
+                COUNT(*) as total_items,
+                SUM(CASE WHEN COALESCE(rcr.estado, 'bueno') = 'bueno' THEN 1 ELSE 0 END) as buenos,
+                SUM(CASE WHEN rcr.estado = 'regular' THEN 1 ELSE 0 END) as regulares,
+                SUM(CASE WHEN rcr.estado = 'malo' THEN 1 ELSE 0 END) as malos
+            FROM cuartos c
+            LEFT JOIN edificios e ON c.edificio_id = e.id
+            CROSS JOIN checklist_catalog_items ci
+            LEFT JOIN room_checklist_results rcr ON rcr.cuarto_id = c.id AND rcr.catalog_item_id = ci.id
+            WHERE ci.activo = TRUE
+            GROUP BY c.id, c.numero, e.nombre
+            ORDER BY c.numero
+        `);
+        
+        return result.rows;
+    }
+
+    /**
+     * Eliminar una categoría del checklist (soft delete)
+     */
+    async deleteChecklistCategoria(categoriaId) {
+        const result = await this.pool.query(`
+            UPDATE checklist_categorias 
+            SET activo = FALSE 
+            WHERE id = $1 
+            RETURNING *
+        `, [categoriaId]);
+        
+        return result.rows[0];
+    }
+
+    /**
+     * Eliminar un ítem del catálogo de checklist (soft delete)
+     */
+    async deleteChecklistCatalogItem(itemId) {
+        const result = await this.pool.query(`
+            UPDATE checklist_catalog_items 
+            SET activo = FALSE 
+            WHERE id = $1 
+            RETURNING *
+        `, [itemId]);
+        
+        return result.rows[0];
+    }
 }
 
 module.exports = PostgresManager;

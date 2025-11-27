@@ -1,92 +1,60 @@
 // ========================================
-// APP.JS - Sistema Principal JW Marriott
+// CHECKLIST-TAB.JS - Módulo de Checklist JW Marriott
 // ========================================
 
-// Estado global de la aplicación
-const AppState = {
-    currentUser: null,
-    theme: 'light',
-    currentTab: 'habitaciones',
-    edificios: [],
-    cuartos: [],
-    mantenimientos: [],
-    usuarios: [],
-    sabanaCollections: [],
-    sabanaSeleccionadaId: null,
-    sabanaData: [],
-    usuariosFiltrados: [],
-    usuariosPagination: {
-        page: 1
-    },
-    usuariosFilters: {
-        query: '',
-        role: '',
-        estado: ''
-    },
-    sabanaFilters: {
-        search: '',
-        edificio: '',
-        estado: ''
-    },
-    checklistItems: [
-        { nombre: 'Aire acondicionado', categoria: 'climatizacion' },
-        { nombre: 'Calefacción', categoria: 'climatizacion' },
-        { nombre: 'Ventilación', categoria: 'climatizacion' },
-        { nombre: 'Televisión', categoria: 'electronica' },
-        { nombre: 'Teléfono', categoria: 'electronica' },
-        { nombre: 'Control remoto', categoria: 'electronica' },
-        { nombre: 'Iluminación', categoria: 'electronica' },
-        { nombre: 'Sofá', categoria: 'mobiliario' },
-        { nombre: 'Cama', categoria: 'mobiliario' },
-        { nombre: 'Closet', categoria: 'mobiliario' },
-        { nombre: 'Mesa de noche', categoria: 'mobiliario' },
-        { nombre: 'Silla', categoria: 'mobiliario' },
-        { nombre: 'Baño', categoria: 'sanitarios' },
-        { nombre: 'Regadera', categoria: 'sanitarios' },
-        { nombre: 'Lavabo', categoria: 'sanitarios' },
-        { nombre: 'Inodoro', categoria: 'sanitarios' },
-        { nombre: 'Minibar', categoria: 'amenidades' },
-        { nombre: 'Caja fuerte', categoria: 'amenidades' },
-        { nombre: 'Cafetera', categoria: 'amenidades' },
-        { nombre: 'Ventanas', categoria: 'estructura' },
-        { nombre: 'Cortinas', categoria: 'estructura' },
-        { nombre: 'Puertas', categoria: 'estructura' },
-        { nombre: 'Pisos', categoria: 'estructura' }
-    ],
-    checklistCategorias: [
-        { id: 'climatizacion', nombre: 'Climatización', icono: 'fa-temperature-half' },
-        { id: 'electronica', nombre: 'Electrónica', icono: 'fa-plug' },
-        { id: 'mobiliario', nombre: 'Mobiliario', icono: 'fa-couch' },
-        { id: 'sanitarios', nombre: 'Sanitarios', icono: 'fa-shower' },
-        { id: 'amenidades', nombre: 'Amenidades', icono: 'fa-concierge-bell' },
-        { id: 'estructura', nombre: 'Estructura', icono: 'fa-door-open' }
-    ],
-    checklistFilters: {
-        categoria: '',
-        busqueda: '',
-        edificio: '',
-        estado: ''
-    },
-    checklistPagination: {
-        page: 1,
-        perPage: 4,
-        totalPages: 1
-    },
-    checklistFiltradas: [],
-    customChecklistHydrated: false,
-    inspeccionesRecientes: [],
-    tareas: [],
-    tareasFiltradas: [],
-    tareasFilters: {
-        search: '',
-        role: 'mi-rol',
-        estado: '',
-        prioridad: ''
-    },
-    tareasPagination: {
-        page: 1,
-        perPage: 6
+// Extender AppState existente con propiedades de checklist (si no existen)
+(function extendAppState() {
+    if (typeof AppState === 'undefined') {
+        console.error('❌ [CHECKLIST-TAB] AppState no está definido. Este módulo requiere app.js');
+        return;
     }
+    
+    // Solo agregar propiedades que no existan
+    const checklistDefaults = {
+        checklistItems: [],
+        checklistCategorias: [],
+        checklistFilters: {
+            categoria: '',
+            busqueda: '',
+            habitacion: '',
+            edificio: '',
+            estado: ''
+        },
+        checklistPagination: {
+            page: 1,
+            perPage: 4,
+            totalPages: 1
+        },
+        checklistFiltradas: [],
+        inspeccionesRecientes: [],
+        tareas: [],
+        tareasFiltradas: [],
+        tareasFilters: {
+            search: '',
+            role: 'mi-rol',
+            estado: '',
+            prioridad: ''
+        },
+        tareasPagination: {
+            page: 1,
+            perPage: 6
+        }
+    };
+    
+    for (const [key, value] of Object.entries(checklistDefaults)) {
+        if (!(key in AppState)) {
+            AppState[key] = value;
+            console.log(`📋 [CHECKLIST-TAB] AppState.${key} inicializado`);
+        }
+    }
+    
+    console.log('✅ [CHECKLIST-TAB] AppState extendido correctamente');
+})();
+
+// Exportar función para que app.js pueda usarla
+window.loadChecklistDataFromAPI = async function() {
+    console.log('📋 [CHECKLIST-TAB] loadChecklistDataFromAPI() llamado desde window');
+    return loadChecklistData();
 };
 
 const USUARIOS_POR_PAGINA = 4;
@@ -94,13 +62,6 @@ const TAREAS_POR_PAGINA = 6;
 let tareasInteractionsBound = false;
 
 AppState.tareasPagination.perPage = TAREAS_POR_PAGINA;
-
-const CUSTOM_CHECKLIST_CATEGORIES_KEY = 'customChecklistCategorias';
-const CUSTOM_CHECKLIST_ITEMS_KEY = 'customChecklistItems';
-const DEFAULT_CHECKLIST_CATEGORY_IDS = new Set(AppState.checklistCategorias.map(cat => cat.id));
-const DEFAULT_CHECKLIST_ITEM_KEYS = new Set(AppState.checklistItems.map(item => `${item.categoria}||${item.nombre.toLowerCase()}`));
-const CHECKLIST_MOCK_DATA_PATH = '/data/checklist-mock.json';
-let checklistMockCache = null;
 
 const tareaModalElements = {
     modal: null,
@@ -142,27 +103,35 @@ const tareaEditModalState = {
     editingAdjuntos: []
 };
 
-const CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
-const CHECKLIST_ESTADO_LABELS = {
-    bueno: 'Bueno',
-    regular: 'Regular',
-    malo: 'Malo'
-};
+// Usar constantes existentes de app.js o definir si no existen
+if (typeof CHECKLIST_ESTADOS === 'undefined') {
+    var CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
+}
+if (typeof CHECKLIST_ESTADO_LABELS === 'undefined') {
+    var CHECKLIST_ESTADO_LABELS = {
+        bueno: 'Bueno',
+        regular: 'Regular',
+        malo: 'Malo'
+    };
+}
 
-function sanitizeText(value) {
-    if (value === null || value === undefined) {
-        return '';
-    }
-    return String(value).replace(/[&<>"']/g, (char) => {
-        switch (char) {
-            case '&': return '&amp;';
-            case '<': return '&lt;';
-            case '>': return '&gt;';
-            case '"': return '&quot;';
-            case "'": return '&#39;';
-            default: return char;
+// Usar sanitizeText existente o definir si no existe
+if (typeof sanitizeText === 'undefined') {
+    var sanitizeText = function(value) {
+        if (value === null || value === undefined) {
+            return '';
         }
-    });
+        return String(value).replace(/[&<>"']/g, (char) => {
+            switch (char) {
+                case '&': return '&amp;';
+                case '<': return '&lt;';
+                case '>': return '&gt;';
+                case '"': return '&quot;';
+                case "'": return '&#39;';
+                default: return char;
+            }
+        });
+    };
 }
 
 const UsuarioModalState = {
@@ -639,15 +608,17 @@ const DEFAULT_TAREAS = [
     }
 ];
 
-const DEFAULT_INSPECCIONES_RECIENTES = [
-    {
-        id: 'insp-101',
-        habitacion: '101',
-        titulo: 'Revisión Aire Acondicionado',
-        tecnico: 'Juan Pérez',
-        fecha: 'Hoy · 10:30 AM',
-        estado: 'aprobada'
-    },
+// Usar la constante de app.js si ya existe
+if (typeof DEFAULT_INSPECCIONES_RECIENTES === 'undefined') {
+    var DEFAULT_INSPECCIONES_RECIENTES = [
+        {
+            id: 'insp-101',
+            habitacion: '101',
+            titulo: 'Revisión Aire Acondicionado',
+            tecnico: 'Juan Pérez',
+            fecha: 'Hoy · 10:30 AM',
+            estado: 'aprobada'
+        },
     {
         id: 'insp-102',
         habitacion: '102',
@@ -673,6 +644,7 @@ const DEFAULT_INSPECCIONES_RECIENTES = [
         estado: 'aprobada'
     }
 ];
+} // Cierre del if (typeof DEFAULT_INSPECCIONES_RECIENTES === 'undefined')
 
 const TAREAS_STORAGE_KEY = 'jwmt_tasks_v1';
 let tareasModuleInitialized = false;
@@ -868,7 +840,17 @@ function setupSearchListeners() {
         });
     }
 
-    // Buscador de Checklist
+    // Buscador de Habitación en Checklist
+    const buscarHabitacionChecklist = document.getElementById('buscarHabitacionChecklist');
+    if (buscarHabitacionChecklist) {
+        buscarHabitacionChecklist.addEventListener('input', (e) => {
+            AppState.checklistFilters.habitacion = e.target.value;
+            AppState.checklistPagination.page = 1;
+            applyChecklistFilters();
+        });
+    }
+
+    // Buscador de Ítems en Checklist
     const buscarChecklist = document.getElementById('buscarChecklist');
     if (buscarChecklist) {
         buscarChecklist.addEventListener('input', (e) => {
@@ -879,6 +861,9 @@ function setupSearchListeners() {
     // Filtro de edificios en checklist
     const filtroEdificioChecklist = document.getElementById('filtroEdificioChecklist');
     if (filtroEdificioChecklist) {
+        // Poblar el select con los edificios reales desde AppState
+        poblarFiltroEdificiosChecklist();
+        
         filtroEdificioChecklist.addEventListener('change', (e) => {
             AppState.checklistFilters.edificio = e.target.value;
             AppState.checklistPagination.page = 1; // Reset a página 1
@@ -1798,247 +1783,139 @@ function handleCrearSabanaSubmit(event) {
 // CHECKLIST - INSPECCIONES
 // ========================================
 
-function hydrateCustomChecklistConfig() {
-    if (AppState.customChecklistHydrated) {
-        return;
-    }
-
-    try {
-        const storedCategorias = JSON.parse(localStorage.getItem(CUSTOM_CHECKLIST_CATEGORIES_KEY)) || [];
-        storedCategorias.forEach(cat => {
-            if (cat && cat.id && !AppState.checklistCategorias.some(existing => existing.id === cat.id)) {
-                AppState.checklistCategorias.push(cat);
-            }
-        });
-
-        const storedItems = JSON.parse(localStorage.getItem(CUSTOM_CHECKLIST_ITEMS_KEY)) || [];
-        storedItems.forEach(item => {
-            const key = `${item.categoria}||${(item.nombre || '').toLowerCase()}`;
-            if (item && item.categoria && item.nombre && !AppState.checklistItems.some(existing => `${existing.categoria}||${existing.nombre.toLowerCase()}` === key)) {
-                AppState.checklistItems.push(item);
-            }
-        });
-    } catch (error) {
-        console.warn('⚠️ No se pudieron hidratar las secciones personalizadas:', error);
-    }
-
-    AppState.customChecklistHydrated = true;
-}
-
-function saveCustomChecklistCategorias() {
-    const customCategorias = AppState.checklistCategorias.filter(cat => !DEFAULT_CHECKLIST_CATEGORY_IDS.has(cat.id));
-    localStorage.setItem(CUSTOM_CHECKLIST_CATEGORIES_KEY, JSON.stringify(customCategorias));
-}
-
-function saveCustomChecklistItems() {
-    const customItems = AppState.checklistItems.filter(item => !DEFAULT_CHECKLIST_ITEM_KEYS.has(`${item.categoria}||${item.nombre.toLowerCase()}`));
-    localStorage.setItem(CUSTOM_CHECKLIST_ITEMS_KEY, JSON.stringify(customItems));
-}
-
-function syncChecklistDataWithNewItems(nuevosItems) {
-    if (!Array.isArray(nuevosItems) || !nuevosItems.length) {
-        return;
-    }
-
-    const stored = JSON.parse(localStorage.getItem('checklistData')) || [];
-    if (!stored.length) {
-        return;
-    }
-
-    const updated = stored.map(habitacion => {
-        const itemsActuales = Array.isArray(habitacion.items) ? habitacion.items : [];
-        nuevosItems.forEach(nuevo => {
-            const exists = itemsActuales.some(item => item.nombre === nuevo.nombre && item.categoria === nuevo.categoria);
-            if (!exists) {
-                itemsActuales.push({ nombre: nuevo.nombre, categoria: nuevo.categoria, estado: 'bueno' });
-            }
-        });
-        return {
-            ...habitacion,
-            items: itemsActuales
-        };
-    });
-
-    localStorage.setItem('checklistData', JSON.stringify(updated));
-}
-
-async function getChecklistMockHabitaciones() {
-    if (Array.isArray(checklistMockCache)) {
-        return checklistMockCache;
-    }
-
-    try {
-        const response = await fetch(CHECKLIST_MOCK_DATA_PATH, { cache: 'no-store' });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const payload = await response.json();
-        if (!payload || !Array.isArray(payload.habitaciones)) {
-            throw new Error('Formato inválido en checklist-mock.json');
-        }
-
-        checklistMockCache = payload.habitaciones;
-    } catch (error) {
-        console.warn('⚠️ No se pudo cargar el JSON de mock, usando fallback interno.', error);
-        checklistMockCache = buildInlineChecklistMockData();
-    }
-
-    return checklistMockCache;
-}
-
-function buildInlineChecklistMockData() {
-    return [
-        {
-            numero: 'A101',
-            edificio_nombre: 'Edificio A',
-            estado: 'disponible',
-            ultimo_editor: 'Equipo Demo',
-            items: [
-                { categoria: 'climatizacion', nombre: 'Aire acondicionado', estado: 'bueno' },
-                { categoria: 'electronica', nombre: 'Televisión', estado: 'regular' },
-                { categoria: 'mobiliario', nombre: 'Cama', estado: 'bueno' }
-            ]
-        },
-        {
-            numero: 'A102',
-            edificio_nombre: 'Edificio A',
-            estado: 'mantenimiento',
-            ultimo_editor: 'Equipo Demo',
-            items: [
-                { categoria: 'climatizacion', nombre: 'Aire acondicionado', estado: 'malo' },
-                { categoria: 'sanitarios', nombre: 'Inodoro', estado: 'malo' },
-                { categoria: 'amenidades', nombre: 'Minibar', estado: 'regular' }
-            ]
-        }
-    ];
-}
-
-function mergeMockChecklistItems(mockItems = [], habitacionLabel = '') {
-    const normalizedItems = Array.isArray(mockItems) ? mockItems : [];
-    const itemsByName = normalizedItems.reduce((acc, item) => {
-        if (item && item.nombre) {
-            acc[item.nombre.toLowerCase()] = item;
-        }
-        return acc;
-    }, {});
-
-    const merged = AppState.checklistItems.map(defaultItem => {
-        const key = defaultItem.nombre.toLowerCase();
-        const mock = itemsByName[key];
-        return {
-            nombre: defaultItem.nombre,
-            categoria: defaultItem.categoria,
-            estado: mock?.estado || 'bueno',
-            notas: mock?.observacion || mock?.notas || '',
-            ultima_revision: mock?.ultima_revision || null
-        };
-    });
-
-    normalizedItems.forEach(item => {
-        const normalizedName = (item?.nombre || '').toLowerCase();
-        const exists = AppState.checklistItems.some(defaultItem => defaultItem.nombre.toLowerCase() === normalizedName);
-        if (!exists && item?.nombre) {
-            merged.push({
-                nombre: item.nombre,
-                categoria: item.categoria || 'custom',
-                estado: item.estado || 'bueno',
-                notas: item.observacion || item.notas || '',
-                ultima_revision: item.ultima_revision || null,
-                origen: habitacionLabel
-            });
-        }
-    });
-
-    return merged;
-}
-
-function normalizeMockHabitaciones(habitaciones = []) {
-    if (!Array.isArray(habitaciones)) {
-        return [];
-    }
-
-    const cuartos = Array.isArray(AppState.cuartos) ? AppState.cuartos : [];
-
-    return habitaciones.map((habitacion, index) => {
-        const matchingCuarto = cuartos.find(cuarto => cuarto.numero === habitacion.numero) || cuartos[index] || {};
-        const items = mergeMockChecklistItems(habitacion.items, habitacion.numero);
-
-        return {
-            cuarto_id: habitacion.cuarto_id || matchingCuarto.id || Date.now() + index,
-            numero: habitacion.numero || matchingCuarto.numero || `HAB-${index + 1}`,
-            edificio: habitacion.edificio || habitacion.edificio_nombre || matchingCuarto.edificio_nombre || 'Sin edificio',
-            edificio_nombre: habitacion.edificio_nombre || habitacion.edificio || matchingCuarto.edificio_nombre || 'Sin edificio',
-            nivel: habitacion.nivel || matchingCuarto.nivel || null,
-            estado_cuarto: habitacion.estado || habitacion.estado_cuarto || matchingCuarto.estado || 'disponible',
-            ultimo_editor: habitacion.ultimo_editor || 'Mock Loader',
-            fecha_ultima_edicion: habitacion.fecha_ultima_edicion || new Date().toISOString(),
-            metadata: habitacion.metadata || habitacion.detalles || null,
-            items
-        };
-    });
-}
-
-async function ensureChecklistStorageSeeded() {
-    if (localStorage.getItem('checklistData')) {
-        return;
-    }
-
-    const habitacionesMock = await getChecklistMockHabitaciones();
-    const normalized = normalizeMockHabitaciones(habitacionesMock);
-    localStorage.setItem('checklistData', JSON.stringify(normalized));
-}
-
-function exposeMockChecklistHelpers() {
-    if (typeof window === 'undefined') {
-        return;
-    }
-
-    window.MockChecklistLoader = {
-        async recargarDesdeMock() {
-            localStorage.removeItem('checklistData');
-            checklistMockCache = null;
-            await loadChecklistData();
-        },
-        async obtenerMock() {
-            const habitaciones = await getChecklistMockHabitaciones();
-            return { habitaciones };
-        }
-    };
-}
-
-exposeMockChecklistHelpers();
+// NOTA: Las siguientes funciones legacy se mantienen comentadas para referencia.
+// La funcionalidad de checklist ahora usa la API de PostgreSQL (ChecklistAPI)
+// Ver: js/checklist-api.js y api/index.js (rutas /api/checklist/*)
 
 async function loadChecklistData() {
-    console.log('📋 Cargando datos de checklist...');
+    console.log('📋 ========================================');
+    console.log('📋 INICIANDO CARGA DE CHECKLIST DESDE API');
+    console.log('📋 ========================================');
+    console.log('📋 Timestamp:', new Date().toISOString());
+    console.log('📋 ChecklistAPI disponible:', typeof ChecklistAPI !== 'undefined');
 
     const grid = document.getElementById('checklistGrid');
-    if (!grid) return;
-
-    hydrateCustomChecklistConfig();
-
-    renderChecklistCategorias();
-    loadInspeccionesRecientes();
-
-    try {
-        await ensureChecklistStorageSeeded();
-    } catch (error) {
-        console.warn('⚠️ No se pudo preparar el mock de checklist.', error);
+    if (!grid) {
+        console.warn('⚠️ checklistGrid no encontrado en el DOM');
+        return;
     }
 
-    const storedData = localStorage.getItem('checklistData');
-    let checklistData = [];
+    // Mostrar indicador de carga
+    grid.innerHTML = '<div class="mensaje-cargando"><i class="fas fa-spinner fa-spin"></i> Cargando checklist desde BD...</div>';
 
     try {
-        checklistData = storedData ? JSON.parse(storedData) : [];
+        // Cargar categorías desde la API
+        console.log('📋 [PASO 1] Cargando categorías...');
+        await loadChecklistCategoriasFromAPI();
+        console.log('📋 [PASO 1] Categorías cargadas:', AppState.checklistCategorias);
+        
+        // Cargar datos de checklist desde la API
+        console.log('📋 [PASO 2] Llamando ChecklistAPI.getAllChecklistData()...');
+        const checklistData = await ChecklistAPI.getAllChecklistData();
+        
+        console.log('📋 [PASO 2] Respuesta recibida:');
+        console.log('   - Tipo:', typeof checklistData);
+        console.log('   - Es array:', Array.isArray(checklistData));
+        console.log('   - Cantidad de cuartos:', checklistData?.length || 0);
+        
+        if (checklistData.length > 0) {
+            console.log('📋 [PASO 2] Primer cuarto de ejemplo:', JSON.stringify(checklistData[0], null, 2));
+        }
+        
+        // Actualizar AppState
+        AppState.checklistFiltradas = Array.isArray(checklistData) ? checklistData : [];
+        console.log('📋 [PASO 3] AppState.checklistFiltradas actualizado:', AppState.checklistFiltradas.length, 'cuartos');
+        
+        // También guardar en localStorage como cache para modo offline
+        localStorage.setItem('checklistData', JSON.stringify(AppState.checklistFiltradas));
+        
+        // Poblar filtro de edificios con datos reales
+        poblarFiltroEdificiosChecklist();
+        
+        renderChecklistCategorias();
+        loadInspeccionesRecientes();
+        renderChecklistGrid(AppState.checklistFiltradas);
+        
     } catch (error) {
-        console.warn('⚠️ No se pudo leer checklistData almacenado. Reiniciando.', error);
-        localStorage.removeItem('checklistData');
-        checklistData = [];
+        console.error('❌ Error cargando checklist desde API:', error);
+        
+        // Fallback: intentar cargar desde localStorage
+        console.log('🔄 Intentando cargar desde cache local...');
+        const storedData = localStorage.getItem('checklistData');
+        
+        if (storedData) {
+            try {
+                const checklistData = JSON.parse(storedData);
+                AppState.checklistFiltradas = Array.isArray(checklistData) ? checklistData : [];
+                renderChecklistCategorias();
+                loadInspeccionesRecientes();
+                renderChecklistGrid(AppState.checklistFiltradas);
+                showNotification('⚠️ Usando datos en cache (sin conexión)', 'warning');
+            } catch (parseError) {
+                console.error('❌ Error parseando cache local:', parseError);
+                grid.innerHTML = '<div class="mensaje-cargando">❌ Error al cargar datos de checklist</div>';
+            }
+        } else {
+            grid.innerHTML = '<div class="mensaje-cargando">❌ No hay datos disponibles</div>';
+        }
     }
+}
 
-    AppState.checklistFiltradas = Array.isArray(checklistData) ? checklistData : [];
-    renderChecklistGrid(AppState.checklistFiltradas);
+/**
+ * Cargar categorías desde la API
+ */
+async function loadChecklistCategoriasFromAPI() {
+    console.log('   🏷️ [loadChecklistCategoriasFromAPI] Iniciando...');
+    try {
+        console.log('   🏷️ Llamando ChecklistAPI.getCategorias()...');
+        const categorias = await ChecklistAPI.getCategorias();
+        
+        console.log('   🏷️ Respuesta de categorías:');
+        console.log('      - Tipo:', typeof categorias);
+        console.log('      - Es array:', Array.isArray(categorias));
+        console.log('      - Cantidad:', categorias?.length || 0);
+        console.log('      - Datos:', JSON.stringify(categorias, null, 2));
+        
+        // Actualizar AppState con las categorías de la BD
+        AppState.checklistCategorias = categorias.map(cat => ({
+            id: cat.slug || cat.id.toString(),
+            db_id: cat.id,
+            nombre: cat.nombre,
+            icono: cat.icono || 'fa-layer-group',
+            orden: cat.orden
+        }));
+        
+        console.log('   🏷️ ✅ Categorías mapeadas a AppState:', AppState.checklistCategorias.length);
+        console.log('   🏷️ Categorías en AppState:', AppState.checklistCategorias);
+        
+    } catch (error) {
+        console.error('   🏷️ ❌ Error cargando categorías desde API:', error);
+        console.error('   🏷️ Stack:', error.stack);
+        // Mantener categorías por defecto si falla la API
+    }
+}
+
+/**
+ * Cargar ítems del catálogo desde la API
+ */
+async function loadChecklistItemsFromAPI() {
+    try {
+        const items = await ChecklistAPI.getCatalogItems();
+        
+        // Actualizar AppState con los ítems de la BD
+        AppState.checklistItems = items.map(item => ({
+            id: item.id,
+            nombre: item.nombre,
+            categoria: item.categoria_slug,
+            categoria_id: item.categoria_id,
+            orden: item.orden
+        }));
+        
+        console.log(`✅ Ítems del catálogo cargados: ${AppState.checklistItems.length}`);
+        
+    } catch (error) {
+        console.warn('⚠️ Error cargando ítems desde API, usando valores por defecto:', error);
+    }
 }
 
 
@@ -2206,15 +2083,18 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
     const rawNombre = item.nombre || '';
     const safeNombre = sanitizeText(rawNombre);
     const dataNombre = sanitizeText(rawNombre.toLowerCase());
-    const groupName = `estado_${habitacion.cuarto_id}_${itemIndex}`;
+    // Usar el ID del ítem de la BD para identificación única
+    const itemId = item.id || itemIndex;
+    const groupName = `estado_${habitacion.cuarto_id}_${itemId}`;
     const optionsHTML = CHECKLIST_ESTADOS.map(estado => `
         <label class="checklist-semaforo-option ${estado}">
             <input 
                 type="radio" 
                 name="${groupName}"
                 class="estado-radio"
+                value="${estado}"
                 ${item.estado === estado ? 'checked' : ''}
-                onchange="updateChecklistEstado(${habitacion.cuarto_id}, ${itemIndex}, '${estado}')"
+                onchange="updateChecklistEstado(${habitacion.cuarto_id}, ${itemId}, '${estado}')"
             >
             <span class="semaforo-visual">
                 <span class="semaforo-dot" aria-hidden="true"></span>
@@ -2224,7 +2104,7 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
     `).join('');
 
     return `
-        <div class="checklist-item" data-item="${dataNombre}">
+        <div class="checklist-item" data-item="${dataNombre}" data-item-id="${itemId}">
             <div class="checklist-item-left">
                 <span class="checklist-item-name">${safeNombre}</span>
             </div>
@@ -2332,47 +2212,97 @@ function getInspeccionEstadoLabel(estado) {
     return '';
 }
 
-function updateChecklistEstado(cuartoId, itemIndex, nuevoEstado) {
-    const checklistData = JSON.parse(localStorage.getItem('checklistData'));
-    const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
+async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
+    console.log(`📝 Actualizando estado: cuarto=${cuartoId}, item=${itemId}, estado=${nuevoEstado}`);
+    
+    // Obtener el nombre del usuario actual
+    const usuarioNombre = AppState.currentUser?.nombre || AppState.currentUser?.name || 'Usuario';
+    
+    try {
+        // Llamar a la API para actualizar
+        const resultado = await ChecklistAPI.updateItemEstado(cuartoId, itemId, nuevoEstado);
+        console.log('✅ Estado actualizado en BD:', resultado);
+        
+        // Actualizar el cache local (AppState.checklistFiltradas)
+        const habitacion = AppState.checklistFiltradas.find(h => h.cuarto_id === cuartoId);
+        
+        if (habitacion) {
+            // Buscar el ítem por ID y actualizar su estado
+            const item = habitacion.items.find(i => i.id === itemId);
+            if (item) {
+                const estadoAnterior = item.estado;
+                item.estado = nuevoEstado;
+                console.log(`📋 Ítem actualizado: ${item.nombre} (${estadoAnterior} -> ${nuevoEstado})`);
+            }
 
-    if (habitacion) {
-        habitacion.items[itemIndex].estado = nuevoEstado;
-
-        // Guardar información del usuario que editó
-        if (AppState.currentUser && AppState.currentUser.name) {
-            habitacion.ultimo_editor = AppState.currentUser.name;
+            // Actualizar información del usuario que editó
+            habitacion.ultimo_editor = usuarioNombre;
             habitacion.fecha_ultima_edicion = new Date().toISOString();
+
+            // Actualizar también en localStorage
+            const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+            const habStorage = checklistData.find(h => h.cuarto_id === cuartoId);
+            if (habStorage) {
+                const itemStorage = habStorage.items.find(i => i.id === itemId);
+                if (itemStorage) {
+                    itemStorage.estado = nuevoEstado;
+                }
+                habStorage.ultimo_editor = usuarioNombre;
+                habStorage.fecha_ultima_edicion = new Date().toISOString();
+                localStorage.setItem('checklistData', JSON.stringify(checklistData));
+            }
+
+            // Actualizar SOLO la card específica (no recargar todas)
+            updateChecklistCardSummary(habitacion);
+            updateChecklistEditorInfo(habitacion);
         }
-
-        localStorage.setItem('checklistData', JSON.stringify(checklistData));
-        console.log(`✅ Estado actualizado: ${habitacion.numero} - ${habitacion.items[itemIndex].nombre} -> ${nuevoEstado}`);
-        updateChecklistCardSummary(habitacion);
-
-        // Actualizar la información del editor en la card
-        updateChecklistEditorInfo(habitacion);
+        
+        showNotification(`✅ Estado actualizado por ${usuarioNombre}`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Error actualizando estado:', error);
+        showNotification('❌ Error al guardar cambio', 'error');
+        
+        // Revertir el cambio visual
+        const radio = document.querySelector(`input[name="estado_${cuartoId}_${itemId}"][value="${nuevoEstado}"]`);
+        if (radio) {
+            radio.checked = false;
+        }
     }
 }
 
 function updateChecklistCardSummary(habitacion) {
     const card = document.querySelector(`.checklist-card[data-cuarto-id="${habitacion.cuarto_id}"]`);
-    if (!card) return;
+    if (!card) {
+        console.warn(`⚠️ No se encontró card para cuarto_id: ${habitacion.cuarto_id}`);
+        return;
+    }
 
-    const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
-        acc[estado] = 0;
-        return acc;
-    }, {});
+    // Recalcular contadores desde los datos actuales
+    const counts = { bueno: 0, regular: 0, malo: 0 };
 
     habitacion.items.forEach(item => {
-        if (counts[item.estado] !== undefined) {
-            counts[item.estado] += 1;
+        const estado = item.estado || 'bueno';
+        if (counts.hasOwnProperty(estado)) {
+            counts[estado] += 1;
         }
     });
 
+    console.log(`📊 Actualizando contadores para hab ${habitacion.numero}:`, counts);
+
+    // Actualizar cada contador en la UI
     CHECKLIST_ESTADOS.forEach(estado => {
-        const valueEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"] .checklist-card-stat-value`);
-        if (valueEl) {
-            valueEl.textContent = counts[estado];
+        const statEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"]`);
+        if (statEl) {
+            const valueEl = statEl.querySelector('.checklist-card-stat-value');
+            if (valueEl) {
+                const nuevoValor = counts[estado] || 0;
+                valueEl.textContent = nuevoValor;
+                
+                // Agregar animación de actualización
+                valueEl.classList.add('stat-updated');
+                setTimeout(() => valueEl.classList.remove('stat-updated'), 300);
+            }
         }
     });
 }
@@ -2386,11 +2316,14 @@ function updateChecklistEditorInfo(habitacion) {
 
     // Buscar si ya existe el editor tag
     let editorTag = metaGroup.querySelector('.checklist-editor-tag');
+    let divider = editorTag?.previousElementSibling;
 
-    if (habitacion.ultimo_editor) {
+    const nombreEditor = habitacion.ultimo_editor || AppState.currentUser?.nombre || AppState.currentUser?.name;
+
+    if (nombreEditor) {
         if (!editorTag) {
             // Crear el separador
-            const divider = document.createElement('span');
+            divider = document.createElement('span');
             divider.className = 'checklist-meta-divider';
 
             // Crear el tag del editor
@@ -2401,8 +2334,10 @@ function updateChecklistEditorInfo(habitacion) {
             metaGroup.appendChild(editorTag);
         }
 
-        // Actualizar el contenido
-        editorTag.innerHTML = `<i class="fas fa-user-edit"></i><span>${habitacion.ultimo_editor}</span>`;
+        // Actualizar el contenido con animación
+        editorTag.innerHTML = `<i class="fas fa-user-edit"></i><span>${nombreEditor}</span>`;
+        editorTag.classList.add('editor-updated');
+        setTimeout(() => editorTag.classList.remove('editor-updated'), 500);
     }
 }
 
@@ -2951,25 +2886,85 @@ function filterChecklist(searchTerm) {
     applyChecklistFilters();
 }
 
+/**
+ * Poblar el select de filtro de edificios con datos reales
+ */
+function poblarFiltroEdificiosChecklist() {
+    const select = document.getElementById('filtroEdificioChecklist');
+    if (!select) return;
+    
+    // Limpiar opciones existentes (excepto la primera "Todos")
+    select.innerHTML = '<option value="">Todos los edificios</option>';
+    
+    // Obtener edificios desde AppState o extraer de los datos de checklist
+    let edificios = [];
+    
+    if (AppState.edificios && AppState.edificios.length > 0) {
+        edificios = AppState.edificios.map(e => e.nombre);
+    } else {
+        // Extraer edificios únicos de los datos de checklist
+        const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+        const edificiosSet = new Set();
+        checklistData.forEach(hab => {
+            if (hab.edificio) edificiosSet.add(hab.edificio);
+            if (hab.edificio_nombre) edificiosSet.add(hab.edificio_nombre);
+        });
+        edificios = Array.from(edificiosSet);
+    }
+    
+    // Agregar opciones
+    edificios.sort().forEach(edificio => {
+        const option = document.createElement('option');
+        option.value = edificio;
+        option.textContent = edificio;
+        select.appendChild(option);
+    });
+    
+    console.log('📋 Filtro de edificios poblado:', edificios);
+}
+
 function applyChecklistFilters() {
+    // Usar datos de AppState.checklistFiltradas como fuente principal, o localStorage como fallback
+    let allData = [];
+    
+    // Primero intentar usar los datos cargados desde la API
     const checklistDataRaw = localStorage.getItem('checklistData');
-    if (!checklistDataRaw) {
-        console.warn('No hay datos de checklist en localStorage');
+    if (checklistDataRaw) {
+        try {
+            allData = JSON.parse(checklistDataRaw);
+        } catch (e) {
+            console.warn('Error parseando checklistData:', e);
+        }
+    }
+    
+    if (allData.length === 0) {
+        console.warn('No hay datos de checklist disponibles');
         AppState.checklistFiltradas = [];
         renderChecklistGrid([]);
         return;
     }
 
-    const allData = JSON.parse(checklistDataRaw);
     const searchLower = (AppState.checklistFilters.busqueda || '').toLowerCase();
+    const habitacionBusqueda = (AppState.checklistFilters.habitacion || '').toLowerCase();
     const categoriaActiva = AppState.checklistFilters.categoria;
     const edificioActivo = AppState.checklistFilters.edificio;
     const estadoActivo = AppState.checklistFilters.estado;
 
-    // Filtrar habitaciones por edificio
+    // Filtrar habitaciones por número de habitación
     let habitacionesFiltradas = allData;
+    
+    if (habitacionBusqueda) {
+        habitacionesFiltradas = habitacionesFiltradas.filter(hab => {
+            const numero = (hab.numero || '').toLowerCase();
+            return numero.includes(habitacionBusqueda);
+        });
+    }
+    
+    // Filtrar por edificio
     if (edificioActivo) {
-        habitacionesFiltradas = allData.filter(hab => hab.edificio === edificioActivo || hab.edificio_nombre === edificioActivo);
+        habitacionesFiltradas = habitacionesFiltradas.filter(hab => 
+            hab.edificio === edificioActivo || hab.edificio_nombre === edificioActivo
+        );
     }
 
     // Filtrar ítems si hay criterios por categoría, búsqueda o estado
@@ -3015,17 +3010,20 @@ function renderChecklistCategorias() {
     // Eliminar categorías generadas previamente para evitar duplicados
     container.querySelectorAll('.categoria-btn[data-categoria]:not([data-categoria=""])').forEach(btn => btn.remove());
 
-    // Generar botones de categorías
+    // Generar botones de categorías usando el ID de la BD
     AppState.checklistCategorias.forEach(cat => {
         const btn = document.createElement('button');
         btn.className = 'categoria-btn';
-        btn.setAttribute('data-categoria', cat.id);
+        // Usar el slug como identificador para el filtro
+        const categoriaId = cat.id || cat.slug || cat.db_id;
+        btn.setAttribute('data-categoria', categoriaId);
+        btn.setAttribute('data-categoria-db-id', cat.db_id || cat.id);
         btn.setAttribute('aria-pressed', 'false');
         btn.type = 'button';
-        btn.onclick = () => filtrarChecklistPorCategoria(cat.id);
+        btn.onclick = () => filtrarChecklistPorCategoria(categoriaId);
         btn.innerHTML = `
             <div class="categoria-btn-icon" aria-hidden="true">
-                <i class="fas ${cat.icono}"></i>
+                <i class="fas ${cat.icono || 'fa-layer-group'}"></i>
             </div>
             <div class="categoria-btn-text">
                 <span class="categoria-btn-label">${cat.nombre}</span>
@@ -3050,7 +3048,7 @@ function toggleChecklistCategorias(button) {
     }
 }
 
-function handleNuevaSeccionSubmit(event) {
+async function handleNuevaSeccionSubmit(event) {
     event.preventDefault();
     const form = event.target;
     const nombreInput = form.querySelector('#seccionNombre');
@@ -3067,44 +3065,60 @@ function handleNuevaSeccionSubmit(event) {
         return;
     }
 
-    const baseSlug = createChecklistSlug(nombre);
-    let slug = baseSlug;
-    let duplicateCounter = 1;
-    while (AppState.checklistCategorias.some(cat => cat.id === slug)) {
-        slug = `${baseSlug}-${duplicateCounter++}`;
-    }
-
     const icono = iconoSelect?.value || 'fa-layer-group';
-    const nuevaCategoria = { id: slug, nombre, icono };
-    AppState.checklistCategorias.push(nuevaCategoria);
-    saveCustomChecklistCategorias();
-
-    const nuevosItems = [];
-    const itemsRaw = (itemsInput?.value || '').trim();
-    if (itemsRaw) {
-        itemsRaw.split(/[,\n]+/).map(item => item.trim()).filter(Boolean).forEach(itemNombre => {
-            const entry = { nombre: itemNombre, categoria: slug };
-            AppState.checklistItems.push(entry);
-            nuevosItems.push(entry);
+    
+    try {
+        // Crear la categoría en la BD
+        const nuevaCategoria = await ChecklistAPI.addCategoria({ nombre, icono });
+        console.log('✅ Categoría creada en BD:', nuevaCategoria);
+        
+        // Agregar al estado local
+        AppState.checklistCategorias.push({
+            id: nuevaCategoria.slug,
+            db_id: nuevaCategoria.id,
+            nombre: nuevaCategoria.nombre,
+            icono: nuevaCategoria.icono,
+            orden: nuevaCategoria.orden
         });
-    } else {
-        const defaultItem = { nombre, categoria: slug };
-        AppState.checklistItems.push(defaultItem);
-        nuevosItems.push(defaultItem);
-    }
 
-    saveCustomChecklistItems();
-    syncChecklistDataWithNewItems(nuevosItems);
+        // Procesar ítems si se proporcionaron
+        const itemsRaw = (itemsInput?.value || '').trim();
+        if (itemsRaw) {
+            const itemsArray = itemsRaw.split(/[,\n]+/).map(item => item.trim()).filter(Boolean);
+            
+            for (const itemNombre of itemsArray) {
+                try {
+                    const nuevoItem = await ChecklistAPI.addCatalogItem({
+                        nombre: itemNombre,
+                        categoria_id: nuevaCategoria.id
+                    });
+                    console.log('✅ Ítem creado en BD:', nuevoItem);
+                } catch (itemError) {
+                    console.error('❌ Error creando ítem:', itemError);
+                }
+            }
+        }
 
-    renderChecklistCategorias();
-    applyChecklistFilters();
-    form.reset();
+        // Recargar datos del checklist
+        await loadChecklistData();
+        
+        form.reset();
 
-    if (feedback) {
-        feedback.textContent = `Sección "${nombre}" agregada.`;
-        setTimeout(() => {
-            feedback.textContent = '';
-        }, 2500);
+        if (feedback) {
+            feedback.textContent = `Sección "${nombre}" agregada.`;
+            setTimeout(() => {
+                feedback.textContent = '';
+            }, 2500);
+        }
+        
+        showNotification(`✅ Sección "${nombre}" creada`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Error creando sección:', error);
+        if (feedback) {
+            feedback.textContent = `Error: ${error.message}`;
+        }
+        showNotification('❌ Error al crear sección', 'error');
     }
 }
 
@@ -3229,6 +3243,12 @@ function changeChecklistPage(newPage) {
 
     AppState.checklistPagination.page = newPage;
     applyChecklistFilters();
+    
+    // Scroll smooth hacia arriba para ver las nuevas cards
+    const grid = document.getElementById('checklistGrid');
+    if (grid) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 function exportarChecklistExcel() {
@@ -5548,8 +5568,10 @@ window.openHistorialSabanaModal = openHistorialSabanaModal;
 window.closeHistorialSabanaModal = closeHistorialSabanaModal;
 window.openCrearSabanaModal = openCrearSabanaModal;
 window.closeCrearSabanaModal = closeCrearSabanaModal;
+window.poblarFiltroEdificiosChecklist = poblarFiltroEdificiosChecklist;
+window.loadChecklistDataFromAPI = loadChecklistData;
 
-console.log('✅ App.js cargado completamente');
+console.log('✅ Checklist-tab.js cargado completamente');
 
 // El selector de editores usa ahora un `select` nativo; no requiere JS adicional.
 
