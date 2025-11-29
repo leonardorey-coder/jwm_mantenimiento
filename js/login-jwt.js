@@ -6,23 +6,31 @@
 const API_BASE_URL = window.location.hostname.includes('vercel.app') || 
                      window.location.hostname.includes('vercel.com') ? '' : 
                      window.location.port === '3000' ? '' : 'http://localhost:3001';
+let adminContactCache = null;
+let loginPageInitialized = false;
 
-// Detectar tema guardado
-document.addEventListener('DOMContentLoaded', () => {
-    // Solo ejecutar en login.html
+function initLoginPage() {
+    if (loginPageInitialized) return;
     if (!window.location.pathname.includes('login.html')) {
         console.log('🔵 [LOGIN-JWT] No estamos en login.html, saltando inicialización');
         return;
     }
-    
-    console.log('🔵 [LOGIN-JWT] DOMContentLoaded en login.html');
+    loginPageInitialized = true;
+    console.log('🔵 [LOGIN-JWT] Inicializando login.html');
     const savedTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', savedTheme);
-    
+
     updateThemeIcon(savedTheme);
+    setupForgotPasswordModal();
     setupForcePasswordModal();
     initializeAuth();
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLoginPage);
+} else {
+    initLoginPage();
+}
 
 // Toggle entre Login y Registro
 const toggleButtons = document.querySelectorAll('.toggle-button');
@@ -386,24 +394,198 @@ function hideMessage() {
     messageDiv.classList.remove('show');
 }
 
+function lockBodyScrollAuth() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScrollAuth() {
+    const modals = ['#forgotPasswordModal', '#forcePasswordModal'];
+    const anyVisible = modals.some(selector => {
+        const el = document.querySelector(selector);
+        return el && el.classList.contains('show');
+    });
+    if (!anyVisible) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
 // Link de "Olvidé mi contraseña"
-document.querySelector('.forgot-password').addEventListener('click', async (e) => {
-    e.preventDefault();
-    
+// (Reemplazado por modal personalizado)
+function setupForgotPasswordModal() {
+    const forgotLink = document.querySelector('.forgot-password');
+    const modal = document.getElementById('forgotPasswordModal');
+    const form = document.getElementById('forgotPasswordForm');
+    const closeBtn = document.getElementById('closeForgotModal');
+
+    if (!forgotLink || !modal) return;
+
+    forgotLink.addEventListener('click', (event) => {
+        event.preventDefault();
+        openForgotPasswordModal();
+    });
+
+    modal.addEventListener('click', (event) => {
+        if (event.target.id === 'forgotPasswordModal') {
+            closeForgotPasswordModal();
+        }
+    });
+
+    closeBtn?.addEventListener('click', closeForgotPasswordModal);
+    form?.addEventListener('submit', handleForgotPasswordSubmit);
+
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && modal.classList.contains('show')) {
+            closeForgotPasswordModal();
+        }
+    });
+}
+
+function openForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    if (!modal) return;
+
+    const loginEmail = document.getElementById('loginEmail')?.value.trim();
+    const emailInput = document.getElementById('forgotEmail');
+    if (loginEmail && emailInput) {
+        emailInput.value = loginEmail;
+    }
+
+    setForgotPasswordFeedback('');
+    modal.classList.add('show');
+    lockBodyScrollAuth();
+    emailInput?.focus();
+    populateForgotAdminContact();
+}
+
+function closeForgotPasswordModal() {
+    const modal = document.getElementById('forgotPasswordModal');
+    if (!modal) return;
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.classList.remove('show', 'closing');
+        document.getElementById('forgotPasswordForm')?.reset();
+        setForgotPasswordFeedback('');
+        unlockBodyScrollAuth();
+    }, 280);
+}
+
+async function populateForgotAdminContact() {
+    const admin = await getAdminContact();
+    const nameEl = document.getElementById('forgotAdminName');
+    const emailEl = document.getElementById('forgotAdminEmail');
+    const phoneEl = document.getElementById('forgotAdminPhone');
+
+    if (nameEl && admin?.nombre) nameEl.textContent = admin.nombre;
+    if (emailEl && admin?.email) {
+        emailEl.textContent = admin.email;
+        emailEl.href = `mailto:${admin.email}?subject=Recuperación de acceso - SGSOM`;
+    }
+    if (phoneEl && admin?.telefono) phoneEl.textContent = admin.telefono;
+}
+
+async function getAdminContact() {
+    if (adminContactCache) return adminContactCache;
     try {
         const response = await fetch(`${API_BASE_URL}/api/auth/contacto-admin`);
         const data = await response.json();
-        
-        if (data.success && data.administrador) {
-            showMessage(
-                `Para recuperar tu contraseña, contacta a ${data.administrador.nombre} al correo ${data.administrador.email} o teléfono ${data.administrador.telefono}`,
-                'info'
-            );
+        if (response.ok && data.success && data.administrador) {
+            adminContactCache = data.administrador;
+            return adminContactCache;
         }
     } catch (error) {
-        showMessage('Para recuperar tu contraseña, contacta al administrador: fcruz@grupodiestra.com', 'info');
+        console.warn('⚠️ No se pudo obtener contacto del admin:', error);
     }
-});
+    adminContactCache = {
+        nombre: 'Fidel Cruz Lozada',
+        email: 'fcruz@grupodiestra.com',
+        telefono: '+52 624 237 1063',
+        departamento: 'Administración'
+    };
+    return adminContactCache;
+}
+
+function setForgotPasswordFeedback(message, type = '') {
+    const feedback = document.getElementById('forgotPasswordFeedback');
+    if (!feedback) return;
+    feedback.textContent = message || '';
+    feedback.className = 'forgot-feedback';
+    if (message) {
+        feedback.classList.add('show');
+    }
+    if (type === 'error') {
+        feedback.classList.add('error');
+    } else if (type === 'success') {
+        feedback.classList.add('success');
+    }
+}
+
+async function handleForgotPasswordSubmit(event) {
+    event.preventDefault();
+    const nombre = document.getElementById('forgotName')?.value.trim();
+    const email = document.getElementById('forgotEmail')?.value.trim();
+    const telefono = document.getElementById('forgotPhone')?.value.trim();
+    const notas = document.getElementById('forgotNotes')?.value.trim();
+    const submitBtn = event.target.querySelector('.btn-submit');
+    const originalText = submitBtn?.innerHTML;
+
+    if (!nombre || !email) {
+        setForgotPasswordFeedback('Nombre y correo son requeridos para registrar la solicitud.', 'error');
+        return;
+    }
+
+    if (!isValidEmail(email)) {
+        setForgotPasswordFeedback('Ingresa un correo electrónico válido.', 'error');
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+    }
+
+    try {
+        const motivo = `Recuperación de contraseña${notas ? `: ${notas}` : ''}`;
+        const payload = {
+            nombre,
+            email,
+            telefono: telefono || undefined,
+            departamento: 'Soporte',
+            motivo
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/auth/solicitar-acceso`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+            throw new Error(data.mensaje || 'No se pudo enviar la solicitud');
+        }
+
+        setForgotPasswordFeedback(data.info || 'Solicitud enviada. El administrador te contactará en breve.', 'success');
+        setTimeout(() => {
+            closeForgotPasswordModal();
+            showMessage('Solicitud enviada. Revisa tu correo o contacta al administrador.', 'success');
+        }, 1200);
+    } catch (error) {
+        console.error('Error al enviar solicitud de recuperación:', error);
+        setForgotPasswordFeedback(error.message || 'Ocurrió un error al enviar tu solicitud.', 'error');
+    } finally {
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        }
+    }
+}
+
+function isValidEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
 
 // Prevenir envío del formulario de registro (ya que está deshabilitado)
 registerForm?.addEventListener?.('submit', (e) => {
@@ -427,22 +609,27 @@ function showForcePasswordModal(usuario) {
     }
     setForcePasswordFeedback('Ingresa una contraseña nueva para continuar.', 'info');
     modal.classList.add('show');
+    lockBodyScrollAuth();
     document.getElementById('forceCurrentPassword')?.focus();
 }
 
 function hideForcePasswordModal() {
     const modal = document.getElementById('forcePasswordModal');
     if (!modal) return;
-    modal.classList.remove('show');
-    ['forceCurrentPassword', 'forceNewPassword', 'forceConfirmPassword'].forEach((id) => {
-        const input = document.getElementById(id);
-        if (input) input.value = '';
-    });
-    const feedback = document.getElementById('forcePasswordFeedback');
-    if (feedback) {
-        feedback.textContent = '';
-        feedback.className = 'force-password-feedback';
-    }
+    modal.classList.add('closing');
+    setTimeout(() => {
+        modal.classList.remove('show', 'closing');
+        ['forceCurrentPassword', 'forceNewPassword', 'forceConfirmPassword'].forEach((id) => {
+            const input = document.getElementById(id);
+            if (input) input.value = '';
+        });
+        const feedback = document.getElementById('forcePasswordFeedback');
+        if (feedback) {
+            feedback.textContent = '';
+            feedback.className = 'force-password-feedback';
+        }
+        unlockBodyScrollAuth();
+    }, 280);
 }
 
 function setForcePasswordFeedback(message, type = 'error') {

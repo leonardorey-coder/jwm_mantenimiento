@@ -758,6 +758,20 @@
     .btn-submit {
         padding: 0.85rem;
     }
+    /* Evitar que el modal crezca demasiado en altura en pantallas angostas
+       Limitar la altura máxima al viewport y permitir scroll interno */
+    .forgot-card,
+    .force-password-card {
+        max-height: calc(100vh - 3rem);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    /* Reducir ligeramente la altura mínima de los campos de texto en móvil */
+    .forgot-form input,
+    .forgot-form textarea,
+    .force-password-form input {
+        min-height: 44px;
+    }
 }
 
 /* ========================================

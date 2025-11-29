@@ -2038,6 +2038,19 @@
      * FUNCIONES PARA MODAL DE DETALLES DE SERVICIOS
      */
 
+    function lockBodyScroll() {
+        document.body.classList.add('modal-open');
+    }
+
+    function unlockBodyScrollIfNoModal() {
+        const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
+            .some(modal => window.getComputedStyle(modal).display !== 'none');
+
+        if (!modalVisible) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+
     /**
      * Abrir modal de detalle de un servicio específico
      */
@@ -2237,6 +2250,7 @@
     `;
         body.innerHTML = contenido;
         modal.style.display = 'flex';
+        lockBodyScroll();
 
         // Animar entrada
         setTimeout(() => {
@@ -2330,6 +2344,7 @@
         titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> Servicios de ${escapeHtml(nombreUbicacion)}`;
         body.innerHTML = contenido;
         modal.style.display = 'flex';
+        lockBodyScroll();
     };
 
     /**
@@ -2535,6 +2550,7 @@
             modal.style.display = 'none';
             contenido.style.opacity = '1';
             contenido.style.transform = 'translateY(0)';
+            unlockBodyScrollIfNoModal();
         }, 200);
     };
 

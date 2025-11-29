@@ -7,6 +7,19 @@ let currentSabanaArchivada = false;
 let currentSabanaItems = []; // Guardar los items actuales para filtrado
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
 
+function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScrollIfNoModal() {
+    const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
+        .some(modal => window.getComputedStyle(modal).display !== 'none');
+
+    if (!modalVisible) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
 // Helper para mostrar mensajes (compatible con app-loader.js)
 function mostrarMensajeSabana(mensaje, tipo = 'info') {
     if (typeof mostrarMensaje === 'function') {
@@ -570,6 +583,7 @@ async function abrirModalNuevaSabana() {
     await cargarServiciosExistentes();
 
     modal.style.display = 'flex';
+    lockBodyScroll();
 }
 
 async function cargarServiciosExistentes() {
@@ -640,6 +654,7 @@ function cerrarModalNuevaSabana() {
     const modal = document.getElementById('modalNuevaSabana');
     if (modal) {
         modal.style.display = 'none';
+        unlockBodyScrollIfNoModal();
     }
 }
 
@@ -858,6 +873,7 @@ async function verHistorialServicios() {
         }
 
         modal.style.display = 'flex';
+        lockBodyScroll();
 
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
@@ -869,6 +885,7 @@ function cerrarModalHistorial() {
     const modal = document.getElementById('modalHistorialSabanas');
     if (modal) {
         modal.style.display = 'none';
+        unlockBodyScrollIfNoModal();
     }
 }
 
@@ -1295,4 +1312,3 @@ console.log('📋 Funciones disponibles:', {
     crearNuevaSabana: typeof window.crearNuevaSabana,
     crearNuevaSabanaPersonalizada: typeof window.crearNuevaSabanaPersonalizada
 });
-

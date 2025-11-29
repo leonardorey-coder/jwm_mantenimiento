@@ -630,6 +630,22 @@ function mostrarFormularioInlineEspacio(espacioId) {
                 </div>
             </div>
             
+            <!-- Botón de Crear Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
+            <div class="tarea-asignada-selector-inline">
+                <label class="tarea-asignada-label-inline">
+                    <i class="fas fa-tasks"></i> Asignar Tarea (Opcional)
+                </label>
+                <div class="tarea-asignada-inputs-inline" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px; margin-top: 10px;">
+                <button style="font-size: 0.7rem; display: flex; align-items: center; gap: 5px; flex-direction: row; flex-wrap: nowrap;" type="button" class="btn-inline btn-crear-tarea" onclick="abrirModalCrearTarea(${espacioId})">
+                    <i class="fas fa-plus"></i> Crear
+                </button>
+                <!-- Se deberá deshabilitar si el input "tareaAsignadaInline-espacio-${espacioId}" tiene un valor y el option pasará a estar vacío-->
+                    <select id="tareaAsignadaInline-espacio-${espacioId}" class="input-inline selector-tarea-servicio" name="tarea_asignada_id">
+                        <option value="">-- Sin asignar existente --</option>
+                    </select>
+                </div>
+            </div>
+            
             <div class="campos-alerta-inline" id="camposAlertaEspacio-${espacioId}" style="display: none;">
                 <input type="time" class="input-inline" name="hora" placeholder="Hora">
                 <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
@@ -651,6 +667,12 @@ function mostrarFormularioInlineEspacio(espacioId) {
 
     contenedorServicios.insertAdjacentHTML('afterbegin', formHTML);
     reorganizarServiciosEspacioConForm(espacioId);
+
+    // Poblar selector de tareas con las tareas disponibles
+    const selectorTareas = document.getElementById(`tareaAsignadaInline-espacio-${espacioId}`);
+    if (selectorTareas && typeof window.cargarTareasEnSelector === 'function') {
+        window.cargarTareasEnSelector(`tareaAsignadaInline-espacio-${espacioId}`);
+    }
 
     setTimeout(() => {
         const input = contenedorServicios.querySelector('.input-inline[name="descripcion"]');
@@ -802,6 +824,8 @@ async function guardarServicioEspacioInline(event, espacioId) {
     const usuarioAsignadoId = form.usuario_asignado_id.value || null;
     const notas = form.notas.value;
 
+    const tareaAsignadaId = form.tarea_asignada_id.value || null;
+
     const data = {
         espacio_comun_id: espacioId,
         tipo: tipo,
@@ -809,6 +833,7 @@ async function guardarServicioEspacioInline(event, espacioId) {
         prioridad: prioridad,
         estado: estadoMantenimiento,
         usuario_asignado_id: usuarioAsignadoId,
+        tarea_id: tareaAsignadaId,
         notas: notas,
         fecha_registro: new Date().toISOString()
     };

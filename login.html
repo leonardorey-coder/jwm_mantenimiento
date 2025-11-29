@@ -22,7 +22,7 @@
         <!-- Logo Container con animación -->
         <div class="login-logo-container">
             <img src="logo_high.png" alt="JW Marriott Logo" class="login-logo">
-            <h1 class="login-title">JW Marriott</h1>
+            <h1 class="login-title">SGSOM</h1>
             <p class="login-subtitle">Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y Espacios Comunes</p>
         </div>
 
@@ -119,6 +119,64 @@
         <!-- Mensaje de error/éxito -->
         <div id="authMessage" class="auth-message"></div>
 
+        <!-- Modal: Olvidaste tu contraseña -->
+        <div class="forgot-password-modal" id="forgotPasswordModal">
+            <div class="forgot-card">
+                <button class="forgot-close" id="closeForgotModal" aria-label="Cerrar modal de recuperación">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="forgot-header">
+                    <div class="forgot-icon">
+                        <i class="fas fa-unlock-alt"></i>
+                    </div>
+                    <div>
+                        <h3>¿Olvidaste tu contraseña?</h3>
+                        <p>Enviaremos tu solicitud al administrador para restablecer el acceso.</p>
+                    </div>
+                </div>
+
+                <form id="forgotPasswordForm" class="forgot-form" novalidate>
+                    <label for="forgotName">
+                        <span>Nombre completo</span>
+                        <input type="text" id="forgotName" placeholder="Ej. Juan Leonardo Cruz" required>
+                    </label>
+
+                    <label for="forgotEmail">
+                        <span>Correo corporativo</span>
+                        <input type="email" id="forgotEmail" placeholder="correo@jwmarriott.com" required>
+                    </label>
+
+                    <label for="forgotPhone">
+                        <span>Teléfono o extensión (opcional)</span>
+                        <input type="text" id="forgotPhone" placeholder="Ej. 624 237 0000">
+                    </label>
+
+                    <label for="forgotNotes">
+                        <span>Comentarios para el administrador (opcional)</span>
+                        <textarea id="forgotNotes" rows="3" placeholder="Agrega contexto para acelerar el soporte"></textarea>
+                    </label>
+
+                    <div class="forgot-admin-card" id="forgotAdminCard">
+                        <div class="admin-icon">
+                            <i class="fas fa-headset"></i>
+                        </div>
+                        <div class="admin-contact">
+                            <p>Tu solicitud será atendida por <strong id="forgotAdminName">Fidel Cruz Lozada</strong>.</p>
+                            <a href="mailto:fcruz@grupodiestra.com" id="forgotAdminEmail">fcruz@grupodiestra.com</a>
+                            <span id="forgotAdminPhone">+52 624 237 1063</span>
+                        </div>
+                    </div>
+
+                    <div class="forgot-feedback" id="forgotPasswordFeedback"></div>
+
+                    <button type="submit" class="btn-submit">
+                        <i class="fas fa-paper-plane"></i>
+                        Enviar solicitud
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Modal cambio obligatorio de contraseña -->
         <div class="force-password-modal" id="forcePasswordModal">
             <div class="force-password-card">
@@ -194,4 +252,3 @@
     </script>
 </body>
 </html>
-

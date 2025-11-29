@@ -384,7 +384,7 @@ function showNotification(message, type = 'info') {
     // Crear notificación
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
-    
+
     // Estilos según tipo
     const colors = {
         success: { bg: '#10b981', icon: '✅' },
@@ -393,7 +393,7 @@ function showNotification(message, type = 'info') {
         info: { bg: '#3b82f6', icon: 'ℹ️' }
     };
     const config = colors[type] || colors.info;
-    
+
     notification.style.cssText = `
         background: ${config.bg};
         color: white;
@@ -408,7 +408,7 @@ function showNotification(message, type = 'info') {
         animation: slideIn 0.3s ease;
         max-width: 350px;
     `;
-    
+
     notification.innerHTML = `<span>${config.icon}</span><span>${message}</span>`;
     container.appendChild(notification);
 
@@ -814,11 +814,13 @@ function setupMobileViewSelector() {
 
                     if (view === 'checklists') {
                         // Mostrar grid de checklists
+                        if (columnaHabitaciones) columnaHabitaciones.style.display = 'block';
                         if (checklistGrid) checklistGrid.style.display = 'grid';
                         if (paginacion) paginacion.style.display = 'block';
                         if (columnaAlertas) columnaAlertas.style.display = 'none';
                     } else if (view === 'inspecciones') {
-                        // Ocultar grid y mostrar paneles laterales
+                        // Ocultar columna principal completa y mostrar paneles laterales
+                        if (columnaHabitaciones) columnaHabitaciones.style.display = 'none';
                         if (checklistGrid) checklistGrid.style.display = 'none';
                         if (paginacion) paginacion.style.display = 'none';
                         if (columnaAlertas) columnaAlertas.style.display = 'block';
@@ -1309,42 +1311,111 @@ const DEFAULT_INSPECCIONES_RECIENTES = [
     { habitacion: '203', titulo: 'Inspección TV', tecnico: 'Ana García', fecha: 'Ayer · 02:20 PM', estado: 'aprobada' }
 ];
 
+// Flag para controlar si el checklist ya fue cargado
+let checklistCargado = false;
+
+/**
+ * Forzar recarga del checklist (resetea el flag y recarga)
+ * Usar después de agregar/eliminar secciones o ítems
+ */
+function recargarChecklistData() {
+    console.log('🔄 [APP.JS] Forzando recarga de checklist...');
+    checklistCargado = false;
+    loadChecklistData();
+}
+
 function loadChecklistData() {
     console.log('📋 [APP.JS] loadChecklistData() llamado');
-    
+
+    // Si ya está cargado, no mostrar skeleton ni recargar
+    if (checklistCargado) {
+        console.log('📋 [APP.JS] Checklist ya cargado, omitiendo recarga');
+        return;
+    }
+
     // Limpiar datos antiguos del localStorage para asegurar sincronización con BD
     // Los datos frescos se cargarán desde la API
     localStorage.removeItem('checklistData');
     console.log('🗑️ [APP.JS] Cache de checklistData limpiado');
-    
+
     // Si existe la función de checklist-tab.js que usa la API, usarla
     if (typeof loadChecklistDataFromAPI === 'function') {
         console.log('📋 [APP.JS] Delegando a loadChecklistDataFromAPI()...');
         return loadChecklistDataFromAPI();
     }
-    
+
     // Si existe ChecklistAPI, cargar desde la API
     if (typeof ChecklistAPI !== 'undefined') {
         console.log('📋 [APP.JS] ChecklistAPI disponible, cargando desde BD...');
         return loadChecklistFromAPIFallback();
     }
-    
+
     console.warn('⚠️ [APP.JS] ChecklistAPI no disponible, usando fallback local');
     loadChecklistDataLocal();
+}
+
+/**
+ * Genera HTML de skeleton loading para el grid de checklist
+ * @param {number} count - Número de skeletons a generar
+ * @returns {string} HTML del skeleton
+ */
+function generarSkeletonChecklist(count = 6) {
+    const itemWidths = ['60%', '75%', '50%', '80%', '65%', '70%'];
+    
+    const skeletonCard = (index) => `
+        <div class="skeleton-checklist-card" style="animation-delay: ${index * 0.1}s">
+            <div class="skeleton-checklist-header">
+                <div class="skeleton-room-badge"></div>
+                <div class="skeleton-edificio"></div>
+            </div>
+            <div class="skeleton-stats">
+                <div class="skeleton-stat">
+                    <div class="skeleton-stat-dot" style="background: #22c55e"></div>
+                    <div class="skeleton-stat-value"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton-stat-dot" style="background: #f59e0b"></div>
+                    <div class="skeleton-stat-value"></div>
+                </div>
+                <div class="skeleton-stat">
+                    <div class="skeleton-stat-dot" style="background: #ef4444"></div>
+                    <div class="skeleton-stat-value"></div>
+                </div>
+            </div>
+            <div class="skeleton-items-list">
+                ${[0,1,2,3,4].map(i => `
+                    <div class="skeleton-item">
+                        <div class="skeleton-item-name" style="width: ${itemWidths[i % itemWidths.length]}"></div>
+                        <div class="skeleton-item-buttons">
+                            <div class="skeleton-btn"></div>
+                            <div class="skeleton-btn"></div>
+                            <div class="skeleton-btn"></div>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+            <div class="skeleton-footer">
+                <div class="skeleton-editor"></div>
+                <div class="skeleton-date"></div>
+            </div>
+        </div>
+    `;
+
+    return Array.from({ length: count }, (_, i) => skeletonCard(i)).join('');
 }
 
 // Función de fallback para cargar desde API
 async function loadChecklistFromAPIFallback() {
     const grid = document.getElementById('checklistGrid');
     if (!grid) return;
-    
-    grid.innerHTML = '<div class="mensaje-cargando"><i class="fas fa-spinner fa-spin"></i> Cargando checklist desde BD...</div>';
-    
+
+    grid.innerHTML = generarSkeletonChecklist(6);
+
     try {
         // Cargar categorías
         const categorias = await ChecklistAPI.getCategorias();
         console.log('📋 [APP.JS] Categorías desde API:', categorias.length);
-        
+
         AppState.checklistCategorias = categorias.map(cat => ({
             id: cat.slug || cat.id.toString(),
             db_id: cat.id,
@@ -1352,27 +1423,32 @@ async function loadChecklistFromAPIFallback() {
             icono: cat.icono || 'fa-layer-group',
             orden: cat.orden
         }));
-        
+
         // Cargar datos de checklist
         const checklistData = await ChecklistAPI.getAllChecklistData();
         console.log('📋 [APP.JS] Datos de cuartos desde API:', checklistData.length);
-        
+
         // Guardar en localStorage como fuente de verdad para actualizaciones
         localStorage.setItem('checklistData', JSON.stringify(checklistData));
         console.log('💾 [APP.JS] Datos de checklist guardados en localStorage');
-        
+
         AppState.checklistFiltradas = checklistData;
         AppState.checklistPagination.totalPages = Math.ceil(checklistData.length / AppState.checklistPagination.perPage);
-        
-        // Poblar filtros de edificios y editores
+
+        // Poblar filtros de edificios, editores e iconos
         poblarFiltroEdificiosChecklist();
         poblarFiltroEditoresChecklist();
-        
+        poblarSelectIconos();
+
+        // Marcar como cargado para evitar recargar skeleton al volver al tab
+        checklistCargado = true;
+        console.log('✅ [APP.JS] Checklist marcado como cargado');
+
         renderChecklistCategorias();
         loadInspeccionesRecientes();
         renderChecklistGrid(checklistData);
         renderChecklistPagination();
-        
+
     } catch (error) {
         console.error('❌ [APP.JS] Error cargando desde API:', error);
         loadChecklistDataLocal();
@@ -1385,13 +1461,13 @@ async function loadChecklistFromAPIFallback() {
 function poblarFiltroEdificiosChecklist() {
     const select = document.getElementById('filtroEdificioChecklist');
     if (!select) return;
-    
+
     // Limpiar opciones existentes (excepto la primera "Todos")
     select.innerHTML = '<option value="">Todos los edificios</option>';
-    
+
     // Obtener edificios desde AppState o extraer de los datos de checklist
     let edificios = [];
-    
+
     if (AppState.edificios && AppState.edificios.length > 0) {
         edificios = AppState.edificios.map(e => e.nombre);
     } else {
@@ -1404,7 +1480,7 @@ function poblarFiltroEdificiosChecklist() {
         });
         edificios = Array.from(edificiosSet);
     }
-    
+
     // Agregar opciones ordenadas
     edificios.sort().forEach(edificio => {
         const option = document.createElement('option');
@@ -1412,7 +1488,7 @@ function poblarFiltroEdificiosChecklist() {
         option.textContent = edificio;
         select.appendChild(option);
     });
-    
+
     console.log('🏢 [APP.JS] Filtro de edificios poblado:', edificios);
 }
 
@@ -1422,33 +1498,33 @@ function poblarFiltroEdificiosChecklist() {
 function poblarFiltroEditoresChecklist() {
     const select = document.getElementById('filtroEditorChecklist');
     if (!select) return;
-    
+
     // Limpiar opciones existentes (excepto la primera "Todos")
     select.innerHTML = '<option value="">Todos los editores</option>';
-    
+
     // Obtener usuarios desde AppState o localStorage
     let usuarios = [];
-    
+
     if (AppState.usuarios && AppState.usuarios.length > 0) {
         usuarios = AppState.usuarios;
     } else {
         // Intentar desde localStorage
         usuarios = JSON.parse(localStorage.getItem('users') || localStorage.getItem('usuariosData') || '[]');
     }
-    
+
     // También extraer editores únicos de los datos de checklist
     const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
     const editoresSet = new Set();
     checklistData.forEach(hab => {
         if (hab.ultimo_editor) editoresSet.add(hab.ultimo_editor);
     });
-    
+
     // Combinar usuarios de BD con editores encontrados en checklist
     const todosEditores = new Set([
         ...usuarios.map(u => u.nombre),
         ...editoresSet
     ]);
-    
+
     // Agregar opciones ordenadas
     Array.from(todosEditores).filter(Boolean).sort().forEach(editor => {
         const option = document.createElement('option');
@@ -1456,8 +1532,43 @@ function poblarFiltroEditoresChecklist() {
         option.textContent = editor;
         select.appendChild(option);
     });
-    
+
     console.log('👥 [APP.JS] Filtro de editores poblado:', Array.from(todosEditores));
+}
+
+/**
+ * Poblar el select de iconos para nuevas secciones desde la API
+ */
+async function poblarSelectIconos() {
+    const select = document.getElementById('seccionIcono');
+    if (!select) return;
+
+    try {
+        const response = await fetch('/api/checklist/iconos');
+        if (!response.ok) throw new Error('Error al obtener iconos');
+
+        const iconos = await response.json();
+
+        // Limpiar y poblar
+        select.innerHTML = '';
+        iconos.forEach(icono => {
+            const option = document.createElement('option');
+            option.value = icono.value;
+            option.textContent = `${icono.emoji} ${icono.label}`;
+            select.appendChild(option);
+        });
+
+        console.log('🎨 [APP.JS] Select de iconos poblado:', iconos.length, 'opciones');
+    } catch (error) {
+        console.error('❌ Error poblando iconos:', error);
+        // Fallback con iconos básicos
+        select.innerHTML = `
+            <option value="fa-layer-group">📦 Genérico</option>
+            <option value="fa-couch">🛋️ Mobiliario</option>
+            <option value="fa-plug">🔌 Electrónica</option>
+            <option value="fa-shower">🚿 Sanitarios</option>
+        `;
+    }
 }
 
 // Función local para cuando no hay API disponible
@@ -1478,7 +1589,7 @@ function loadChecklistDataLocal() {
             { id: 'estructura', nombre: 'Estructura', icono: 'fa-door-open' }
         ];
     }
-    
+
     // Si no hay items, usar defaults
     if (AppState.checklistItems.length === 0) {
         AppState.checklistItems = [
@@ -1758,9 +1869,9 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
 
 async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
     console.log(`📝 [APP.JS] Actualizando estado: cuarto=${cuartoId}, item=${itemId}, estado=${nuevoEstado}`);
-    
+
     const usuarioNombre = AppState.currentUser?.nombre || AppState.currentUser?.name || 'Usuario';
-    
+
     try {
         // Llamar a la API para guardar en BD
         if (typeof ChecklistAPI !== 'undefined') {
@@ -1768,7 +1879,7 @@ async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
             await ChecklistAPI.updateItemEstado(cuartoId, itemId, nuevoEstado);
             console.log('✅ [APP.JS] Estado guardado en BD');
         }
-        
+
         // Actualizar cache local (localStorage)
         const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
         const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
@@ -1787,13 +1898,25 @@ async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
 
             localStorage.setItem('checklistData', JSON.stringify(checklistData));
 
+            // También actualizar en AppState.checklistFiltradas para mantener sincronización
+            const habitacionFiltrada = AppState.checklistFiltradas?.find(h => h.cuarto_id === cuartoId);
+            if (habitacionFiltrada) {
+                const itemFiltrado = habitacionFiltrada.items.find(i => i.id === itemId);
+                if (itemFiltrado) {
+                    itemFiltrado.estado = nuevoEstado;
+                    console.log(`✅ [APP.JS] Ítem actualizado en filtrados: ${itemFiltrado.nombre} -> ${nuevoEstado}`);
+                }
+                habitacionFiltrada.ultimo_editor = usuarioNombre;
+                habitacionFiltrada.fecha_ultima_edicion = new Date().toISOString();
+            }
+
             // Actualizar contadores en la card (pasar cuartoId, no habitacion)
             updateChecklistCardSummary(cuartoId);
             updateChecklistEditorInfo(cuartoId);
         }
-        
+
         showNotification(`✅ Estado actualizado por ${usuarioNombre}`, 'success');
-        
+
     } catch (error) {
         console.error('❌ [APP.JS] Error actualizando estado:', error);
         showNotification('❌ Error al guardar cambio', 'error');
@@ -1804,21 +1927,54 @@ function updateChecklistCardSummary(cuartoId) {
     const card = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
     if (!card) return;
 
-    // Obtener datos frescos del localStorage para asegurar sincronización
-    const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
-    const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
-    if (!habitacion) return;
+    // Obtener datos de los ítems FILTRADOS (los que se muestran actualmente)
+    // Esto mantiene la consistencia con los filtros aplicados
+    const habitacionFiltrada = AppState.checklistFiltradas?.find(h => h.cuarto_id === cuartoId);
+    
+    // Si no hay datos filtrados, obtener del localStorage como fallback
+    if (!habitacionFiltrada) {
+        const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
+        const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
+        if (!habitacion) return;
+        
+        // Usar datos completos si no hay filtros activos
+        const counts = { bueno: 0, regular: 0, malo: 0 };
+        habitacion.items.forEach(item => {
+            const estado = item.estado || 'bueno';
+            if (counts[estado] !== undefined) {
+                counts[estado]++;
+            }
+        });
+        
+        CHECKLIST_ESTADOS.forEach(estado => {
+            const valueEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"] .checklist-card-stat-value`);
+            if (valueEl) {
+                valueEl.textContent = counts[estado];
+                valueEl.classList.add('stat-updated');
+                setTimeout(() => valueEl.classList.remove('stat-updated'), 500);
+            }
+        });
+        return;
+    }
 
-    // Contar estados de TODOS los ítems de la habitación
+    // Contar estados de los ítems FILTRADOS (los visibles en la card)
     const counts = { bueno: 0, regular: 0, malo: 0 };
-    habitacion.items.forEach(item => {
-        const estado = item.estado || 'bueno';
+    
+    // Actualizar los estados desde localStorage para tener el valor más reciente
+    const checklistDataActualizado = JSON.parse(localStorage.getItem('checklistData') || '[]');
+    const habitacionCompleta = checklistDataActualizado.find(h => h.cuarto_id === cuartoId);
+    
+    // Para cada ítem filtrado, obtener su estado actualizado del localStorage
+    habitacionFiltrada.items.forEach(itemFiltrado => {
+        // Buscar el estado actualizado en los datos completos
+        const itemActualizado = habitacionCompleta?.items.find(i => i.id === itemFiltrado.id);
+        const estado = itemActualizado?.estado || itemFiltrado.estado || 'bueno';
         if (counts[estado] !== undefined) {
             counts[estado]++;
         }
     });
 
-    console.log(`📊 [CHECKLIST] Contadores actualizados para cuarto ${cuartoId}:`, counts);
+    console.log(`📊 [CHECKLIST] Contadores actualizados (filtrados) para cuarto ${cuartoId}:`, counts);
 
     CHECKLIST_ESTADOS.forEach(estado => {
         const valueEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"] .checklist-card-stat-value`);
@@ -1835,21 +1991,38 @@ function updateChecklistEditorInfo(cuartoId) {
     const card = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
     if (!card) return;
 
+    const metaGroup = card.querySelector('.checklist-meta-group');
+    if (!metaGroup) return;
+
     // Obtener datos frescos del localStorage
     const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
     const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
     if (!habitacion) return;
 
-    const editorEl = card.querySelector('.checklist-card-editor');
-    if (editorEl && habitacion.ultimo_editor) {
-        const fecha = habitacion.fecha_ultima_edicion 
-            ? new Date(habitacion.fecha_ultima_edicion).toLocaleString('es-MX', { 
-                day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' 
-              })
-            : 'Ahora';
-        editorEl.innerHTML = `<i class="fas fa-user-edit"></i> ${habitacion.ultimo_editor} · ${fecha}`;
-        editorEl.classList.add('editor-updated');
-        setTimeout(() => editorEl.classList.remove('editor-updated'), 500);
+    const nombreEditor = habitacion.ultimo_editor || AppState.currentUser?.nombre || AppState.currentUser?.name;
+
+    if (nombreEditor) {
+        // Buscar si ya existe el editor tag
+        let editorTag = metaGroup.querySelector('.checklist-editor-tag');
+        let divider = editorTag?.previousElementSibling;
+
+        if (!editorTag) {
+            // Crear el separador si no existe
+            divider = document.createElement('span');
+            divider.className = 'checklist-meta-divider';
+
+            // Crear el tag del editor
+            editorTag = document.createElement('span');
+            editorTag.className = 'checklist-meta-item checklist-editor-tag';
+
+            metaGroup.appendChild(divider);
+            metaGroup.appendChild(editorTag);
+        }
+
+        // Actualizar el contenido con animación
+        editorTag.innerHTML = `<i class="fas fa-user-edit"></i><span>${nombreEditor}</span>`;
+        editorTag.classList.add('editor-updated');
+        setTimeout(() => editorTag.classList.remove('editor-updated'), 500);
     }
 }
 
@@ -1982,7 +2155,7 @@ function loadInspeccionesRecientes() {
 
     // Cargar inspecciones desde los datos reales del checklist
     const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
-    
+
     // Filtrar habitaciones que tienen fecha de última edición (han sido inspeccionadas)
     const inspeccionadas = checklistData
         .filter(hab => hab.ultimo_editor && hab.fecha_ultima_edicion)
@@ -1992,7 +2165,7 @@ function loadInspeccionesRecientes() {
             (hab.items || []).forEach(item => {
                 if (counts[item.estado] !== undefined) counts[item.estado]++;
             });
-            
+
             // Determinar estado general: malo > regular > bueno
             let estadoGeneral = 'aprobada'; // bueno = aprobada
             if (counts.malo > 0) {
@@ -2000,7 +2173,7 @@ function loadInspeccionesRecientes() {
             } else if (counts.regular > 0) {
                 estadoGeneral = 'pendiente';
             }
-            
+
             // Generar título basado en el estado
             let titulo = 'Inspección completa';
             if (counts.malo > 0) {
@@ -2010,7 +2183,7 @@ function loadInspeccionesRecientes() {
             } else {
                 titulo = 'Todo en buen estado';
             }
-            
+
             return {
                 habitacion: hab.numero || hab.numero_habitacion || 'N/A',
                 cuarto_id: hab.cuarto_id,
@@ -2026,10 +2199,10 @@ function loadInspeccionesRecientes() {
         .sort((a, b) => b.fecha_raw - a.fecha_raw)
         // Limitar a las últimas 10
         .slice(0, 10);
-    
+
     AppState.inspeccionesRecientes = inspeccionadas;
     renderInspeccionesRecientes(inspeccionadas);
-    
+
     console.log('📋 [APP.JS] Inspecciones recientes cargadas:', inspeccionadas.length);
 }
 
@@ -2038,15 +2211,15 @@ function loadInspeccionesRecientes() {
  */
 function formatearFechaInspeccion(fechaStr) {
     if (!fechaStr) return 'Sin fecha';
-    
+
     const fecha = new Date(fechaStr);
     const ahora = new Date();
     const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
     const ayer = new Date(hoy.getTime() - 24 * 60 * 60 * 1000);
     const fechaSinHora = new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-    
+
     const hora = fecha.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
-    
+
     if (fechaSinHora.getTime() === hoy.getTime()) {
         return `Hoy · ${hora}`;
     } else if (fechaSinHora.getTime() === ayer.getTime()) {
@@ -2116,18 +2289,193 @@ function openChecklistDetailsModal(cuartoId) {
         return;
     }
 
+    // Crear modal si no existe
+    let modal = document.getElementById('checklist-details-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'checklist-details-modal';
+        modal.className = 'checklist-modal';
+        document.body.appendChild(modal);
+    }
+
+    // Obtener estadísticas
     const counts = { bueno: 0, regular: 0, malo: 0 };
     habitacion.items.forEach(item => {
         if (counts[item.estado] !== undefined) counts[item.estado]++;
     });
 
-    alert(`Detalles de ${habitacion.numero}\n\n` +
-        `Edificio: ${habitacion.edificio}\n` +
-        `Total ítems: ${habitacion.items.length}\n\n` +
-        `✅ Bueno: ${counts.bueno}\n` +
-        `⚠️ Regular: ${counts.regular}\n` +
-        `❌ Malo: ${counts.malo}\n\n` +
-        `Último editor: ${habitacion.ultimo_editor || 'Sin registro'}`);
+    // Construir HTML del historial agrupado por estado
+    const buildHistorialHTML = () => {
+        if (!habitacion.items || habitacion.items.length === 0) {
+            return '<p class="no-history">No hay elementos registrados</p>';
+        }
+
+        const itemsPorEstado = {
+            malo: habitacion.items.filter(item => item.estado === 'malo'),
+            regular: habitacion.items.filter(item => item.estado === 'regular'),
+            bueno: habitacion.items.filter(item => item.estado === 'bueno')
+        };
+
+        let html = '';
+
+        if (itemsPorEstado.malo.length > 0) {
+            html += '<div class="history-group"><h4><span class="semaforo-dot malo"></span> En Mal Estado</h4><ul>';
+            itemsPorEstado.malo.forEach(item => {
+                html += `<li class="history-item"><span class="item-name">${item.nombre}</span></li>`;
+            });
+            html += '</ul></div>';
+        }
+
+        if (itemsPorEstado.regular.length > 0) {
+            html += '<div class="history-group"><h4><span class="semaforo-dot regular"></span> Estado Regular</h4><ul>';
+            itemsPorEstado.regular.forEach(item => {
+                html += `<li class="history-item"><span class="item-name">${item.nombre}</span></li>`;
+            });
+            html += '</ul></div>';
+        }
+
+        if (itemsPorEstado.bueno.length > 0) {
+            html += '<div class="history-group"><h4><span class="semaforo-dot bueno"></span> En Buen Estado</h4><ul>';
+            itemsPorEstado.bueno.forEach(item => {
+                html += `<li class="history-item"><span class="item-name">${item.nombre}</span></li>`;
+            });
+            html += '</ul></div>';
+        }
+
+        return html || '<p class="no-history">No hay elementos registrados</p>';
+    };
+
+    // Construir contenido del modal
+    modal.innerHTML = `
+        <div class="modal-detalles-overlay"></div>
+        <div class="modal-detalles-contenido checklist-details-content">
+            <div class="modal-detalles-header">
+                <div class="checklist-header-flex" style="width:100%;display:flex;flex-direction:column;">
+                    <div class="checklist-room-title" style="width:100%;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:0.75rem;margin-bottom:0.2rem;">
+                        <span class="checklist-room-number" style="font-size:1.15rem;font-weight:900;">${habitacion.numero}</span>
+                    </div>
+                    <div class="checklist-header-bottom" style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:0.3rem;margin-top:0.1rem;">
+                        <span class="checklist-meta-item" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--negro-carbon);background:none;border:none;padding:0;">
+                            <i class="fas fa-building"></i> <span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span>
+                        </span>
+                        <span class="checklist-meta-item" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--negro-carbon);background:none;border:none;padding:0;">
+                            <i class="fas fa-clipboard-list"></i> <span>${habitacion.items.length} ítems</span>
+                        </span>
+                        ${habitacion.ultimo_editor ? `<span class="checklist-meta-item checklist-editor-tag" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--verde-oliva);background:none;border:none;padding:0;"><i class="fas fa-user-edit"></i> <span>${habitacion.ultimo_editor}</span></span>` : ''}
+                    </div>
+                </div>
+                <button class="modal-detalles-cerrar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body checklist-details-body">
+                <div class="checklist-modal-info">
+                    <div class="checklist-info-item">
+                        <i class="fas fa-building"></i>
+                        <div class="info-content">
+                            <strong>Edificio</strong>
+                            <span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span>
+                        </div>
+                    </div>
+                    <div class="checklist-info-item">
+                        <i class="fas fa-clipboard-list"></i>
+                        <div class="info-content">
+                            <strong>Total de ítems</strong>
+                            <span>${habitacion.items.length} elementos registrados</span>
+                        </div>
+                    </div>
+                    <div class="checklist-info-item">
+                        <i class="fas fa-user-edit"></i>
+                        <div class="info-content">
+                            <strong>Último editor</strong>
+                            <span>${habitacion.ultimo_editor || 'Sin ediciones'}</span>
+                        </div>
+                    </div>
+                    <div class="checklist-info-item">
+                        <i class="fas fa-hashtag"></i>
+                        <div class="info-content">
+                            <strong>ID de habitación</strong>
+                            <span>${habitacion.cuarto_id}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="checklist-modal-stats">
+                    <h3>Resumen de Estados</h3>
+                    <div class="checklist-stats-grid">
+                        <div class="checklist-stat-item bueno">
+                            <span class="semaforo-dot"></span>
+                            <span class="stat-label">Bueno</span>
+                            <span class="stat-value">${counts.bueno}</span>
+                        </div>
+                        <div class="checklist-stat-item regular">
+                            <span class="semaforo-dot"></span>
+                            <span class="stat-label">Regular</span>
+                            <span class="stat-value">${counts.regular}</span>
+                        </div>
+                        <div class="checklist-stat-item malo">
+                            <span class="semaforo-dot"></span>
+                            <span class="stat-label">Malo</span>
+                            <span class="stat-value">${counts.malo}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="checklist-modal-history">
+                    <h3>Historial de Ediciones</h3>
+                    <div class="checklist-history-list">${buildHistorialHTML()}</div>
+                </div>
+            </div>
+            <div class="checklist-modal-footer" style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+                <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}">
+                    <i class="fas fa-file-excel"></i>
+                    <div><div style="font-weight:700;">Exportar Excel</div><div style="font-size:0.8rem;opacity:0.8;">Descargar checklist</div></div>
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+    modal.style.zIndex = '2000';
+    document.body.classList.add('modal-open');
+
+    // Agregar event listeners
+    setTimeout(() => {
+        const overlay = modal.querySelector('.modal-detalles-overlay');
+        const closeBtn = modal.querySelector('.modal-detalles-cerrar');
+        const excelBtn = modal.querySelector('.btn-excel');
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+            document.body.classList.remove('modal-open');
+        };
+
+        if (overlay) overlay.addEventListener('click', closeModal);
+        if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+        if (excelBtn) {
+            excelBtn.addEventListener('click', () => {
+                // Exportar solo esta habitación a Excel/CSV
+                let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
+                habitacion.items.forEach(item => {
+                    csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${item.estado}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `checklist_${habitacion.numero}_${new Date().toISOString().split('T')[0]}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                // Notificación de éxito
+                if (typeof showNotification === 'function') {
+                    showNotification('✅ Checklist exportado exitosamente', 'success');
+                } else {
+                    console.log('✅ Checklist exportado exitosamente');
+                }
+            });
+        }
+    }, 0);
 }
 
 function filterChecklist(searchTerm) {
@@ -2257,13 +2605,14 @@ function initChecklistEventListeners() {
     }
 }
 
-function handleNuevaSeccionSubmit(event) {
+async function handleNuevaSeccionSubmit(event) {
     event.preventDefault();
     const form = event.target;
     const nombreInput = form.querySelector('#seccionNombre');
     const iconoSelect = form.querySelector('#seccionIcono');
     const itemsInput = form.querySelector('#seccionItems');
     const feedback = document.getElementById('checklistAddFeedback');
+    const submitBtn = form.querySelector('button[type="submit"]');
 
     const nombre = (nombreInput?.value || '').trim();
     if (!nombre) {
@@ -2272,37 +2621,100 @@ function handleNuevaSeccionSubmit(event) {
         return;
     }
 
-    // Crear ID único
-    const slug = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 40) || `seccion-${Date.now()}`;
-
-    // Verificar si ya existe
-    if (AppState.checklistCategorias.some(cat => cat.id === slug)) {
+    // Verificar si ya existe localmente
+    const slugLocal = nombre.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (AppState.checklistCategorias.some(cat => cat.id === slugLocal || cat.slug === slugLocal)) {
         if (feedback) feedback.textContent = 'Ya existe una sección con ese nombre.';
         return;
     }
 
     const icono = iconoSelect?.value || 'fa-layer-group';
-    const nuevaCategoria = { id: slug, nombre, icono };
-    AppState.checklistCategorias.push(nuevaCategoria);
 
-    // Agregar items
-    const itemsRaw = (itemsInput?.value || '').trim();
-    if (itemsRaw) {
-        itemsRaw.split(/[,\n]+/).map(item => item.trim()).filter(Boolean).forEach(itemNombre => {
-            AppState.checklistItems.push({ nombre: itemNombre, categoria: slug });
-        });
-    } else {
-        AppState.checklistItems.push({ nombre, categoria: slug });
+    // Deshabilitar botón mientras se guarda
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
     }
 
-    // Re-renderizar
-    renderChecklistCategorias();
-    loadChecklistData();
-    form.reset();
+    try {
+        // 1. Crear categoría en la BD
+        const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+        const responseCategoria = await fetch('/api/checklist/categorias', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ nombre, icono })
+        });
 
-    if (feedback) {
-        feedback.textContent = `✅ Sección "${nombre}" agregada.`;
-        setTimeout(() => { feedback.textContent = ''; }, 2500);
+        if (!responseCategoria.ok) {
+            const errorData = await responseCategoria.json();
+            throw new Error(errorData.error || 'Error al crear categoría');
+        }
+
+        const nuevaCategoria = await responseCategoria.json();
+        console.log('✅ Categoría creada en BD:', nuevaCategoria);
+
+        // 2. Agregar ítems si los hay
+        const itemsRaw = (itemsInput?.value || '').trim();
+        const itemsArray = itemsRaw ? itemsRaw.split(/[,\n]+/).map(item => item.trim()).filter(Boolean) : [];
+
+        for (const itemNombre of itemsArray) {
+            try {
+                await fetch('/api/checklist/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        nombre: itemNombre, 
+                        categoria_id: nuevaCategoria.id 
+                    })
+                });
+            } catch (itemError) {
+                console.warn('Error al crear ítem:', itemNombre, itemError);
+            }
+        }
+
+        // 3. Actualizar AppState con la nueva categoría
+        AppState.checklistCategorias.push({
+            id: nuevaCategoria.slug || nuevaCategoria.id,
+            nombre: nuevaCategoria.nombre,
+            icono: nuevaCategoria.icono
+        });
+
+        // 4. Re-renderizar solo el contenedor de categorías
+        renderChecklistCategorias();
+        
+        // 5. Limpiar formulario
+        form.reset();
+
+        if (feedback) {
+            feedback.textContent = `✅ Sección "${nombre}" agregada correctamente.`;
+            feedback.style.color = '#22c55e';
+            setTimeout(() => { 
+                feedback.textContent = ''; 
+                feedback.style.color = '';
+            }, 3000);
+        }
+
+        showNotification(`Sección "${nombre}" creada exitosamente`, 'success');
+
+    } catch (error) {
+        console.error('❌ Error al crear sección:', error);
+        if (feedback) {
+            feedback.textContent = `❌ ${error.message}`;
+            feedback.style.color = '#ef4444';
+        }
+        showNotification(`Error: ${error.message}`, 'error');
+    } finally {
+        // Restaurar botón
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Guardar sección';
+        }
     }
 }
 
@@ -3138,5 +3550,6 @@ window.editarMantenimientoEspacio = editarMantenimientoEspacio;
 window.eliminarMantenimientoEspacio = eliminarMantenimientoEspacio;
 window.cambiarEstadoEspacio = cambiarEstadoEspacio;
 window.cargarAlertasEspacios = cargarAlertasEspacios;
+window.recargarChecklistData = recargarChecklistData;
 
 console.log('✅ App.js cargado completamente');

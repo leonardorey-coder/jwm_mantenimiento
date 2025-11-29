@@ -1046,14 +1046,15 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
             estado = 'pendiente',
             usuario_asignado_id,
             notas,
-            estado_espacio
+            estado_espacio,
+            tarea_id
         } = req.body;
 
         const creadorId = req.usuario?.id || 3;
 
         console.log('📝 Creando mantenimiento para espacio común:', {
             espacio_comun_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
-            usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_espacio
+            usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_espacio, tarea_id
         });
 
         if (postgresManager) {
@@ -1066,9 +1067,9 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
                 INSERT INTO mantenimientos (
                     espacio_comun_id, descripcion, tipo, hora, dia_alerta, prioridad,
                     estado, usuario_creador_id, usuario_asignado_id, notas,
-                    fecha_finalizacion, fecha_creacion
+                    fecha_finalizacion, fecha_creacion, tarea_id
                 )
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, CURRENT_TIMESTAMP, $12)
                 RETURNING *
             `;
 
@@ -1083,7 +1084,8 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
                 creadorId,
                 usuario_asignado_id ? parseInt(usuario_asignado_id) : null,
                 notas || null,
-                fecha_finalizacion
+                fecha_finalizacion,
+                tarea_id ? parseInt(tarea_id) : null
             ];
 
             const result = await postgresManager.pool.query(query, values);
@@ -1456,21 +1458,48 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
 app.post('/api/checklist/init', verificarAutenticacion, verificarAdmin, async (req, res) => {
     try {
         console.log('🔄 Inicializando tablas de checklist...');
-        
+
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         await postgresManager.runChecklistMigration();
-        
-        res.json({ 
-            success: true, 
-            message: 'Tablas de checklist inicializadas correctamente' 
+
+        res.json({
+            success: true,
+            message: 'Tablas de checklist inicializadas correctamente'
         });
     } catch (error) {
         console.error('❌ Error inicializando checklist:', error);
         res.status(500).json({ error: 'Error al inicializar checklist', details: error.message });
     }
+});
+
+// Obtener iconos disponibles para categorías
+app.get('/api/checklist/iconos', (req, res) => {
+    const iconosDisponibles = [
+        { value: 'fa-layer-group', label: 'Genérico', emoji: '📦' },
+        { value: 'fa-couch', label: 'Mobiliario', emoji: '🛋️' },
+        { value: 'fa-temperature-half', label: 'Climatización', emoji: '🌡️' },
+        { value: 'fa-plug', label: 'Electrónica', emoji: '🔌' },
+        { value: 'fa-shower', label: 'Sanitarios', emoji: '🚿' },
+        { value: 'fa-concierge-bell', label: 'Amenidades', emoji: '🛎️' },
+        { value: 'fa-door-open', label: 'Estructura', emoji: '🚪' },
+        { value: 'fa-bed', label: 'Cama', emoji: '🛏️' },
+        { value: 'fa-tv', label: 'TV/Pantallas', emoji: '📺' },
+        { value: 'fa-lightbulb', label: 'Iluminación', emoji: '💡' },
+        { value: 'fa-paint-roller', label: 'Decoración', emoji: '🎨' },
+        { value: 'fa-broom', label: 'Limpieza', emoji: '🧹' },
+        { value: 'fa-key', label: 'Seguridad', emoji: '🔑' },
+        { value: 'fa-wifi', label: 'Conectividad', emoji: '📶' },
+        { value: 'fa-utensils', label: 'Cocina', emoji: '🍽️' },
+        { value: 'fa-swimming-pool', label: 'Piscina', emoji: '🏊' },
+        { value: 'fa-dumbbell', label: 'Gimnasio', emoji: '🏋️' },
+        { value: 'fa-car', label: 'Estacionamiento', emoji: '🚗' },
+        { value: 'fa-tree', label: 'Jardín', emoji: '🌳' },
+        { value: 'fa-fire-extinguisher', label: 'Seguridad contra incendios', emoji: '🧯' }
+    ];
+    res.json(iconosDisponibles);
 });
 
 // Obtener categorías del checklist
@@ -1480,7 +1509,7 @@ app.get('/api/checklist/categorias', async (req, res) => {
         console.log('📥 GET /api/checklist/categorias');
         console.log('📥 postgresManager disponible:', !!postgresManager);
         console.log('📥 ========================================');
-        
+
         if (!postgresManager) {
             console.log('📥 ⚠️ Sin conexión BD, retornando mock');
             // Datos mock para fallback
@@ -1517,13 +1546,13 @@ app.get('/api/checklist/categorias', async (req, res) => {
 app.post('/api/checklist/categorias', verificarAutenticacion, async (req, res) => {
     try {
         console.log('📝 Creando categoría de checklist:', req.body);
-        
+
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const { nombre, icono, orden } = req.body;
-        
+
         if (!nombre) {
             return res.status(400).json({ error: 'El nombre es requerido' });
         }
@@ -1559,7 +1588,7 @@ app.delete('/api/checklist/categorias/:id', verificarAutenticacion, verificarAdm
 app.get('/api/checklist/items', async (req, res) => {
     try {
         console.log('📥 GET /api/checklist/items');
-        
+
         if (!postgresManager) {
             // Datos mock para fallback
             const mockItems = [
@@ -1586,13 +1615,13 @@ app.get('/api/checklist/items', async (req, res) => {
 app.post('/api/checklist/items', verificarAutenticacion, async (req, res) => {
     try {
         console.log('📝 Creando ítem de checklist:', req.body);
-        
+
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const { nombre, categoria_id, orden } = req.body;
-        
+
         if (!nombre || !categoria_id) {
             return res.status(400).json({ error: 'El nombre y categoria_id son requeridos' });
         }
@@ -1632,7 +1661,7 @@ app.get('/api/checklist/cuartos', async (req, res) => {
         console.log('📥 Query params:', req.query);
         console.log('📥 postgresManager disponible:', !!postgresManager);
         console.log('📥 ========================================');
-        
+
         if (!postgresManager) {
             console.log('📥 ⚠️ Sin conexión BD');
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1655,9 +1684,9 @@ app.get('/api/checklist/cuartos', async (req, res) => {
 
         console.log('📥 Filtros aplicados:', filters);
         console.log('📥 Ejecutando getAllChecklistData...');
-        
+
         const checklistData = await postgresManager.getAllChecklistData(filters);
-        
+
         console.log('📥 ========================================');
         console.log(`📥 ✅ Datos obtenidos: ${checklistData.length} cuartos`);
         if (checklistData.length > 0) {
@@ -1667,7 +1696,7 @@ app.get('/api/checklist/cuartos', async (req, res) => {
             console.log('📥 ⚠️ No se encontraron cuartos con items');
         }
         console.log('📥 ========================================');
-        
+
         res.json(checklistData);
     } catch (error) {
         console.error('📥 ❌ Error al obtener datos de checklist:', error);
@@ -1680,14 +1709,14 @@ app.get('/api/checklist/cuartos', async (req, res) => {
 app.get('/api/checklist/cuartos/:id', async (req, res) => {
     try {
         console.log(`📥 GET /api/checklist/cuartos/${req.params.id}`);
-        
+
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const cuartoId = parseInt(req.params.id);
         const items = await postgresManager.getChecklistByCuarto(cuartoId);
-        
+
         if (items.length === 0) {
             return res.status(404).json({ error: 'Cuarto no encontrado o sin ítems' });
         }
@@ -1740,10 +1769,10 @@ app.put('/api/checklist/cuartos/:cuartoId/items/:itemId', verificarAutenticacion
         }
 
         const resultado = await postgresManager.updateChecklistItemEstado(
-            cuartoId, 
-            itemId, 
-            estado, 
-            usuarioId, 
+            cuartoId,
+            itemId,
+            estado,
+            usuarioId,
             observacion
         );
 
@@ -1778,11 +1807,11 @@ app.put('/api/checklist/cuartos/:cuartoId/items', verificarAutenticacion, async 
         const fallidos = resultados.filter(r => !r.success).length;
 
         console.log(`✅ Actualización masiva: ${exitosos} exitosos, ${fallidos} fallidos`);
-        res.json({ 
-            success: fallidos === 0, 
-            exitosos, 
-            fallidos, 
-            resultados 
+        res.json({
+            success: fallidos === 0,
+            exitosos,
+            fallidos,
+            resultados
         });
     } catch (error) {
         console.error('❌ Error en actualización masiva:', error);
