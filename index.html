@@ -580,6 +580,10 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
+                    <button type="button" class="btn-nueva-tarea" id="btnNuevaTarea" onclick="abrirModalCrearTarea()">
+                        <i class="fas fa-plus"></i>
+                        <span>Nueva</span>
+                    </button>
                 </div>
             </div>
 
@@ -736,9 +740,7 @@
             <h1 class="titulos t-principal">Checklist de Inspecciones</h1>
             <h2 class="titulos t-secundario">Control de Calidad de Habitaciones</h2>
 
-            <div class="vista-duo">
-                <div class="columna columna-principal">
-                    <div class="panel panel-filtros" data-aos="fade-down">
+            <div class="panel panel-filtros" data-aos="fade-down">
                         <div class="checklist-categorias-toggle-bar">
                             <button class="checklist-categorias-toggle" type="button" aria-expanded="false"
                                 id="toggleCategoriasBtn">
@@ -800,20 +802,56 @@
                         </div>
                     </div>
 
-                    <!-- Selector de vistas para móvil -->
-                    <div class="mobile-view-selector">
-                        <button class="view-btn active" data-view="checklists">
-                            <i class="fas fa-clipboard-check"></i>
-                            <span>Checklists</span>
-                        </button>
-                        <button class="view-btn" data-view="inspecciones">
-                            <i class="fas fa-clipboard-list"></i>
-                            <span>Inspecciones</span>
-                        </button>
-                    </div>
+            <!-- Selector de vistas para móvil -->
+            <div class="mobile-view-selector">
+                <button class="view-btn active" data-view="checklists">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Checklists</span>
+                </button>
+                <button class="view-btn" data-view="inspecciones">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Inspecciones</span>
+                </button>
+            </div>
 
+            <div class="vista-duo">
+                <div class="columna columna-principal">
                     <div class="checklist-grid" id="checklistGrid">
-                        <div class="mensaje-cargando">Cargando checklists...</div>
+                        <!-- Skeleton loading inicial -->
+                        <div class="skeleton-checklist-card">
+                            <div class="skeleton-checklist-header">
+                                <div class="skeleton-room-badge"></div>
+                                <div class="skeleton-edificio"></div>
+                            </div>
+                            <div class="skeleton-stats">
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#22c55e"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#f59e0b"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#ef4444"></div><div class="skeleton-stat-value"></div></div>
+                            </div>
+                            <div class="skeleton-items-list">
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:60%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:75%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:50%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                            </div>
+                            <div class="skeleton-footer"><div class="skeleton-editor"></div><div class="skeleton-date"></div></div>
+                        </div>
+                        <div class="skeleton-checklist-card" style="animation-delay:0.1s">
+                            <div class="skeleton-checklist-header">
+                                <div class="skeleton-room-badge"></div>
+                                <div class="skeleton-edificio"></div>
+                            </div>
+                            <div class="skeleton-stats">
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#22c55e"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#f59e0b"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#ef4444"></div><div class="skeleton-stat-value"></div></div>
+                            </div>
+                            <div class="skeleton-items-list">
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:80%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:65%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:70%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                            </div>
+                            <div class="skeleton-footer"><div class="skeleton-editor"></div><div class="skeleton-date"></div></div>
+                        </div>
                     </div>
 
                     <div class="habitaciones-pagination checklist-pagination" id="checklistPaginacion"
@@ -835,10 +873,7 @@
                             <label for="seccionIcono">Icono</label>
                             <div class="select-container premium-select">
                                 <select id="seccionIcono" name="seccionIcono" class="brutalist-input">
-                                    <option value="fa-layer-group">Genérico</option>
-                                    <option value="fa-couch">Mobiliario</option>
-                                    <option value="fa-temperature-half">Climatización</option>
-                                    <option value="fa-plug">Electrónica</option>
+                                    <option value="">Cargando iconos...</option>
                                 </select>
                                 <i class="fas fa-chevron-down icono-select"></i>
                             </div>
@@ -1528,7 +1563,7 @@
             <div class="modal-detalles-header">
                 <div>
                     <p class="modal-detalles-subtitulo">Nueva tarea</p>
-                    <h3>Crear y Asignar</h3>
+                    <h3>Crear</h3>
                 </div>
                 <button class="modal-detalles-cerrar" data-close-crear-modal>
                     <i class="fas fa-times"></i>

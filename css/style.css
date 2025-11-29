@@ -154,6 +154,12 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Bloquear scroll de la página cuando hay un modal activo */
+body.modal-open {
+  overflow: hidden;
+  height: 100vh;
+}
+
 /* ========================================
    HEADER PREMIUM - MINIMAL & ELEGANT
    ======================================== */
@@ -779,6 +785,10 @@ body.admin .tab-content.admin-only.active {
   margin: 0 auto;
 }
 
+#contenedorFiltrosTareas{
+  grid-template-columns: repeat(6, 1fr);
+}
+
 #tab-checklist .busqueda-filtros {
   margin-top: 1.5rem;
 }
@@ -809,6 +819,19 @@ body.admin .tab-content.admin-only.active {
   .busqueda-filtros.show {
     display: grid;
     animation: slideDown 0.3s ease;
+  }
+
+
+#contenedorFiltrosTareas{
+      grid-template-columns: 1fr;
+
+}
+
+  /* Botón nueva tarea responsive */
+  .btn-nueva-tarea {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
   }
 
   /* Reducir padding del panel en móvil */
@@ -2543,8 +2566,7 @@ body.admin .tab-content.admin-only.active {
   }
 
   .busqueda-filtros {
-    display: none;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .filtros-header {
@@ -3424,6 +3446,41 @@ body.admin .tab-content.admin-only.active {
 }
 
 .btn-nueva-sabana:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+/* Botón Nueva Tarea - Tab Tareas */
+.btn-nueva-tarea {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--verde-oliva);
+  color: var(--blanco, #fff);
+  border: 2px solid var(--negro-carbon);
+  border-radius: var(--radio-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.65rem 1.2rem;
+  letter-spacing: 0.5px;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+  cursor: pointer;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+.btn-nueva-tarea i {
+  font-size: 0.9rem;
+}
+
+.btn-nueva-tarea:hover {
+  background: var(--azul-hover, #2563eb);
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.btn-nueva-tarea:active {
   transform: translate(0, 0);
   box-shadow: 2px 2px 0 var(--negro-carbon);
 }
