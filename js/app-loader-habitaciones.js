@@ -19,6 +19,16 @@ const getState = () => {
     return window.appLoaderState;
 };
 
+/**
+ * Obtener número de cuartos por página según el tamaño de pantalla
+ * Mobile (≤768px): 5 items por página (1 columna)
+ * Desktop (>768px): 10 items por página (2 columnas)
+ */
+function getCuartosPorPagina() {
+    const isMobile = window.innerWidth <= 768;
+    return isMobile ? 5 : 10;
+}
+
 // Template HTML para skeleton loading
 const SKELETON_TEMPLATE = `
     <div class="card-placeholder skeleton-card">
@@ -82,7 +92,7 @@ function mostrarCuartos() {
     const cuartosFiltradosActual = s.cuartosFiltradosActual;
     const paginaActualCuartos = s.paginaActualCuartos;
     const totalPaginasCuartos = s.totalPaginasCuartos;
-    const CUARTOS_POR_PAGINA = s.CUARTOS_POR_PAGINA;
+    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation based on screen size
     const mantenimientos = s.mantenimientos;
 
     const listaCuartos = document.getElementById('listaCuartos');
@@ -342,14 +352,39 @@ function mostrarCuartos() {
     renderizarPaginacionCuartos(totalCuartos);
 }
 
+// Listener para recalcular paginación al cambiar tamaño de pantalla
+let resizeTimer;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+        const s = getState();
+        if (s.cuartos && s.cuartos.length > 0) {
+            // Recalcular paginación con el nuevo tamaño
+            const anteriorItemsPorPagina = s.totalPaginasCuartos > 0
+                ? Math.ceil(s.cuartosFiltradosActual.length / s.totalPaginasCuartos)
+                : 10;
+            const nuevoItemsPorPagina = getCuartosPorPagina();
+
+            // Solo actualizar si cambió el número de items por página
+            if (anteriorItemsPorPagina !== nuevoItemsPorPagina) {
+                console.log(`📱 Cambio de tamaño detectado: ${anteriorItemsPorPagina} → ${nuevoItemsPorPagina} items/página`);
+                // Mantener al usuario en una página similar (no saltar al inicio)
+                sincronizarCuartosFiltrados(true);
+                mostrarCuartos();
+            }
+        }
+    }, 250); // Debounce de 250ms
+});
+
 /**
  * Sincronizar estado base de cuartos filtrados y paginación
  */
 function sincronizarCuartosFiltrados(mantenerPagina = false) {
     const s = getState();
+    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
     s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
     s.totalPaginasCuartos = s.cuartosFiltradosActual.length > 0
-        ? Math.ceil(s.cuartosFiltradosActual.length / s.CUARTOS_POR_PAGINA)
+        ? Math.ceil(s.cuartosFiltradosActual.length / CUARTOS_POR_PAGINA)
         : 1;
 
     if (!mantenerPagina || s.paginaActualCuartos > s.totalPaginasCuartos) {
@@ -362,18 +397,19 @@ function sincronizarCuartosFiltrados(mantenerPagina = false) {
  */
 function renderizarPaginacionCuartos(totalCuartos) {
     const s = getState();
+    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
     const contenedorPaginacion = document.getElementById('habitacionesPagination');
     if (!contenedorPaginacion) {
         return;
     }
 
-    if (!totalCuartos || totalCuartos <= s.CUARTOS_POR_PAGINA) {
+    if (!totalCuartos || totalCuartos <= CUARTOS_POR_PAGINA) {
         contenedorPaginacion.innerHTML = '';
         contenedorPaginacion.style.display = 'none';
         return;
     }
 
-    const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / s.CUARTOS_POR_PAGINA));
+    const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
     s.totalPaginasCuartos = totalPaginasCalculadas;
     if (s.paginaActualCuartos > s.totalPaginasCuartos) {
         s.paginaActualCuartos = s.totalPaginasCuartos;
@@ -578,7 +614,8 @@ function mostrarCuartosFiltrados(cuartosFiltrados) {
     if (idCuartoSeleccionado) {
         const indiceSeleccionado = s.cuartosFiltradosActual.findIndex(c => c.id.toString() === idCuartoSeleccionado);
         if (indiceSeleccionado >= 0) {
-            s.paginaActualCuartos = Math.floor(indiceSeleccionado / s.CUARTOS_POR_PAGINA) + 1;
+            const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
+            s.paginaActualCuartos = Math.floor(indiceSeleccionado / CUARTOS_POR_PAGINA) + 1;
         } else {
             s.paginaActualCuartos = 1;
         }

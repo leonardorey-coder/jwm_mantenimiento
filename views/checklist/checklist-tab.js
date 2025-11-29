@@ -733,6 +733,31 @@ function applyRolePermissions(role) {
     console.log('👤 Permisos aplicados para rol:', role);
 }
 
+const CHECKLIST_MODAL_SELECTORS = [
+    '.modal-detalles',
+    '#modalHistorialSabana',
+    '#modalCrearSabana',
+    '#checklist-details-modal',
+    '.evidencia-viewer-modal'
+];
+
+function isAnyChecklistModalVisible() {
+    return CHECKLIST_MODAL_SELECTORS.some(selector =>
+        Array.from(document.querySelectorAll(selector))
+            .some(el => window.getComputedStyle(el).display !== 'none')
+    );
+}
+
+function lockBodyScrollChecklist() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScrollChecklist() {
+    if (!isAnyChecklistModalVisible()) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
 function logout() {
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
         localStorage.removeItem('currentUser');
@@ -1680,6 +1705,7 @@ function openHistorialSabanaModal() {
     const modal = document.getElementById('modalHistorialSabana');
     if (modal) {
         modal.style.display = 'flex';
+        lockBodyScrollChecklist();
     }
 }
 
@@ -1687,6 +1713,7 @@ function closeHistorialSabanaModal() {
     const modal = document.getElementById('modalHistorialSabana');
     if (modal) {
         modal.style.display = 'none';
+        unlockBodyScrollChecklist();
     }
 }
 
@@ -1743,6 +1770,7 @@ function openCrearSabanaModal() {
     }
     if (modal) {
         modal.style.display = 'flex';
+        lockBodyScrollChecklist();
     }
 }
 
@@ -1750,6 +1778,7 @@ function closeCrearSabanaModal() {
     const modal = document.getElementById('modalCrearSabana');
     if (modal) {
         modal.style.display = 'none';
+        unlockBodyScrollChecklist();
     }
 }
 
@@ -2465,7 +2494,7 @@ function openChecklistDetailsModal(cuartoId) {
 
     modal.style.display = 'flex';
     modal.style.zIndex = '2000';
-    document.body.style.overflow = 'hidden';
+    lockBodyScrollChecklist();
 
     console.log('Modal abierto:', modal);
 
@@ -2507,7 +2536,7 @@ function closeChecklistDetailsModal() {
     const modal = document.getElementById('checklist-details-modal');
     if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = '';
+        unlockBodyScrollChecklist();
     }
 }
 
@@ -2707,6 +2736,7 @@ function viewEvidencia(cuartoId, index) {
     `;
 
     viewer.style.display = 'flex';
+    lockBodyScrollChecklist();
 
     // Cerrar al hacer click en el fondo
     viewer.onclick = (e) => {
@@ -2720,6 +2750,7 @@ function closeEvidenciaViewer() {
     const viewer = document.getElementById('evidencia-viewer-modal');
     if (viewer) {
         viewer.style.display = 'none';
+        unlockBodyScrollChecklist();
     }
 }
 
@@ -3470,7 +3501,7 @@ function openUsuarioEditModal(usuario) {
     fillUsuarioEditForm(usuario);
     UsuarioModalState.modal.style.display = 'flex';
     UsuarioModalState.modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
+    lockBodyScrollChecklist();
 
     if (!UsuarioModalState.keydownHandler) {
         UsuarioModalState.keydownHandler = (event) => {
@@ -3493,7 +3524,7 @@ function closeUsuarioEditModal() {
 
     UsuarioModalState.modal.style.display = 'none';
     UsuarioModalState.modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('modal-open');
+    unlockBodyScrollChecklist();
 
     if (UsuarioModalState.keydownHandler) {
         document.removeEventListener('keydown', UsuarioModalState.keydownHandler);
@@ -4889,7 +4920,7 @@ function abrirModalDetalleTarea(tarea) {
 
     tareaModalElements.modal.style.display = 'flex';
     tareaModalElements.modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
+    lockBodyScrollChecklist();
 
     const estadoClass = tarea.estado === 'completada' ? 'estado-completada' :
         tarea.estado === 'en_proceso' ? 'estado-en-proceso' : 'estado-pendiente';
@@ -4943,9 +4974,7 @@ function cerrarModalDetalleTarea() {
     if (!tareaModalElements.modal) return;
     tareaModalElements.modal.style.display = 'none';
     tareaModalElements.modal.setAttribute('aria-hidden', 'true');
-    if (!isAnyTareaModalVisible()) {
-        document.body.classList.remove('modal-open');
-    }
+    unlockBodyScrollChecklist();
 }
 
 function handleTareaModalAction(event) {
@@ -5236,7 +5265,7 @@ function abrirModalEditarTarea(tarea) {
 
     tareaEditModalState.modal.style.display = 'flex';
     tareaEditModalState.modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
+    lockBodyScrollChecklist();
 
     requestAnimationFrame(() => {
         tareaEditModalState.fields.titulo?.focus();
@@ -5252,9 +5281,7 @@ function closeTareaEditModal() {
     tareaEditModalState.currentTaskId = null;
     tareaEditModalState.currentTags = [];
     tareaEditModalState.editingAdjuntos = [];
-    if (!isAnyTareaModalVisible()) {
-        document.body.classList.remove('modal-open');
-    }
+    unlockBodyScrollChecklist();
 }
 
 function handleTareaEditSubmit(event) {
@@ -5574,5 +5601,3 @@ window.loadChecklistDataFromAPI = loadChecklistData;
 console.log('✅ Checklist-tab.js cargado completamente');
 
 // El selector de editores usa ahora un `select` nativo; no requiere JS adicional.
-
-

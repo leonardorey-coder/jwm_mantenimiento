@@ -84,6 +84,19 @@ function obtenerRolUsuarioActual() {
 // CONTROL DE MODALES
 // ------------------------------
 
+function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+}
+
+function unlockBodyScrollIfNoModal() {
+    const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
+        .some(modal => window.getComputedStyle(modal).display !== 'none');
+
+    if (!modalVisible) {
+        document.body.classList.remove('modal-open');
+    }
+}
+
 /**
  * Abre el modal para crear una nueva tarea.
  * @param {number} cuartoId - El ID del cuarto al que se asociará la tarea.
@@ -128,6 +141,7 @@ function abrirModalCrearTarea(cuartoId) {
 
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
+    lockBodyScroll();
 
     // Foco en el primer campo
     setTimeout(() => {
@@ -362,6 +376,7 @@ async function abrirModalEditarTarea(tareaId) {
 
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
+        lockBodyScroll();
 
     } catch (error) {
         console.error('Error al abrir modal de edición:', error);
@@ -380,6 +395,7 @@ function cerrarModal(modalId) {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
         console.log(`Modal ${modalId} cerrado.`);
+        unlockBodyScrollIfNoModal();
     } else {
         console.warn(`Se intentó cerrar un modal con ID '${modalId}' que no existe.`);
     }
@@ -623,7 +639,7 @@ function mostrarModalAdvertenciaEdicion() {
 
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
+    lockBodyScroll();
 }
 
 /**
@@ -634,7 +650,7 @@ function cerrarModalAdvertenciaEdicion() {
     if (modal) {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
-        document.body.classList.remove('modal-open');
+        unlockBodyScrollIfNoModal();
     }
 }
 
@@ -2024,6 +2040,7 @@ async function verDetalleTarea(tareaId) {
         // Mostrar modal inmediatamente con loading
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
+        lockBodyScroll();
 
         // Cargar datos de la tarea
         console.log(`📡 Fetching: ${API_URL}/tareas/${tareaId}`);
@@ -2196,6 +2213,7 @@ async function verDetalleTarea(tareaId) {
         console.error('Error al cargar detalle de tarea:', error);
         mostrarNotificacion('Error al cargar los detalles de la tarea', 'error');
         modal.style.display = 'none';
+        unlockBodyScrollIfNoModal();
     }
 }
 
@@ -2309,6 +2327,7 @@ function cerrarModalDetalleTarea() {
     if (modal) {
         modal.style.display = 'none';
         modal.setAttribute('aria-hidden', 'true');
+        unlockBodyScrollIfNoModal();
     }
 }
 
