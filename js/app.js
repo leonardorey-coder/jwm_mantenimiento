@@ -1253,41 +1253,11 @@ function formatFecha(fechaStr) {
 // ⚠️ NOTA: toggleTipoServicioModal está definida en sabana-functions.js
 // No se redefine aquí para evitar conflictos de versión
 
-function cerrarModalNuevaSabana() {
-    const modal = document.getElementById('modalNuevaSabana');
-    if (modal) {
-        modal.style.display = 'none';
-    }
-}
+// ⚠️ NOTA: cerrarModalNuevaSabana está definida en sabana-functions.js
+// No se redefine aquí - usar la versión de sabana-functions.js
 
-function confirmarNuevaSabana() {
-    const radioNuevo = document.querySelector('input[name="tipoServicio"][value="nuevo"]:checked');
-
-    if (radioNuevo) {
-        // Crear con nombre personalizado
-        const inputNombre = document.getElementById('inputNombreServicio');
-        const nombreServicio = inputNombre?.value.trim();
-
-        if (!nombreServicio) {
-            alert('Ingresa el nombre del servicio que se realizará.');
-            inputNombre?.focus();
-            return;
-        }
-
-        crearNuevaSabanaPersonalizada(nombreServicio);
-    } else {
-        // Usar servicio existente
-        const select = document.getElementById('selectServicioNuevaSabana');
-        const servicioId = select?.value;
-
-        if (!servicioId) {
-            alert('Selecciona el servicio que se realizará.');
-            return;
-        }
-
-        crearNuevaSabana(servicioId);
-    }
-}
+// ⚠️ NOTA: confirmarNuevaSabana está definida en sabana-functions.js
+// No se redefine aquí - usar la versión de sabana-functions.js
 
 
 // FUNCIONES DE SÁBANA MOVIDAS A sabana-functions.js
