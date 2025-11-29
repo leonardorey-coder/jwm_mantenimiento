@@ -6,18 +6,27 @@ let currentSabanaId = null;
 let currentSabanaArchivada = false;
 let currentSabanaItems = []; // Guardar los items actuales para filtrado
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
+let cerrarModalNuevaSabanaEscHandler = null;
+let cerrarModalHistorialEscHandler = null;
 
 function lockBodyScroll() {
     document.body.classList.add('modal-open');
 }
 
-function unlockBodyScrollIfNoModal() {
-    const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
-        .some(modal => window.getComputedStyle(modal).display !== 'none');
+function unlockBodyScroll() {
+    document.body.classList.remove('modal-open');
+}
 
-    if (!modalVisible) {
-        document.body.classList.remove('modal-open');
-    }
+function unlockBodyScrollIfNoModal() {
+    // Pequeño delay para asegurar que el modal ya se ocultó
+    setTimeout(() => {
+        const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
+            .some(modal => window.getComputedStyle(modal).display !== 'none');
+
+        if (!modalVisible) {
+            document.body.classList.remove('modal-open');
+        }
+    }, 50);
 }
 
 // Helper para mostrar mensajes (compatible con app-loader.js)
@@ -29,6 +38,16 @@ function mostrarMensajeSabana(mensaje, tipo = 'info') {
         if (tipo === 'error') {
             alert(mensaje);
         }
+    }
+}
+
+function toggleAvisoArchivarActual() {
+    const alertaArchivar = document.getElementById('alertaArchivarActual');
+    const switchArchivar = document.getElementById('switchArchivarActual');
+
+    if (alertaArchivar) {
+        const debeMostrar = !!switchArchivar?.checked;
+        alertaArchivar.style.display = debeMostrar ? 'flex' : 'none';
     }
 }
 
@@ -95,27 +114,26 @@ async function cambiarServicioActual(sabanaId) {
 
         console.log('💾 currentSabanaItems guardados:', currentSabanaItems.length);
 
+        // Asegurar que el select muestre la sábana actual, incluso si está archivada
+        const selectServicio = document.getElementById('filtroServicioActual');
+        if (selectServicio) {
+            const optionExistente = Array.from(selectServicio.options).find(opt => opt.value === String(sabana.id));
+            if (!optionExistente) {
+                const option = document.createElement('option');
+                option.value = sabana.id;
+                option.textContent = `${sabana.nombre} (archivada)`;
+                option.dataset.archivada = true;
+                selectServicio.appendChild(option);
+            }
+            selectServicio.value = sabana.id;
+        }
+
         const tituloEl = document.getElementById('tituloServicioActual');
         if (tituloEl) {
             if (sabana.archivada) {
                 tituloEl.innerHTML = `
                     <span style="color: white;">Sábana de ${sabana.nombre}</span>
-                    <span style="
-                        display: inline-flex;
-                        align-items: center;
-                        gap: 0.5rem;
-                        margin-left: 1rem;
-                        padding: 0.25rem 0.75rem;
-                        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-                        color: white;
-                        font-size: 0.75rem;
-                        font-weight: 700;
-                        text-transform: uppercase;
-                        letter-spacing: 0.5px;
-                        border-radius: 4px;
-                        border: 2px solid var(--negro-carbon);
-                        box-shadow: 2px 2px 0 var(--negro-carbon);
-                    ">
+                    <span class="sabana-archivada-badge">
                         <i class="fas fa-lock"></i>
                         Archivada · Solo lectura
                     </span>
@@ -582,6 +600,29 @@ async function abrirModalNuevaSabana() {
     // Cargar servicios existentes en el select
     await cargarServiciosExistentes();
 
+    // Resetear switch y aviso de archivado
+    const switchArchivar = document.getElementById('switchArchivarActual');
+    if (switchArchivar) {
+        const nuevoSwitchArchivar = switchArchivar.cloneNode(true);
+        nuevoSwitchArchivar.checked = false;
+        switchArchivar.parentNode.replaceChild(nuevoSwitchArchivar, switchArchivar);
+        nuevoSwitchArchivar.addEventListener('change', toggleAvisoArchivarActual);
+        toggleAvisoArchivarActual();
+    }
+
+    // Permitir cerrar con Escape
+    if (!cerrarModalNuevaSabanaEscHandler) {
+        cerrarModalNuevaSabanaEscHandler = function (e) {
+            if (e.key === 'Escape') {
+                const modalVisible = document.getElementById('modalNuevaSabana');
+                if (modalVisible && modalVisible.style.display === 'flex') {
+                    cerrarModalNuevaSabana();
+                }
+            }
+        };
+        document.addEventListener('keydown', cerrarModalNuevaSabanaEscHandler);
+    }
+
     modal.style.display = 'flex';
     lockBodyScroll();
 }
@@ -654,7 +695,13 @@ function cerrarModalNuevaSabana() {
     const modal = document.getElementById('modalNuevaSabana');
     if (modal) {
         modal.style.display = 'none';
-        unlockBodyScrollIfNoModal();
+        // Forzar desbloqueo del body al cerrar el modal
+        unlockBodyScroll();
+    }
+
+    if (cerrarModalNuevaSabanaEscHandler) {
+        document.removeEventListener('keydown', cerrarModalNuevaSabanaEscHandler);
+        cerrarModalNuevaSabanaEscHandler = null;
     }
 }
 
@@ -705,19 +752,7 @@ async function confirmarNuevaSabana() {
         return;
     }
 
-    // Agregar fecha al nombre si no la tiene
-    const fechaHoy = new Date().toLocaleDateString('es-MX', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-
-    // Solo agregar fecha si no está ya en el nombre
-    if (!nombreServicio.includes(fechaHoy)) {
-        nombreServicio = `${nombreServicio} - ${fechaHoy}`;
-    }
-
-    console.log('📝 Nombre con fecha:', nombreServicio);
+    console.log('📝 Nombre ingresado:', nombreServicio);
     console.log('🔍 Estado antes de crear:');
     console.log('   - currentSabanaId:', currentSabanaId);
     console.log('   - debeArchivarActual:', debeArchivarActual);
@@ -875,6 +910,18 @@ async function verHistorialServicios() {
         modal.style.display = 'flex';
         lockBodyScroll();
 
+        if (!cerrarModalHistorialEscHandler) {
+            cerrarModalHistorialEscHandler = function (e) {
+                if (e.key === 'Escape') {
+                    const modalVisible = document.getElementById('modalHistorialSabanas');
+                    if (modalVisible && modalVisible.style.display === 'flex') {
+                        cerrarModalHistorial();
+                    }
+                }
+            };
+            document.addEventListener('keydown', cerrarModalHistorialEscHandler);
+        }
+
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
         alert('Error al cargar el historial');
@@ -885,7 +932,13 @@ function cerrarModalHistorial() {
     const modal = document.getElementById('modalHistorialSabanas');
     if (modal) {
         modal.style.display = 'none';
-        unlockBodyScrollIfNoModal();
+        // Forzar desbloqueo del body al cerrar el modal
+        unlockBodyScroll();
+    }
+
+    if (cerrarModalHistorialEscHandler) {
+        document.removeEventListener('keydown', cerrarModalHistorialEscHandler);
+        cerrarModalHistorialEscHandler = null;
     }
 }
 
@@ -1082,7 +1135,7 @@ async function crearNuevaSabana(servicioId) {
         servicioNombre = servicioNombre.replace(/_/g, ' ');
         servicioNombre = servicioNombre.charAt(0).toUpperCase() + servicioNombre.slice(1);
 
-        const nombreSabana = `${servicioNombre} - ${new Date().toLocaleDateString('es-MX')}`;
+        const nombreSabana = `${servicioNombre}`;
 
         const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas`, {
             method: 'POST',
