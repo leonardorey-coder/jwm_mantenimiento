@@ -414,6 +414,12 @@
     }
 }
 
+/* Evitar que el fondo salte al abrir modales en el login */
+body.login-body.modal-open {
+    height: auto;
+    min-height: 100vh;
+}
+
 /* Modal: Olvidaste tu contraseña */
 .forgot-password-modal {
     position: fixed;
