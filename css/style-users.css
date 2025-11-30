@@ -4,26 +4,123 @@
 .usuarios-container {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
+    gap: 1rem;
 }
 
 .usuarios-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.25rem;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
     width: 100%;
 }
 
+/* ========================================
+   SKELETON LOADING USUARIOS
+   ======================================== */
+@keyframes skeleton-shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.usuario-card-skeleton {
+    background: #f8f9fa;
+    border: 3px solid var(--gris-medio);
+    border-radius: 10px;
+    padding: 0.875rem;
+    max-width: 400px;
+}
+
+.skeleton-line {
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite ease-in-out;
+    border-radius: 4px;
+}
+
+.skeleton-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 2px solid var(--gris-medio);
+}
+
+.skeleton-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite ease-in-out;
+    flex-shrink: 0;
+}
+
+.skeleton-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.skeleton-name {
+    height: 14px;
+    width: 70%;
+}
+
+.skeleton-badge {
+    height: 20px;
+    width: 60px;
+}
+
+.skeleton-detalles {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.skeleton-detail {
+    height: 28px;
+    width: 100%;
+}
+
+.skeleton-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.625rem;
+    border-top: 2px solid var(--gris-medio);
+}
+
+.skeleton-sessions {
+    height: 40px;
+    width: 100%;
+}
+
+.skeleton-toggle {
+    height: 32px;
+    width: 100%;
+}
+
+.skeleton-button {
+    height: 36px;
+    width: 100%;
+}
+
+/* ========================================
+   TARJETA DE USUARIO
+   ======================================== */
 .usuario-card {
     background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
-    border: 4px solid var(--negro-carbon);
-    border-radius: 12px;
-    padding: 1.25rem;
-    box-shadow: 8px 8px 0px var(--negro-carbon);
+    border: 3px solid var(--negro-carbon);
+    border-radius: 10px;
+    padding: 0.875rem;
+    box-shadow: 5px 5px 0px var(--negro-carbon);
     transition: all 0.3s ease;
     position: relative;
     overflow: hidden;
-    max-width: 420px;
+    max-width: 400px;
 }
 
 .usuario-card::before {
@@ -44,32 +141,32 @@
 .usuario-header {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.875rem;
-    border-bottom: 3px solid var(--gris-medio);
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+    padding-bottom: 0.625rem;
+    border-bottom: 2px solid var(--gris-medio);
 }
 
 .usuario-avatar {
-    width: 52px;
-    height: 52px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--verde-oliva), #4a5f3a);
-    border: 3px solid var(--negro-carbon);
+    border: 2px solid var(--negro-carbon);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     color: #ffffff;
     flex-shrink: 0;
-    box-shadow: 3px 3px 0px var(--negro-carbon);
+    box-shadow: 2px 2px 0px var(--negro-carbon);
 }
 
 .usuario-info-principal {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
+    gap: 0.25rem;
 }
 
 .usuario-info {
@@ -77,11 +174,12 @@
 }
 
 .usuario-nombre {
-    font-size: 1.1rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--negro-carbon);
     margin: 0;
     letter-spacing: -0.3px;
+    line-height: 1.2;
 }
 
 .usuario-email {
@@ -133,19 +231,19 @@
 .usuario-detalles {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    margin-bottom: 0.875rem;
+    gap: 0.3rem;
+    margin-bottom: 0.5rem;
 }
 
 .detalle-item {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
-    padding: 0.45rem 0.6rem;
+    gap: 0.5rem;
+    padding: 0.3rem 0.5rem;
     background: var(--gris-claro);
-    border: 2px solid var(--gris-medio);
-    border-radius: 6px;
-    font-size: 0.8rem;
+    border: 1px solid var(--gris-medio);
+    border-radius: 4px;
+    font-size: 0.75rem;
     color: var(--negro-carbon);
     font-weight: 500;
     transition: all 0.2s ease;
@@ -159,42 +257,42 @@
 
 .detalle-item i {
     color: var(--verde-oliva);
-    width: 18px;
+    width: 14px;
     text-align: center;
-    font-size: 1rem;
+    font-size: 0.85rem;
 }
 
 /* Footer del Usuario */
 .usuario-footer {
     display: flex;
     flex-direction: column;
-    padding-top: 1rem;
-    border-top: 3px solid var(--gris-medio);
-    gap: 0.75rem;
+    padding-top: 0.625rem;
+    border-top: 2px solid var(--gris-medio);
+    gap: 0.5rem;
 }
 
 .usuario-info-sesiones {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
+    gap: 0.5rem;
 }
 
 .usuario-sesion {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.125rem;
 }
 
 .sesion-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
     color: var(--gris-oscuro);
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
     text-transform: uppercase;
 }
 
 .sesion-valor {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: var(--negro-carbon);
 }
@@ -218,26 +316,26 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    padding: 0.65rem 0.85rem;
+    gap: 0.75rem;
+    padding: 0.4rem 0.6rem;
     background: var(--gris-claro);
-    border: 2px solid var(--gris-medio);
-    border-radius: 8px;
-    box-shadow: 3px 3px 0 var(--negro-carbon);
+    border: 1px solid var(--gris-medio);
+    border-radius: 5px;
+    box-shadow: 2px 2px 0 var(--negro-carbon);
 }
 
 .usuario-sesiones-resumen .sesion-label {
-    font-size: 0.7rem;
-    letter-spacing: 0.8px;
+    font-size: 0.6rem;
+    letter-spacing: 0.6px;
     color: var(--gris-oscuro);
 }
 
 .sesion-valores {
     display: flex;
-    gap: 0.75rem;
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.6px;
+    letter-spacing: 0.5px;
 }
 
 .sesion-valores span {
@@ -406,9 +504,11 @@
 }
 
 .checkbox-wrapper-35 .switch+label .switch-x-toggletext {
-    display: block;
+    display: flex;
+    align-items: center;
     font-weight: bold;
-    height: 15px;
+    min-height: 16px;
+    height: auto;
     overflow: hidden;
     position: relative;
     width: var(--switch-toggle-width, 25px);
@@ -416,9 +516,12 @@
 
 .checkbox-wrapper-35 .switch+label .switch-x-unchecked,
 .checkbox-wrapper-35 .switch+label .switch-x-checked {
+    display: inline-flex;
+    align-items: center;
     left: 0;
     position: absolute;
-    top: 0;
+    top: 50%;
+    transform: translateY(-50%);
     -webkit-transition: opacity 0.125s ease-out, -webkit-transform 0.125s ease-out;
     transition: opacity 0.125s ease-out, -webkit-transform 0.125s ease-out;
     transition: transform 0.125s ease-out, opacity 0.125s ease-out;
@@ -427,19 +530,24 @@
 
 .checkbox-wrapper-35 .switch+label .switch-x-unchecked {
     opacity: 1;
-    -webkit-transform: none;
-    transform: none;
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
 }
 
 .checkbox-wrapper-35 .switch+label .switch-x-checked {
     opacity: 0;
-    -webkit-transform: translate3d(0, 100%, 0);
-    transform: translate3d(0, 100%, 0);
+    -webkit-transform: translateY(50%);
+    transform: translateY(50%);
 }
 
 .checkbox-wrapper-35 .switch+label .switch-x-hiddenlabel {
     position: absolute;
     visibility: hidden;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
 }
 
 .checkbox-wrapper-35 .switch:checked+label::before {
@@ -453,62 +561,89 @@
 
 .checkbox-wrapper-35 .switch:checked+label .switch-x-unchecked {
     opacity: 0;
-    -webkit-transform: translate3d(0, -100%, 0);
-    transform: translate3d(0, -100%, 0);
+    -webkit-transform: translateY(-150%);
+    transform: translateY(-150%);
 }
 
 .checkbox-wrapper-35 .switch:checked+label .switch-x-checked {
     opacity: 1;
-    -webkit-transform: none;
-    transform: none;
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
 }
 
 @media (max-width: 540px) {
+    .usuario-switch-container {
+        flex-wrap: nowrap;
+    }
+
+    .checkbox-wrapper-35 {
+        min-width: 220px;
+        flex: 1 1 220px;
+    }
+
     .checkbox-wrapper-35 .switch+label {
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        gap: 0.6rem;
-        white-space: normal;
+        gap: 0.35rem;
+        white-space: nowrap;
+        font-size: 11px;
+        line-height: 14px;
     }
 
     .checkbox-wrapper-35 .switch+label::before {
-        margin-right: 0;
+        margin-right: 6px;
     }
 
     .checkbox-wrapper-35 .switch+label .switch-x-toggletext {
         min-width: auto;
-        width: 100%;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        line-height: 1.15;
     }
 }
 
 .usuario-actions {
     display: flex;
     gap: 0.5rem;
-    margin-top: 1rem;
+    margin-top: 0.5rem;
 }
 
 .btn-edit-user,
-.btn-delete-user {
+.btn-delete-user,
+.btn-unlock-user {
     flex: 1;
-    padding: 0.6rem;
+    padding: 0.5rem;
     border: 2px solid var(--border-color);
     background: var(--bg-principal);
     color: var(--texto-principal);
     font-weight: 600;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
     transition: all 0.2s ease;
     border-radius: var(--radio-pequeno);
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.4rem;
 }
 
 .btn-edit-user:hover {
     background: var(--verde-oliva);
     color: #ffffff;
     border-color: var(--verde-oliva);
+}
+
+.btn-unlock-user {
+    background: #fef3c7;
+    border-color: #f59e0b;
+    color: #92400e;
+}
+
+.btn-unlock-user:hover {
+    background: #f59e0b;
+    color: #ffffff;
+    border-color: #d97706;
 }
 
 .btn-delete-user:hover {
@@ -644,8 +779,6 @@
 }
 
 .usuario-stats-card .card-actions {
-    display: flex;
-    justify-content: space-between;
     gap: 0.5em;
     margin-top: auto;
 }
