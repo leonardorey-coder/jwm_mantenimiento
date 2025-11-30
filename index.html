@@ -13,6 +13,7 @@
 
     <link rel="stylesheet" href="views/checklist/checklist-styles.css">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style-users.css">
     <link rel="stylesheet" href="css/style-users-blocked.css">
 
     <!-- PWA Manifest -->
@@ -1041,116 +1042,120 @@
         <!-- Tab Content: Gestión de Usuarios (Solo Admin) -->
         <div class="tab-content admin-only" id="tab-usuarios" data-aos="fade-in">
             <h1 class="titulos t-principal">Gestión de Usuarios</h1>
-            <h2 class="titulos t-secundario">Administración del Sistema</h2>
-
-            <div class="usuarios-container">
-                <div class="usuarios-layout">
-                    <div class="usuarios-main-column">
-                        <div class="panel panel-filtros usuarios-toolbar" data-aos="fade-down">
-                            <div class="usuarios-toolbar-left">
-                                <div class="campo-busqueda premium-search">
-                                    <i class="fas fa-search icono-busqueda"></i>
-                                    <input type="text" id="usuariosSearchInput"
-                                        placeholder="Buscar por nombre, correo o departamento">
-                                </div>
-                            </div>
-                            <div class="usuarios-toolbar-right">
-                                <label class="usuarios-toggle">
-                                    <input type="checkbox" id="usuariosShowInactive">
-                                    <span>Solo inactivos</span>
-                                </label>
-                                <button class="brutalist-card__button brutalist-card__button--read"
-                                    id="usuariosRefreshBtn">
-                                    <i class="fas fa-sync-alt"></i> Refrescar
-                                </button>
-                                <button class="brutalist-card__button" onclick="mostrarModalNuevoUsuario()">
-                                    <i class="fas fa-user-plus"></i> Nuevo usuario
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Lista de Usuarios -->
-                        <div class="usuarios-grid" id="usuariosGrid">
-                            <div class="mensaje-cargando">Cargando usuarios...</div>
-                        </div>
+            <h2 class="titulos t-secundario">Administración del Sistema · JW Marriott</h2>
+            
+            <!-- Panel de búsqueda y filtros (ancho completo) -->
+            <div class="panel panel-filtros panel-filtros-usuarios" data-aos="fade-down">
+                <div class="busqueda-filtros usuarios-filtros">
+                    <div class="campo-busqueda premium-search">
+                        <i class="fas fa-search icono-busqueda"></i>
+                        <input type="text" id="buscarUsuario" placeholder="Buscar por nombre, correo o departamento...">
                     </div>
-
-                    <div class="usuarios-form-panel" data-aos="fade-left">
-                        <div class="usuarios-form-card brutalist-card">
-                            <div class="usuarios-form-header">
-                                <h3 id="usuarioFormTitle">Registrar nuevo usuario</h3>
-                                <p>Completa la información para crear o actualizar un usuario del sistema.</p>
-                            </div>
-                            <form id="usuarioForm" class="usuarios-form-body" novalidate>
-                                <div class="form-grid">
-                                    <label>
-                                        <span>Nombre completo *</span>
-                                        <input type="text" id="usuarioNombre" required placeholder="Ej. Juan Pérez">
-                                    </label>
-                                    <label>
-                                        <span>Correo corporativo *</span>
-                                        <input type="email" id="usuarioEmail" required
-                                            placeholder="usuario@jwmarriott.com">
-                                    </label>
-                                    <label>
-                                        <span>Departamento</span>
-                                        <input type="text" id="usuarioDepartamento" placeholder="Ej. Mantenimiento">
-                                    </label>
-                                    <label>
-                                        <span>Teléfono</span>
-                                        <input type="tel" id="usuarioTelefono" placeholder="+52 624 000 0000">
-                                    </label>
-                                    <label>
-                                        <span>Número de empleado</span>
-                                        <input type="text" id="usuarioNumeroEmpleado" placeholder="EMP-00123">
-                                    </label>
-                                    <label>
-                                        <span>Rol *</span>
-                                        <select id="usuarioRol" required>
-                                            <option value="">Selecciona un rol...</option>
-                                        </select>
-                                    </label>
-                                </div>
-
-                                <label>
-                                    <span>Contraseña temporal</span>
-                                    <input type="password" id="usuarioPassword" placeholder="Mínimo 6 caracteres">
-                                    <small id="usuarioPasswordHelp">La contraseña temporal solo se solicita durante el
-                                        alta de un usuario.</small>
-                                </label>
-
-                                <label>
-                                    <span>Notas internas</span>
-                                    <textarea id="usuarioNotas" rows="3"
-                                        placeholder="Notas para el equipo de administración"></textarea>
-                                </label>
-
-                                <div class="usuarios-form-options">
-                                    <label class="usuarios-toggle">
-                                        <input type="checkbox" id="usuarioActivo" checked>
-                                        <span>Usuario activo</span>
-                                    </label>
-                                    <label class="usuarios-toggle">
-                                        <input type="checkbox" id="usuarioRequierePassword">
-                                        <span>Solicitar cambio de contraseña en el próximo acceso</span>
-                                    </label>
-                                </div>
-
-                                <div class="usuarios-form-actions">
-                                    <button type="submit" id="usuarioFormSubmit"
-                                        class="brutalist-card__button brutalist-card__button--mark">
-                                        <i class="fas fa-save"></i> Crear usuario
-                                    </button>
-                                    <button type="button" id="usuarioFormCancel"
-                                        class="brutalist-card__button brutalist-card__button--ghost">
-                                        Cancelar
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="select-container premium-select">
+                        <select id="filtroRolUsuario" name="rol_usuario">
+                            <option value="">Todos los roles</option>
+                            <option value="admin">👑 Administrador</option>
+                            <option value="supervisor">👔 Supervisor</option>
+                            <option value="tecnico">🔧 Técnico</option>
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
                     </div>
+                    <div class="select-container premium-select">
+                        <select id="filtroEstadoUsuario" name="estado_usuario">
+                            <option value="">Todos los estados</option>
+                            <option value="activo">✅ Activos</option>
+                            <option value="inactivo">❌ Desactivados</option>
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
+                    </div>
+                    <button type="button" class="btn-nuevo-usuario" onclick="abrirModalUsuario()">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Usuario</span>
+                    </button>
                 </div>
             </div>
+            
+            <!-- Grid de Usuarios (ancho completo) -->
+            <div class="usuarios-grid" id="usuariosGrid" data-aos="fade-up">
+                <!-- Los usuarios se cargarán dinámicamente -->
+                <div class="mensaje-cargando">Cargando usuarios...</div>
+            </div>
+
+            <div class="habitaciones-pagination usuarios-pagination" id="usuariosPagination" aria-live="polite"></div>
+        </div>
+    </div>
+
+    <!-- Modal Usuario (Crear/Editar) -->
+    <div id="modalUsuario" class="modal-detalles modal-editar-tarea modal-usuario-form" style="display:none" aria-hidden="true">
+        <div class="modal-detalles-overlay" onclick="cerrarModalUsuario()"></div>
+        <div class="modal-detalles-contenido tarea-edit-modal">
+            <div class="modal-detalles-header">
+                <div>
+                    <p class="modal-detalles-subtitulo" id="modalUsuarioSubtitulo">Nuevo usuario</p>
+                    <h3 id="modalUsuarioTitulo">Crear</h3>
+                </div>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalUsuario()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="formUsuario" class="tarea-edit-form">
+                <input type="hidden" id="usuarioIdEdicion" value="">
+                <div class="tarea-edit-grid">
+                    <div class="form-group full">
+                        <label for="nombreUsuario">Nombre completo</label>
+                        <input type="text" id="nombreUsuario" name="nombre" placeholder="Ej. Juan Pérez" required>
+                    </div>
+                    <div class="form-group full">
+                        <label for="correoUsuario">Correo corporativo</label>
+                        <input type="email" id="correoUsuario" name="email" placeholder="usuario@jwmarriott.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="departamentoUsuario">Departamento</label>
+                        <input type="text" id="departamentoUsuario" name="departamento" placeholder="Ej. Mantenimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="telefonoUsuario">Teléfono</label>
+                        <input type="tel" id="telefonoUsuario" name="telefono" placeholder="+52 624 000 0000">
+                    </div>
+                    <div class="form-group">
+                        <label for="numeroEmpleadoUsuario">Número de empleado</label>
+                        <input type="text" id="numeroEmpleadoUsuario" name="numero_empleado" placeholder="EMP-00123">
+                    </div>
+                    <div class="form-group">
+                        <label for="rolUsuario">Rol</label>
+                        <select id="rolUsuario" name="rol" required>
+                            <option value="">Selecciona un rol...</option>
+                            <option value="admin">Administrador</option>
+                            <option value="supervisor">Supervisor</option>
+                            <option value="tecnico">Técnico</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label for="passwordUsuario">Contraseña temporal</label>
+                        <input type="password" id="passwordUsuario" name="password" placeholder="Mínimo 6 caracteres" minlength="6">
+                        <small class="input-help" id="passwordHelp">La contraseña temporal solo se solicita durante el registro inicial.</small>
+                    </div>
+                    <div class="form-group full checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="requiereCambioPassword" name="requiere_cambio_password" checked>
+                            <span class="checkbox-custom"></span>
+                            <span class="checkbox-text">El usuario debe cambiar su contraseña al acceder</span>
+                        </label>
+                    </div>
+                    <div class="form-group full">
+                        <label for="notasUsuario">Notas internas</label>
+                        <textarea id="notasUsuario" name="notas_admin" rows="3" placeholder="Notas para el equipo de administración"></textarea>
+                    </div>
+                </div>
+                <div class="modal-detalles-acciones">
+                    <button type="button" class="btn-cuarto-action btn-tarea-light" onclick="cerrarModalUsuario()">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn-cuarto-action btn-tarea-accent" id="btnSubmitUsuario">
+                        <i class="fas fa-user-plus"></i> <span>Crear usuario</span>
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
