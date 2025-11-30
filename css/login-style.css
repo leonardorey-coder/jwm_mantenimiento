@@ -1,5 +1,6 @@
 /* ========================================
    LOGIN STYLE - JW MARRIOTT
+   Mobile-First Native App Design
    ======================================== */
 
 :root[data-theme="light"] {
@@ -26,28 +27,29 @@
     --login-input-focus: #3A3A3A;
 }
 
-.login-body {
-    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: var(--login-bg);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 100vh;
-    padding: 2rem;
-    transition: background 0.3s ease;
+/* ========================================
+   ANIMACIONES
+   ======================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.login-container {
-    background: var(--login-card-bg);
-    border: 4px solid var(--login-border);
-    border-radius: 15px;
-    padding: 3rem;
-    max-width: 480px;
-    width: 100%;
-    box-shadow: 12px 12px 0 var(--login-border);
-    animation: slideIn 0.5s ease-out;
-    position: relative;
-    transition: all 0.3s ease;
+@keyframes formSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 @keyframes slideIn {
@@ -61,16 +63,6 @@
     }
 }
 
-.login-logo-container {
-    text-align: center;
-    margin-bottom: 2.5rem;
-}
-
-.login-logo {
-    max-height: 80px;
-    animation: fadeInScale 0.8s ease-out;
-}
-
 @keyframes fadeInScale {
     from {
         opacity: 0;
@@ -82,20 +74,99 @@
     }
 }
 
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-10px); }
+    75% { transform: translateX(10px); }
+}
+
+/* ========================================
+   BASE - MOBILE FIRST (APP NATIVA)
+   ======================================== */
+.login-body {
+    font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: var(--login-bg);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 0;
+    transition: background 0.3s ease;
+    overflow-x: hidden;
+}
+
+/* ========================================
+   CONTENEDOR - MOBILE (SIN CARD)
+   ======================================== */
+.login-container {
+    background: var(--login-card-bg);
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 2rem 1.75rem;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 1.5rem);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 1.5rem);
+    padding-left: calc(env(safe-area-inset-left, 0px) + 1.75rem);
+    padding-right: calc(env(safe-area-inset-right, 0px) + 1.75rem);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Borde superior decorativo con fade */
+.login-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        var(--login-btn-bg) 15%, 
+        var(--login-btn-bg) 85%, 
+        transparent 100%);
+}
+
+/* ========================================
+   LOGO CONTAINER
+   ======================================== */
+.login-logo-container {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding-top: 1rem;
+    animation: fadeInUp 0.6s ease 0.1s both;
+}
+
+.login-logo {
+    max-height: 70px;
+    animation: fadeInScale 0.8s ease-out;
+}
+
 .login-title {
     font-family: 'Playfair Display', serif;
-    font-size: 2rem;
+    font-size: 1.75rem;
     font-weight: 900;
     color: var(--login-text);
     margin: 1rem 0 0.5rem;
 }
 
 .login-subtitle {
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     color: var(--login-text-secondary);
     font-weight: 500;
+    line-height: 1.5;
+    padding: 0 1rem;
 }
 
+/* ========================================
+   THEME TOGGLE
+   ======================================== */
 .theme-toggle-login {
     position: absolute;
     top: 1.5rem;
@@ -129,10 +200,9 @@
     font-size: 1.2rem;
 }
 
-.theme-toggle-btn:hover i {
-    animation: pulse 0.5s ease;
-}
-
+/* ========================================
+   LOGIN TOGGLE
+   ======================================== */
 .login-toggle {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -142,15 +212,16 @@
     padding: 0.5rem;
     border-radius: 10px;
     border: 2px solid var(--login-border);
+    animation: fadeInUp 0.6s ease 0.2s both;
 }
 
 .toggle-button {
-    padding: 0.75rem;
+    padding: 0.85rem;
     border: 2px solid transparent;
     background: transparent;
     border-radius: 8px;
     font-weight: 600;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.3s ease;
     color: var(--login-text-secondary);
@@ -167,47 +238,50 @@
     background: var(--login-input-focus);
 }
 
+/* ========================================
+   AUTH FORMS
+   ======================================== */
 .auth-form {
     display: none;
+    flex: 1;
 }
 
 .auth-form.active {
     display: block;
+    animation: formSlideIn 0.4s ease;
 }
 
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(-10px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
+/* ========================================
+   FORM GROUPS
+   ======================================== */
 .form-group {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
+    animation: fadeInUp 0.5s ease both;
 }
+
+.form-group:nth-child(1) { animation-delay: 0.15s; }
+.form-group:nth-child(2) { animation-delay: 0.25s; }
 
 .form-group label {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     margin-bottom: 0.5rem;
     font-weight: 600;
     font-size: 0.9rem;
     color: var(--login-text);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
 }
 
 .form-group label i {
     color: var(--login-btn-bg);
 }
 
+/* ========================================
+   INPUTS
+   ======================================== */
 .form-input {
     width: 100%;
-    padding: 0.9rem 1rem;
+    padding: 1rem;
     border: 3px solid var(--login-border);
     border-radius: 8px;
     font-size: 1rem;
@@ -255,12 +329,16 @@
     color: var(--login-btn-bg);
 }
 
+/* ========================================
+   FORM OPTIONS
+   ======================================== */
 .form-options {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
     font-size: 0.85rem;
+    animation: fadeInUp 0.5s ease 0.35s both;
 }
 
 .remember-me {
@@ -290,6 +368,9 @@
     text-decoration: underline;
 }
 
+/* ========================================
+   SUBMIT BUTTON
+   ======================================== */
 .btn-submit {
     width: 100%;
     padding: 1rem;
@@ -310,6 +391,7 @@
     position: relative;
     overflow: hidden;
     box-shadow: 6px 6px 0 var(--login-border);
+    animation: fadeInUp 0.5s ease 0.4s both;
 }
 
 .btn-submit::before {
@@ -342,6 +424,9 @@
     font-size: 1.2rem;
 }
 
+/* ========================================
+   AUTH MESSAGE
+   ======================================== */
 .auth-message {
     display: none;
     padding: 1rem;
@@ -350,12 +435,6 @@
     font-weight: 600;
     text-align: center;
     animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
 }
 
 .auth-message.success {
@@ -372,55 +451,121 @@
     display: block;
 }
 
+/* ========================================
+   FOOTER
+   ======================================== */
 .login-footer {
-    margin-top: 2rem;
+    margin-top: auto;
+    padding-top: 2rem;
     text-align: center;
 }
 
 .login-footer p {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     color: var(--login-text-secondary);
     opacity: 0.7;
 }
 
-@media (max-width: 768px) {
-    .login-container {
-        padding: 2rem;
-        max-width: 100%;
-    }
-
-    .login-title {
-        font-size: 1.5rem;
-    }
-
-    .login-subtitle {
-        font-size: 0.85rem;
-    }
-
-    .theme-toggle-login {
-        top: 1rem;
-        right: 1rem;
-    }
-
-    .theme-toggle-btn {
-        width: 40px;
-        height: 40px;
-    }
-
-    .form-options {
-        flex-direction: column;
-        gap: 0.75rem;
-        align-items: flex-start;
-    }
+/* ========================================
+   REGISTRO DESHABILITADO
+   ======================================== */
+.register-disabled {
+    display: none;
 }
 
-/* Evitar que el fondo salte al abrir modales en el login */
-body.login-body.modal-open {
-    height: auto;
-    min-height: 100vh;
+.register-disabled.active {
+    display: block;
 }
 
-/* Modal: Olvidaste tu contraseña */
+.register-message-container {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.register-icon {
+    margin-bottom: 1.5rem;
+}
+
+.register-icon i {
+    font-size: 4rem;
+    color: var(--login-btn-bg);
+    opacity: 0.8;
+}
+
+.register-message-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--login-text);
+    margin-bottom: 1rem;
+}
+
+.register-message-text {
+    font-size: 1rem;
+    color: var(--login-text-secondary);
+    margin-bottom: 1rem;
+    line-height: 1.6;
+}
+
+.register-message-contact {
+    font-size: 0.95rem;
+    color: var(--login-text-secondary);
+    margin-bottom: 1.5rem;
+    font-weight: 500;
+}
+
+.register-admin-email {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--login-btn-bg);
+    color: #FFFFFF;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    margin-bottom: 1.5rem;
+}
+
+.register-admin-email:hover {
+    background: var(--login-btn-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.register-admin-email i {
+    font-size: 1.1rem;
+}
+
+.register-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: var(--login-input-bg);
+    border: 2px solid var(--login-border);
+    border-radius: 8px;
+    margin-top: 1.5rem;
+    text-align: left;
+}
+
+.register-info i {
+    color: var(--login-btn-bg);
+    font-size: 1.2rem;
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+}
+
+.register-info span {
+    font-size: 0.85rem;
+    color: var(--login-text-secondary);
+    line-height: 1.5;
+}
+
+/* ========================================
+   MODAL - OLVIDASTE CONTRASEÑA
+   ======================================== */
 .forgot-password-modal {
     position: fixed;
     inset: 0;
@@ -428,7 +573,7 @@ body.login-body.modal-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1rem;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
@@ -448,6 +593,8 @@ body.login-body.modal-open {
 .forgot-card {
     width: 100%;
     max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
     background: var(--login-card-bg);
     border: 4px solid var(--login-border);
     border-radius: 14px;
@@ -621,7 +768,9 @@ body.login-body.modal-open {
     background: rgba(76, 84, 76, 0.12);
 }
 
-/* Modal de cambio obligatorio de contraseña */
+/* ========================================
+   MODAL - CAMBIO OBLIGATORIO CONTRASEÑA
+   ======================================== */
 .force-password-modal {
     position: fixed;
     inset: 0;
@@ -629,7 +778,7 @@ body.login-body.modal-open {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
+    padding: 1rem;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
@@ -649,6 +798,8 @@ body.login-body.modal-open {
 .force-password-card {
     width: 100%;
     max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
     background: var(--login-card-bg);
     border: 4px solid var(--login-border);
     border-radius: 16px;
@@ -735,9 +886,101 @@ body.login-body.modal-open {
     background: rgba(76, 84, 76, 0.12);
 }
 
-@media (max-width: 480px) {
+/* Evitar scroll en modal */
+body.login-body.modal-open {
+    height: auto;
+    min-height: 100vh;
+}
+
+/* ========================================
+   RESPONSIVE - TABLET/DESKTOP (≥600px)
+   Aquí sí mostramos la card
+   ======================================== */
+@media (min-width: 600px) {
+    .login-body {
+        padding: 2rem;
+        align-items: center;
+        background: var(--login-bg);
+    }
+
     .login-container {
-        padding: 1.5rem;
+        max-width: 480px;
+        min-height: auto;
+        padding: 3rem;
+        border: 4px solid var(--login-border);
+        border-radius: 15px;
+        box-shadow: 12px 12px 0 var(--login-border);
+        animation: slideIn 0.5s ease-out;
+    }
+
+    /* Ajustar borde superior para que se vea dentro del border-radius */
+    .login-container::before {
+        left: 20px;
+        right: 20px;
+        border-radius: 0 0 3px 3px;
+    }
+
+    .login-logo {
+        max-height: 80px;
+    }
+
+    .login-title {
+        font-size: 2rem;
+    }
+
+    .login-subtitle {
+        font-size: 0.9rem;
+    }
+
+    .form-options {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .login-footer {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+    }
+
+    .theme-toggle-login {
+        top: 1.5rem;
+        right: 1.5rem;
+    }
+}
+
+/* ========================================
+   RESPONSIVE - DESKTOP GRANDE (≥768px)
+   ======================================== */
+@media (min-width: 768px) {
+    .login-container {
+        padding: 3rem;
+    }
+
+    .login-title {
+        font-size: 2rem;
+    }
+
+    .form-group label {
+        font-size: 0.9rem;
+    }
+
+    .forgot-card,
+    .force-password-card {
+        padding: 2rem;
+    }
+
+    .register-icon i {
+        font-size: 4rem;
+    }
+}
+
+/* ========================================
+   RESPONSIVE - MÓVILES PEQUEÑOS (≤380px)
+   ======================================== */
+@media (max-width: 380px) {
+    .login-container {
+        padding: 1.5rem 1.25rem;
     }
 
     .login-logo {
@@ -745,10 +988,30 @@ body.login-body.modal-open {
     }
 
     .login-title {
-        font-size: 1.3rem;
+        font-size: 1.5rem;
     }
 
-    .forgot-card {
+    .login-subtitle {
+        font-size: 0.75rem;
+    }
+
+    .toggle-button {
+        padding: 0.7rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .form-input {
+        padding: 0.85rem;
+        font-size: 0.95rem;
+    }
+
+    .btn-submit {
+        padding: 0.9rem;
+        font-size: 0.9rem;
+    }
+
+    .forgot-card,
+    .force-password-card {
         padding: 1.5rem;
     }
 
@@ -761,124 +1024,6 @@ body.login-body.modal-open {
         height: 38px;
     }
 
-    .btn-submit {
-        padding: 0.85rem;
-    }
-    /* Evitar que el modal crezca demasiado en altura en pantallas angostas
-       Limitar la altura máxima al viewport y permitir scroll interno */
-    .forgot-card,
-    .force-password-card {
-        max-height: calc(100vh - 3rem);
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-    /* Reducir ligeramente la altura mínima de los campos de texto en móvil */
-    .forgot-form input,
-    .forgot-form textarea,
-    .force-password-form input {
-        min-height: 44px;
-    }
-}
-
-/* ========================================
-   REGISTRO DESHABILITADO - CONTACTAR ADMIN
-   ======================================== */
-
-.register-disabled {
-    display: none;
-}
-
-.register-disabled.active {
-    display: block;
-}
-
-.register-message-container {
-    text-align: center;
-    padding: 2rem 1rem;
-}
-
-.register-icon {
-    margin-bottom: 1.5rem;
-}
-
-.register-icon i {
-    font-size: 4rem;
-    color: var(--login-btn-bg);
-    opacity: 0.8;
-}
-
-.register-message-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--login-text);
-    margin-bottom: 1rem;
-}
-
-.register-message-text {
-    font-size: 1rem;
-    color: var(--login-text-secondary);
-    margin-bottom: 1rem;
-    line-height: 1.6;
-}
-
-.register-message-contact {
-    font-size: 0.95rem;
-    color: var(--login-text-secondary);
-    margin-bottom: 1.5rem;
-    font-weight: 500;
-}
-
-.register-admin-email {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    background: var(--login-btn-bg);
-    color: #FFFFFF;
-    text-decoration: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.3s ease;
-    margin-bottom: 1.5rem;
-}
-
-.register-admin-email:hover {
-    background: var(--login-btn-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.register-admin-email i {
-    font-size: 1.1rem;
-}
-
-.register-info {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-    padding: 1rem;
-    background: var(--login-input-bg);
-    border: 2px solid var(--login-border);
-    border-radius: 8px;
-    margin-top: 1.5rem;
-    text-align: left;
-}
-
-.register-info i {
-    color: var(--login-btn-bg);
-    font-size: 1.2rem;
-    flex-shrink: 0;
-    margin-top: 0.2rem;
-}
-
-.register-info span {
-    font-size: 0.85rem;
-    color: var(--login-text-secondary);
-    line-height: 1.5;
-}
-
-@media (max-width: 480px) {
     .register-icon i {
         font-size: 3rem;
     }
@@ -890,5 +1035,24 @@ body.login-body.modal-open {
     .register-admin-email {
         padding: 0.65rem 1.25rem;
         font-size: 0.95rem;
+    }
+}
+
+/* ========================================
+   MODALES EN MÓVIL - FULLSCREEN
+   ======================================== */
+@media (max-width: 599px) {
+    .forgot-card,
+    .force-password-card {
+        max-height: calc(100vh - 2rem);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 14px;
+    }
+
+    .forgot-form input,
+    .forgot-form textarea,
+    .force-password-form input {
+        min-height: 48px;
     }
 }
