@@ -743,37 +743,46 @@ function filterEspaciosComunes() {
 }
 
 function setupUsuariosListeners() {
-    const usuariosSearchInput = document.getElementById('usuariosSearchInput');
-    if (usuariosSearchInput) {
-        usuariosSearchInput.addEventListener('input', (e) => {
+    // Búsqueda por texto
+    const buscarUsuario = document.getElementById('buscarUsuario');
+    if (buscarUsuario) {
+        buscarUsuario.addEventListener('input', (e) => {
             AppState.usuariosFiltro = e.target.value;
             renderUsuariosList();
         });
     }
 
-    const usuariosShowInactive = document.getElementById('usuariosShowInactive');
-    if (usuariosShowInactive) {
-        usuariosShowInactive.addEventListener('change', () => {
-            cargarUsuarios();
+    // Filtro por rol
+    const filtroRolUsuario = document.getElementById('filtroRolUsuario');
+    if (filtroRolUsuario) {
+        filtroRolUsuario.addEventListener('change', () => {
+            renderUsuariosList();
         });
     }
 
-    const usuariosRefreshBtn = document.getElementById('usuariosRefreshBtn');
-    if (usuariosRefreshBtn) {
-        usuariosRefreshBtn.addEventListener('click', () => {
-            cargarUsuarios();
+    // Filtro por estado
+    const filtroEstadoUsuario = document.getElementById('filtroEstadoUsuario');
+    if (filtroEstadoUsuario) {
+        filtroEstadoUsuario.addEventListener('change', () => {
+            renderUsuariosList();
         });
     }
 
-    const usuarioForm = document.getElementById('usuarioForm');
+    // Formulario de usuario
+    const usuarioForm = document.getElementById('formUsuario');
     if (usuarioForm) {
         usuarioForm.addEventListener('submit', handleUsuarioFormSubmit);
     }
 
-    const usuarioFormCancel = document.getElementById('usuarioFormCancel');
-    if (usuarioFormCancel) {
-        usuarioFormCancel.addEventListener('click', resetUsuarioForm);
-    }
+    // Cerrar modal de usuario con tecla Escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modal = document.getElementById('modalUsuario');
+            if (modal && modal.style.display !== 'none') {
+                cerrarModalUsuario();
+            }
+        }
+    });
 }
 
 // ========================================
@@ -925,6 +934,15 @@ function loadTabData(tabId) {
 
 async function loadUsuariosData() {
     console.log('👥 Cargando datos de usuarios...');
+    
+    // Si ya hay usuarios cargados, solo renderizar (no mostrar skeleton)
+    if (AppState.usuarios && AppState.usuarios.length > 0) {
+        console.log('👥 [USUARIOS] Usando datos en caché:', AppState.usuarios.length);
+        renderUsuariosList();
+        return;
+    }
+    
+    // Primera carga: cargar roles y usuarios
     await cargarRoles();
     await cargarUsuarios();
 }
@@ -3096,9 +3114,16 @@ async function cargarRoles() {
     }
 }
 
-async function cargarUsuarios() {
+async function cargarUsuarios(forceReload = false) {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid || AppState.currentUser?.role !== 'admin') {
+        return;
+    }
+
+    // Si ya hay datos y no se fuerza la recarga, solo renderizar
+    if (!forceReload && AppState.usuarios && AppState.usuarios.length > 0) {
+        console.log('👥 [USUARIOS] Usando caché, total:', AppState.usuarios.length);
+        renderUsuariosList();
         return;
     }
 
@@ -3106,8 +3131,8 @@ async function cargarUsuarios() {
         AppState.usuariosLoading = true;
         renderUsuariosList();
 
-        const includeInactive = document.getElementById('usuariosShowInactive')?.checked ? '1' : '0';
-        const response = await window.fetchWithAuth(`${API_BASE_URL}/api/auth/usuarios?includeInactive=${includeInactive}`);
+        // Siempre cargar todos los usuarios (activos e inactivos) - el filtrado se hace en el cliente
+        const response = await window.fetchWithAuth(`${API_BASE_URL}/api/auth/usuarios?includeInactive=1`);
         if (!response.ok) {
             throw new Error('Error al cargar usuarios');
         }
@@ -3140,12 +3165,38 @@ function renderRolesSelect(selectedValue) {
     }
 }
 
+function renderUsuariosSkeletons(count = 6) {
+    const skeleton = `
+        <div class="usuario-card-skeleton">
+            <div class="skeleton-header">
+                <div class="skeleton-avatar"></div>
+                <div class="skeleton-info">
+                    <div class="skeleton-line skeleton-name"></div>
+                    <div class="skeleton-line skeleton-badge"></div>
+                </div>
+            </div>
+            <div class="skeleton-detalles">
+                <div class="skeleton-line skeleton-detail"></div>
+                <div class="skeleton-line skeleton-detail"></div>
+                <div class="skeleton-line skeleton-detail"></div>
+                <div class="skeleton-line skeleton-detail"></div>
+            </div>
+            <div class="skeleton-footer">
+                <div class="skeleton-line skeleton-sessions"></div>
+                <div class="skeleton-line skeleton-toggle"></div>
+                <div class="skeleton-line skeleton-button"></div>
+            </div>
+        </div>
+    `;
+    return Array(count).fill(skeleton).join('');
+}
+
 function renderUsuariosList() {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid) return;
 
     if (AppState.usuariosLoading) {
-        usuariosGrid.innerHTML = '<div class="mensaje-cargando">Cargando usuarios...</div>';
+        usuariosGrid.innerHTML = renderUsuariosSkeletons(6);
         return;
     }
 
@@ -3154,30 +3205,39 @@ function renderUsuariosList() {
         return;
     }
 
-    const filtro = (AppState.usuariosFiltro || '').toLowerCase().trim();
-    const showInactiveOnly = document.getElementById('usuariosShowInactive')?.checked;
+    // Obtener valores de filtros
+    const textoBusqueda = (AppState.usuariosFiltro || '').toLowerCase().trim();
+    const filtroRol = document.getElementById('filtroRolUsuario')?.value || '';
+    const filtroEstado = document.getElementById('filtroEstadoUsuario')?.value || '';
 
     const filtrados = AppState.usuarios.filter(usuario => {
-        if (showInactiveOnly) {
-            if (usuario.activo) return false;
-        } else if (!usuario.activo) {
-            return false;
+        // Filtrar por estado
+        if (filtroEstado === 'activo' && !usuario.activo) return false;
+        if (filtroEstado === 'inactivo' && usuario.activo) return false;
+        
+        // Filtrar por rol
+        if (filtroRol) {
+            const rolUsuario = (usuario.rol_nombre || 'tecnico').toLowerCase();
+            if (rolUsuario !== filtroRol) return false;
         }
-        if (!filtro) return true;
-        return [
-            usuario.nombre,
-            usuario.email,
-            usuario.departamento,
-            usuario.numero_empleado,
-            usuario.rol_nombre
-        ].filter(Boolean).some(valor => valor.toLowerCase().includes(filtro));
+        
+        // Filtrar por texto de búsqueda
+        if (textoBusqueda) {
+            const coincide = [
+                usuario.nombre,
+                usuario.email,
+                usuario.departamento,
+                usuario.numero_empleado,
+                usuario.rol_nombre
+            ].filter(Boolean).some(valor => valor.toLowerCase().includes(textoBusqueda));
+            if (!coincide) return false;
+        }
+        
+        return true;
     });
 
     if (filtrados.length === 0) {
-        const mensaje = showInactiveOnly
-            ? 'No se encontraron usuarios inactivos con los filtros aplicados'
-            : 'No se encontraron usuarios activos con los filtros aplicados';
-        usuariosGrid.innerHTML = `<div class="mensaje-vacio">${mensaje}</div>`;
+        usuariosGrid.innerHTML = '<div class="mensaje-vacio">No se encontraron usuarios con los filtros aplicados</div>';
         return;
     }
 
@@ -3186,27 +3246,33 @@ function renderUsuariosList() {
 
 function renderUsuarioCard(usuario) {
     const estadoClase = usuario.activo ? 'estado-activo' : 'estado-inactivo';
-    const estadoTexto = usuario.activo ? 'Activo' : 'Inactivo';
     const ultimaSesion = formatUsuarioFecha(usuario.ultima_sesion_login);
     const ultimoAcceso = formatUsuarioFecha(usuario.ultimo_acceso);
+    const rol = (usuario.rol_nombre || 'tecnico').toLowerCase();
+    
+    // Determinar clase de badge según rol
+    const badgeClass = rol === 'admin' ? 'badge-admin' 
+        : rol === 'supervisor' ? 'badge-supervisor' 
+        : 'badge-tecnico';
+    
+    // Determinar icono del avatar según rol
+    const avatarIcon = rol === 'admin' ? 'fa-user-shield' 
+        : rol === 'supervisor' ? 'fa-user-tie' 
+        : 'fa-user';
 
     const estaBloqueado = usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date();
     const bloqueadoHasta = estaBloqueado ? formatUsuarioFecha(usuario.bloqueado_hasta) : null;
 
     return `
-        <div class="usuario-card ${estadoClase} ${estaBloqueado ? 'usuario-bloqueado' : ''}">
-            <div class="usuario-card-head">
-                <div>
-                    <h3>${usuario.nombre || 'Sin nombre'}</h3>
-                    <div class="usuario-card-meta-line">
-                        <span class="usuarios-status-badge ${estadoClase}">${estadoTexto}</span>
-                        <span class="usuario-rol pill">${usuario.rol_nombre || 'SIN ROL'}</span>
-                        ${estaBloqueado ? '<span class="usuarios-status-badge usuario-bloqueado-badge"><i class="fas fa-lock"></i> Bloqueado</span>' : ''}
-                    </div>
+        <div class="usuario-card gradient-card ${estaBloqueado ? 'usuario-bloqueado' : ''}" data-rol="${rol}" data-estado="${usuario.activo ? 'activo' : 'inactivo'}">
+            <div class="usuario-header">
+                <div class="usuario-avatar">
+                    <i class="fas ${avatarIcon}"></i>
                 </div>
-                <button class="btn-icon" title="Editar usuario" onclick="editarUsuario(${usuario.id})">
-                    <i class="fas fa-edit"></i>
-                </button>
+                <div class="usuario-info-principal">
+                    <h3 class="usuario-nombre">${usuario.nombre || 'Sin nombre'}</h3>
+                    <span class="badge-rol ${badgeClass}">${(usuario.rol_nombre || 'TÉCNICO').toUpperCase()}</span>
+                </div>
             </div>
             ${estaBloqueado ? `
                 <div class="usuario-bloqueado-alerta">
@@ -3218,36 +3284,65 @@ function renderUsuarioCard(usuario) {
                 </div>
             ` : ''}
             <div class="usuario-detalles">
-                <div class="usuario-detalle">
+                <div class="detalle-item">
                     <i class="fas fa-envelope"></i>
-                    <span>${usuario.email || 'sin correo'}</span>
+                    <span>${usuario.email || 'Sin correo'}</span>
                 </div>
-                ${usuario.telefono ? `<div class="usuario-detalle"><i class="fas fa-phone"></i><span>${usuario.telefono}</span></div>` : ''}
-                ${usuario.departamento ? `<div class="usuario-detalle"><i class="fas fa-building"></i><span>${usuario.departamento}</span></div>` : ''}
-                ${usuario.numero_empleado ? `<div class="usuario-detalle"><i class="fas fa-id-card"></i><span>${usuario.numero_empleado}</span></div>` : ''}
-            </div>
-            <div class="usuario-card-footer">
-                <div>
-                    <small>Último acceso</small>
-                    <strong>${ultimoAcceso}</strong>
+                <div class="detalle-item">
+                    <i class="fas fa-phone"></i>
+                    <span>${usuario.telefono || 'Sin registro'}</span>
                 </div>
-                <div>
-                    <small>Última sesión</small>
-                    <strong>${ultimaSesion}</strong>
+                <div class="detalle-item">
+                    <i class="fas fa-building"></i>
+                    <span>${usuario.departamento || 'Sin registro'}</span>
                 </div>
-                <div>
-                    <small>Sesiones</small>
-                    <strong>${usuario.total_sesiones || 0} · Activas ${usuario.sesiones_activas || 0}</strong>
+                <div class="detalle-item">
+                    <i class="fas fa-id-badge"></i>
+                    <span>${usuario.numero_empleado || 'Sin registro'}</span>
                 </div>
             </div>
-            <div class="usuario-acciones">
-                ${estaBloqueado
-            ? `<button class="btn-desbloquear" onclick="desbloquearUsuario(${usuario.id})"><i class="fas fa-unlock"></i> Desbloquear</button>
-                       ${usuario.activo ? `<button class="btn-desactivar" onclick="desactivarUsuario(${usuario.id})"><i class="fas fa-user-slash"></i> Desactivar</button>` : ''}`
-            : usuario.activo
-                ? `<button class="btn-desactivar" onclick="desactivarUsuario(${usuario.id})"><i class="fas fa-user-slash"></i> Desactivar</button>`
-                : `<button class="btn-activar" onclick="activarUsuario(${usuario.id})"><i class="fas fa-user-check"></i> Reactivar</button>`
-        }
+            <div class="usuario-footer">
+                <div class="usuario-info-sesiones">
+                    <div class="usuario-sesion">
+                        <span class="sesion-label">ÚLTIMO ACCESO</span>
+                        <span class="sesion-valor">${ultimoAcceso}</span>
+                    </div>
+                    <div class="usuario-sesion">
+                        <span class="sesion-label">ÚLTIMA SESIÓN</span>
+                        <span class="sesion-valor">${ultimaSesion}</span>
+                    </div>
+                </div>
+                <div class="usuario-sesiones-resumen">
+                    <span class="sesion-label">SESIONES</span>
+                    <div class="sesion-valores">
+                        <span class="sesion-total">${usuario.total_sesiones || 0} registradas</span>
+                        <span class="sesion-activas">${usuario.sesiones_activas || 0} activas</span>
+                    </div>
+                </div>
+                <div class="usuario-switch-container">
+                    <div class="checkbox-wrapper-35">
+                        <input type="checkbox" class="switch usuario-toggle" id="toggle-${usuario.id}" ${usuario.activo ? 'checked' : ''} onchange="toggleUsuarioEstado(${usuario.id}, this.checked)">
+                        <label for="toggle-${usuario.id}">
+                            <span class="switch-x-text">Estado</span>
+                            <span class="switch-x-toggletext">
+                                <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Estado: </span>Desactivar</span>
+                                <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Estado: </span>Activar</span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="usuario-actions">
+                    ${estaBloqueado ? `
+                    <button class="btn-unlock-user" type="button" onclick="desbloquearUsuario(${usuario.id})">
+                        <i class="fas fa-unlock"></i>
+                        <span>Desbloquear</span>
+                    </button>
+                    ` : ''}
+                    <button class="btn-edit-user" type="button" onclick="editarUsuario(${usuario.id})">
+                        <i class="fas fa-pen-to-square"></i>
+                        <span>Editar</span>
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -3288,10 +3383,11 @@ async function handleUsuarioFormSubmit(event) {
     event.preventDefault();
     if (AppState.currentUser?.role !== 'admin') return;
 
-    const submitBtn = document.getElementById('usuarioFormSubmit');
+    const submitBtn = document.getElementById('btnSubmitUsuario');
+    const originalHTML = submitBtn?.innerHTML;
     if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.textContent = 'Guardando...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>GUARDANDO...</span>';
     }
 
     try {
@@ -3301,13 +3397,15 @@ async function handleUsuarioFormSubmit(event) {
             throw new Error('Nombre, correo y rol son obligatorios');
         }
 
-        const isEdit = AppState.usuarioFormMode === 'edit' && AppState.usuarioEdicion;
+        const usuarioId = document.getElementById('usuarioIdEdicion')?.value;
+        const isEdit = AppState.usuarioFormMode === 'edit' && usuarioId;
+        
         if (!isEdit && !payload.password) {
             throw new Error('La contraseña temporal es obligatoria para nuevos usuarios');
         }
 
         const endpoint = isEdit
-            ? `${API_BASE_URL}/api/usuarios/${AppState.usuarioEdicion.id}`
+            ? `${API_BASE_URL}/api/usuarios/${usuarioId}`
             : `${API_BASE_URL}/api/usuarios`;
         const method = isEdit ? 'PUT' : 'POST';
 
@@ -3326,7 +3424,8 @@ async function handleUsuarioFormSubmit(event) {
         }
 
         alert(isEdit ? 'Usuario actualizado exitosamente' : 'Usuario creado exitosamente');
-        await cargarUsuarios();
+        cerrarModalUsuario();
+        await cargarUsuarios(true);
         resetUsuarioForm();
     } catch (error) {
         console.error('Error al guardar usuario:', error);
@@ -3334,28 +3433,26 @@ async function handleUsuarioFormSubmit(event) {
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = AppState.usuarioFormMode === 'edit' ? 'Actualizar usuario' : 'Crear usuario';
+            submitBtn.innerHTML = originalHTML || '<i class="fas fa-user-plus"></i> <span>CREAR USUARIO</span>';
         }
     }
 }
 
 function buildUsuarioPayload() {
     const getValue = (id) => document.getElementById(id)?.value?.trim() || '';
-    const getCheckbox = (id) => document.getElementById(id)?.checked || false;
 
     const payload = {
-        nombre: getValue('usuarioNombre'),
-        email: getValue('usuarioEmail').toLowerCase(),
-        telefono: getValue('usuarioTelefono') || null,
-        departamento: getValue('usuarioDepartamento') || null,
-        numero_empleado: getValue('usuarioNumeroEmpleado') || null,
-        rol: document.getElementById('usuarioRol')?.value || '',
-        activo: getCheckbox('usuarioActivo'),
-        requiere_cambio_password: getCheckbox('usuarioRequierePassword'),
-        notas_admin: getValue('usuarioNotas') || null
+        nombre: getValue('nombreUsuario'),
+        email: getValue('correoUsuario').toLowerCase(),
+        telefono: getValue('telefonoUsuario') || null,
+        departamento: getValue('departamentoUsuario') || null,
+        numero_empleado: getValue('numeroEmpleadoUsuario') || null,
+        rol: document.getElementById('rolUsuario')?.value || '',
+        requiere_cambio_password: document.getElementById('requiereCambioPassword')?.checked || false,
+        notas_admin: getValue('notasUsuario') || null
     };
 
-    const password = getValue('usuarioPassword');
+    const password = getValue('passwordUsuario');
     if (password) {
         payload.password = password;
     }
@@ -3373,47 +3470,132 @@ function editarUsuario(id) {
     AppState.usuarioFormMode = 'edit';
     AppState.usuarioEdicion = usuario;
 
-    document.getElementById('usuarioFormTitle').textContent = `Editar usuario`;
-    const submitBtn = document.getElementById('usuarioFormSubmit');
-    if (submitBtn) submitBtn.textContent = 'Actualizar usuario';
+    // Configurar modal para edición
+    const modalTitulo = document.getElementById('modalUsuarioTitulo');
+    const modalSubtitulo = document.getElementById('modalUsuarioSubtitulo');
+    const btnSubmit = document.getElementById('btnSubmitUsuario');
+    const passwordHelp = document.getElementById('passwordHelp');
+    
+    if (modalSubtitulo) modalSubtitulo.textContent = 'Editar usuario';
+    if (modalTitulo) modalTitulo.textContent = 'Actualizar';
+    if (btnSubmit) {
+        btnSubmit.innerHTML = '<i class="fas fa-save"></i> <span>Actualizar usuario</span>';
+    }
+    if (passwordHelp) {
+        passwordHelp.textContent = 'Deja vacío para mantener la contraseña actual.';
+    }
 
+    // Llenar formulario con datos del usuario
     const setValue = (id, value) => {
         const input = document.getElementById(id);
         if (input) input.value = value || '';
     };
 
-    setValue('usuarioNombre', usuario.nombre);
-    setValue('usuarioEmail', usuario.email);
-    setValue('usuarioTelefono', usuario.telefono);
-    setValue('usuarioDepartamento', usuario.departamento);
-    setValue('usuarioNumeroEmpleado', usuario.numero_empleado);
-    setValue('usuarioNotas', usuario.notas_admin);
+    document.getElementById('usuarioIdEdicion').value = usuario.id;
+    setValue('nombreUsuario', usuario.nombre);
+    setValue('correoUsuario', usuario.email);
+    setValue('telefonoUsuario', usuario.telefono);
+    setValue('departamentoUsuario', usuario.departamento);
+    setValue('numeroEmpleadoUsuario', usuario.numero_empleado);
+    setValue('notasUsuario', usuario.notas_admin);
+    setValue('passwordUsuario', '');
 
-    const rolSelect = document.getElementById('usuarioRol');
-    if (rolSelect) {
-        renderRolesSelect(usuario.rol_id || rolSelect.value);
-        const rolValue = usuario.rol_id ? String(usuario.rol_id) : '';
-        if (rolValue) {
-            rolSelect.value = rolValue;
-        } else if (usuario.rol_nombre) {
-            const match = (AppState.roles || []).find(r => r.nombre === usuario.rol_nombre);
-            if (match) rolSelect.value = String(match.id);
-        }
+    const rolSelect = document.getElementById('rolUsuario');
+    if (rolSelect && usuario.rol_nombre) {
+        const rolValue = usuario.rol_nombre.toLowerCase();
+        rolSelect.value = rolValue;
     }
 
-    const activoCheckbox = document.getElementById('usuarioActivo');
-    if (activoCheckbox) activoCheckbox.checked = !!usuario.activo;
+    // Checkbox de cambio de contraseña
+    const requiereCambio = document.getElementById('requiereCambioPassword');
+    if (requiereCambio) {
+        requiereCambio.checked = !!usuario.requiere_cambio_password;
+    }
 
-    const requierePwd = document.getElementById('usuarioRequierePassword');
-    if (requierePwd) requierePwd.checked = !!usuario.requiere_cambio_password;
+    // Abrir modal
+    abrirModalUsuario(true);
+}
 
-    const passwordInput = document.getElementById('usuarioPassword');
-    if (passwordInput) passwordInput.value = '';
+// Función para abrir el modal de usuario
+function abrirModalUsuario(esEdicion = false) {
+    const modal = document.getElementById('modalUsuario');
+    
+    if (!esEdicion) {
+        // Reset para nuevo usuario
+        AppState.usuarioFormMode = 'create';
+        AppState.usuarioEdicion = null;
+        
+        const modalTitulo = document.getElementById('modalUsuarioTitulo');
+        const modalSubtitulo = document.getElementById('modalUsuarioSubtitulo');
+        const btnSubmit = document.getElementById('btnSubmitUsuario');
+        const passwordHelp = document.getElementById('passwordHelp');
+        const form = document.getElementById('formUsuario');
+        
+        if (modalSubtitulo) modalSubtitulo.textContent = 'Nuevo usuario';
+        if (modalTitulo) modalTitulo.textContent = 'Crear';
+        if (btnSubmit) {
+            btnSubmit.innerHTML = '<i class="fas fa-user-plus"></i> <span>Crear usuario</span>';
+        }
+        if (passwordHelp) {
+            passwordHelp.textContent = 'La contraseña temporal solo se solicita durante el registro inicial.';
+        }
+        if (form) form.reset();
+        
+        // Por defecto, marcar el checkbox de cambio de contraseña
+        const requiereCambio = document.getElementById('requiereCambioPassword');
+        if (requiereCambio) requiereCambio.checked = true;
+        
+        document.getElementById('usuarioIdEdicion').value = '';
+    }
+    
+    if (modal) {
+        modal.style.display = 'flex';
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.style.overflow = 'hidden';
+    }
+}
 
-    const passwordHelp = document.getElementById('usuarioPasswordHelp');
-    if (passwordHelp) passwordHelp.textContent = 'Ingrese una nueva contraseña solo si desea restablecerla.';
+// Función para cerrar el modal de usuario
+function cerrarModalUsuario() {
+    const modal = document.getElementById('modalUsuario');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+    }
+}
 
-    document.getElementById('usuarioForm')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// Función para toggle de estado de usuario (nuevo switch)
+async function toggleUsuarioEstado(id, activar) {
+    try {
+        if (activar) {
+            // Activar usuario
+            const response = await window.fetchWithAuth(`${API_BASE_URL}/api/usuarios/${id}/activar`, {
+                method: 'POST'
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al activar usuario');
+            }
+            await cargarUsuarios(true);
+        } else {
+            // Desactivar usuario
+            const response = await window.fetchWithAuth(`${API_BASE_URL}/api/usuarios/${id}/desactivar`, {
+                method: 'POST',
+                body: JSON.stringify({ motivo: 'Desactivado por administrador' })
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Error al desactivar usuario');
+            }
+            await cargarUsuarios(true);
+        }
+    } catch (error) {
+        console.error('Error al cambiar estado de usuario:', error);
+        alert(error.message || 'Error al cambiar estado del usuario');
+        // Recargar para restaurar el estado original del switch
+        await cargarUsuarios(true);
+    }
 }
 
 async function desactivarUsuario(id) {
@@ -3438,7 +3620,7 @@ async function desactivarUsuario(id) {
         }
 
         alert('Usuario desactivado exitosamente');
-        await cargarUsuarios();
+        await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al desactivar usuario:', error);
         alert(error.message || 'Error al desactivar usuario');
@@ -3460,7 +3642,7 @@ async function activarUsuario(id) {
         }
 
         alert('Usuario reactivado exitosamente');
-        await cargarUsuarios();
+        await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al reactivar usuario:', error);
         alert(error.message || 'Error al activar usuario');
@@ -3482,7 +3664,7 @@ async function desbloquearUsuario(id) {
         }
 
         alert('Usuario desbloqueado exitosamente');
-        await cargarUsuarios();
+        await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al desbloquear usuario:', error);
         alert(error.message || 'Error al desbloquear usuario. Intenta nuevamente.');
@@ -3507,6 +3689,9 @@ window.updateChecklistEstado = updateChecklistEstado;
 window.exportarChecklistExcel = exportarChecklistExcel;
 window.mostrarModalNuevoUsuario = mostrarModalNuevoUsuario;
 window.editarUsuario = editarUsuario;
+window.abrirModalUsuario = abrirModalUsuario;
+window.cerrarModalUsuario = cerrarModalUsuario;
+window.toggleUsuarioEstado = toggleUsuarioEstado;
 window.desactivarUsuario = desactivarUsuario;
 window.activarUsuario = activarUsuario;
 window.desbloquearUsuario = desbloquearUsuario;

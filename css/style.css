@@ -4871,20 +4871,9 @@ body.admin .tab-content.admin-only.active {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  background: var(--gris-claro);
   padding: 0.3rem 0.6rem;
-  border-radius: 20px;
-  border: 1px solid var(--gris-separador);
 }
 
-.responsable-nombre::before {
-  content: '';
-  width: 8px;
-  height: 8px;
-  background: var(--verde-oliva);
-  border-radius: 50%;
-  flex-shrink: 0;
-}
 
 .input-observaciones {
   width: 100%;
@@ -5276,7 +5265,6 @@ body.admin .tab-content.admin-only.active {
 
 .usuarios-grid .usuario-card {
   border-radius: 24px;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
   padding: 1.75rem;
 }
 

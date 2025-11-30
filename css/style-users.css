@@ -252,6 +252,11 @@
     color: var(--verde-oliva);
 }
 
+.usuario-sesiones-resumen,
+.usuario-sesiones-resumen .sesion-valores {
+    flex-wrap: nowrap;
+}
+
 .usuario-sesiones.activas-destacadas {
     background: linear-gradient(135deg, #fef3c7, #fde047);
     border-color: #eab308;
@@ -267,6 +272,31 @@
 
     50% {
         opacity: 0.8;
+    }
+}
+
+/* Evita desbordes de texto en el resumen de sesiones en viewports ~610-556px */
+@media (max-width: 640px) {
+    .usuario-sesiones-resumen {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.5rem 0.75rem;
+    }
+
+    .usuario-sesiones-resumen .sesion-label {
+        width: 100%;
+        margin-bottom: 0.1rem;
+    }
+
+    .usuario-sesiones-resumen .sesion-valores {
+        flex-wrap: wrap;
+        width: 100%;
+        gap: 0.35rem 0.75rem;
+    }
+
+    .usuario-sesiones-resumen .sesion-valores span {
+        display: inline-flex;
+        align-items: center;
     }
 }
 
@@ -287,7 +317,7 @@
     border: 2px solid var(--gris-medio);
     border-radius: 8px;
     width: 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .checkbox-wrapper-35 {
@@ -295,6 +325,8 @@
     display: flex;
     align-items: center;
     justify-content: flex-start;
+    flex: 1 1 260px;
+    min-width: 260px;
     --switch-toggle-width: 120px;
 }
 
@@ -327,6 +359,7 @@
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+    white-space: nowrap;
 }
 
 .usuario-switch-container .switch-x-text,
@@ -435,6 +468,7 @@
         flex-direction: column;
         align-items: center;
         gap: 0.6rem;
+        white-space: normal;
     }
 
     .checkbox-wrapper-35 .switch+label::before {
@@ -791,4 +825,392 @@
 
 .switch-toggle input:focus+.switch-slider {
     box-shadow: 0 0 0 3px rgba(115, 138, 85, 0.3), inset 2px 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   BOTÓN NUEVO USUARIO
+   ======================================== */
+.btn-nuevo-usuario {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: linear-gradient(135deg, var(--verde-oliva), #4a5f3a);
+    color: var(--blanco);
+    border: 3px solid var(--negro-carbon);
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    box-shadow: 4px 4px 0px var(--negro-carbon);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-nuevo-usuario:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px var(--negro-carbon);
+    background: linear-gradient(135deg, #4a5f3a, var(--verde-oliva));
+}
+
+.btn-nuevo-usuario:active {
+    transform: translate(2px, 2px);
+    box-shadow: 2px 2px 0px var(--negro-carbon);
+}
+
+.btn-nuevo-usuario i {
+    font-size: 1rem;
+}
+
+/* ========================================
+   MODAL DE USUARIO - Usa los estilos de modal-detalles
+   ======================================== */
+.modal-usuario-form {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-usuario-form .modal-detalles-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+}
+
+.modal-usuario-form .modal-detalles-contenido {
+    position: relative;
+    max-width: 560px;
+    width: 90%;
+    max-height: 90vh;
+    background: var(--blanco, #fff);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    z-index: 1;
+}
+
+.modal-usuario-form .modal-detalles-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--gris-claro, #e0e0e0);
+    background: var(--gris-claro, #f5f5f5);
+}
+
+.modal-usuario-form .modal-detalles-header h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--negro-carbon, #1a1a1a);
+}
+
+.modal-usuario-form .modal-detalles-subtitulo {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--gris-oscuro, #666);
+    margin: 0 0 0.25rem 0;
+    font-weight: 600;
+}
+
+.modal-usuario-form .modal-detalles-cerrar {
+    background: transparent;
+    border: 2px solid var(--gris-medio, #ccc);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: var(--gris-oscuro, #666);
+}
+
+.modal-usuario-form .modal-detalles-cerrar:hover {
+    background: var(--rojo-ladrillo, #c53030);
+    border-color: var(--rojo-ladrillo, #c53030);
+    color: white;
+}
+
+.modal-usuario-form .tarea-edit-form {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    flex: 1;
+    max-height: calc(90vh - 80px);
+}
+
+.modal-usuario-form .tarea-edit-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+.modal-usuario-form .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.modal-usuario-form .form-group.full {
+    grid-column: 1 / -1;
+}
+
+.modal-usuario-form .form-group > label:not(.checkbox-label) {
+    display: block;
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--negro-carbon, #1a1a1a);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.modal-usuario-form .form-group input:not([type="checkbox"]),
+.modal-usuario-form .form-group select,
+.modal-usuario-form .form-group textarea {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 2px solid var(--gris-medio, #d0d0d0);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    background: var(--blanco, #fff);
+    color: var(--negro-carbon, #1a1a1a);
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+.modal-usuario-form .form-group input:not([type="checkbox"]):focus,
+.modal-usuario-form .form-group select:focus,
+.modal-usuario-form .form-group textarea:focus {
+    outline: none;
+    border-color: var(--verde-oliva, #738a55);
+    box-shadow: 0 0 0 3px rgba(115, 138, 85, 0.15);
+}
+
+.modal-usuario-form .form-group textarea {
+    resize: vertical;
+    min-height: 70px;
+}
+
+.modal-usuario-form .input-help {
+    display: block;
+    margin-top: 0.3rem;
+    font-size: 0.78rem;
+    color: var(--gris-oscuro, #777);
+    font-style: italic;
+}
+
+/* Checkbox Group */
+.modal-usuario-form .checkbox-group {
+    padding: 0.75rem 0;
+    margin-top: 0.5rem;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-label {
+    display: flex !important;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    font-size: 0.95rem;
+    color: var(--negro-carbon, #1a1a1a);
+    user-select: none;
+    padding: 0.5rem;
+    border-radius: 8px;
+    background: var(--gris-claro, #f5f5f5);
+    border: 2px solid var(--gris-medio, #ddd);
+    transition: all 0.2s ease;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-label:hover {
+    border-color: var(--verde-oliva, #738a55);
+    background: rgba(115, 138, 85, 0.05);
+}
+
+.modal-usuario-form .checkbox-group .checkbox-label input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-custom {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    border: 2px solid var(--gris-medio, #aaa);
+    border-radius: 6px;
+    position: relative;
+    transition: all 0.2s ease;
+    background: var(--blanco, #fff);
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-label input[type="checkbox"]:checked + .checkbox-custom {
+    background: var(--verde-oliva, #738a55);
+    border-color: var(--verde-oliva, #738a55);
+}
+
+.modal-usuario-form .checkbox-group .checkbox-custom::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    width: 6px;
+    height: 11px;
+    border: solid white;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {
+    opacity: 1;
+}
+
+.modal-usuario-form .checkbox-group .checkbox-text {
+    flex: 1;
+    font-weight: 500;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+/* Botones del modal */
+.modal-usuario-form .modal-detalles-acciones {
+    display: flex !important;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 1.25rem 1.5rem;
+    border-top: 1px solid var(--gris-claro, #e0e0e0);
+    background: var(--gris-claro, #f5f5f5);
+    flex-shrink: 0;
+    min-height: 70px;
+}
+
+.modal-usuario-form .modal-detalles-acciones .btn-cuarto-action,
+.modal-usuario-form .modal-detalles-acciones button {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    white-space: nowrap;
+    min-height: 44px;
+    min-width: 160px;
+}
+
+.modal-usuario-form .modal-detalles-acciones .btn-tarea-light {
+    background: var(--blanco, #fff);
+    color: var(--gris-oscuro, #555);
+    border-color: var(--gris-medio, #ccc);
+}
+
+.modal-usuario-form .modal-detalles-acciones .btn-tarea-light:hover {
+    background: var(--gris-claro, #f0f0f0);
+    border-color: var(--gris-oscuro, #999);
+}
+
+.modal-usuario-form .modal-detalles-acciones .btn-tarea-accent {
+    background: var(--verde-oliva, #738a55);
+    color: white;
+    border-color: var(--verde-oliva, #738a55);
+}
+
+.modal-usuario-form .modal-detalles-acciones .btn-tarea-accent:hover {
+    background: #5a7043;
+    border-color: #5a7043;
+}
+
+/* Scrollbar del formulario */
+.modal-usuario-form .tarea-edit-form::-webkit-scrollbar {
+    width: 8px;
+}
+
+.modal-usuario-form .tarea-edit-form::-webkit-scrollbar-track {
+    background: var(--gris-claro, #f0f0f0);
+}
+
+.modal-usuario-form .tarea-edit-form::-webkit-scrollbar-thumb {
+    background: var(--gris-medio, #ccc);
+    border-radius: 4px;
+}
+
+.modal-usuario-form .tarea-edit-form::-webkit-scrollbar-thumb:hover {
+    background: var(--gris-oscuro, #999);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+    .modal-usuario-form .modal-detalles-contenido {
+        width: 95%;
+        max-height: 95vh;
+    }
+    
+    .modal-usuario-form .tarea-edit-grid {
+        grid-template-columns: 1fr;
+        padding: 1rem;
+    }
+    
+    .modal-usuario-form .form-group {
+        grid-column: 1 / -1;
+    }
+    
+    .modal-usuario-form .modal-detalles-acciones {
+        padding: 1rem;
+    }
+    
+    .modal-usuario-form .btn-cuarto-action {
+        width: 50%;
+        flex: 1 1 50%;
+        justify-content: center;
+    }
+}
+
+/* Ajuste de filtros de usuarios en móviles:
+   mantenemos visibles los select e input cuando la regla global los oculta */
+@media (max-width: 640px) {
+    #tab-usuarios .busqueda-filtros {
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+    }
+
+    #tab-usuarios .busqueda-filtros .campo-busqueda,
+    #tab-usuarios .busqueda-filtros .select-container {
+        width: 100%;
+        min-width: unset;
+    }
+
+    #tab-usuarios .btn-nuevo-usuario {
+        width: 100%;
+        justify-content: center;
+    }
 }
