@@ -21,6 +21,7 @@ test-*.html
 test-*.js
 *.test.js
 *.spec.js
+/scripts/
 
 # Scripts obsoletos
 *.disabled
