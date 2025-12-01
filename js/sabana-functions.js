@@ -226,8 +226,8 @@ function renderSabanaTable(items, archivada = false) {
                     : '<span style="color: #999;">-</span>'}
                 </td>
                 <td data-label="Responsable">
-                    ${item.responsable_nombre || item.responsable
-                    ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
+                    ${(item.responsable_nombre && item.responsable_nombre !== 'null') || (item.responsable && item.responsable !== 'null')
+                    ? `<span class="responsable-nombre">${(item.responsable_nombre && item.responsable_nombre !== 'null') ? item.responsable_nombre : item.responsable}</span>`
                     : '<span style="color: #999;">-</span>'}
                 </td>
                 <td data-label="Observaciones">

@@ -1057,6 +1057,10 @@ function ensureSabanasCollection() {
 }
 
 function getSelectedSabana() {
+    // LEGACY: Esta función ya no se usa - la sábana se maneja en sabana-functions.js
+    if (!AppState.sabanaCollections || !Array.isArray(AppState.sabanaCollections)) {
+        return null;
+    }
     return AppState.sabanaCollections.find(s => s.id === AppState.sabanaSeleccionadaId);
 }
 
@@ -1257,13 +1261,18 @@ function renderSabanaTable(data) {
 }
 
 function toggleCambioRealizado(registroId) {
-    const sabana = getSelectedSabana();
-    if (!sabana) return;
-    const registro = sabana.registros.find(item => item.id === registroId);
-    if (!registro) return;
-    actualizarRegistroSabana(registroId, { realizado: !registro.realizado });
-    applySabanaFilters(true);
-    console.log(`✅ ${registro.realizado ? 'Marcado' : 'Desmarcado'} el cambio de ${registro.habitacion}`);
+    // LEGACY: Redirigir a la función correcta de sabana-functions.js
+    console.warn('⚠️ toggleCambioRealizado() es legacy - usando toggleRealizadoSabana de sabana-functions.js');
+    
+    // Obtener el estado actual del checkbox para invertirlo
+    const checkbox = document.querySelector(`input.checkbox-sabana[data-item-id="${registroId}"]`);
+    const nuevoEstado = checkbox ? checkbox.checked : true;
+    
+    if (typeof window.toggleRealizadoSabana === 'function') {
+        window.toggleRealizadoSabana(registroId, nuevoEstado);
+    } else {
+        console.error('❌ toggleRealizadoSabana no está disponible');
+    }
 }
 
 function filterSabana(searchTerm = '') {
@@ -5199,7 +5208,7 @@ function updateTareasTimeline(tareas) {
 
 // Hacer funciones globales para uso en HTML
 // NOTA: Estas funciones de sábana ahora vienen de sabana-functions.js (API)
-// window.toggleCambioRealizado = toggleCambioRealizado; // Legacy - usar toggleRealizadoSabana
+window.toggleCambioRealizado = toggleCambioRealizado; // Legacy wrapper - redirige a toggleRealizadoSabana
 window.updateChecklistEstado = updateChecklistEstado;
 // window.exportarSabanaExcel = exportarSabanaExcel; // Legacy - usar la de sabana-functions.js
 window.exportarChecklistExcel = exportarChecklistExcel;
