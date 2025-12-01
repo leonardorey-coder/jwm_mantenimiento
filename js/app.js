@@ -161,8 +161,9 @@ function clearAuthData() {
     sessionStorage.removeItem('currentUser');
 }
 
-// Exportar función para uso en otras páginas
+// Exportar funciones críticas inmediatamente
 window.fetchWithAuth = fetchWithAuth;
+window.clearAuthData = clearAuthData;
 
 // Función principal de inicialización
 async function initializeApp() {
@@ -414,6 +415,9 @@ async function logout() {
     }
 }
 
+// Exportar logout inmediatamente para que otros módulos puedan usarla
+window.logout = logout;
+
 // ========================================
 // TEMA (CLARO/OSCURO)
 // ========================================
@@ -493,6 +497,9 @@ function initializeTheme() {
     console.log('🎨 Tema inicializado:', savedTheme);
 }
 
+// Exportar initializeTheme
+window.initializeTheme = initializeTheme;
+
 function toggleTheme() {
     const newTheme = AppState.theme === 'light' ? 'dark' : 'light';
     AppState.theme = newTheme;
@@ -503,6 +510,9 @@ function toggleTheme() {
 
     console.log('🎨 Tema cambiado a:', newTheme);
 }
+
+// Exportar toggleTheme inmediatamente
+window.toggleTheme = toggleTheme;
 
 function updateThemeIcon(theme) {
     const icon = document.querySelector('#themeToggle i');
@@ -555,8 +565,20 @@ function setupEventListeners() {
     // Gestión de usuarios (solo admin)
     setupUsuariosListeners();
 
+    // Llamar a listeners específicos de checklist si el módulo está cargado
+    if (typeof window.setupChecklistEventListeners === 'function') {
+        window.setupChecklistEventListeners();
+    }
+
+    // Marcar que app.js ya configuró los listeners principales
+    window._appJsSetupEventListenersCalled = true;
+
     console.log('✅ Event listeners configurados');
 }
+
+// Exportar funciones críticas inmediatamente después de definirlas
+// para que otros módulos puedan usarlas
+window.setupEventListeners = setupEventListeners;
 
 // Función para manejar el toggle de filtros en móvil
 function setupFiltrosToggle() {
@@ -913,6 +935,9 @@ function initializeNavigation() {
     }
 }
 
+// Exportar initializeNavigation
+window.initializeNavigation = initializeNavigation;
+
 function switchTab(tabId, loadData = true) {
     // Ocultar todos los tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
@@ -945,6 +970,9 @@ function switchTab(tabId, loadData = true) {
 
     console.log('📄 Tab activo:', tabId);
 }
+
+// Exportar switchTab inmediatamente
+window.switchTab = switchTab;
 
 function loadTabData(tabId) {
     switch (tabId) {
