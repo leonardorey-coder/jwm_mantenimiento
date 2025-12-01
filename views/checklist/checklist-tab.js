@@ -625,7 +625,10 @@ const DEFAULT_TAREAS = [
 const TAREAS_STORAGE_KEY = 'jwmt_tasks_v1';
 let tareasModuleInitialized = false;
 
-// Inicialización al cargar la página
+// NOTA: La inicialización principal se maneja en app.js
+// Este módulo solo provee funciones de checklist que app.js llama cuando es necesario
+// NO usar DOMContentLoaded aquí para evitar conflictos con app.js
+/*
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Inicializando JW Marriott Sistema de Mantenimiento...');
 
@@ -644,30 +647,47 @@ document.addEventListener('DOMContentLoaded', () => {
     // Cargar datos iniciales
     loadInitialData();
 });
+*/
+console.log('📋 [CHECKLIST-TAB] Módulo cargado - esperando inicialización desde app.js');
 
 // ========================================
 // AUTENTICACIÓN
 // ========================================
 
 function checkAuthentication() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+    // Obtener currentUser de localStorage o sessionStorage
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+    // Obtener accessToken (sistema JWT moderno)
+    const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
 
-    if (!currentUser || !currentUser.token) {
-        // Redirigir al login si no hay sesión
+    // Verificar que exista usuario Y token JWT
+    if (!currentUser || !accessToken) {
+        console.log('❌ [CHECKLIST-TAB] No hay sesión válida, redirigiendo a login...');
+        // Limpiar datos residuales antes de redirigir
+        if (typeof clearAuthData === 'function') {
+            clearAuthData();
+        } else if (typeof window.clearAuthData === 'function') {
+            window.clearAuthData();
+        }
         window.location.href = 'login.html';
         return false;
     }
 
-    // Verificar si el token sigue vigente (opcional - implementar expiración)
-    AppState.currentUser = currentUser;
+    // Token existe, sincronizar con AppState
+    if (typeof AppState !== 'undefined') {
+        AppState.currentUser = currentUser;
+    }
 
-    // Actualizar UI con info del usuario
+    // Actualizar UI con info del usuario (solo si existen los elementos)
     updateUserInfo();
 
     // Aplicar permisos según el rol
-    applyRolePermissions(currentUser.role);
+    const role = currentUser.role || currentUser.rol;
+    if (role) {
+        applyRolePermissions(role.toLowerCase());
+    }
 
-    console.log('✅ Usuario autenticado:', currentUser.name, '-', currentUser.role);
+    console.log('✅ [CHECKLIST-TAB] Usuario autenticado:', currentUser.nombre || currentUser.name, '-', role);
     return true;
 }
 
@@ -734,10 +754,31 @@ function unlockBodyScrollChecklist() {
     }
 }
 
+// Usar logout de app.js si existe, sino fallback local
 function logout() {
-    if (confirm('¿Está seguro que desea cerrar sesión?')) {
-        localStorage.removeItem('currentUser');
-        window.location.href = 'login.html';
+    if (typeof window.logout === 'function') {
+        // Usar la función global de app.js que maneja JWT correctamente
+        window.logout();
+    } else {
+        // Fallback: logout local
+        if (confirm('¿Está seguro que desea cerrar sesión?')) {
+            if (typeof clearAuthData === 'function') {
+                clearAuthData();
+            } else if (typeof window.clearAuthData === 'function') {
+                window.clearAuthData();
+            } else {
+                // Limpiar manualmente si clearAuthData no está disponible
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                localStorage.removeItem('tokenExpiration');
+                sessionStorage.removeItem('currentUser');
+                sessionStorage.removeItem('accessToken');
+                sessionStorage.removeItem('refreshToken');
+                sessionStorage.removeItem('tokenExpiration');
+            }
+            window.location.href = 'login.html';
+        }
     }
 }
 
@@ -3988,8 +4029,19 @@ function handleUsuarioToggle(usuarioId, isActive) {
 }
 
 function mostrarModalNuevoUsuario() {
-    // Redirigir a la página de registro
-    window.location.href = 'login.html';
+    // Abrir modal de creación de usuario (si existe) o mostrar mensaje
+    const modal = document.getElementById('modalCrearUsuario') || document.getElementById('usuario-modal');
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('📋 [CHECKLIST-TAB] Abriendo modal de nuevo usuario');
+    } else {
+        console.warn('⚠️ [CHECKLIST-TAB] Modal de nuevo usuario no encontrado');
+        if (typeof mostrarMensaje === 'function') {
+            mostrarMensaje('La función de crear usuarios se gestiona desde el panel de administración', 'info');
+        } else {
+            alert('La función de crear usuarios se gestiona desde el panel de administración');
+        }
+    }
 }
 
 function editarUsuario(userId) {
