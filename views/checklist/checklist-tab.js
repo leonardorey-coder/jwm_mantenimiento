@@ -1045,17 +1045,15 @@ function saveSabanas(data) {
 }
 
 function ensureSabanasCollection() {
-    let coleccion = getStoredSabanas();
-    if (!coleccion.length) {
-        coleccion = [crearSabanaBase({ id: 'sabana-filtros', titulo: 'Cambio de Filtros de Aire', tipo: 'cambio_filtros' })];
-        saveSabanas(coleccion);
+    // Ya NO crear datos default - las sábanas solo vienen de la BD Neon
+    // Esta función ahora solo asegura que las estructuras existan
+    if (!AppState.sabanaCollections) {
+        AppState.sabanaCollections = [];
     }
-    AppState.sabanaCollections = coleccion;
-    if (!AppState.sabanaSeleccionadaId) {
-        AppState.sabanaSeleccionadaId = coleccion[0].id;
+    if (!AppState.sabanaData) {
+        AppState.sabanaData = [];
     }
-    AppState.sabanaData = getSelectedSabana()?.registros || [];
-    return coleccion;
+    return AppState.sabanaCollections;
 }
 
 function getSelectedSabana() {
@@ -1074,15 +1072,9 @@ function setSabanaSeleccionada(id) {
 }
 
 function actualizarRegistroSabana(registroId, cambios) {
-    const coleccion = ensureSabanasCollection();
-    const sabana = getSelectedSabana();
-    if (!sabana) return;
-    const registro = sabana.registros.find(r => r.id === registroId);
-    if (!registro) return;
-    Object.assign(registro, cambios);
-    sabana.updatedAt = new Date().toISOString();
-    saveSabanas(coleccion);
-    AppState.sabanaData = sabana.registros;
+    // LEGACY: Esta función ya no se usa - la actualización se hace via API en sabana-functions.js
+    // Ver: window.toggleRealizadoSabana() y window.guardarObservacionSabana()
+    console.warn('⚠️ actualizarRegistroSabana() es legacy - usar API via sabana-functions.js');
 }
 
 function applySabanaFilters(shouldRender = true) {
@@ -1142,22 +1134,87 @@ function renderSabanaTipoSelect() {
 }
 
 function loadSabanaData() {
-    console.log('📋 Cargando datos de sábana...');
+    console.log('📋 Cargando datos de sábana desde API...');
     const tbody = document.getElementById('sabanaTableBody');
     if (!tbody) return;
 
-    ensureSabanasCollection();
-    const buscarInput = document.getElementById('buscarSabana');
-    if (buscarInput && buscarInput.value !== AppState.sabanaFilters.search) {
-        buscarInput.value = AppState.sabanaFilters.search;
+    // Mostrar mensaje de carga mientras se obtienen datos de la API
+    tbody.innerHTML = `
+        <tr>
+            <td colspan="7" class="mensaje-cargando">
+                <i class="fas fa-spinner fa-spin"></i> Cargando sábanas...
+            </td>
+        </tr>
+    `;
+
+    // Cargar sábanas desde la API de Neon (definida en sabana-functions.js)
+    if (typeof window.cargarListaSabanas === 'function') {
+        window.cargarListaSabanas().then(sabanas => {
+            console.log('📋 Sábanas cargadas desde API:', sabanas?.length || 0);
+            
+            // Filtrar solo activas (no archivadas)
+            const sabanasActivas = sabanas?.filter(s => !s.archivada) || [];
+            
+            if (sabanasActivas.length === 0) {
+                // No hay sábanas - mostrar mensaje para crear una
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 3rem;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                                <i class="fas fa-file-alt" style="font-size: 3rem; color: var(--color-warning);"></i>
+                                <p style="font-size: 1.1rem; color: var(--text-secondary);">No hay sábanas creadas aún.</p>
+                                <button onclick="abrirModalNuevaSabana()" class="btn btn-primary" style="margin-top: 0.5rem;">
+                                    <i class="fas fa-plus"></i> Crea una para empezar
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                // Limpiar el select
+                const selectServicio = document.getElementById('filtroServicioActual');
+                if (selectServicio) {
+                    selectServicio.innerHTML = '<option value="">-- No hay sábanas --</option>';
+                }
+            } else {
+                // Hay sábanas - seleccionar la primera si no hay ninguna seleccionada
+                const selectServicio = document.getElementById('filtroServicioActual');
+                if (selectServicio && !selectServicio.value) {
+                    // El select ya fue poblado por cargarListaSabanas
+                    // Seleccionar y cargar la primera sábana
+                    if (sabanasActivas[0]) {
+                        selectServicio.value = sabanasActivas[0].id;
+                        if (typeof window.cambiarServicioActual === 'function') {
+                            window.cambiarServicioActual(sabanasActivas[0].id);
+                        }
+                    }
+                }
+            }
+        }).catch(error => {
+            console.error('❌ Error cargando sábanas:', error);
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="mensaje-cargando" style="color: var(--color-error);">
+                        <i class="fas fa-exclamation-triangle"></i> Error al cargar sábanas
+                    </td>
+                </tr>
+            `;
+        });
+    } else {
+        console.warn('⚠️ cargarListaSabanas no está disponible (sabana-functions.js)');
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 3rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1rem;">
+                        <i class="fas fa-file-alt" style="font-size: 3rem; color: var(--color-warning);"></i>
+                        <p style="font-size: 1.1rem; color: var(--text-secondary);">No hay sábanas creadas aún.</p>
+                        <button onclick="abrirModalNuevaSabana()" class="btn btn-primary" style="margin-top: 0.5rem;">
+                            <i class="fas fa-plus"></i> Crea una para empezar
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
     }
-    renderSabanaTipoSelect();
-    const estadoSelect = document.getElementById('sabanaEstadoSelect');
-    if (estadoSelect && estadoSelect.value !== AppState.sabanaFilters.estado) {
-        estadoSelect.value = AppState.sabanaFilters.estado || '';
-    }
-    renderSabanaChips();
-    applySabanaFilters(true);
 }
 
 function renderSabanaTable(data) {
@@ -1353,28 +1410,17 @@ function closeCrearSabanaModal() {
 
 function handleCrearSabanaSubmit(event) {
     event.preventDefault();
-    const titulo = document.getElementById('sabanaNombreInput')?.value.trim();
-    const tipo = document.getElementById('sabanaTipoNuevo')?.value;
-    const descripcion = document.getElementById('sabanaDescripcionInput')?.value.trim();
-    if (!titulo || !tipo) {
-        alert('Completa el nombre y el tipo de la sábana');
-        return;
+    // LEGACY: Esta función ya no se usa - la creación se hace via API en sabana-functions.js
+    // Ver: window.confirmarNuevaSabana() y window.crearNuevaSabanaPersonalizada()
+    console.warn('⚠️ handleCrearSabanaSubmit() es legacy - usar API via sabana-functions.js');
+    
+    // Redirigir al modal nuevo de sabana-functions.js
+    if (typeof window.abrirModalNuevaSabana === 'function') {
+        closeCrearSabanaModal();
+        window.abrirModalNuevaSabana();
+    } else {
+        alert('Por favor usa el botón "Nueva Sábana" para crear una sábana.');
     }
-
-    const nuevaSabana = crearSabanaBase({
-        id: `sabana-${Date.now()}`,
-        titulo,
-        tipo,
-        descripcion
-    });
-
-    AppState.sabanaCollections.push(nuevaSabana);
-    saveSabanas(AppState.sabanaCollections);
-    AppState.sabanaSeleccionadaId = nuevaSabana.id;
-    renderSabanaTipoSelect();
-    closeCrearSabanaModal();
-    applySabanaFilters(true);
-    alert('Nueva sábana creada');
 }
 
 // ========================================
@@ -3639,36 +3685,13 @@ function eliminarUsuario(userId) {
 // ========================================
 
 function archivarPeriodo() {
-    if (AppState.currentUser.role !== 'admin') {
-        alert('Solo los administradores pueden archivar periodos');
-        return;
-    }
-
-    ensureSabanasCollection();
-    const sabana = getSelectedSabana();
-    if (!sabana) {
-        alert('No hay una sábana activa para archivar');
-        return;
-    }
-
-    if (sabana.estado === 'archivada') {
-        alert('Este periodo ya fue archivado anteriormente');
-        return;
-    }
-
-    if (!confirm('¿Está seguro que desea archivar el periodo actual? Podrás consultarlo en el historial.')) {
-        return;
-    }
-
-    sabana.estado = 'archivada';
-    sabana.archivadoAt = new Date().toISOString();
-    sabana.updatedAt = sabana.archivadoAt;
-    saveSabanas(AppState.sabanaCollections);
-    renderSabanaTipoSelect();
-    applySabanaFilters(true);
-
-    alert('Periodo archivado exitosamente');
-    console.log('📦 Periodo archivado:', sabana.archivadoAt);
+    // LEGACY: Esta función ya no se usa - el archivado se hace via API en sabana-functions.js
+    // Ver: window.archivarPeriodo() en sabana-functions.js
+    console.warn('⚠️ archivarPeriodo() de checklist-tab.js es legacy - usar API via sabana-functions.js');
+    
+    // Redirigir a la función de sabana-functions.js si existe
+    // (la de window ya debería ser la correcta de sabana-functions.js)
+    alert('Por favor usa el botón de archivar en la vista de sábanas.');
 }
 
 function verHistorialFiltros() {
@@ -5175,14 +5198,15 @@ function updateTareasTimeline(tareas) {
 }
 
 // Hacer funciones globales para uso en HTML
-window.toggleCambioRealizado = toggleCambioRealizado;
+// NOTA: Estas funciones de sábana ahora vienen de sabana-functions.js (API)
+// window.toggleCambioRealizado = toggleCambioRealizado; // Legacy - usar toggleRealizadoSabana
 window.updateChecklistEstado = updateChecklistEstado;
-window.exportarSabanaExcel = exportarSabanaExcel;
+// window.exportarSabanaExcel = exportarSabanaExcel; // Legacy - usar la de sabana-functions.js
 window.exportarChecklistExcel = exportarChecklistExcel;
 window.mostrarModalNuevoUsuario = mostrarModalNuevoUsuario;
 window.editarUsuario = editarUsuario;
 window.eliminarUsuario = eliminarUsuario;
-window.archivarPeriodo = archivarPeriodo;
+// window.archivarPeriodo = archivarPeriodo; // Legacy - usar la de sabana-functions.js
 window.verHistorialFiltros = verHistorialFiltros;
 window.generarReporteChecklist = generarReporteChecklist;
 window.openHistorialSabanaModal = openHistorialSabanaModal;
