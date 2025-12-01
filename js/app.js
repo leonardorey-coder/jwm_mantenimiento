@@ -1,6 +1,8 @@
 // ========================================
 // APP.JS - Sistema Principal JW Marriott
+// v2.0 - Fix de inicialización y event listeners
 // ========================================
+console.log('📦 [APP.JS] Cargando app.js v2.0...');
 
 // Configuración de la API
 const API_BASE_URL = window.location.hostname.includes('vercel.app') ||
@@ -42,6 +44,9 @@ const AppState = {
     checklistFiltradas: [],
     inspeccionesRecientes: []
 };
+
+// Exportar AppState globalmente para que otros módulos puedan acceder
+window.AppState = AppState;
 
 // ========================================
 // FUNCIONES DE AUTENTICACIÓN
@@ -159,39 +164,47 @@ function clearAuthData() {
 // Exportar función para uso en otras páginas
 window.fetchWithAuth = fetchWithAuth;
 
-// Inicialización al cargar la página
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('🚀 [APP.JS] DOMContentLoaded - Inicializando JW Marriott Sistema de Mantenimiento...');
-    console.log('🚀 [APP.JS] URL actual:', window.location.href);
-    console.log('🚀 [APP.JS] LocalStorage keys:', Object.keys(localStorage));
-
-    // Verificar autenticación (ahora es async)
-    console.log('🚀 [APP.JS] Llamando a checkAuthentication()...');
-    const isAuthenticated = await checkAuthentication();
-    if (!isAuthenticated) {
-        return; // Si no está autenticado, ya se redirigió
+// Función principal de inicialización
+async function initializeApp() {
+    console.log('🚀 [APP.JS] Inicializando sistema de UI...');
+    
+    // NO verificamos autenticación aquí porque app-loader.js ya lo maneja
+    // Solo verificamos que hay un usuario para configurar la UI
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+    
+    if (currentUser) {
+        AppState.currentUser = currentUser;
+        // Normalizar rol
+        if (currentUser.rol && !currentUser.role) {
+            currentUser.role = currentUser.rol.toLowerCase();
+        }
+        console.log('🚀 [APP.JS] Usuario detectado:', currentUser.nombre, '-', currentUser.role || currentUser.rol);
     }
 
     // Inicializar tema
     console.log('🚀 [APP.JS] Inicializando tema...');
     initializeTheme();
 
-    // Configurar event listeners
+    // Configurar event listeners (logout, navegación, etc.)
     console.log('🚀 [APP.JS] Configurando event listeners...');
     setupEventListeners();
 
-    // Inicializar navegación
+    // Inicializar navegación entre tabs
     console.log('🚀 [APP.JS] Inicializando navegación...');
     initializeNavigation();
+    
+    console.log('✅ [APP.JS] Sistema de UI inicializado');
+    
+    // La carga de datos la maneja app-loader.js, no duplicar aquí
+}
 
-    // Cargar datos iniciales y luego renderizar el tab activo
-    console.log('🚀 [APP.JS] Cargando datos iniciales...');
-    await loadInitialData();
-
-    // Cargar el tab activo después de tener los datos
-    console.log('🚀 [APP.JS] Cargando tab activo:', AppState.currentTab);
-    loadTabData(AppState.currentTab);
-});
+// Inicialización al cargar la página - compatible con carga tardía
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+    // DOM ya está listo, ejecutar inmediatamente
+    initializeApp();
+}
 
 // ========================================
 // AUTENTICACIÓN
@@ -3756,4 +3769,10 @@ window.cambiarEstadoEspacio = cambiarEstadoEspacio;
 window.cargarAlertasEspacios = cargarAlertasEspacios;
 window.recargarChecklistData = recargarChecklistData;
 
-console.log('✅ App.js cargado completamente');
+// Exportar funciones críticas de UI
+window.logout = logout;
+window.switchTab = switchTab;
+window.toggleTheme = toggleTheme;
+window.initializeApp = initializeApp;
+
+console.log('✅ App.js v2.0 cargado completamente');
