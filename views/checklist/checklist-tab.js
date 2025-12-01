@@ -105,20 +105,24 @@ const tareaEditModalState = {
 
 // Usar constantes existentes de app.js o definir si no existen
 // Usar window para evitar conflictos de redeclaración
-if (typeof window.CHECKLIST_ESTADOS === 'undefined') {
-    window.CHECKLIST_ESTADOS = typeof CHECKLIST_ESTADOS !== 'undefined' ? CHECKLIST_ESTADOS : ['bueno', 'regular', 'malo'];
+if (typeof window.getChecklistEstados() === 'undefined') {
+    window.getChecklistEstados() = typeof getChecklistEstados() !== 'undefined' ? getChecklistEstados() : ['bueno', 'regular', 'malo'];
 }
-if (typeof window.CHECKLIST_ESTADO_LABELS === 'undefined') {
-    window.CHECKLIST_ESTADO_LABELS = typeof CHECKLIST_ESTADO_LABELS !== 'undefined' ? CHECKLIST_ESTADO_LABELS : {
+if (typeof window.getChecklistEstadoLabels() === 'undefined') {
+    window.getChecklistEstadoLabels() = typeof getChecklistEstadoLabels() !== 'undefined' ? getChecklistEstadoLabels() : {
         bueno: 'Bueno',
         regular: 'Regular',
         malo: 'Malo'
     };
 }
 
-// Crear referencias locales para usar en el código
-const CHECKLIST_ESTADOS = window.CHECKLIST_ESTADOS;
-const CHECKLIST_ESTADO_LABELS = window.CHECKLIST_ESTADO_LABELS;
+// Helper para obtener getChecklistEstados() sin redeclarar
+function getChecklistEstados() {
+    return (typeof getChecklistEstados() !== 'undefined') ? getChecklistEstados() : window.getChecklistEstados();
+}
+function getChecklistEstadoLabels() {
+    return (typeof getChecklistEstadoLabels() !== 'undefined') ? getChecklistEstadoLabels() : window.getChecklistEstadoLabels();
+}
 
 // Usar sanitizeText existente o definir si no existe
 if (typeof sanitizeText === 'undefined') {
@@ -1976,7 +1980,7 @@ function renderChecklistGrid(data) {
         card.setAttribute('data-habitacion', habitacion.numero);
         card.setAttribute('data-cuarto-id', habitacion.cuarto_id);
 
-        const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
+        const counts = getChecklistEstados().reduce((acc, estado) => {
             acc[estado] = 0;
             return acc;
         }, {});
@@ -2003,11 +2007,11 @@ function renderChecklistGrid(data) {
         const estadoInfo = estadoConfig[estadoHabitacion] || estadoConfig['disponible'];
 
         const itemsHTML = habitacion.items.map((item, itemIndex) => buildChecklistItemHTML(habitacion, item, itemIndex)).join('');
-        const statsHTML = CHECKLIST_ESTADOS.map(estado => `
+        const statsHTML = getChecklistEstados().map(estado => `
             <div class="checklist-card-stat ${estado}" data-estado="${estado}">
                 <div class="checklist-card-stat-label">
                     <span class="semaforo-dot" aria-hidden="true"></span>
-                    <span>${CHECKLIST_ESTADO_LABELS[estado]}</span>
+                    <span>${getChecklistEstadoLabels()[estado]}</span>
                 </div>
                 <span class="checklist-card-stat-value">${counts[estado]}</span>
             </div>
@@ -2120,7 +2124,7 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
     // Usar el ID del ítem de la BD para identificación única
     const itemId = item.id || itemIndex;
     const groupName = `estado_${habitacion.cuarto_id}_${itemId}`;
-    const optionsHTML = CHECKLIST_ESTADOS.map(estado => `
+    const optionsHTML = getChecklistEstados().map(estado => `
         <label class="checklist-semaforo-option ${estado}">
             <input 
                 type="radio" 
@@ -2132,7 +2136,7 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
             >
             <span class="semaforo-visual">
                 <span class="semaforo-dot" aria-hidden="true"></span>
-                <span class="semaforo-text">${CHECKLIST_ESTADO_LABELS[estado]}</span>
+                <span class="semaforo-text">${getChecklistEstadoLabels()[estado]}</span>
             </span>
         </label>
     `).join('');
@@ -2325,7 +2329,7 @@ function updateChecklistCardSummary(habitacion) {
     console.log(`📊 Actualizando contadores para hab ${habitacion.numero}:`, counts);
 
     // Actualizar cada contador en la UI
-    CHECKLIST_ESTADOS.forEach(estado => {
+    getChecklistEstados().forEach(estado => {
         const statEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"]`);
         if (statEl) {
             const valueEl = statEl.querySelector('.checklist-card-stat-value');
@@ -2401,7 +2405,7 @@ function openChecklistDetailsModal(cuartoId) {
     const historialHTML = buildHistorialHTML(habitacion);
 
     // Obtener estadísticas
-    const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
+    const counts = getChecklistEstados().reduce((acc, estado) => {
         acc[estado] = habitacion.items.filter(item => item.estado === estado).length;
         return acc;
     }, {});
@@ -2442,8 +2446,8 @@ function openChecklistDetailsModal(cuartoId) {
         `<div class="checklist-info-item"><i class="fas fa-hashtag"></i><div class="info-content"><strong>ID de habitación</strong><span>${habitacion.cuarto_id}</span></div></div>`
     ].join('')
         }</div>`;
-    const statsBlock = `<div class="checklist-modal-stats"><h3>Resumen de Estados</h3><div class="checklist-stats-grid">${CHECKLIST_ESTADOS.map(estado => `
-        <div class="checklist-stat-item ${estado}"><span class="semaforo-dot"></span><span class="stat-label">${CHECKLIST_ESTADO_LABELS[estado]}</span><span class="stat-value">${counts[estado]}</span></div>
+    const statsBlock = `<div class="checklist-modal-stats"><h3>Resumen de Estados</h3><div class="checklist-stats-grid">${getChecklistEstados().map(estado => `
+        <div class="checklist-stat-item ${estado}"><span class="semaforo-dot"></span><span class="stat-label">${getChecklistEstadoLabels()[estado]}</span><span class="stat-value">${counts[estado]}</span></div>
     `).join('')}</div></div>`;
     const evidenciasBlock = `<div class="checklist-modal-evidencias"><h3>Evidencias Fotográficas</h3><div class="evidencias-upload-zone" onclick="document.getElementById('upload-evidencia-${cuartoId}').click()"><i class="fas fa-camera"></i><p><strong>Subir evidencia</strong><br>Click para seleccionar imágenes</p><input type="file" id="upload-evidencia-${cuartoId}" accept="image/*" multiple onchange="handleEvidenciaUpload(event, '${cuartoId}')"></div><div class="evidencias-grid" id="evidencias-grid-${cuartoId}">${buildEvidenciasHTML(habitacion)}</div></div>`;
     const historyBlock = `<div class="checklist-modal-history"><h3>Historial de Ediciones</h3><div class="checklist-history-list">${historialHTML}</div></div>`;
@@ -2801,7 +2805,7 @@ function exportChecklistToPDF(cuartoId) {
     const printWindow = window.open('', '', 'width=800,height=600');
 
     const estadoHabitacion = habitacion.estado_cuarto || habitacion.estado || 'disponible';
-    const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
+    const counts = getChecklistEstados().reduce((acc, estado) => {
         acc[estado] = habitacion.items.filter(item => item.estado === estado).length;
         return acc;
     }, {});
@@ -2893,7 +2897,7 @@ function exportChecklistToPDF(cuartoId) {
                         <tr>
                             <td>${index + 1}</td>
                             <td>${item.nombre}</td>
-                            <td><span class="estado-badge ${item.estado}">${CHECKLIST_ESTADO_LABELS[item.estado]}</span></td>
+                            <td><span class="estado-badge ${item.estado}">${getChecklistEstadoLabels()[item.estado]}</span></td>
                         </tr>
                     `).join('')}
                 </tbody>
@@ -4097,7 +4101,7 @@ function generarReporteChecklist() {
     }
 
     const rows = dataset.map(habitacion => {
-        const counts = CHECKLIST_ESTADOS.reduce((acc, estado) => {
+        const counts = getChecklistEstados().reduce((acc, estado) => {
             acc[estado] = 0;
             return acc;
         }, {});
@@ -4122,7 +4126,7 @@ function generarReporteChecklist() {
     }).join('');
 
     const filtros = AppState.checklistFilters || {};
-    const estadoLabel = filtros.estado ? (CHECKLIST_ESTADO_LABELS[filtros.estado] || filtros.estado) : 'Todos';
+    const estadoLabel = filtros.estado ? (getChecklistEstadoLabels()[filtros.estado] || filtros.estado) : 'Todos';
     const resumenFiltros = `Categoría: ${filtros.categoria || 'Todas'} · Edificio: ${filtros.edificio || 'Todos'} · Estado: ${estadoLabel} · Búsqueda: ${filtros.busqueda || '—'}`;
     const fecha = new Date().toLocaleString('es-MX', { dateStyle: 'full', timeStyle: 'short' });
 
