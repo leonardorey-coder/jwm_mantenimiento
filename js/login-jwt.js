@@ -124,19 +124,65 @@ async function initializeAuth() {
     });
     
     if (accessToken && currentUser) {
-        // Verificar si el token está expirado
+        // Verificar si el token está expirado localmente
         const tokenExpiration = localStorage.getItem('tokenExpiration') || sessionStorage.getItem('tokenExpiration');
         console.log('🔵 [LOGIN-JWT] Token expiration:', tokenExpiration);
+        
         if (tokenExpiration && new Date(tokenExpiration) > new Date()) {
-            if (currentUser?.requiere_cambio_password) {
-                console.log('🟡 [LOGIN-JWT] El usuario debe cambiar su contraseña antes de continuar');
-                showForcePasswordModal(currentUser);
-                showMessage('Debes actualizar tu contraseña antes de acceder al panel.', 'info');
-                return;
+            // Verificar que el token sigue siendo válido en el servidor
+            console.log('🔵 [LOGIN-JWT] Verificando token con el servidor...');
+            try {
+                const verifyResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!verifyResponse.ok) {
+                    console.log('🔴 [LOGIN-JWT] Token rechazado por el servidor (status:', verifyResponse.status, '), limpiando datos...');
+                    clearAuthData();
+                    console.log('🔵 [LOGIN-JWT] Datos limpiados, mostrando formulario de login');
+                    return;
+                }
+                
+                const userData = await verifyResponse.json();
+                console.log('✅ [LOGIN-JWT] Token válido en servidor, usuario:', userData.usuario?.nombre);
+                
+                // Actualizar datos del usuario si el servidor envía datos actualizados
+                if (userData.usuario) {
+                    const updatedUser = {
+                        ...currentUser,
+                        ...userData.usuario,
+                        requiere_cambio_password: !!userData.usuario.requiere_cambio_password
+                    };
+                    const isRemembered = localStorage.getItem('currentUser') !== null;
+                    if (isRemembered) {
+                        localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+                    } else {
+                        sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+                    }
+                    
+                    if (updatedUser.requiere_cambio_password) {
+                        console.log('🟡 [LOGIN-JWT] El usuario debe cambiar su contraseña antes de continuar');
+                        showForcePasswordModal(updatedUser);
+                        showMessage('Debes actualizar tu contraseña antes de acceder al panel.', 'info');
+                        return;
+                    }
+                }
+                
+                // Token válido y verificado, redirigir al dashboard
+                console.log('🔵 [LOGIN-JWT] Token verificado, redirigiendo al dashboard...');
+                redirectToDashboard(currentUser.rol);
+            } catch (error) {
+                console.error('🔴 [LOGIN-JWT] Error verificando token:', error);
+                // Si hay error de red, intentar continuar (puede ser offline)
+                // Solo limpiar si es un error claro de autenticación
+                if (error.message && (error.message.includes('401') || error.message.includes('403'))) {
+                    clearAuthData();
+                }
+                console.log('🔵 [LOGIN-JWT] Mostrando formulario de login por error');
             }
-            // Token válido, redirigir al dashboard
-            console.log('🔵 [LOGIN-JWT] Token válido, redirigiendo al dashboard...');
-            redirectToDashboard(currentUser.rol);
         } else if (refreshToken) {
             // Token expirado, intentar refrescar
             console.log('🔵 [LOGIN-JWT] Token expirado, intentando refrescar...');
@@ -152,7 +198,15 @@ async function initializeAuth() {
                 if (refreshedUser?.rol) {
                     redirectToDashboard(refreshedUser.rol);
                 }
+            } else {
+                // No se pudo refrescar, limpiar datos
+                console.log('🔴 [LOGIN-JWT] No se pudo refrescar token, limpiando datos...');
+                clearAuthData();
             }
+        } else {
+            // Token expirado y no hay refresh token, limpiar
+            console.log('🔴 [LOGIN-JWT] Token expirado sin refresh token, limpiando datos...');
+            clearAuthData();
         }
     } else {
         console.log('🔵 [LOGIN-JWT] No hay sesión activa, mostrando formulario de login');
