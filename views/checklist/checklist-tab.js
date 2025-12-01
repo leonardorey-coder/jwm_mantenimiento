@@ -103,25 +103,28 @@ const tareaEditModalState = {
     editingAdjuntos: []
 };
 
-// Usar constantes existentes de app.js o definir si no existen
-// Usar window para evitar conflictos de redeclaración
-if (typeof window.getChecklistEstados() === 'undefined') {
-    window.getChecklistEstados() = typeof getChecklistEstados() !== 'undefined' ? getChecklistEstados() : ['bueno', 'regular', 'malo'];
+// Definir constantes si no existen en window
+if (typeof window.CHECKLIST_ESTADOS === 'undefined') {
+    window.CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
 }
-if (typeof window.getChecklistEstadoLabels() === 'undefined') {
-    window.getChecklistEstadoLabels() = typeof getChecklistEstadoLabels() !== 'undefined' ? getChecklistEstadoLabels() : {
+if (typeof window.CHECKLIST_ESTADO_LABELS === 'undefined') {
+    window.CHECKLIST_ESTADO_LABELS = {
         bueno: 'Bueno',
         regular: 'Regular',
         malo: 'Malo'
     };
 }
 
-// Helper para obtener getChecklistEstados() sin redeclarar
+// Helper para obtener estados sin redeclarar
 function getChecklistEstados() {
-    return (typeof getChecklistEstados() !== 'undefined') ? getChecklistEstados() : window.getChecklistEstados();
+    return window.CHECKLIST_ESTADOS || ['bueno', 'regular', 'malo'];
 }
 function getChecklistEstadoLabels() {
-    return (typeof getChecklistEstadoLabels() !== 'undefined') ? getChecklistEstadoLabels() : window.getChecklistEstadoLabels();
+    return window.CHECKLIST_ESTADO_LABELS || {
+        bueno: 'Bueno',
+        regular: 'Regular',
+        malo: 'Malo'
+    };
 }
 
 // Usar sanitizeText existente o definir si no existe
@@ -2931,18 +2934,32 @@ function filterChecklist(searchTerm) {
  */
 function poblarFiltroEdificiosChecklist() {
     const select = document.getElementById('filtroEdificioChecklist');
-    if (!select) return;
+    if (!select) {
+        console.warn('⚠️ [poblarFiltroEdificiosChecklist] Select filtroEdificioChecklist no encontrado');
+        return;
+    }
     
     // Limpiar opciones existentes (excepto la primera "Todos")
     select.innerHTML = '<option value="">Todos los edificios</option>';
     
-    // Obtener edificios desde AppState o extraer de los datos de checklist
+    // Obtener edificios desde múltiples fuentes posibles
     let edificios = [];
     
+    // 1. Intentar desde AppState.edificios
     if (AppState.edificios && AppState.edificios.length > 0) {
+        console.log('🏢 [poblarFiltroEdificiosChecklist] Usando AppState.edificios');
         edificios = AppState.edificios.map(e => e.nombre);
-    } else {
-        // Extraer edificios únicos de los datos de checklist
+    } 
+    // 2. Intentar desde window.appLoaderState.edificios (cargados por app-loader.js)
+    else if (window.appLoaderState && window.appLoaderState.edificios && window.appLoaderState.edificios.length > 0) {
+        console.log('🏢 [poblarFiltroEdificiosChecklist] Usando window.appLoaderState.edificios');
+        edificios = window.appLoaderState.edificios.map(e => e.nombre);
+        // Sincronizar con AppState
+        AppState.edificios = window.appLoaderState.edificios;
+    }
+    // 3. Fallback: extraer de los datos de checklist
+    else {
+        console.log('🏢 [poblarFiltroEdificiosChecklist] Extrayendo de checklistData');
         const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
         const edificiosSet = new Set();
         checklistData.forEach(hab => {
@@ -2960,7 +2977,7 @@ function poblarFiltroEdificiosChecklist() {
         select.appendChild(option);
     });
     
-    console.log('📋 Filtro de edificios poblado:', edificios);
+    console.log('✅ [poblarFiltroEdificiosChecklist] Edificios poblados:', edificios.length, edificios);
 }
 
 function applyChecklistFilters() {

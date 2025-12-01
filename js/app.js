@@ -1448,18 +1448,32 @@ async function loadChecklistFromAPIFallback() {
  */
 function poblarFiltroEdificiosChecklist() {
     const select = document.getElementById('filtroEdificioChecklist');
-    if (!select) return;
+    if (!select) {
+        console.warn('⚠️ [APP.JS] Select filtroEdificioChecklist no encontrado');
+        return;
+    }
 
     // Limpiar opciones existentes (excepto la primera "Todos")
     select.innerHTML = '<option value="">Todos los edificios</option>';
 
-    // Obtener edificios desde AppState o extraer de los datos de checklist
+    // Obtener edificios desde múltiples fuentes posibles
     let edificios = [];
 
+    // 1. Intentar desde AppState.edificios
     if (AppState.edificios && AppState.edificios.length > 0) {
+        console.log('🏢 [APP.JS] Usando AppState.edificios');
         edificios = AppState.edificios.map(e => e.nombre);
-    } else {
-        // Extraer edificios únicos de los datos de checklist
+    }
+    // 2. Intentar desde window.appLoaderState.edificios
+    else if (window.appLoaderState && window.appLoaderState.edificios && window.appLoaderState.edificios.length > 0) {
+        console.log('🏢 [APP.JS] Usando window.appLoaderState.edificios');
+        edificios = window.appLoaderState.edificios.map(e => e.nombre);
+        // Sincronizar con AppState
+        AppState.edificios = window.appLoaderState.edificios;
+    }
+    // 3. Fallback: extraer de los datos de checklist
+    else {
+        console.log('🏢 [APP.JS] Extrayendo de checklistData');
         const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
         const edificiosSet = new Set();
         checklistData.forEach(hab => {
@@ -1477,7 +1491,7 @@ function poblarFiltroEdificiosChecklist() {
         select.appendChild(option);
     });
 
-    console.log('🏢 [APP.JS] Filtro de edificios poblado:', edificios);
+    console.log('✅ [APP.JS] Filtro de edificios poblado:', edificios.length, edificios);
 }
 
 /**
