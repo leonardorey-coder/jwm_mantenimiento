@@ -794,7 +794,8 @@ function actualizarSelectorEstado(cuartoId) {
     if (!estadoSelector) return;
 
     // Buscar el cuarto en el array
-    const cuarto = cuartos.find(c => c.id === cuartoId);
+    const s = getState();
+    const cuarto = s.cuartos.find(c => c.id === cuartoId);
 
     // Remover clase activo de todos los pills
     const pills = document.querySelectorAll('.estado-pill');

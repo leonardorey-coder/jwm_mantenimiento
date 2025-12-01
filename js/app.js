@@ -900,6 +900,13 @@ function switchTab(tabId, loadData = true) {
 
 function loadTabData(tabId) {
     switch (tabId) {
+        case 'habitaciones':
+            if (window.renderHabitacionesUI) {
+                window.renderHabitacionesUI('tab-switch');
+            } else if (window.mostrarCuartos) {
+                window.mostrarCuartos();
+            }
+            break;
         case 'espacios':
             loadEspaciosComunesData();
             break;
