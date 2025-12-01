@@ -331,10 +331,39 @@
                 window.appLoaderState.edificios = edificios;
                 window.appLoaderState.mantenimientos = mantenimientos;
                 window.appLoaderState.usuarios = usuarios;
+                console.log('✅ window.appLoaderState actualizado');
+            } else {
+                console.error('❌ window.appLoaderState no está disponible!');
             }
             
-            mostrarCuartos();
-            mostrarEdificios();
+            // Verificar que las funciones estén disponibles
+            console.log('🔍 Verificando funciones disponibles...');
+            console.log('  mostrarCuartos:', typeof window.mostrarCuartos);
+            console.log('  mostrarEdificios:', typeof mostrarEdificios);
+            
+            // Llamar a las funciones de renderizado
+            try {
+                if (typeof window.mostrarCuartos === 'function') {
+                    console.log('📞 Llamando a window.mostrarCuartos()...');
+                    window.mostrarCuartos();
+                } else {
+                    console.error('❌ window.mostrarCuartos no es una función!');
+                }
+            } catch (error) {
+                console.error('❌ Error llamando a mostrarCuartos:', error);
+            }
+            
+            try {
+                if (typeof mostrarEdificios === 'function') {
+                    console.log('📞 Llamando a mostrarEdificios()...');
+                    mostrarEdificios();
+                } else {
+                    console.error('❌ mostrarEdificios no es una función!');
+                }
+            } catch (error) {
+                console.error('❌ Error llamando a mostrarEdificios:', error);
+            }
+            
             cargarCuartosEnSelect();
             mostrarAlertasYRecientes();
 
