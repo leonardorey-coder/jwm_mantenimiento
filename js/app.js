@@ -158,9 +158,12 @@ window.fetchWithAuth = fetchWithAuth;
 
 // Inicialización al cargar la página
 document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🚀 [APP.JS] ========================================');
     console.log('🚀 [APP.JS] DOMContentLoaded - Inicializando JW Marriott Sistema de Mantenimiento...');
+    console.log('🚀 [APP.JS] Timestamp:', new Date().toISOString());
     console.log('🚀 [APP.JS] URL actual:', window.location.href);
     console.log('🚀 [APP.JS] LocalStorage keys:', Object.keys(localStorage));
+    console.log('🚀 [APP.JS] ========================================');
 
     // Verificar autenticación (ahora es async)
     console.log('🚀 [APP.JS] Llamando a checkAuthentication()...');
@@ -186,8 +189,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadInitialData();
 
     // Cargar el tab activo después de tener los datos
+    console.log('🚀 [APP.JS] ========================================');
     console.log('🚀 [APP.JS] Cargando tab activo:', AppState.currentTab);
+    console.log('🚀 [APP.JS] Timestamp:', new Date().toISOString());
+    console.log('🚀 [APP.JS] ========================================');
     loadTabData(AppState.currentTab);
+    
+    // FORZAR renderizado de habitaciones si es el tab inicial
+    // Esto soluciona el problema de skeletons colgados después del login
+    if (AppState.currentTab === 'habitaciones') {
+        console.log('🚀 [APP.JS] Forzando renderizado de habitaciones...');
+        setTimeout(() => {
+            if (typeof window.mostrarCuartos === 'function') {
+                console.log('🚀 [APP.JS] Ejecutando mostrarCuartos() forzado');
+                window.mostrarCuartos();
+            }
+            if (typeof window.mostrarAlertasYRecientes === 'function') {
+                console.log('🚀 [APP.JS] Ejecutando mostrarAlertasYRecientes() forzado');
+                window.mostrarAlertasYRecientes();
+            }
+        }, 300);
+    }
 });
 
 // ========================================
@@ -899,12 +921,20 @@ function switchTab(tabId, loadData = true) {
 }
 
 function loadTabData(tabId) {
+    console.log('📁 [APP.JS] loadTabData INICIANDO - Tab:', tabId);
+    console.log('📁 [APP.JS] Timestamp:', new Date().toISOString());
+    
     switch (tabId) {
         case 'habitaciones':
+            console.log('📁 [APP.JS] Procesando tab: habitaciones');
             if (window.renderHabitacionesUI) {
+                console.log('📁 [APP.JS] Llamando renderHabitacionesUI...');
                 window.renderHabitacionesUI('tab-switch');
             } else if (window.mostrarCuartos) {
+                console.log('📁 [APP.JS] Llamando mostrarCuartos...');
                 window.mostrarCuartos();
+            } else {
+                console.warn('📁 [APP.JS] Ni renderHabitacionesUI ni mostrarCuartos disponibles!');
             }
             break;
         case 'espacios':

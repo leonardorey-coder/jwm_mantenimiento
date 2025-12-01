@@ -233,6 +233,7 @@
      */
     async function inicializarApp() {
         console.log('🚀🚀🚀 JW Mantto - INICIALIZANDO APP 🚀🚀🚀');
+        console.log('🟢 [APP-LOADER] Timestamp inicio:', new Date().toISOString());
         console.log('🌐 API_BASE_URL configurado:', API_BASE_URL);
         console.log('📍 URL actual:', window.location.href);
         console.log('📄 User Agent:', navigator.userAgent);
@@ -645,24 +646,39 @@
      */
     function renderHabitacionesUI(contexto = 'init') {
         try {
-            console.log(`🖼️ Renderizando UI de habitaciones (${contexto})...`);
+            console.log(`🖼️ [APP-LOADER] renderHabitacionesUI INICIANDO (${contexto})...`);
+            console.log(`🖼️ [APP-LOADER] Timestamp:`, new Date().toISOString());
+            console.log(`🖼️ [APP-LOADER] Datos disponibles:`, {
+                cuartos: cuartos?.length || 0,
+                edificios: edificios?.length || 0,
+                mantenimientos: mantenimientos?.length || 0
+            });
 
             if (typeof window.sincronizarCuartosFiltrados === 'function') {
+                console.log('🖼️ [APP-LOADER] Llamando sincronizarCuartosFiltrados...');
                 window.sincronizarCuartosFiltrados();
+            } else {
+                console.warn('⚠️ [APP-LOADER] sincronizarCuartosFiltrados no disponible');
             }
 
             if (typeof window.mostrarCuartos === 'function') {
+                console.log('🖼️ [APP-LOADER] Llamando mostrarCuartos...');
                 window.mostrarCuartos();
             } else {
-                console.warn('⚠️ mostrarCuartos no disponible en window');
+                console.warn('⚠️ [APP-LOADER] mostrarCuartos no disponible en window');
             }
 
             // Funciones locales del loader (no dependen de otros módulos)
+            console.log('🖼️ [APP-LOADER] Llamando mostrarEdificios...');
             mostrarEdificios();
+            console.log('🖼️ [APP-LOADER] Llamando cargarCuartosEnSelect...');
             cargarCuartosEnSelect();
+            console.log('🖼️ [APP-LOADER] Llamando mostrarAlertasYRecientes...');
             mostrarAlertasYRecientes();
+            
+            console.log(`🖼️ [APP-LOADER] renderHabitacionesUI COMPLETADO (${contexto})`);
         } catch (error) {
-            console.error('❌ Error renderizando habitaciones:', error);
+            console.error('❌ [APP-LOADER] Error renderizando habitaciones:', error);
         }
     }
 
@@ -881,18 +897,48 @@
      * Mostrar alertas y mantenimientos recientes
      */
     function mostrarAlertasYRecientes() {
+        console.log('📝 [APP-LOADER] mostrarAlertasYRecientes INICIANDO...');
+        console.log('📝 [APP-LOADER] Timestamp:', new Date().toISOString());
+        
         mostrarAlertas();
+        console.log('📝 [APP-LOADER] mostrarAlertas llamado');
+        
         mostrarRecientes();
+        console.log('📝 [APP-LOADER] mostrarRecientes llamado');
+        
         mostrarAlertasEmitidas();
+        console.log('📝 [APP-LOADER] mostrarAlertasEmitidas llamado');
+        
         mostrarHistorialAlertas();
+        console.log('📝 [APP-LOADER] mostrarHistorialAlertas llamado');
+        
+        console.log('📝 [APP-LOADER] mostrarAlertasYRecientes COMPLETADO');
     }
 
     /**
      * Mostrar alertas pendientes (no emitidas) desde la API
      */
     async function mostrarAlertas() {
+        console.log('🚨 [APP-LOADER] ========================================');
+        console.log('🚨 [APP-LOADER] mostrarAlertas INICIANDO...');
+        console.log('🚨 [APP-LOADER] Timestamp:', new Date().toISOString());
+        console.log('🚨 [APP-LOADER] ========================================');
+        
         const listaAlertas = document.getElementById('listaVistaRutinas');
-        if (!listaAlertas) return;
+        if (!listaAlertas) {
+            console.warn('🚨 [APP-LOADER] Elemento listaVistaRutinas no encontrado');
+            return;
+        }
+        
+        console.log('🚨 [APP-LOADER] Elemento listaVistaRutinas encontrado');
+        console.log('🚨 [APP-LOADER] innerHTML actual:', listaAlertas.innerHTML.substring(0, 100) + '...');
+        
+        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+        const mensajeCargandoInicial = listaAlertas.querySelector('.mensaje-cargando');
+        if (mensajeCargandoInicial) {
+            console.log('🚨 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial');
+            mensajeCargandoInicial.remove();
+        }
 
         try {
             console.log('📋 Cargando alertas pendientes desde BD...');
@@ -975,12 +1021,21 @@
                 listaAlertas.appendChild(li);
             });
 
-            console.log(`✅ Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
+            console.log(`✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
+            
+            // Forzar actualización del DOM - quitar cualquier mensaje de "Cargando"
+            const mensajeCargando = listaAlertas.querySelector('.mensaje-cargando');
+            if (mensajeCargando) {
+                console.log('🚨 [APP-LOADER] Removiendo mensaje de cargando...');
+                mensajeCargando.remove();
+            }
 
         } catch (error) {
-            console.error('❌ Error cargando alertas pendientes:', error);
+            console.error('❌ [APP-LOADER] Error cargando alertas pendientes:', error);
             listaAlertas.innerHTML = '<li class="mensaje-no-items">Error cargando alertas</li>';
         }
+        
+        console.log('🚨 [APP-LOADER] mostrarAlertas COMPLETADO');
     }
 
     /**
@@ -1045,12 +1100,26 @@
      * Mostrar alertas emitidas hoy en el panel de alertas del día (desde API)
      */
     async function mostrarAlertasEmitidas() {
+        console.log('📅 [APP-LOADER] ========================================');
+        console.log('📅 [APP-LOADER] mostrarAlertasEmitidas INICIANDO...');
+        console.log('📅 [APP-LOADER] Timestamp:', new Date().toISOString());
+        console.log('📅 [APP-LOADER] ========================================');
+        
         const listaEmitidas = document.getElementById('listaAlertasEmitidas');
         const mensajeNoEmitidas = document.getElementById('mensaje-no-alertas-emitidas');
 
         if (!listaEmitidas) {
-            console.warn('Elemento listaAlertasEmitidas no encontrado');
+            console.warn('📅 [APP-LOADER] Elemento listaAlertasEmitidas no encontrado');
             return;
+        }
+        
+        console.log('📅 [APP-LOADER] Elemento listaAlertasEmitidas encontrado');
+        
+        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+        const mensajeCargandoInicial = listaEmitidas.querySelector('.mensaje-cargando');
+        if (mensajeCargandoInicial) {
+            console.log('📅 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial');
+            mensajeCargandoInicial.remove();
         }
 
         try {
@@ -1104,32 +1173,47 @@
                     listaEmitidas.appendChild(li);
                 });
 
-            console.log(`✅ Mostradas ${alertasEmitidasBD.length} alertas emitidas hoy en UI`);
+            console.log(`✅ [APP-LOADER] Mostradas ${alertasEmitidasBD.length} alertas emitidas hoy en UI`);
+            console.log('📅 [APP-LOADER] mostrarAlertasEmitidas COMPLETADO');
 
         } catch (error) {
-            console.error('❌ Error cargando alertas emitidas:', error);
+            console.error('❌ [APP-LOADER] Error cargando alertas emitidas:', error);
             if (mensajeNoEmitidas) {
                 mensajeNoEmitidas.textContent = 'Error cargando alertas';
                 mensajeNoEmitidas.style.display = 'block';
             }
             listaEmitidas.style.display = 'none';
         }
+        
+        console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
     }
 
     /**
      * Mostrar historial completo de alertas emitidas (desde API, sin filtro de fecha)
      */
     async function mostrarHistorialAlertas() {
+        console.log('📚 [APP-LOADER] ========================================');
+        console.log('📚 [APP-LOADER] mostrarHistorialAlertas INICIANDO...');
+        console.log('📚 [APP-LOADER] Timestamp:', new Date().toISOString());
+        console.log('📚 [APP-LOADER] ========================================');
+        
         const listaHistorial = document.getElementById('listaHistorialAlertas');
         const mensajeNoHistorial = document.getElementById('mensaje-no-historial');
 
         if (!listaHistorial) {
-            console.warn('Elemento listaHistorialAlertas no encontrado');
+            console.warn('📚 [APP-LOADER] Elemento listaHistorialAlertas no encontrado');
             return;
+        }
+        
+        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+        const mensajeCargandoInicial = listaHistorial.querySelector('.mensaje-cargando');
+        if (mensajeCargandoInicial) {
+            console.log('📚 [APP-LOADER] Removiendo mensaje "Cargando historial..." inicial');
+            mensajeCargandoInicial.remove();
         }
 
         try {
-            console.log(`📚 Cargando historial completo de alertas emitidas desde BD...`);
+            console.log(`📚 [APP-LOADER] Cargando historial completo de alertas emitidas desde BD...`);
 
             // Obtener TODAS las alertas emitidas desde la API (sin filtro de fecha)
             const response = await fetch(`${API_BASE_URL}/api/alertas/emitidas`);
