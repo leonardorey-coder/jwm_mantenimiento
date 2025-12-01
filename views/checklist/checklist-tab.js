@@ -620,43 +620,7 @@ const DEFAULT_TAREAS = [
     }
 ];
 
-// Usar la constante de app.js si ya existe
-if (typeof DEFAULT_INSPECCIONES_RECIENTES === 'undefined') {
-    var DEFAULT_INSPECCIONES_RECIENTES = [
-        {
-            id: 'insp-101',
-            habitacion: '101',
-            titulo: 'Revisión Aire Acondicionado',
-            tecnico: 'Juan Pérez',
-            fecha: 'Hoy · 10:30 AM',
-            estado: 'aprobada'
-        },
-    {
-        id: 'insp-102',
-        habitacion: '102',
-        titulo: 'Reparación Plomería',
-        tecnico: 'María López',
-        fecha: 'Hoy · 09:15 AM',
-        estado: 'pendiente'
-    },
-    {
-        id: 'insp-201',
-        habitacion: '201',
-        titulo: 'Cambio de Filtros',
-        tecnico: 'Carlos Ruiz',
-        fecha: 'Ayer · 04:45 PM',
-        estado: 'aprobada'
-    },
-    {
-        id: 'insp-203',
-        habitacion: '203',
-        titulo: 'Revisión TV',
-        tecnico: 'Ana García',
-        fecha: 'Ayer · 02:20 PM',
-        estado: 'aprobada'
-    }
-];
-} // Cierre del if (typeof DEFAULT_INSPECCIONES_RECIENTES === 'undefined')
+// DEFAULT_INSPECCIONES_RECIENTES se define en app.js - no redeclarar aquí
 
 const TAREAS_STORAGE_KEY = 'jwmt_tasks_v1';
 let tareasModuleInitialized = false;
