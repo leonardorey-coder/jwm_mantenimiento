@@ -754,55 +754,35 @@ function unlockBodyScrollChecklist() {
     }
 }
 
-// Usar logout de app.js si existe, sino fallback local
-function logout() {
-    if (typeof window.logout === 'function') {
-        // Usar la función global de app.js que maneja JWT correctamente
-        window.logout();
-    } else {
-        // Fallback: logout local
-        if (confirm('¿Está seguro que desea cerrar sesión?')) {
-            if (typeof clearAuthData === 'function') {
-                clearAuthData();
-            } else if (typeof window.clearAuthData === 'function') {
-                window.clearAuthData();
-            } else {
-                // Limpiar manualmente si clearAuthData no está disponible
-                localStorage.removeItem('currentUser');
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                localStorage.removeItem('tokenExpiration');
-                sessionStorage.removeItem('currentUser');
-                sessionStorage.removeItem('accessToken');
-                sessionStorage.removeItem('refreshToken');
-                sessionStorage.removeItem('tokenExpiration');
-            }
-            window.location.href = 'login.html';
-        }
-    }
-}
+// NO definir logout() aquí - usar la función global de app.js
+// La función logout está definida en app.js y se exporta a window.logout
+// Si se necesita logout en este módulo, usar window.logout() directamente
 
 // ========================================
 // TEMA (CLARO/OSCURO)
 // ========================================
 
+// NOTA: Estas funciones YA están definidas en app.js
+// Las siguientes son solo para compatibilidad si app.js no carga
+// Pero se verificará si ya existen en window antes de usarlas
+
+// initializeTheme - usar la de app.js si existe
 function initializeTheme() {
+    if (typeof window.initializeTheme === 'function' && window.initializeTheme !== initializeTheme) {
+        return window.initializeTheme();
+    }
+    // Fallback local
     const savedTheme = localStorage.getItem('theme') || 'light';
-    AppState.theme = savedTheme;
+    if (typeof AppState !== 'undefined') {
+        AppState.theme = savedTheme;
+    }
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
-
     console.log('🎨 Tema inicializado:', savedTheme);
 }
-function toggleTheme() {
-    const newTheme = AppState.theme === 'light' ? 'dark' : 'light';
-    AppState.theme = newTheme;
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeIcon(newTheme);
 
-    console.log('🎨 Tema cambiado a:', newTheme);
-}
+// toggleTheme - NO redefinir, usar window.toggleTheme de app.js
+// function toggleTheme() { ... } - ELIMINADA para evitar colisión
 
 function updateThemeIcon(theme) {
     const icon = document.querySelector('#themeToggle i');
@@ -817,29 +797,10 @@ function updateThemeIcon(theme) {
     }
 }
 
-function setupEventListeners() {
-    // Botón de cerrar sesión
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', logout);
-    }
-
-    // Switch de tema
-    const themeToggle = document.getElementById('themeToggle');
-    if (themeToggle) {
-        themeToggle.addEventListener('click', toggleTheme);
-    }
-
-    // Navegación entre tabs - Desktop y móvil
-    document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const tabId = link.getAttribute('data-tab');
-            switchTab(tabId);
-        });
-    });
-
-    // Buscadores
+// setupChecklistEventListeners - se llama desde app.js si está disponible
+// Esta función agrega listeners específicos del módulo checklist
+function setupChecklistEventListeners() {
+    // Buscadores específicos de checklist
     setupSearchListeners();
 
     // Modal de edición de usuarios
@@ -853,8 +814,13 @@ function setupEventListeners() {
         formCrearSabana.addEventListener('submit', handleCrearSabanaSubmit);
     }
 
-    console.log('✅ Event listeners configurados');
+    console.log('✅ [CHECKLIST-TAB] Event listeners específicos configurados');
 }
+
+// Exportar para que app.js pueda llamarla
+window.setupChecklistEventListeners = setupChecklistEventListeners;
+
+// NO definir setupEventListeners aquí - usar la de app.js
 
 function setupSearchListeners() {
     // Buscador de Sábana
@@ -966,66 +932,56 @@ function setupSearchListeners() {
 // NAVEGACIÓN ENTRE TABS
 // ========================================
 
+// NOTA: initializeNavigation y switchTab están en app.js
+// Estas son versiones de respaldo que verifican si las de app.js existen
+
 function initializeNavigation() {
-    // Verificar si hay un parámetro de URL
+    // Si app.js ya definió esta función, usar esa
+    if (typeof window.initializeNavigation === 'function' && window.initializeNavigation !== initializeNavigation) {
+        return window.initializeNavigation();
+    }
+    
+    // Fallback: Verificar si hay un parámetro de URL
     const urlParams = new URLSearchParams(window.location.search);
     const view = urlParams.get('view');
 
     if (view) {
-        switchTab(view === 'admin' ? 'usuarios' : 'habitaciones');
+        const tabToSwitch = view === 'admin' ? 'usuarios' : 'habitaciones';
+        if (typeof window.switchTab === 'function') {
+            window.switchTab(tabToSwitch);
+        }
     } else {
-        switchTab('habitaciones');
+        if (typeof window.switchTab === 'function') {
+            window.switchTab('habitaciones');
+        }
     }
 }
 
-function switchTab(tabId) {
-    // Ocultar todos los tabs
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
+// switchTab - NO redefinir aquí, usar window.switchTab de app.js
+// La función ya está exportada en app.js
 
-    // Desactivar todos los enlaces de navegación - Desktop y móvil
-    document.querySelectorAll('.premium-nav .link, .premium-nav-mobile .link').forEach(link => {
-        link.classList.remove('active');
-    });
+// loadTabData - NO redefinir, usar la de app.js que maneja todos los casos
+// Si se necesita cargar datos adicionales, usar loadChecklistSpecificData()
 
-    // Mostrar el tab seleccionado
-    const selectedTab = document.getElementById(`tab-${tabId}`);
-    if (selectedTab) {
-        selectedTab.classList.add('active');
-    }
-
-    // Activar el botón correspondiente - Desktop y móvil
-    const selectedButtons = document.querySelectorAll(`[data-tab="${tabId}"]`);
-    selectedButtons.forEach(button => {
-        button.classList.add('active');
-    });
-
-    AppState.currentTab = tabId;
-
-    // Cargar datos específicos del tab
-    loadTabData(tabId);
-
-    console.log('📄 Tab activo:', tabId);
-}
-
-function loadTabData(tabId) {
-    console.log('🔄 Cargando datos para tab:', tabId);
+function loadChecklistSpecificData(tabId) {
+    console.log('🔄 [CHECKLIST-TAB] Cargando datos específicos para tab:', tabId);
     switch (tabId) {
         case 'sabana':
-            loadSabanaData();
+            if (typeof loadSabanaData === 'function') loadSabanaData();
             break;
         case 'checklist':
-            loadChecklistData().catch(error => console.error('❌ Error al cargar checklist:', error));
+            if (typeof loadChecklistData === 'function') {
+                loadChecklistData().catch(error => console.error('❌ Error al cargar checklist:', error));
+            }
             break;
         case 'usuarios':
-            if (AppState.currentUser.role === 'admin') {
-                loadUsuariosData();
+            if (AppState.currentUser && (AppState.currentUser.role === 'admin' || AppState.currentUser.rol === 'admin')) {
+                if (typeof loadUsuariosData === 'function') loadUsuariosData();
             }
             break;
         case 'tareas':
             console.log('🎯 Iniciando módulo de tareas...');
-            ensureTareasModule();
+            if (typeof ensureTareasModule === 'function') ensureTareasModule();
             break;
     }
 }
