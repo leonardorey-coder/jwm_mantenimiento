@@ -6065,6 +6065,7 @@ body.admin a.admin-only {
 /* Switch para archivar */
 .switch-container {
   display: flex;
+  flex-direction: row;
   align-items: center;
   gap: 1rem;
   cursor: pointer;
@@ -6082,11 +6083,13 @@ body.admin a.admin-only {
   position: relative;
   display: inline-block;
   width: 50px;
+  min-width: 50px;
   height: 26px;
   background: var(--gris-separador);
   border: 2px solid var(--negro-carbon);
   border-radius: 26px;
   transition: var(--transicion-rapida);
+  order: 1;
 }
 
 .switch-slider::before {
@@ -6116,6 +6119,7 @@ body.admin a.admin-only {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  order: 2;
 }
 
 .modal-nueva-sabana-hint {
