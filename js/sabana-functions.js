@@ -5,6 +5,7 @@
 let currentSabanaId = null;
 let currentSabanaArchivada = false;
 let currentSabanaItems = []; // Guardar los items actuales para filtrado
+let currentSabanaFechaCreacion = null; // Fecha de creación de la sábana para fallback
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
 let cerrarModalNuevaSabanaEscHandler = null;
 let cerrarModalHistorialEscHandler = null;
@@ -111,6 +112,7 @@ async function cambiarServicioActual(sabanaId) {
         currentSabanaId = sabana.id;
         currentSabanaArchivada = sabana.archivada;
         currentSabanaItems = sabana.items || []; // Guardar los items
+        currentSabanaFechaCreacion = sabana.fecha_creacion || null; // Guardar fecha creación
 
         console.log('💾 currentSabanaItems guardados:', currentSabanaItems.length);
 
@@ -207,9 +209,10 @@ function renderSabanaTable(items, archivada = false) {
             const readonly = archivada ? 'disabled' : '';
             const readonlyClass = archivada ? 'readonly' : '';
 
-            // Formatear fecha programada
-            const fechaProgramada = item.fecha_programada
-                ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
+            // Formatear fecha programada (fallback a fecha de creación de sábana)
+            const fechaParaUsar = item.fecha_programada || currentSabanaFechaCreacion;
+            const fechaProgramada = fechaParaUsar
+                ? new Date(fechaParaUsar).toLocaleDateString('es-MX', {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit'
@@ -226,9 +229,12 @@ function renderSabanaTable(items, archivada = false) {
                     : '<span style="color: #999;">-</span>'}
                 </td>
                 <td data-label="Responsable">
-                    ${(item.responsable_nombre && item.responsable_nombre !== 'null') || (item.responsable && item.responsable !== 'null')
-                    ? `<span class="responsable-nombre">${(item.responsable_nombre && item.responsable_nombre !== 'null') ? item.responsable_nombre : item.responsable}</span>`
-                    : '<span style="color: #999;">-</span>'}
+                    ${(() => {
+                        const nombre = item.responsable_nombre || item.responsable;
+                        return (nombre && nombre !== 'null' && nombre !== 'undefined')
+                            ? `<span class="responsable-nombre">${nombre}</span>`
+                            : '<span style="color: #999;">-</span>';
+                    })()}
                 </td>
                 <td data-label="Observaciones">
                     <input 
@@ -1054,8 +1060,10 @@ async function exportarSabanaExcel() {
         let csv = 'Edificio,Habitación,Fecha Programada,Fecha Realizado,Responsable,Observaciones,Realizado\n';
 
         currentSabanaItems.forEach((item, index) => {
-            const fechaProgramada = item.fecha_programada
-                ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
+            // Fallback a fecha de creación de sábana si no hay fecha_programada
+            const fechaParaUsar = item.fecha_programada || currentSabanaFechaCreacion;
+            const fechaProgramada = fechaParaUsar
+                ? new Date(fechaParaUsar).toLocaleDateString('es-MX', {
                     year: 'numeric',
                     month: '2-digit',
                     day: '2-digit'
