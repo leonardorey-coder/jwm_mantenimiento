@@ -5593,54 +5593,61 @@ body.admin .tab-content.admin-only.active {
     font-size: 0.75rem;
   }
 
-  /* Data labels con iconos elegantes */
+  /* Data labels con iconos elegantes - tamaño fijo para evitar iconos enormes */
   .responsive-table .filtros-table tbody tr td:nth-child(1):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M3 13h2v8H3zm4-8h2v16H7zm4-2h2v18h-2zm4 4h2v14h-2zm4-2h2v16h-2z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(2):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M12 1L3 6v9c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V6l-9-5zm0 10c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(3):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(4):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(5):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(6):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   .responsive-table .filtros-table tbody tr td:nth-child(7):before {
     background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%234C544C" width="14" height="14"><path d="M19 5v14H5V5h14m0-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/></svg>');
-    background-size: contain;
+    background-size: 14px 14px;
     background-repeat: no-repeat;
-    padding-left: 24px;
+    background-position: left center;
+    padding-left: 20px;
   }
 
   /* Estilos especiales para inputs y checkboxes en móvil */
@@ -8326,6 +8333,31 @@ tr[data-lazy="true"] {
     width: auto;
     gap: 0;
     justify-content: start;
+  }
+
+  /* Corregir checkbox colapsado en mobile - celda Estado/Realizado */
+  .filtros-table td[data-label="Estado"],
+  .filtros-table td[data-label="Realizado"] {
+    display: flex;
+    align-items: center;
+    justify-content: space-between !important;
+    padding: 0.75rem 0.6rem;
+    min-height: 50px;
+  }
+
+  .filtros-table td[data-label="Estado"] .checkbox-container,
+  .filtros-table td[data-label="Realizado"] .checkbox-container,
+  .filtros-table td[data-label="Estado"] .checkbox-sabana,
+  .filtros-table td[data-label="Realizado"] .checkbox-sabana {
+    flex-shrink: 0;
+    margin-left: auto;
+  }
+
+  /* Asegurar que los iconos ::before no sean enormes */
+  .filtros-table td::before {
+    font-size: 0.75rem !important;
+    max-width: 40%;
+    flex-shrink: 0;
   }
 
   .filtros-actions-container {
