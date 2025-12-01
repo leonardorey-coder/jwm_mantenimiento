@@ -199,10 +199,12 @@ async function checkAuthentication() {
     // Verificar token JWT (en localStorage o sessionStorage)
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+    const tokenExpiration = localStorage.getItem('tokenExpiration') || sessionStorage.getItem('tokenExpiration');
 
     console.log('🔐 [APP.JS] Datos de autenticación:', {
         hasAccessToken: !!accessToken,
         hasCurrentUser: !!currentUser,
+        tokenExpiration: tokenExpiration,
         userEmail: currentUser?.email,
         userRol: currentUser?.rol
     });
@@ -210,8 +212,32 @@ async function checkAuthentication() {
     if (!accessToken || !currentUser) {
         // Redirigir al login si no hay sesión
         console.log('🔐 [APP.JS] No hay sesión válida, redirigiendo a login.html...');
+        clearAuthData(); // Limpiar cualquier dato residual
         window.location.href = 'login.html';
         return false;
+    }
+
+    // Verificar si el token está expirado
+    if (tokenExpiration) {
+        const expirationDate = new Date(tokenExpiration);
+        const now = new Date();
+        console.log('🔐 [APP.JS] Verificando expiración:', {
+            expiration: expirationDate.toISOString(),
+            now: now.toISOString(),
+            isExpired: expirationDate <= now
+        });
+        
+        if (expirationDate <= now) {
+            console.log('🔐 [APP.JS] Token expirado, intentando refrescar...');
+            const refreshed = await refreshAccessToken();
+            if (!refreshed) {
+                console.log('🔐 [APP.JS] No se pudo refrescar el token, redirigiendo a login...');
+                clearAuthData();
+                window.location.href = 'login.html';
+                return false;
+            }
+            console.log('✅ [APP.JS] Token refrescado exitosamente');
+        }
     }
 
     // Si el usuario local tiene requiere_cambio_password, verificar con el backend
@@ -245,7 +271,13 @@ async function checkAuthentication() {
             }
         } catch (error) {
             console.error('❌ [APP.JS] Error al verificar estado del usuario:', error);
-            // Si hay error, por seguridad redirigir a login
+            // Si hay error de red, no limpiar tokens (puede ser problema de conexión)
+            // Si es error de autenticación, limpiar tokens para evitar bucle infinito
+            if (error.message && error.message.includes('401')) {
+                console.log('🔐 [APP.JS] Error 401, limpiando tokens...');
+                clearAuthData();
+            }
+            // Por seguridad redirigir a login
             window.location.href = 'login.html?forcePassword=1';
             return false;
         }
