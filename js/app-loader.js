@@ -537,40 +537,42 @@
 
             console.log('🎉 Todos los datos cargados exitosamente desde API');
 
-            // Guardar en IndexedDB primero, luego localStorage como respaldo
-            console.log('💾 [SAVE] Iniciando guardado en storage...');
-            try {
-                if (window.storageHelper) {
-                    console.log('💾 [SAVE] storageHelper disponible, llamando saveAllData...');
-                    const saveResult = await window.storageHelper.saveAllData({
-                        cuartos,
-                        edificios,
-                        mantenimientos,
-                        usuarios
-                    });
-                    console.log('💾 [SAVE] saveAllData retornó:', saveResult);
-                    console.log('💾 Datos guardados en IndexedDB');
-                } else {
-                    console.log('💾 [SAVE] storageHelper NO disponible');
-                }
-
-                // Mantener localStorage como fallback
-                console.log('💾 [SAVE] Guardando en localStorage...');
-                localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
-                localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
-                localStorage.setItem('ultimosMantenimientos', JSON.stringify(mantenimientos));
-                localStorage.setItem('ultimosUsuarios', JSON.stringify(usuarios));
-                console.log('💾 Datos guardados en localStorage como respaldo');
-            } catch (storageError) {
-                console.warn('⚠️ No se pudo guardar en storage:', storageError);
-            }
-
-            // Sincronizar con AppState para que otros módulos puedan acceder
+            // PRIMERO: Sincronizar con AppState para que el renderizado pueda continuar
             if (typeof AppState !== 'undefined') {
                 AppState.edificios = edificios;
                 AppState.cuartos = cuartos;
                 console.log('✅ AppState sincronizado con edificios:', edificios.length);
             }
+
+            // Guardar en storage EN SEGUNDO PLANO (no bloquea el renderizado)
+            console.log('💾 [SAVE] Iniciando guardado en storage (background)...');
+            (async () => {
+                try {
+                    if (window.storageHelper) {
+                        console.log('💾 [SAVE] storageHelper disponible, llamando saveAllData...');
+                        const saveResult = await window.storageHelper.saveAllData({
+                            cuartos,
+                            edificios,
+                            mantenimientos,
+                            usuarios
+                        });
+                        console.log('💾 [SAVE] saveAllData retornó:', saveResult);
+                        console.log('💾 Datos guardados en IndexedDB');
+                    } else {
+                        console.log('💾 [SAVE] storageHelper NO disponible');
+                    }
+
+                    // Mantener localStorage como fallback
+                    console.log('💾 [SAVE] Guardando en localStorage...');
+                    localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
+                    localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
+                    localStorage.setItem('ultimosMantenimientos', JSON.stringify(mantenimientos));
+                    localStorage.setItem('ultimosUsuarios', JSON.stringify(usuarios));
+                    console.log('💾 Datos guardados en localStorage como respaldo');
+                } catch (storageError) {
+                    console.warn('⚠️ No se pudo guardar en storage:', storageError);
+                }
+            })();
 
             console.log('🏁 [CARGA-DATOS] Retornando true de cargarDatos()');
             return true;
