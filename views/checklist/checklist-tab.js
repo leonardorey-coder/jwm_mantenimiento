@@ -1240,7 +1240,7 @@ function renderSabanaTable(data) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td data-label="Edificio">
-                <span class="sabana-edificio-pill"><i class="fas fa-hotel"></i>${row.edificio}</span>
+                <span class="sabana-edificio-pill">${row.edificio}</span>
             </td>
             <td data-label="Habitación">${row.habitacion}</td>
             <td data-label="Fecha Programada">${row.fechaProgramada || 'Pendiente'}</td>
@@ -3908,42 +3908,7 @@ function eliminarTareaRapida() {
     showQuickToast(`<strong>Tarea eliminada</strong><p>${sanitizeText(tarea.titulo)} se removió correctamente.</p>`);
 }
 
-function abrirModalCrearTarea() {
-    const titulo = prompt('Título de la tarea');
-    if (!titulo) {
-        showQuickToast('<strong>Alta cancelada</strong><p>No se proporcionó título.</p>');
-        return;
-    }
-
-    const descripcion = prompt('Descripción breve', titulo) || titulo;
-    const prioridadEntrada = prompt('Prioridad (alta, media, baja)', 'media') || 'media';
-    const prioridadNormalizada = ['alta', 'media', 'baja'].includes(prioridadEntrada.toLowerCase())
-        ? prioridadEntrada.toLowerCase()
-        : 'media';
-    const defaultDate = new Date();
-    defaultDate.setDate(defaultDate.getDate() + 2);
-    const vence = prompt('Fecha de vencimiento (AAAA-MM-DD)', formatDateForInput(defaultDate)) || '';
-    const ubicacion = prompt('Ubicación', 'Oficina Central') || 'Oficina Central';
-
-    const nuevaTarea = {
-        id: `task-${Date.now()}`,
-        titulo: titulo.trim(),
-        descripcion: descripcion.trim(),
-        rol: AppState.currentUser?.role || 'tecnico',
-        prioridad: prioridadNormalizada,
-        estado: 'pendiente',
-        vence: vence || null,
-        icono: 'fa-list-check',
-        etiquetas: [],
-        ubicacion: ubicacion.trim() || 'Oficina Central',
-        responsable: AppState.currentUser?.name || 'Equipo Mantto'
-    };
-
-    AppState.tareas = [nuevaTarea, ...AppState.tareas];
-    saveTareasData(AppState.tareas);
-    filterAndRenderTareas();
-    showQuickToast(`<strong>Tarea creada</strong><p>${sanitizeText(nuevaTarea.titulo)} asignada a ${sanitizeText(nuevaTarea.responsable)}</p>`);
-}
+// abrirModalCrearTarea() se define en tareas-module.js y se exporta a window
 
 function showQuickToast(html, duration = 4500) {
     const toast = document.createElement('div');
