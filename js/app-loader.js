@@ -311,18 +311,12 @@
                 mostrarUsuarioActualEnHeader();
             }
 
-            sincronizarCuartosFiltrados();
-
             // Configurar eventos de la interfaz
             console.log('⚙️ Configurando eventos de interfaz...');
             configurarEventos();
 
             // Mostrar datos en la interfaz
-            console.log('🖼️ Renderizando interfaz...');
-            mostrarCuartos();
-            mostrarEdificios();
-            cargarCuartosEnSelect();
-            mostrarAlertasYRecientes();
+            renderHabitacionesUI('datos-cargados');
 
             // Iniciar sistema de notificaciones
             console.log('🔔 Iniciando sistema de notificaciones...');
@@ -363,11 +357,7 @@
                 edificios = datosOffline.edificios;
                 mantenimientos = datosOffline.mantenimientos;
 
-                sincronizarCuartosFiltrados();
-                mostrarCuartos();
-                mostrarEdificios();
-                cargarCuartosEnSelect();
-                mostrarAlertasYRecientes();
+                renderHabitacionesUI('offline');
 
                 mostrarMensaje('Aplicación funcionando en modo offline', 'warning');
             } catch (offlineError) {
@@ -602,11 +592,17 @@
         const filtroPrioridad = document.getElementById('filtroPrioridad');
         const filtroEstado = document.getElementById('filtroEstado');
 
-        if (buscarCuarto) buscarCuarto.addEventListener('input', filtrarCuartos);
-        if (buscarAveria) buscarAveria.addEventListener('input', filtrarCuartos);
-        if (filtroEdificio) filtroEdificio.addEventListener('change', filtrarCuartos);
-        if (filtroPrioridad) filtroPrioridad.addEventListener('change', filtrarCuartos);
-        if (filtroEstado) filtroEstado.addEventListener('change', filtrarCuartos);
+        const filtrarCuartosHandler = window.filtrarCuartos;
+
+        if (filtrarCuartosHandler) {
+            if (buscarCuarto) buscarCuarto.addEventListener('input', filtrarCuartosHandler);
+            if (buscarAveria) buscarAveria.addEventListener('input', filtrarCuartosHandler);
+            if (filtroEdificio) filtroEdificio.addEventListener('change', filtrarCuartosHandler);
+            if (filtroPrioridad) filtroPrioridad.addEventListener('change', filtrarCuartosHandler);
+            if (filtroEstado) filtroEstado.addEventListener('change', filtrarCuartosHandler);
+        } else {
+            console.warn('⚠️ Handler filtrarCuartos no disponible en window, se omiten listeners de filtros.');
+        }
 
         // Configurar formulario de agregar mantenimiento
         const formAgregar = document.getElementById('formAgregarMantenimientoLateral');
@@ -621,10 +617,14 @@
                 const cuartoId = this.value;
                 if (cuartoId) {
                     // Seleccionar visualmente el cuarto en la interfaz
-                    seleccionarCuartoDesdeSelect(parseInt(cuartoId));
+                    if (window.seleccionarCuartoDesdeSelect) {
+                        window.seleccionarCuartoDesdeSelect(parseInt(cuartoId));
+                    }
 
                     // Actualizar el selector de estado con el estado actual del cuarto
-                    actualizarSelectorEstado(parseInt(cuartoId));
+                    if (window.actualizarSelectorEstado) {
+                        window.actualizarSelectorEstado(parseInt(cuartoId));
+                    }
                 } else {
                     // Si no hay selección, remover todas las selecciones
                     const todosLosCuartos = document.querySelectorAll('.cuarto');
@@ -637,6 +637,32 @@
                     if (estadoSelector) estadoSelector.value = '';
                 }
             });
+        }
+    }
+
+    /**
+     * Renderizar UI de habitaciones de forma segura
+     */
+    function renderHabitacionesUI(contexto = 'init') {
+        try {
+            console.log(`🖼️ Renderizando UI de habitaciones (${contexto})...`);
+
+            if (typeof window.sincronizarCuartosFiltrados === 'function') {
+                window.sincronizarCuartosFiltrados();
+            }
+
+            if (typeof window.mostrarCuartos === 'function') {
+                window.mostrarCuartos();
+            } else {
+                console.warn('⚠️ mostrarCuartos no disponible en window');
+            }
+
+            // Funciones locales del loader (no dependen de otros módulos)
+            mostrarEdificios();
+            cargarCuartosEnSelect();
+            mostrarAlertasYRecientes();
+        } catch (error) {
+            console.error('❌ Error renderizando habitaciones:', error);
         }
     }
 
@@ -1532,8 +1558,7 @@
 
             // Recargar datos y actualizar vista
             await cargarDatos();
-            mostrarCuartos();
-            mostrarAlertasYRecientes();
+            renderHabitacionesUI('mantenimiento-actualizado');
 
             // Actualizar paneles de alertas emitidas
             await mostrarAlertasEmitidas();
@@ -1640,9 +1665,7 @@
         recargarDatos: async () => {
             console.log('🔄 Recargando datos manualmente...');
             await cargarDatos();
-            mostrarCuartos();
-            cargarCuartosEnSelect();
-            mostrarAlertasYRecientes();
+            renderHabitacionesUI('recarga-manual');
             console.log('✅ Datos recargados');
         },
         verificarAlertas: () => verificarYEmitirAlertas(),
@@ -3086,7 +3109,7 @@
                 window.actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
             } else {
                 // Fallback: recargar todas las cards si la función no está disponible
-                mostrarCuartos();
+                renderHabitacionesUI('estado-actualizado');
             }
 
             // Mapeo de estados a emojis para el mensaje
@@ -3162,6 +3185,7 @@
     window.mostrarAlertasYRecientes = mostrarAlertasYRecientes;
     window.marcarAlertasPasadasComoEmitidas = marcarAlertasPasadasComoEmitidas;
     window.cargarCuartosEnSelect = cargarCuartosEnSelect;
+    window.renderHabitacionesUI = renderHabitacionesUI;
     window.mostrarAlertasEmitidas = mostrarAlertasEmitidas;
     window.mostrarHistorialAlertas = mostrarHistorialAlertas;
     window.verificarYEmitirAlertas = verificarYEmitirAlertas;
