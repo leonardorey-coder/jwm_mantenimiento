@@ -261,15 +261,27 @@
 
             // Cargar datos iniciales
             console.log('📥 Iniciando carga de datos...');
-            await cargarDatos();
+            try {
+                const cargaResult = await cargarDatos();
+                console.log('📦 cargarDatos() retornó:', cargaResult);
+            } catch (errorCarga) {
+                console.error('💥 Error en cargarDatos():', errorCarga);
+            }
             console.log('✅ Datos cargados exitosamente:', {
                 cuartos: cuartos.length,
                 edificios: edificios.length,
                 mantenimientos: mantenimientos.length
             });
+            console.log('🔄 Continuando después de cargarDatos()...');
 
             // Marcar alertas pasadas como emitidas
-            await marcarAlertasPasadasComoEmitidas();
+            try {
+                console.log('⏰ Llamando a marcarAlertasPasadasComoEmitidas()...');
+                await marcarAlertasPasadasComoEmitidas();
+                console.log('✅ marcarAlertasPasadasComoEmitidas() completado');
+            } catch (errorAlertas) {
+                console.error('⚠️ Error en marcarAlertasPasadasComoEmitidas():', errorAlertas);
+            }
 
             // Establecer usuario actual desde la sesión JWT
             let currentUser = null;
@@ -520,18 +532,24 @@
             console.log('🎉 Todos los datos cargados exitosamente desde API');
 
             // Guardar en IndexedDB primero, luego localStorage como respaldo
+            console.log('💾 [SAVE] Iniciando guardado en storage...');
             try {
                 if (window.storageHelper) {
-                    await window.storageHelper.saveAllData({
+                    console.log('💾 [SAVE] storageHelper disponible, llamando saveAllData...');
+                    const saveResult = await window.storageHelper.saveAllData({
                         cuartos,
                         edificios,
                         mantenimientos,
                         usuarios
                     });
+                    console.log('💾 [SAVE] saveAllData retornó:', saveResult);
                     console.log('💾 Datos guardados en IndexedDB');
+                } else {
+                    console.log('💾 [SAVE] storageHelper NO disponible');
                 }
 
                 // Mantener localStorage como fallback
+                console.log('💾 [SAVE] Guardando en localStorage...');
                 localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
                 localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
                 localStorage.setItem('ultimosMantenimientos', JSON.stringify(mantenimientos));
@@ -541,6 +559,7 @@
                 console.warn('⚠️ No se pudo guardar en storage:', storageError);
             }
 
+            console.log('🏁 [CARGA-DATOS] Retornando true de cargarDatos()');
             return true;
 
         } catch (error) {
