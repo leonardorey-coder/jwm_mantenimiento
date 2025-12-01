@@ -54,6 +54,7 @@ async function fetchWithAuth(url, options = {}) {
 
     if (!accessToken) {
         console.error('❌ [FETCH-AUTH] No hay token de acceso');
+        clearAuthData(); // Limpiar cualquier dato residual antes de redirigir
         window.location.href = 'login.html';
         throw new Error('No hay sesión activa');
     }
@@ -76,13 +77,15 @@ async function fetchWithAuth(url, options = {}) {
         const refreshed = await refreshAccessToken();
         if (refreshed) {
             // Reintentar la petición con el nuevo token
-            const newAccessToken = localStorage.getItem('accessToken');
+            const newAccessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
             headers['Authorization'] = `${tokenType} ${newAccessToken}`;
             console.log('🔵 [FETCH-AUTH] Reintentando con nuevo token...');
             return await fetch(url, { ...options, headers });
         } else {
-            console.error('❌ [FETCH-AUTH] No se pudo refrescar el token, redirigiendo a login');
+            console.error('❌ [FETCH-AUTH] No se pudo refrescar el token, limpiando datos y redirigiendo a login');
+            clearAuthData(); // ¡IMPORTANTE! Limpiar tokens antes de redirigir para evitar bucle infinito
             window.location.href = 'login.html';
+            throw new Error('Sesión expirada');
         }
     }
 
