@@ -418,6 +418,12 @@
                 edificios = datosOffline.edificios;
                 mantenimientos = datosOffline.mantenimientos;
 
+                // Sincronizar con AppState
+                if (typeof AppState !== 'undefined') {
+                    AppState.edificios = edificios;
+                    AppState.cuartos = cuartos;
+                }
+
                 sincronizarCuartosFiltrados();
                 mostrarCuartos();
                 mostrarEdificios();
@@ -559,6 +565,13 @@
                 console.warn('⚠️ No se pudo guardar en storage:', storageError);
             }
 
+            // Sincronizar con AppState para que otros módulos puedan acceder
+            if (typeof AppState !== 'undefined') {
+                AppState.edificios = edificios;
+                AppState.cuartos = cuartos;
+                console.log('✅ AppState sincronizado con edificios:', edificios.length);
+            }
+
             console.log('🏁 [CARGA-DATOS] Retornando true de cargarDatos()');
             return true;
 
@@ -579,6 +592,12 @@
                         edificios = offlineData.data.edificios || [];
                         mantenimientos = offlineData.data.mantenimientos || [];
                         usuarios = offlineData.data.usuarios || [];
+
+                        // Sincronizar con AppState
+                        if (typeof AppState !== 'undefined') {
+                            AppState.edificios = edificios;
+                            AppState.cuartos = cuartos;
+                        }
 
                         setTimeout(() => {
                             mostrarMensaje('Datos cargados desde IndexedDB (modo offline)', 'info');
@@ -604,6 +623,12 @@
                     edificios = JSON.parse(edificiosGuardados);
                     mantenimientos = JSON.parse(mantenimientosGuardados);
                     usuarios = usuariosGuardados ? JSON.parse(usuariosGuardados) : [];
+
+                    // Sincronizar con AppState
+                    if (typeof AppState !== 'undefined') {
+                        AppState.edificios = edificios;
+                        AppState.cuartos = cuartos;
+                    }
 
                     console.log('💾 Datos cargados desde localStorage:', {
                         cuartos: cuartos.length,
@@ -632,6 +657,12 @@
                 edificios = datosOffline.edificios;
                 mantenimientos = datosOffline.mantenimientos;
                 usuarios = datosOffline.usuarios || [];
+
+                // Sincronizar con AppState
+                if (typeof AppState !== 'undefined') {
+                    AppState.edificios = edificios;
+                    AppState.cuartos = cuartos;
+                }
 
                 console.log('Datos offline cargados:', {
                     cuartos: cuartos.length,
