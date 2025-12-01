@@ -140,6 +140,121 @@ function mostrarCuartos() {
     listaCuartos.innerHTML = '';
     let procesados = 0;
 
+    const renderCardContent = (li) => {
+        if (!li || li.dataset.loaded) {
+            return;
+        }
+
+        li.dataset.loading = '1';
+
+        const cuartoId = parseInt(li.dataset.cuartoId, 10);
+        const nombreCuarto = li.dataset.nombreCuarto;
+        const edificioNombre = li.dataset.edificioNombre;
+        const descripcion = li.dataset.descripcion;
+        const cuartoCompleto = cuartos.find(c => c.id === cuartoId);
+        const mantenimientosCuarto = window.mantenimientosPorCuarto.get(cuartoId) || [];
+
+        const estadoCuarto = cuartoCompleto?.estado || 'vacio';
+        let estadoBadgeClass = 'estado-vacio';
+        let estadoIcon = 'fa-check-circle';
+        let estadoText = 'Vacío';
+
+        switch (estadoCuarto.toLowerCase()) {
+            case 'ocupado':
+                estadoBadgeClass = 'estado-ocupado';
+                estadoIcon = 'fa-user';
+                estadoText = 'Ocupado';
+                break;
+            case 'en mantenimiento':
+            case 'mantenimiento':
+                estadoBadgeClass = 'estado-mantenimiento';
+                estadoIcon = 'fa-tools';
+                estadoText = 'En Mantenimiento';
+                break;
+            case 'fuera de servicio':
+            case 'fuera_servicio':
+                estadoBadgeClass = 'estado-fuera-servicio';
+                estadoIcon = 'fa-ban';
+                estadoText = 'Fuera de Servicio';
+                break;
+            default:
+                estadoBadgeClass = 'estado-vacio';
+                estadoIcon = 'fa-check-circle';
+                estadoText = 'Disponible';
+        }
+
+        requestAnimationFrame(() => {
+            li.className = 'habitacion-card';
+            li.setAttribute('data-aos', 'fade-up');
+            li.innerHTML = `
+                        <div class="habitacion-header">
+                            <div class="habitacion-titulo">
+                                <i class="habitacion-icon fas fa-door-closed"></i>
+                                <div>
+                                    <div class="habitacion-nombre">${escapeHtml(nombreCuarto)}</div>
+                                    <div class="habitacion-edificio">
+                                        <i class="fas fa-building"></i> ${escapeHtml(edificioNombre)}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="habitacion-estado-badge ${estadoBadgeClass}">
+                                <i class="fas ${estadoIcon}"></i> ${estadoText}
+                            </div>
+                        </div>
+                        <div class="habitacion-servicios" id="servicios-${cuartoId}">
+                            ${generarServiciosHTML(mantenimientosCuarto, cuartoId)}
+                        </div>
+                                        <!-- Selector de Estado Oculto hasta click en edición-->
+                        <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
+                            <label class="estado-label-inline">Estado de Habitación</label>
+                            <div class="estado-pills-inline">
+                                <button type="button" ${estadoText === "Disponible" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Disponible" ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
+                                    <span class="pill-dot-inline"></span>
+                                    <span class="pill-text-inline">Disp.</span>
+                                </button>
+                                <button type="button" ${estadoText === "Ocupado" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Ocupado" ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
+                                    <span class="pill-dot-inline"></span>
+                                    <span class="pill-text-inline">Ocup.</span>
+                                </button>
+                                <button type="button" ${estadoText === "En Mantenimiento" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "En Mantenimiento" ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
+                                    <span class="pill-dot-inline"></span>
+                                    <span class="pill-text-inline">Mant.</span>
+                                </button>
+                                <button type="button" ${estadoText === "Fuera de Servicio" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Fuera de Servicio" ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
+                                    <span class="pill-dot-inline"></span>
+                                    <span class="pill-text-inline">Fuera</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="habitacion-acciones">
+                            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
+                                <i class="fas fa-edit"></i> Editar
+                            </button>
+                            <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
+                                <i class="fas fa-plus"></i> Agregar Servicio
+                            </button>
+                        </div>
+                    `;
+
+            li.dataset.loaded = '1';
+
+            // Agregar clase de animación diagonal
+            li.classList.add('card-appear');
+
+            // Remover clases después de la animación (optimizado)
+            requestAnimationFrame(() => {
+                setTimeout(() => {
+                    li.classList.remove('cuarto-lazy', 'card-appear');
+                }, 250); // Reducido a 250ms para carga más rápida
+            });
+
+            // Animar card con anime.js si está disponible
+            if (typeof window.animarNuevaTarjeta === 'function') {
+                window.animarNuevaTarjeta(li);
+            }
+        });
+    };
+
     // Lazy loading: crear cards vacías y cargar contenido solo cuando entran al viewport
     cuartosPagina.forEach((cuarto, index) => {
         try {
@@ -212,6 +327,7 @@ function mostrarCuartos() {
                     // Marcar como cargando para evitar cargas duplicadas
                     li.dataset.loading = '1';
 
+                    // Usar requestIdleCallback si está disponible, sino setTimeout
                     // Calcular delay diagonal basado en la posición (índice)
                     const cardIndex = parseInt(li.dataset.index || '0', 10);
                     const delay = (cardIndex % CUARTOS_POR_PAGINA) * 5; // 5ms entre cada card (muy rápido)
@@ -221,115 +337,7 @@ function mostrarCuartos() {
 
                     // Aplicar delay antes de mostrar la card
                     scheduleRender(() => {
-                        const cuartoId = parseInt(li.dataset.cuartoId, 10);
-                        const nombreCuarto = li.dataset.nombreCuarto;
-                        const edificioNombre = li.dataset.edificioNombre;
-                        const descripcion = li.dataset.descripcion;
-                        const cuartoCompleto = cuartos.find(c => c.id === cuartoId);
-                        // Usar caché de mantenimientos en lugar de filtrar cada vez
-                        const mantenimientosCuarto = window.mantenimientosPorCuarto.get(cuartoId) || [];
-
-                        // Determinar estado del cuarto (ocupado, vacío, en mantenimiento, fuera de servicio)
-                        const estadoCuarto = cuartoCompleto?.estado || 'vacio';
-                        let estadoBadgeClass = 'estado-vacio';
-                        let estadoIcon = 'fa-check-circle';
-                        let estadoText = 'Vacío';
-
-                        switch (estadoCuarto.toLowerCase()) {
-                            case 'ocupado':
-                                estadoBadgeClass = 'estado-ocupado';
-                                estadoIcon = 'fa-user';
-                                estadoText = 'Ocupado';
-                                break;
-                            case 'en mantenimiento':
-                            case 'mantenimiento':
-                                estadoBadgeClass = 'estado-mantenimiento';
-                                estadoIcon = 'fa-tools';
-                                estadoText = 'En Mantenimiento';
-                                break;
-                            case 'fuera de servicio':
-                            case 'fuera_servicio':
-                                estadoBadgeClass = 'estado-fuera-servicio';
-                                estadoIcon = 'fa-ban';
-                                estadoText = 'Fuera de Servicio';
-                                break;
-                            default:
-                                estadoBadgeClass = 'estado-vacio';
-                                estadoIcon = 'fa-check-circle';
-                                estadoText = 'Disponible';
-                        }
-
-                        // Usar requestAnimationFrame para optimizar rendering
-                        requestAnimationFrame(() => {
-                            li.className = 'habitacion-card';
-                            li.setAttribute('data-aos', 'fade-up');
-                            li.innerHTML = `
-                        <div class="habitacion-header">
-                            <div class="habitacion-titulo">
-                                <i class="habitacion-icon fas fa-door-closed"></i>
-                                <div>
-                                    <div class="habitacion-nombre">${escapeHtml(nombreCuarto)}</div>
-                                    <div class="habitacion-edificio">
-                                        <i class="fas fa-building"></i> ${escapeHtml(edificioNombre)}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="habitacion-estado-badge ${estadoBadgeClass}">
-                                <i class="fas ${estadoIcon}"></i> ${estadoText}
-                            </div>
-                        </div>
-                        <div class="habitacion-servicios" id="servicios-${cuartoId}">
-                            ${generarServiciosHTML(mantenimientosCuarto, cuartoId)}
-                        </div>
-                                        <!-- Selector de Estado Oculto hasta click en edición-->
-                        <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
-                            <label class="estado-label-inline">Estado de Habitación</label>
-                            <div class="estado-pills-inline">
-                                <button type="button" ${estadoText === "Disponible" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Disponible" ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Disp.</span>
-                                </button>
-                                <button type="button" ${estadoText === "Ocupado" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Ocupado" ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Ocup.</span>
-                                </button>
-                                <button type="button" ${estadoText === "En Mantenimiento" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "En Mantenimiento" ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Mant.</span>
-                                </button>
-                                <button type="button" ${estadoText === "Fuera de Servicio" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Fuera de Servicio" ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Fuera</span>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="habitacion-acciones">
-                            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
-                                <i class="fas fa-edit"></i> Editar
-                            </button>
-                            <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
-                                <i class="fas fa-plus"></i> Agregar Servicio
-                            </button>
-                        </div>
-                    `;
-
-                            li.dataset.loaded = '1';
-
-                            // Agregar clase de animación diagonal
-                            li.classList.add('card-appear');
-
-                            // Remover clases después de la animación (optimizado)
-                            requestAnimationFrame(() => {
-                                setTimeout(() => {
-                                    li.classList.remove('cuarto-lazy', 'card-appear');
-                                }, 250); // Reducido a 250ms para carga más rápida
-                            });
-
-                            // Animar card con anime.js si está disponible
-                            if (typeof window.animarNuevaTarjeta === 'function') {
-                                window.animarNuevaTarjeta(li);
-                            }
-                        });
+                        renderCardContent(li);
                     }, { timeout: delay });
                 }
                 observer.unobserve(li);
@@ -345,6 +353,12 @@ function mostrarCuartos() {
         const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
         cards.forEach(li => window.cuartoObserver.observe(li));
     });
+
+    // Fallback: renderizar inmediatamente las cards visibles si el observer no dispara (evita skeletons colgados)
+    setTimeout(() => {
+        const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
+        cards.forEach(li => renderCardContent(li));
+    }, 80);
 
     console.log(`Se procesaron ${procesados} cuartos (página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
     console.log('=== FIN MOSTRANDO CUARTOS ===');
