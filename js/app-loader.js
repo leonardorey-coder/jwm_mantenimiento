@@ -319,6 +319,20 @@
 
             // Mostrar datos en la interfaz
             console.log('🖼️ Renderizando interfaz...');
+            console.log('📊 Datos disponibles para renderizar:', {
+                cuartos: cuartos.length,
+                edificios: edificios.length,
+                mantenimientos: mantenimientos.length
+            });
+            
+            // Asegurar que window.appLoaderState tenga los datos actualizados
+            if (window.appLoaderState) {
+                window.appLoaderState.cuartos = cuartos;
+                window.appLoaderState.edificios = edificios;
+                window.appLoaderState.mantenimientos = mantenimientos;
+                window.appLoaderState.usuarios = usuarios;
+            }
+            
             mostrarCuartos();
             mostrarEdificios();
             cargarCuartosEnSelect();
@@ -798,11 +812,22 @@
      * Mostrar edificios en el select de filtros
      */
     function mostrarEdificios() {
+        console.log('🏢 [MOSTRAR-EDIFICIOS] Iniciando...');
         const filtroEdificio = document.getElementById('filtroEdificio');
-        if (!filtroEdificio) return;
+        if (!filtroEdificio) {
+            console.warn('⚠️ [MOSTRAR-EDIFICIOS] Elemento filtroEdificio no encontrado');
+            return;
+        }
 
+        console.log('🏢 [MOSTRAR-EDIFICIOS] Edificios disponibles:', edificios.length);
+        
         // Mantener la opción "Todos los edificios"
         filtroEdificio.innerHTML = '<option value="">Todos los edificios</option>';
+
+        if (!edificios || edificios.length === 0) {
+            console.warn('⚠️ [MOSTRAR-EDIFICIOS] No hay edificios para mostrar');
+            return;
+        }
 
         edificios.forEach(edificio => {
             const option = document.createElement('option');
@@ -810,6 +835,8 @@
             option.textContent = edificio.nombre;
             filtroEdificio.appendChild(option);
         });
+        
+        console.log('✅ [MOSTRAR-EDIFICIOS] Edificios agregados al select:', edificios.length);
     }
 
     /**

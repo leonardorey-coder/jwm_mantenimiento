@@ -104,16 +104,21 @@ const tareaEditModalState = {
 };
 
 // Usar constantes existentes de app.js o definir si no existen
-if (typeof CHECKLIST_ESTADOS === 'undefined') {
-    var CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
+// Usar window para evitar conflictos de redeclaración
+if (typeof window.CHECKLIST_ESTADOS === 'undefined') {
+    window.CHECKLIST_ESTADOS = typeof CHECKLIST_ESTADOS !== 'undefined' ? CHECKLIST_ESTADOS : ['bueno', 'regular', 'malo'];
 }
-if (typeof CHECKLIST_ESTADO_LABELS === 'undefined') {
-    var CHECKLIST_ESTADO_LABELS = {
+if (typeof window.CHECKLIST_ESTADO_LABELS === 'undefined') {
+    window.CHECKLIST_ESTADO_LABELS = typeof CHECKLIST_ESTADO_LABELS !== 'undefined' ? CHECKLIST_ESTADO_LABELS : {
         bueno: 'Bueno',
         regular: 'Regular',
         malo: 'Malo'
     };
 }
+
+// Crear referencias locales para usar en el código
+const CHECKLIST_ESTADOS = window.CHECKLIST_ESTADOS;
+const CHECKLIST_ESTADO_LABELS = window.CHECKLIST_ESTADO_LABELS;
 
 // Usar sanitizeText existente o definir si no existe
 if (typeof sanitizeText === 'undefined') {
