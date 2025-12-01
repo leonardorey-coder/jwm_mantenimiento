@@ -191,113 +191,72 @@ function renderSabanaTable(items, archivada = false) {
         return;
     }
 
-    console.log('✅ Renderizando', items.length, 'filas con lazy loading');
+    console.log('✅ Renderizando', items.length, 'filas');
 
-    // Lazy loading con Intersection Observer
-    const BATCH_SIZE = 30; // Renderizar en lotes de 30
-    let currentIndex = 0;
+    // Renderizado directo sin lazy loading
+    items.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-item-id', item.id);
 
-    const renderBatch = () => {
-        const endIndex = Math.min(currentIndex + BATCH_SIZE, items.length);
-        const fragment = document.createDocumentFragment();
+        const readonly = archivada ? 'disabled' : '';
+        const readonlyClass = archivada ? 'readonly' : '';
 
-        for (let i = currentIndex; i < endIndex; i++) {
-            const item = items[i];
-            const tr = document.createElement('tr');
-            tr.setAttribute('data-lazy', 'true');
+        // Formatear fecha programada (fallback a fecha de creación de sábana)
+        const fechaParaUsar = item.fecha_programada || currentSabanaFechaCreacion;
+        const fechaProgramada = fechaParaUsar
+            ? new Date(fechaParaUsar).toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            })
+            : '-';
 
-            const readonly = archivada ? 'disabled' : '';
-            const readonlyClass = archivada ? 'readonly' : '';
+        // Responsable
+        const nombreResponsable = item.responsable_nombre || item.responsable;
+        const responsableHTML = (nombreResponsable && nombreResponsable !== 'null' && nombreResponsable !== 'undefined')
+            ? `<span class="responsable-nombre">${nombreResponsable}</span>`
+            : '<span style="color: #999;">-</span>';
 
-            // Formatear fecha programada (fallback a fecha de creación de sábana)
-            const fechaParaUsar = item.fecha_programada || currentSabanaFechaCreacion;
-            const fechaProgramada = fechaParaUsar
-                ? new Date(fechaParaUsar).toLocaleDateString('es-MX', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit'
-                })
-                : '-';
-
-            tr.innerHTML = `
-                <td data-label="Edificio">${item.edificio || 'Sin edificio'}</td>
-                <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
-                <td data-label="Programada">${fechaProgramada}</td>
-                <td data-label="Realizada">
-                    ${item.fecha_realizado
-                    ? `<span class="fecha-realizado">${new Date(item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}</span>`
-                    : '<span style="color: #999;">-</span>'}
-                </td>
-                <td data-label="Responsable">
-                    ${(() => {
-                        const nombre = item.responsable_nombre || item.responsable;
-                        return (nombre && nombre !== 'null' && nombre !== 'undefined')
-                            ? `<span class="responsable-nombre">${nombre}</span>`
-                            : '<span style="color: #999;">-</span>';
-                    })()}
-                </td>
-                <td data-label="Observaciones">
+        tr.innerHTML = `
+            <td data-label="Edificio">${item.edificio || 'Sin edificio'}</td>
+            <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
+            <td data-label="Programada" class="celda-fecha-programada">${fechaProgramada}</td>
+            <td data-label="Realizada" class="celda-fecha-realizada">
+                ${item.fecha_realizado
+                ? `<span class="fecha-realizado">${new Date(item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}</span>`
+                : '<span style="color: #999;">-</span>'}
+            </td>
+            <td data-label="Responsable" class="celda-responsable">${responsableHTML}</td>
+            <td data-label="Observaciones">
+                <input 
+                    type="text" 
+                    class="input-observaciones ${readonlyClass}" 
+                    value="${item.observaciones || ''}" 
+                    data-item-id="${item.id}"
+                    placeholder="${archivada ? 'Sin observaciones' : 'Escribe observaciones...'}"
+                    ${readonly}
+                    onchange="guardarObservacionSabana(${item.id}, this.value)"
+                />
+            </td>
+            <td style="text-align: center;" data-label="Estado">
+                <label class="checkbox-container ${readonlyClass}">
                     <input 
-                        type="text" 
-                        class="input-observaciones ${readonlyClass}" 
-                        value="${item.observaciones || ''}" 
+                        type="checkbox" 
+                        class="checkbox-sabana" 
                         data-item-id="${item.id}"
-                        placeholder="${archivada ? 'Sin observaciones' : 'Escribe observaciones...'}"
+                        ${item.realizado ? 'checked' : ''}
                         ${readonly}
-                        onchange="guardarObservacionSabana(${item.id}, this.value)"
+                        onchange="toggleRealizadoSabana(${item.id}, this.checked)"
                     />
-                </td>
-                <td style="text-align: center;" data-label="Estado">
-                    <label class="checkbox-container ${readonlyClass}">
-                        <input 
-                            type="checkbox" 
-                            class="checkbox-sabana" 
-                            data-item-id="${item.id}"
-                            ${item.realizado ? 'checked' : ''}
-                            ${readonly}
-                            onchange="toggleRealizadoSabana(${item.id}, this.checked)"
-                        />
-                        <span class="checkmark"></span>
-                    </label>
-                </td>
-            `;
+                    <span class="checkmark"></span>
+                </label>
+            </td>
+        `;
 
-            fragment.appendChild(tr);
-        }
+        tbody.appendChild(tr);
+    });
 
-        tbody.appendChild(fragment);
-        currentIndex = endIndex;
-
-        console.log(`📦 Renderizados ${endIndex}/${items.length} items`);
-
-        // Si quedan más filas, preparar el sentinel para lazy loading
-        if (currentIndex < items.length) {
-            const sentinel = document.createElement('tr');
-            sentinel.className = 'lazy-sentinel';
-            sentinel.innerHTML = '<td colspan="7" style="height: 1px; padding: 0;"></td>';
-            tbody.appendChild(sentinel);
-
-            // Observer para cargar siguiente lote
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        observer.unobserve(entry.target);
-                        entry.target.remove();
-                        renderBatch();
-                    }
-                });
-            }, {
-                rootMargin: '100px' // Cargar cuando esté a 100px de ser visible
-            });
-
-            observer.observe(sentinel);
-        } else {
-            console.log('✅ Todas las filas renderizadas');
-        }
-    };
-
-    // Iniciar el primer lote
-    renderBatch();
+    console.log('✅ Todas las filas renderizadas:', items.length);
 
     actualizarContadoresSabana(items);
 }
@@ -380,6 +339,7 @@ async function toggleRealizadoSabana(itemId, realizado) {
         console.log('✅ Item actualizado:', data);
 
         if (data.success && data.item) {
+            // Actualizar datos locales
             const localItem = currentSabanaItems.find(i => i.id === itemId);
             if (localItem) {
                 localItem.realizado = realizado;
@@ -391,40 +351,42 @@ async function toggleRealizadoSabana(itemId, realizado) {
                 }
             }
 
-            const checkbox = document.querySelector(`input.checkbox-sabana[data-item-id="${itemId}"]`);
-            if (checkbox) {
-                const row = checkbox.closest('tr');
-                if (row) {
-                    const fechaRealizadoCell = row.cells[3];
-                    if (fechaRealizadoCell) {
-                        const fechaRealizado = data.item.fecha_realizado
-                            ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
-                            : null;
-                        
-                        fechaRealizadoCell.innerHTML = fechaRealizado
-                            ? `<span class="fecha-realizado">${fechaRealizado}</span>`
-                            : '<span style="color: #999;">-</span>';
-                        
-                        fechaRealizadoCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
-                        setTimeout(() => {
-                            fechaRealizadoCell.style.backgroundColor = '';
-                        }, 1000);
-                    }
+            // Actualizar UI inmediatamente usando la fila por data-item-id
+            const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+            if (row) {
+                // Actualizar celda de fecha realizada
+                const fechaRealizadaCell = row.querySelector('.celda-fecha-realizada');
+                if (fechaRealizadaCell) {
+                    const fechaRealizado = data.item.fecha_realizado
+                        ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
+                        : null;
+                    
+                    fechaRealizadaCell.innerHTML = fechaRealizado
+                        ? `<span class="fecha-realizado">${fechaRealizado}</span>`
+                        : '<span style="color: #999;">-</span>';
+                    
+                    // Efecto visual de actualización
+                    fechaRealizadaCell.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+                    setTimeout(() => {
+                        fechaRealizadaCell.style.backgroundColor = '';
+                    }, 1500);
+                }
 
-                    if (data.item.responsable) {
-                        const responsableCell = row.cells[4];
-                        if (responsableCell) {
-                            responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
-                            responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
-                            setTimeout(() => {
-                                responsableCell.style.backgroundColor = '';
-                            }, 1000);
-                        }
-                        poblarPersonalSabana(currentSabanaItems);
+                // Actualizar celda de responsable
+                if (data.item.responsable) {
+                    const responsableCell = row.querySelector('.celda-responsable');
+                    if (responsableCell) {
+                        responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
+                        responsableCell.style.backgroundColor = 'rgba(76, 175, 80, 0.2)';
+                        setTimeout(() => {
+                            responsableCell.style.backgroundColor = '';
+                        }, 1500);
                     }
+                    poblarPersonalSabana(currentSabanaItems);
                 }
             }
 
+            // Actualizar contadores
             actualizarContadoresSabana(currentSabanaItems);
         }
 
