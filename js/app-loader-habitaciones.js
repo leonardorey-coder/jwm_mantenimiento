@@ -94,6 +94,14 @@ function mostrarCuartos() {
     const totalPaginasCuartos = s.totalPaginasCuartos;
     const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation based on screen size
     const mantenimientos = s.mantenimientos;
+    
+    console.log('📊 Estado actual:', {
+        cuartos: cuartos?.length || 0,
+        cuartosFiltradosActual: cuartosFiltradosActual?.length || 0,
+        mantenimientos: mantenimientos?.length || 0,
+        paginaActual: paginaActualCuartos,
+        totalPaginas: totalPaginasCuartos
+    });
 
     const listaCuartos = document.getElementById('listaCuartos');
     const mensajeNoResultados = document.getElementById('mensajeNoResultados');
