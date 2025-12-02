@@ -607,9 +607,11 @@ class PostgresManager {
 
     /**
      * Marcar automáticamente como emitidas todas las alertas cuya fecha/hora ya pasó
+     * Usa la zona horaria de Los Cabos (America/Mazatlan) para comparar correctamente
      * @returns {Promise<number>} Número de alertas marcadas
      */
     async marcarAlertasPasadasComoEmitidas() {
+        // Usar timezone de Los Cabos para comparar correctamente
         const query = `
             UPDATE mantenimientos 
             SET alerta_emitida = TRUE 
@@ -618,8 +620,11 @@ class PostgresManager {
             AND dia_alerta IS NOT NULL
             AND hora IS NOT NULL
             AND (
-                dia_alerta < CURRENT_DATE
-                OR (dia_alerta = CURRENT_DATE AND hora < CURRENT_TIME)
+                dia_alerta < (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE
+                OR (
+                    dia_alerta = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE 
+                    AND hora <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME
+                )
             )
             RETURNING id
         `;
@@ -636,6 +641,7 @@ class PostgresManager {
     /**
      * Obtener mantenimientos pendientes de alerta
      * (útil para sistema de notificaciones)
+     * Usa timezone de Los Cabos para comparar fechas correctamente
      */
     async getMantenimientosPendientesAlerta() {
         const query = `
@@ -645,7 +651,7 @@ class PostgresManager {
             LEFT JOIN edificios e ON c.edificio_id = e.id
             WHERE m.dia_alerta IS NOT NULL 
             AND m.alerta_emitida = FALSE
-            AND CURRENT_DATE >= m.dia_alerta
+            AND (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE >= m.dia_alerta
             ORDER BY m.dia_alerta, m.fecha_creacion
         `;
         const result = await this.pool.query(query);
@@ -659,7 +665,9 @@ class PostgresManager {
      */
     async getAlertasEmitidas(fecha = null) {
         let query = `
-            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre
+            SELECT m.*, c.numero as cuarto_numero, e.nombre as edificio_nombre,
+                   m.dia_alerta::TEXT as dia_alerta_str,
+                   m.hora::TEXT as hora_str
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e ON c.edificio_id = e.id
@@ -670,7 +678,7 @@ class PostgresManager {
         const params = [];
 
         if (fecha) {
-            query += ` AND m.dia_alerta = $1`;
+            query += ` AND m.dia_alerta = $1::DATE`;
             params.push(fecha);
         }
 
@@ -682,15 +690,19 @@ class PostgresManager {
 
     /**
      * Obtener alertas pendientes (no emitidas)
+     * Solo retorna alertas que aún no han llegado a su hora programada
      * @returns {Promise<Array>} Array de alertas pendientes
      */
     async getAlertasPendientes() {
+        // Alertas pendientes: NO emitidas Y cuya fecha/hora aún no ha pasado
         const query = `
             SELECT 
                 m.*, 
                 c.numero as cuarto_numero, 
                 ec.nombre as espacio_nombre,
-                COALESCE(e_cuarto.nombre, e_espacio.nombre) as edificio_nombre
+                COALESCE(e_cuarto.nombre, e_espacio.nombre) as edificio_nombre,
+                m.dia_alerta::TEXT as dia_alerta_str,
+                m.hora::TEXT as hora_str
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e_cuarto ON c.edificio_id = e_cuarto.id
@@ -698,10 +710,19 @@ class PostgresManager {
             LEFT JOIN edificios e_espacio ON ec.edificio_id = e_espacio.id
             WHERE m.tipo = 'rutina'
             AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
+            AND m.dia_alerta IS NOT NULL
+            AND (
+                m.dia_alerta > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE
+                OR (
+                    m.dia_alerta = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE 
+                    AND m.hora > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME
+                )
+            )
             ORDER BY m.dia_alerta ASC, m.hora ASC
         `;
 
         const result = await this.pool.query(query);
+        console.log(`📝 getAlertasPendientes: Encontradas ${result.rows.length} alertas pendientes`);
         return result.rows;
     }
 
