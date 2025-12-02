@@ -446,6 +446,25 @@ async function submitCrearTarea(event) {
         if (texto) tags.push(texto);
     });
 
+    // Obtener ID del usuario actual
+    let usuarioCreadorId = null;
+    try {
+        // Intentar desde AppState
+        if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
+            usuarioCreadorId = window.AppState.currentUser.id;
+        }
+        // Si no, desde localStorage/sessionStorage
+        if (!usuarioCreadorId) {
+            const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+            if (storedUser && storedUser.id) {
+                usuarioCreadorId = storedUser.id;
+            }
+        }
+        console.log('👤 Usuario creador ID:', usuarioCreadorId);
+    } catch (e) {
+        console.warn('Error obteniendo usuario creador:', e);
+    }
+
     const tareaData = {
         titulo: nombre,  // Se usa internamente
         nombre: nombre,  // Backend legacy espera 'nombre'
@@ -456,7 +475,8 @@ async function submitCrearTarea(event) {
         fecha_limite: fechaLimite,
         responsable_id: parseInt(responsableId),
         cuarto_id: cuartoIdActual,
-        tags: tags
+        tags: tags,
+        usuario_creador_id: usuarioCreadorId  // ID del usuario que crea la tarea
     };
 
     console.log('Enviando nueva tarea:', tareaData);
