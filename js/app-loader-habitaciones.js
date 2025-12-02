@@ -199,7 +199,7 @@ function mostrarCuartos() {
 
         requestAnimationFrame(() => {
             li.className = 'habitacion-card';
-            li.setAttribute('data-aos', 'fade-up');
+            // Removido: data-aos='fade-up' para evitar animación lenta
             li.innerHTML = `
                         <div class="habitacion-header">
                             <div class="habitacion-titulo">
@@ -253,21 +253,8 @@ function mostrarCuartos() {
             li.dataset.loaded = '1';
             console.log(`🏠 [HABITACIONES] Card renderizada: cuarto-${cuartoId}`);
 
-            // Agregar clase de animación diagonal
-            li.classList.add('card-appear');
-
-            // Remover clases después de la animación (optimizado)
-            requestAnimationFrame(() => {
-                setTimeout(() => {
-                    li.classList.remove('cuarto-lazy', 'card-appear');
-                    console.log(`🏠 [HABITACIONES] Clases limpiadas: cuarto-${cuartoId}`);
-                }, 250); // Reducido a 250ms para carga más rápida
-            });
-
-            // Animar card con anime.js si está disponible
-            if (typeof window.animarNuevaTarjeta === 'function') {
-                window.animarNuevaTarjeta(li);
-            }
+            // Limpiar clase lazy inmediatamente (sin animación)
+            li.classList.remove('cuarto-lazy');
         });
     };
 
