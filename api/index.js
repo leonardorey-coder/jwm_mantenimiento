@@ -1374,25 +1374,50 @@ app.post('/api/tareas', async (req, res) => {
 
         console.log('📝 Creando tarea:', req.body);
 
+        // Obtener usuario creador desde JWT o body
+        let creadoPor = req.body.usuario_creador_id;
+        
+        // Si no viene en el body, intentar obtenerlo del token JWT
+        if (!creadoPor) {
+            const authHeader = req.headers.authorization;
+            if (authHeader && authHeader.startsWith('Bearer ')) {
+                try {
+                    const jwt = require('jsonwebtoken');
+                    const token = authHeader.slice(7);
+                    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'jwmarriott-secret-2025');
+                    creadoPor = decoded.id || decoded.userId;
+                    console.log('📝 Usuario extraído del JWT:', creadoPor);
+                } catch (jwtError) {
+                    console.warn('⚠️ No se pudo decodificar JWT:', jwtError.message);
+                }
+            }
+        }
+
         // Mapear campos del frontend a la base de datos
         const data = {
-            titulo: req.body.nombre,
+            titulo: req.body.nombre || req.body.titulo,
             descripcion: req.body.descripcion,
             estado: req.body.estado,
             prioridad: req.body.prioridad,
             fecha_vencimiento: req.body.fecha_limite,
             asignado_a: req.body.responsable_id ? parseInt(req.body.responsable_id) : null,
             ubicacion: req.body.ubicacion,
-            tags: req.body.tags,
-            creado_por: req.body.usuario_creador_id || 3 // Default a usuario sistema si no hay auth
+            tags: req.body.tags || [],
+            creado_por: creadoPor ? parseInt(creadoPor) : null
         };
+
+        console.log('📝 Datos mapeados para BD:', data);
 
         const nuevaTarea = await postgresManager.createTarea(data);
         console.log('✅ Tarea creada:', nuevaTarea);
         res.status(201).json(nuevaTarea);
     } catch (error) {
-        console.error('Error al crear tarea:', error);
-        res.status(500).json({ error: 'Error al crear tarea', details: error.message });
+        console.error('❌ Error al crear tarea:', error);
+        res.status(500).json({ 
+            error: 'Error al crear tarea', 
+            message: error.message,
+            details: error.detail || error.message 
+        });
     }
 });
 
