@@ -3117,8 +3117,39 @@ async function cambiarEstadoEspacio(espacioId) {
 
 function formatearFecha(fecha) {
     if (!fecha) return '';
-    const date = new Date(fecha);
-    return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    
+    try {
+        let year, month, day;
+        const fechaStr = String(fecha);
+
+        // Formato YYYY-MM-DD (simple)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+            [year, month, day] = fechaStr.split('-').map(Number);
+        }
+        // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
+        else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+            const fechaPart = fechaStr.split('T')[0];
+            [year, month, day] = fechaPart.split('-').map(Number);
+        }
+        // Otros formatos - usar UTC
+        else {
+            const dateObj = new Date(fechaStr);
+            if (!isNaN(dateObj.getTime())) {
+                day = dateObj.getUTCDate();
+                month = dateObj.getUTCMonth() + 1;
+                year = dateObj.getUTCFullYear();
+            } else {
+                return '';
+            }
+        }
+
+        // Crear fecha local
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch (error) {
+        console.error('Error formateando fecha:', error, fecha);
+        return '';
+    }
 }
 
 function escapeHtml(text) {

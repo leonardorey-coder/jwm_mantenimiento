@@ -1474,24 +1474,42 @@
 
     /**
      * Formatear fecha corta (dd/mm)
+     * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
      */
     function formatearFechaCorta(fecha) {
         if (!fecha) return '';
 
-        // Si es formato YYYY-MM-DD, parsearlo manualmente para evitar problemas de zona horaria
-        if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-            const [year, month, day] = fecha.split('-').map(Number);
-            const fechaLocal = new Date(year, month - 1, day);
-            return fechaLocal.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit'
-            });
-        }
+        try {
+            let year, month, day;
+            const fechaStr = String(fecha);
 
-        return new Date(fecha).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit'
-        });
+            // Formato YYYY-MM-DD (simple)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                [year, month, day] = fechaStr.split('-').map(Number);
+            }
+            // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
+            else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+                const fechaPart = fechaStr.split('T')[0];
+                [year, month, day] = fechaPart.split('-').map(Number);
+            }
+            // Otros formatos
+            else {
+                const fechaObj = new Date(fechaStr);
+                if (!isNaN(fechaObj.getTime())) {
+                    // Usar UTC para evitar problemas de zona horaria
+                    day = fechaObj.getUTCDate();
+                    month = fechaObj.getUTCMonth() + 1;
+                } else {
+                    return '';
+                }
+            }
+
+            // Formatear como d/M
+            return `${day}/${month}`;
+        } catch (error) {
+            console.error('Error formateando fecha corta:', error, fecha);
+            return '';
+        }
     }
 
     /**
@@ -1533,9 +1551,12 @@
 
     /**
      * Formatear día de alerta (fecha en formato "día de mes")
+     * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
      */
     function formatearDiaAlerta(fecha) {
         if (!fecha) return '';
+
+        console.log('🔍 formatearDiaAlerta - entrada:', fecha, 'tipo:', typeof fecha);
 
         // Si es un número (día del mes), crear una fecha para el mes actual
         if (typeof fecha === 'number' || (!isNaN(parseInt(fecha)) && !String(fecha).includes('-'))) {
@@ -1547,26 +1568,45 @@
             return `${dia} de ${mes}`;
         }
 
-        // Si es una fecha completa (YYYY-MM-DD o timestamp)
+        // Si es una fecha completa (YYYY-MM-DD, ISO timestamp, etc.)
         try {
-            // Si es formato YYYY-MM-DD, parsearlo manualmente para evitar problemas de zona horaria
-            if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-                const [year, month, day] = fecha.split('-').map(Number);
-                const fechaObj = new Date(year, month - 1, day); // month - 1 porque los meses en JS son 0-indexed
-                const dia = fechaObj.getDate();
-                const mes = fechaObj.toLocaleDateString('es-ES', { month: 'long' });
-                return `${dia} de ${mes}`;
+            let year, month, day;
+            const fechaStr = String(fecha);
+
+            // Formato YYYY-MM-DD (simple)
+            if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                [year, month, day] = fechaStr.split('-').map(Number);
+            }
+            // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
+            else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+                // Extraer solo la parte de fecha ANTES de convertir
+                const fechaPart = fechaStr.split('T')[0];
+                [year, month, day] = fechaPart.split('-').map(Number);
+            }
+            // Otros formatos
+            else {
+                const fechaObj = new Date(fechaStr);
+                if (!isNaN(fechaObj.getTime())) {
+                    // Usar UTC para evitar problemas de zona horaria
+                    day = fechaObj.getUTCDate();
+                    month = fechaObj.getUTCMonth() + 1;
+                    year = fechaObj.getUTCFullYear();
+                } else {
+                    console.warn('⚠️ formatearDiaAlerta - formato no reconocido:', fecha);
+                    return fecha;
+                }
             }
 
-            // Para otros formatos, usar Date constructor
-            const fechaObj = new Date(fecha);
-            if (!isNaN(fechaObj.getTime())) {
-                const dia = fechaObj.getDate();
-                const mes = fechaObj.toLocaleDateString('es-ES', { month: 'long' });
-                return `${dia} de ${mes}`;
-            }
+            // Crear fecha local (sin problemas de zona horaria)
+            const fechaLocal = new Date(year, month - 1, day);
+            const diaFormateado = fechaLocal.getDate();
+            const mesFormateado = fechaLocal.toLocaleDateString('es-ES', { month: 'long' });
+            
+            console.log(`✅ formatearDiaAlerta - resultado: ${diaFormateado} de ${mesFormateado}`);
+            return `${diaFormateado} de ${mesFormateado}`;
+
         } catch (error) {
-            console.error('Error formateando fecha de alerta:', error, fecha);
+            console.error('❌ Error formateando fecha de alerta:', error, fecha);
         }
 
         return fecha;
