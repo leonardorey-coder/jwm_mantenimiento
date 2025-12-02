@@ -6854,6 +6854,28 @@ body.dark-mode .pagination-total {
   will-change: auto;
 }
 
+/* DESACTIVAR ANIMACIONES AOS para cards de habitaciones y espacios comunes */
+/* Esto evita la sensación de carga lenta */
+.habitacion-card[data-aos],
+#listaCuartos .habitacion-card,
+#listaEspacios .habitacion-card,
+#listaCuartos > li,
+#listaEspacios > li {
+  transform: none !important;
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+/* Desactivar animaciones de aparición para las cards */
+#listaCuartos .cuarto-lazy,
+#listaEspacios .cuarto-lazy,
+#listaCuartos .habitacion-card,
+#listaEspacios .habitacion-card {
+  animation: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
 /* Dark mode skeleton */
 body.dark-mode .skeleton-icon,
 body.dark-mode .skeleton-line,
