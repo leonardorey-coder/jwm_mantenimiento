@@ -689,7 +689,12 @@ app.get('/api/alertas/emitidas', async (req, res) => {
     try {
         const { fecha } = req.query; // Opcional: filtrar por fecha específica
 
+        // Log de timezone para debugging
+        const serverTime = new Date();
+        const losCabosTime = new Date(serverTime.toLocaleString('en-US', { timeZone: 'America/Mazatlan' }));
         console.log('📋 Obteniendo alertas emitidas', fecha ? `para fecha: ${fecha}` : '(todas)');
+        console.log(`🕐 Server UTC: ${serverTime.toISOString()}`);
+        console.log(`🕐 Los Cabos time: ${losCabosTime.toISOString()}`);
 
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasEmitidas(fecha || null);
@@ -713,11 +718,19 @@ app.get('/api/alertas/emitidas', async (req, res) => {
 // Obtener alertas pendientes (no emitidas)
 app.get('/api/alertas/pendientes', async (req, res) => {
     try {
+        // Log de timezone para debugging
+        const serverTime = new Date();
+        const losCabosTime = new Date(serverTime.toLocaleString('en-US', { timeZone: 'America/Mazatlan' }));
         console.log('📋 Obteniendo alertas pendientes (no emitidas)');
+        console.log(`🕐 Server UTC: ${serverTime.toISOString()}`);
+        console.log(`🕐 Los Cabos time: ${losCabosTime.toISOString()}`);
 
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasPendientes();
             console.log(`✅ Alertas pendientes encontradas: ${alertas.length}`);
+            alertas.forEach(a => {
+                console.log(`   - ID ${a.id}: ${a.dia_alerta} ${a.hora} - ${a.descripcion?.substring(0, 30)}`);
+            });
             res.json(alertas);
         } else {
             console.warn('⚠️ postgresManager no disponible, retornando array vacío');
