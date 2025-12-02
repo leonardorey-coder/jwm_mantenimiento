@@ -112,8 +112,9 @@ function initializeAnimations() {
     if (typeof anime === 'undefined') return;
     
     // Animación para las cards al cargar
+    // NOTA: Excluir cards de habitaciones y espacios comunes (ya que tienen carga dinámica)
     anime({
-        targets: '.brutalist-card',
+        targets: '.brutalist-card:not(#listaCuartos .brutalist-card):not(#listaEspacios .brutalist-card)',
         translateY: [50, 0],
         opacity: [0, 1],
         delay: anime.stagger(100),
@@ -383,6 +384,12 @@ function aplicarPrioridad(elemento, tipo) {
 // ========================================
 function animarNuevaTarjeta(elemento) {
     if (typeof anime === 'undefined') return;
+    
+    // NO animar cards de habitaciones o espacios comunes (carga dinámica)
+    // Esto evita la sensación de carga lenta
+    if (elemento.closest('#listaCuartos') || elemento.closest('#listaEspacios')) {
+        return; // Salir sin animar
+    }
     
     anime({
         targets: elemento,
