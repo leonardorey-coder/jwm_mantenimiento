@@ -1292,14 +1292,75 @@
                     mostrarAlertasYRecientes();
                 }
             } else {
-                console.log('ℹ️ No hay alertas pasadas pendientes de marcar');
+                console.log('ℹ️ No hay alertas pasadas pendientes de marcar (según backend)');
+                // Verificar en frontend como fallback
+                await verificarYEmitirAlertasPasadasFrontend();
             }
 
             return result.count;
 
         } catch (error) {
             console.error('❌ Error marcando alertas pasadas:', error);
+            // Intentar verificación en frontend como fallback
+            await verificarYEmitirAlertasPasadasFrontend();
             return 0;
+        }
+    }
+
+    /**
+     * Verificar y emitir alertas pasadas desde el frontend
+     * Fallback cuando el backend no detecta correctamente las alertas pasadas
+     */
+    async function verificarYEmitirAlertasPasadasFrontend() {
+        try {
+            console.log('🔍 [FRONTEND] Verificando alertas pasadas localmente...');
+            
+            // Obtener fecha/hora actual de Los Cabos
+            const ahora = new Date();
+            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+            const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
+            
+            console.log(`🕐 [FRONTEND] Fecha actual: ${fechaActual}, Hora actual: ${horaActual}`);
+            
+            // Filtrar rutinas que ya deberían haberse emitido
+            const rutinas = mantenimientos.filter(m => m.tipo === 'rutina');
+            console.log(`📋 [FRONTEND] Total rutinas: ${rutinas.length}`);
+            
+            const alertasPasadas = rutinas.filter(m => {
+                if (!m.dia_alerta || !m.hora) return false;
+                if (m.alerta_emitida || alertasEmitidas.has(m.id)) return false;
+                
+                // Extraer fecha de dia_alerta
+                const fechaAlerta = m.dia_alerta.includes('T') ? m.dia_alerta.split('T')[0] : m.dia_alerta;
+                const horaAlerta = m.hora.slice(0, 5);
+                
+                // Verificar si la alerta ya pasó
+                const fechaPasada = fechaAlerta < fechaActual;
+                const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
+                const esPasada = fechaPasada || mismaFechaHoraPasada;
+                
+                if (esPasada) {
+                    console.log(`⏰ [FRONTEND] Alerta ID ${m.id} debió emitirse: ${fechaAlerta} ${horaAlerta} <= ${fechaActual} ${horaActual}`);
+                }
+                
+                return esPasada;
+            });
+            
+            console.log(`🚨 [FRONTEND] Alertas pasadas sin emitir: ${alertasPasadas.length}`);
+            
+            // Emitir cada alerta pasada
+            for (const alerta of alertasPasadas) {
+                console.log(`📢 [FRONTEND] Emitiendo alerta pasada ID ${alerta.id}...`);
+                await emitirNotificacionAlerta(alerta);
+            }
+            
+            if (alertasPasadas.length > 0) {
+                // Refrescar UI
+                mostrarAlertasYRecientes();
+            }
+            
+        } catch (error) {
+            console.error('❌ [FRONTEND] Error verificando alertas pasadas:', error);
         }
     }
 
@@ -3320,6 +3381,7 @@
     window.cargarDatos = cargarDatos;
     window.mostrarAlertasYRecientes = mostrarAlertasYRecientes;
     window.marcarAlertasPasadasComoEmitidas = marcarAlertasPasadasComoEmitidas;
+    window.verificarYEmitirAlertasPasadasFrontend = verificarYEmitirAlertasPasadasFrontend;
     window.cargarCuartosEnSelect = cargarCuartosEnSelect;
     window.renderHabitacionesUI = renderHabitacionesUI;
     window.mostrarAlertasEmitidas = mostrarAlertasEmitidas;
