@@ -5,9 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Login - JW Marriott Sistema de Mantenimiento</title>
     
-    <!-- Establecer tema antes de cargar estilos -->
+    <!-- Detectar modo standalone (PWA instalada) y establecer tema -->
     <script>
         (function() {
+            // Detectar modo standalone
+            if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+                document.documentElement.classList.add('standalone-mode');
+            }
+            // Establecer tema
             const theme = localStorage.getItem('theme') || 'light';
             document.documentElement.setAttribute('data-theme', theme);
         })();

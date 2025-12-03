@@ -10,6 +10,13 @@
     <meta name="author" content="JW Marriott Los Cabos">
     <meta name="robots" content="index, follow">
     <meta name="googlebot" content="index, follow">
+    
+    <!-- Detectar modo standalone (PWA instalada) -->
+    <script>
+        if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+            document.documentElement.classList.add('standalone-mode');
+        }
+    </script>
 
     <link rel="stylesheet" href="views/checklist/checklist-styles.css">
     <link rel="stylesheet" href="css/style.css">

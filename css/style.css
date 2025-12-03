@@ -10133,3 +10133,69 @@ tr[data-lazy="true"] {
 .tarea-edit-historial::-webkit-scrollbar-thumb:hover {
   background: var(--gris-grafito);
 }
+
+/* ========================================
+   iOS PWA STANDALONE MODE
+   Estilos específicos para cuando la app
+   está instalada en el home screen
+   ======================================== */
+
+/* Detectar modo standalone (PWA instalada) */
+@media (display-mode: standalone) {
+  /* Agregar margen superior al contenedor para compensar el notch */
+  .contenedor {
+    padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+  }
+  
+  /* Agregar margen superior a los títulos principales */
+  .t-principal {
+    margin-top: 0.5rem;
+  }
+  
+  /* Asegurar que el body tenga padding-bottom para el home indicator */
+  body {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Soporte adicional para iOS Safari standalone */
+@media (display-mode: standalone) and (max-width: 768px) {
+  /* Aumentar espacio en contenedor móvil */
+  .contenedor {
+    padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  }
+  
+  /* Más espacio para títulos en móvil */
+  .t-principal {
+    margin-top: 0.75rem;
+    font-size: 1.8rem;
+  }
+  
+  .t-secundario {
+    margin-top: 0.25rem;
+  }
+  
+  /* Navegación inferior con más espacio para home indicator */
+  .premium-nav-mobile {
+    padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Fallback para navegadores que no soportan display-mode */
+@supports (-webkit-touch-callout: none) {
+  /* iOS specific - detecta Safari en iOS */
+  @media screen and (max-width: 768px) {
+    /* Cuando está en modo standalone en iOS */
+    html.standalone-mode .contenedor {
+      padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+    }
+    
+    html.standalone-mode .t-principal {
+      margin-top: 0.75rem;
+    }
+    
+    html.standalone-mode .premium-nav-mobile {
+      padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+}
