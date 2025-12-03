@@ -10195,7 +10195,7 @@ tr[data-lazy="true"] {
     }
     
     html.standalone-mode .premium-nav-mobile {
-      padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
     }
   }
 }
