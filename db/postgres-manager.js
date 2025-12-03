@@ -678,9 +678,24 @@ class PostgresManager {
      * @returns {Promise<number>} Número de alertas marcadas
      */
     async marcarAlertasPasadasComoEmitidas() {
+        // Log de hora actual del servidor
+        const horaServerQuery = `SELECT 
+            NOW() as utc_now,
+            (NOW() AT TIME ZONE 'America/Mazatlan') as mazatlan_now,
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE as fecha_hoy,
+            (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME as hora_actual
+        `;
+        const horaServerResult = await this.pool.query(horaServerQuery);
+        const serverTime = horaServerResult.rows[0];
+        console.log('🕐 Hora del servidor PostgreSQL:');
+        console.log(`   - UTC: ${serverTime.utc_now}`);
+        console.log(`   - Mazatlán: ${serverTime.mazatlan_now}`);
+        console.log(`   - Fecha hoy (Mazatlán): ${serverTime.fecha_hoy}`);
+        console.log(`   - Hora actual (Mazatlán): ${serverTime.hora_actual}`);
+
         // Primero, log de diagnóstico para ver qué alertas están pendientes
         const diagnosticQuery = `
-            SELECT id, dia_alerta, hora, descripcion,
+            SELECT id, dia_alerta, hora, descripcion, alerta_emitida,
                 (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE as fecha_hoy,
                 (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME as hora_actual
             FROM mantenimientos 
@@ -689,13 +704,25 @@ class PostgresManager {
             AND dia_alerta IS NOT NULL
         `;
         const diagnosticResult = await this.pool.query(diagnosticQuery);
-        console.log('🔍 Diagnóstico de alertas pendientes:');
+        console.log(`🔍 Diagnóstico: ${diagnosticResult.rows.length} alertas con alerta_emitida=FALSE:`);
         diagnosticResult.rows.forEach(r => {
             const fechaHoy = r.fecha_hoy;
             const horaActual = r.hora_actual;
-            const esPasada = r.dia_alerta < fechaHoy || 
-                            (r.dia_alerta.toISOString().split('T')[0] === fechaHoy && r.hora <= horaActual);
-            console.log(`   - ID ${r.id}: fecha=${r.dia_alerta} hora=${r.hora} (hoy=${fechaHoy} ahora=${horaActual}) => ${esPasada ? '⏰ PASADA' : '⏳ futura'}`);
+            // Comparar correctamente
+            const fechaAlerta = typeof r.dia_alerta === 'object' && r.dia_alerta instanceof Date 
+                ? r.dia_alerta.toISOString().split('T')[0] 
+                : String(r.dia_alerta).split('T')[0];
+            const fechaHoyStr = typeof fechaHoy === 'object' && fechaHoy instanceof Date
+                ? fechaHoy.toISOString().split('T')[0]
+                : String(fechaHoy).split('T')[0];
+            
+            const fechaPasada = fechaAlerta < fechaHoyStr;
+            const mismaFecha = fechaAlerta === fechaHoyStr;
+            const horaPasada = r.hora === null || r.hora <= horaActual;
+            const esPasada = fechaPasada || (mismaFecha && horaPasada);
+            
+            console.log(`   - ID ${r.id}: fecha=${fechaAlerta} hora=${r.hora || 'NULL'} emitida=${r.alerta_emitida}`);
+            console.log(`     → hoy=${fechaHoyStr} ahora=${horaActual} => fechaPasada=${fechaPasada} mismaFecha=${mismaFecha} horaPasada=${horaPasada} => ${esPasada ? '⏰ DEBE MARCARSE' : '⏳ aún futura'}`);
         });
 
         // Usar timezone de Los Cabos para comparar correctamente

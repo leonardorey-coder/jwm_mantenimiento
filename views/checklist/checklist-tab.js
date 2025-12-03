@@ -2768,6 +2768,22 @@ function exportChecklistToExcel(cuartoId) {
     let csv = 'Habitación,Edificio,Estado Habitación,Elemento,Estado,Último Editor,Fecha Edición\n';
 
     habitacion.items.forEach(item => {
+        // Formatear fecha con timezone local para evitar desfase de 1 día
+        let fechaFormateada = 'Sin fecha';
+        if (habitacion.fecha_ultima_edicion) {
+            const fechaStr = habitacion.fecha_ultima_edicion;
+            // Extraer solo la parte de fecha (YYYY-MM-DD) para evitar conversión UTC
+            const soloFecha = fechaStr.split('T')[0];
+            const [anio, mes, dia] = soloFecha.split('-');
+            // Crear fecha en zona horaria local
+            const fechaLocal = new Date(parseInt(anio), parseInt(mes) - 1, parseInt(dia));
+            fechaFormateada = fechaLocal.toLocaleDateString('es-MX', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit' 
+            });
+        }
+        
         const row = [
             habitacion.numero,
             habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio',
@@ -2775,7 +2791,7 @@ function exportChecklistToExcel(cuartoId) {
             item.nombre,
             item.estado,
             habitacion.ultimo_editor || 'Sin editor',
-            habitacion.fecha_ultima_edicion ? new Date(habitacion.fecha_ultima_edicion).toLocaleString('es-MX') : 'Sin fecha'
+            fechaFormateada
         ];
         csv += row.map(field => `"${field}"`).join(',') + '\n';
     });
@@ -4050,8 +4066,9 @@ function eliminarUsuario(userId) {
 // ========================================
 
 function archivarPeriodo() {
-    if (AppState.currentUser.role !== 'admin') {
-        alert('Solo los administradores pueden archivar periodos');
+    const userRole = AppState.currentUser?.role || 'tecnico';
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        alert('Solo los administradores y supervisores pueden archivar periodos');
         return;
     }
 
