@@ -6057,9 +6057,6 @@ body.admin a.admin-only {
 
 /* Switch para archivar */
 .switch-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
   cursor: pointer;
   user-select: none;
 }
@@ -6104,11 +6101,9 @@ body.admin a.admin-only {
 }
 
 .switch-label {
-  font-weight: 600;
-  color: var(--negro-carbon);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 4.3rem;
 }
 
 .modal-nueva-sabana-hint {
