@@ -2375,19 +2375,13 @@ function openChecklistDetailsModal(cuartoId) {
         <div class="modal-detalles-overlay"></div>
         <div class="modal-detalles-contenido checklist-details-content">
             <div class="modal-detalles-header">
-                <div class="checklist-header-flex">
-                    <div class="checklist-room-title">
-                        <span class="checklist-room-number">${habitacion.numero}</span>
-                    </div>
-                    <div class="checklist-header-bottom">
-                        <span class="checklist-meta-item">
-                            <i class="fas fa-building"></i> <span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span>
-                        </span>
-                        <span class="checklist-meta-item">
-                            <i class="fas fa-clipboard-list"></i> <span>${habitacion.items.length} ítems</span>
-                        </span>
-                        ${habitacion.ultimo_editor ? `<span class="checklist-meta-item checklist-editor-tag"><i class="fas fa-user-edit"></i> <span>${habitacion.ultimo_editor}</span></span>` : ''}
-                    </div>
+                <div class="checklist-modal-header-info">
+                    <h3 style="margin:0;font-size:1.3rem;font-weight:700;color:#fff;">${habitacion.numero}</h3>
+                    <span style="font-size:0.9rem;color:rgba(255,255,255,0.85);margin-top:0.25rem;display:block;">
+                        <i class="fas fa-building"></i> ${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'} · 
+                        <i class="fas fa-clipboard-list"></i> ${habitacion.items.length} ítems
+                        ${habitacion.ultimo_editor ? ` · <i class="fas fa-user-edit"></i> ${habitacion.ultimo_editor}` : ''}
+                    </span>
                 </div>
                 <button class="modal-detalles-cerrar">
                     <i class="fas fa-times"></i>
