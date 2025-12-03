@@ -154,6 +154,9 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
+  
+  /* iOS PWA Safe Area support */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Bloquear scroll de la página cuando hay un modal activo */
@@ -175,6 +178,11 @@ body.modal-open {
   transition: all 0.3s ease;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
+  
+  /* iOS PWA Safe Area - Notch support */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .header-content {
@@ -2376,6 +2384,11 @@ body.admin .tab-content.admin-only.active {
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
     padding: 0.4rem 0.25rem;
     z-index: 1001;
+    
+    /* iOS PWA Safe Area - Bottom notch/home indicator */
+    padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   .premium-nav-mobile .menu {
