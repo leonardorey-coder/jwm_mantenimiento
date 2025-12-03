@@ -2447,10 +2447,12 @@ function openChecklistDetailsModal(cuartoId) {
                 </div>
             </div>
             <div class="checklist-modal-footer" style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+                ${(AppState.currentUser?.role === 'admin' || AppState.currentUser?.role === 'supervisor') ? `
                 <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}">
                     <i class="fas fa-file-excel"></i>
                     <div><div style="font-weight:700;">Exportar Excel</div><div style="font-size:0.8rem;opacity:0.8;">Descargar checklist</div></div>
                 </button>
+                ` : ''}
             </div>
         </div>
     `;
@@ -2616,10 +2618,18 @@ function initChecklistEventListeners() {
         });
     }
 
-    // Botones de exportación
+    // Botones de exportación - solo para admin y supervisor
+    const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
+    const panelAcciones = document.getElementById('panelAccionesChecklist');
     const btnExportar = document.getElementById('btnExportarChecklist');
-    if (btnExportar) {
-        btnExportar.addEventListener('click', exportarChecklistExcel);
+    
+    if (userRole === 'admin' || userRole === 'supervisor') {
+        if (panelAcciones) panelAcciones.style.display = 'block';
+        if (btnExportar) {
+            btnExportar.addEventListener('click', exportarChecklistExcel);
+        }
+    } else {
+        if (panelAcciones) panelAcciones.style.display = 'none';
     }
 
     const btnReporte = document.getElementById('btnGenerarReporte');
