@@ -1106,7 +1106,10 @@ async function exportarSabanaExcel() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sabana_${nombreSabana.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+        // Usar fecha local en lugar de UTC
+        const fechaLocal = new Date();
+        const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
+        a.download = `sabana_${nombreSabana.replace(/[^a-z0-9]/gi, '_')}_${fechaStr}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
 
