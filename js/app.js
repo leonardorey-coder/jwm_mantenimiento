@@ -43,6 +43,9 @@ const AppState = {
     inspeccionesRecientes: []
 };
 
+// Exponer AppState globalmente para módulos externos
+window.AppState = AppState;
+
 // ========================================
 // FUNCIONES DE AUTENTICACIÓN
 // ========================================
@@ -1322,8 +1325,8 @@ function formatFecha(fechaStr) {
 // CHECKLIST - INSPECCIONES
 // ========================================
 
-const CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
-const CHECKLIST_ESTADO_LABELS = {
+var CHECKLIST_ESTADOS = ['bueno', 'regular', 'malo'];
+var CHECKLIST_ESTADO_LABELS = {
     bueno: 'Bueno',
     regular: 'Regular',
     malo: 'Malo'
@@ -2482,7 +2485,10 @@ function openChecklistDetailsModal(cuartoId) {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `checklist_${habitacion.numero}_${new Date().toISOString().split('T')[0]}.csv`;
+                // Usar fecha local en lugar de UTC
+                const fechaLocal = new Date();
+                const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
+                a.download = `checklist_${habitacion.numero}_${fechaStr}.csv`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
@@ -2532,7 +2538,10 @@ function exportarChecklistExcel() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `checklist_inspecciones_${new Date().toISOString().split('T')[0]}.csv`;
+        // Usar fecha local en lugar de UTC
+        const fechaLocal = new Date();
+        const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
+        a.download = `checklist_inspecciones_${fechaStr}.csv`;
         a.click();
 
         if (spinner) spinner.style.display = 'none';
