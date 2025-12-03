@@ -36,6 +36,52 @@ const obtenerHeadersConAuth = () => {
 };
 
 /**
+ * Parsea una fecha evitando problemas de timezone
+ * El servidor envía fechas en formato ISO (2025-12-03T00:00:00.000Z)
+ * Al usar new Date() directamente se interpreta en UTC causando desfase
+ * Esta función extrae año, mes, día y crea una fecha local
+ * @param {string|Date} fecha - Fecha en formato ISO, YYYY-MM-DD o Date
+ * @returns {Date} Fecha local correcta
+ */
+function parsearFechaLocal(fecha) {
+    if (!fecha) return new Date();
+    
+    // Si ya es Date, verificar si necesita ajuste
+    if (fecha instanceof Date) {
+        return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+    }
+    
+    const fechaStr = String(fecha);
+    let year, month, day;
+    
+    // Formato ISO con timestamp (2025-12-03T00:00:00.000Z)
+    if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+        const fechaPart = fechaStr.split('T')[0];
+        [year, month, day] = fechaPart.split('-').map(Number);
+    }
+    // Formato YYYY-MM-DD
+    else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        [year, month, day] = fechaStr.split('-').map(Number);
+    }
+    // Otros formatos - fallback
+    else {
+        const fechaObj = new Date(fechaStr);
+        if (!isNaN(fechaObj.getTime())) {
+            // Usar UTC para extraer componentes
+            year = fechaObj.getUTCFullYear();
+            month = fechaObj.getUTCMonth() + 1;
+            day = fechaObj.getUTCDate();
+        } else {
+            console.warn('⚠️ parsearFechaLocal - formato no reconocido:', fecha);
+            return new Date();
+        }
+    }
+    
+    // Crear fecha local (month es 0-indexed en JavaScript)
+    return new Date(year, month - 1, day);
+}
+
+/**
  * Obtiene el rol del usuario actual
  * @returns {string|null} El rol del usuario en formato normalizado (admin, supervisor, tecnico) o null
  */
@@ -1486,10 +1532,17 @@ function actualizarResumenTareas() {
     const enProceso = tareasFiltradas.filter(t => t.estado === 'en_proceso').length;
     const completadas = tareasFiltradas.filter(t => t.estado === 'completada').length;
     const canceladas = tareasFiltradas.filter(t => t.estado === 'cancelada').length;
-    const urgentes = tareasFiltradas.filter(t =>
-        t.prioridad === 'alta' ||
-        (t.fecha_vencimiento && new Date(t.fecha_vencimiento) < new Date())
-    ).length;
+    const urgentes = tareasFiltradas.filter(t => {
+        if (t.prioridad === 'alta') return true;
+        if (t.fecha_vencimiento) {
+            const fechaVenc = parsearFechaLocal(t.fecha_vencimiento);
+            const hoyLocal = new Date();
+            hoyLocal.setHours(0, 0, 0, 0);
+            fechaVenc.setHours(0, 0, 0, 0);
+            return fechaVenc < hoyLocal;
+        }
+        return false;
+    }).length;
     const total = tareasFiltradas.length;
     const totalActivas = total - canceladas;
 
@@ -1685,7 +1738,8 @@ async function verificarYActualizarTareasCompletadas() {
     for (const tarea of todasLasTareas) {
         // 1. PRIMERO: Verificar si la tarea está vencida y debe cancelarse
         if (tarea.fecha_vencimiento && tarea.estado !== 'cancelada' && tarea.estado !== 'completada') {
-            const fechaVencimiento = new Date(tarea.fecha_vencimiento);
+            // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
+            const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
             fechaVencimiento.setHours(0, 0, 0, 0);
 
             // Si la fecha de vencimiento es anterior a hoy, cancelar automáticamente
@@ -1902,7 +1956,8 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
     if (tarea.fecha_vencimiento) {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
-        const fechaLimite = new Date(tarea.fecha_vencimiento);
+        // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
+        const fechaLimite = parsearFechaLocal(tarea.fecha_vencimiento);
         fechaLimite.setHours(0, 0, 0, 0);
         const diffTime = fechaLimite - hoy;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -2125,7 +2180,8 @@ async function verDetalleTarea(tareaId) {
 
         // Formato de fecha de vencimiento
         if (tarea.fecha_vencimiento) {
-            const fecha = new Date(tarea.fecha_vencimiento);
+            // Usar parsearFechaLocal para evitar problemas de timezone
+            const fecha = parsearFechaLocal(tarea.fecha_vencimiento);
             const hoy = new Date();
             hoy.setHours(0, 0, 0, 0);
             fecha.setHours(0, 0, 0, 0);
@@ -2860,7 +2916,8 @@ async function cargarProximosVencimientos() {
                 return false;
             }
 
-            const fechaVencimiento = new Date(tarea.fecha_vencimiento);
+            // Usar parsearFechaLocal para evitar problemas de timezone
+            const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
             fechaVencimiento.setHours(0, 0, 0, 0);
 
             return fechaVencimiento >= hoy && fechaVencimiento <= tresDias;
@@ -2868,7 +2925,7 @@ async function cargarProximosVencimientos() {
 
         // Ordenar por fecha de vencimiento (más cercano primero)
         tareasProximas.sort((a, b) =>
-            new Date(a.fecha_vencimiento) - new Date(b.fecha_vencimiento)
+            parsearFechaLocal(a.fecha_vencimiento) - parsearFechaLocal(b.fecha_vencimiento)
         );
 
         console.log(`📅 ${tareasProximas.length} tareas con vencimiento próximo`);
@@ -2880,7 +2937,9 @@ async function cargarProximosVencimientos() {
         } else {
             // Renderizar cada tarea
             timeline.innerHTML = tareasProximas.map(tarea => {
-                const fechaVenc = new Date(tarea.fecha_vencimiento);
+                // Usar parsearFechaLocal para evitar problemas de timezone
+                const fechaVenc = parsearFechaLocal(tarea.fecha_vencimiento);
+                fechaVenc.setHours(0, 0, 0, 0);
                 const diasRestantes = Math.ceil((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
 
                 // Determinar el texto y clase para los días restantes
