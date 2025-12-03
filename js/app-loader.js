@@ -2763,16 +2763,28 @@
         const esAlerta = servicio.tipo === 'rutina';
 
         // Normalizar formato de fecha para el input date (YYYY-MM-DD)
+        // Evitar problemas de timezone extrayendo la fecha directamente del string ISO
         let diaAlertaFormatted = '';
         if (servicio.dia_alerta) {
             try {
-                const fecha = new Date(servicio.dia_alerta);
-                if (!isNaN(fecha.getTime())) {
-                    // Formatear como YYYY-MM-DD para el input date
-                    const year = fecha.getFullYear();
-                    const month = String(fecha.getMonth() + 1).padStart(2, '0');
-                    const day = String(fecha.getDate()).padStart(2, '0');
-                    diaAlertaFormatted = `${year}-${month}-${day}`;
+                const fechaStr = String(servicio.dia_alerta);
+                // Si es formato ISO con timestamp (2025-12-02T00:00:00.000Z), extraer solo la fecha
+                if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+                    diaAlertaFormatted = fechaStr.split('T')[0];
+                }
+                // Si ya es YYYY-MM-DD, usarlo directamente
+                else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+                    diaAlertaFormatted = fechaStr;
+                }
+                // Otros formatos, parsear con cuidado usando UTC
+                else {
+                    const fecha = new Date(fechaStr);
+                    if (!isNaN(fecha.getTime())) {
+                        const year = fecha.getUTCFullYear();
+                        const month = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+                        const day = String(fecha.getUTCDate()).padStart(2, '0');
+                        diaAlertaFormatted = `${year}-${month}-${day}`;
+                    }
                 }
             } catch (e) {
                 console.error('Error formateando dia_alerta:', e);
