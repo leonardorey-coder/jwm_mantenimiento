@@ -2765,9 +2765,23 @@
     // Cerrar modal con tecla Escape
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
-            const modal = document.getElementById('modalDetallesServicio');
-            if (modal && modal.style.display === 'flex') {
+            // Cerrar modal de detalles de servicio
+            const modalServicio = document.getElementById('modalDetallesServicio');
+            if (modalServicio && modalServicio.style.display === 'flex') {
                 cerrarModalDetalles();
+                return;
+            }
+            
+            // Cerrar modal de detalles de checklist
+            const modalChecklist = document.getElementById('checklist-details-modal');
+            if (modalChecklist && modalChecklist.style.display !== 'none') {
+                if (typeof closeChecklistDetailsModal === 'function') {
+                    closeChecklistDetailsModal();
+                } else {
+                    modalChecklist.style.display = 'none';
+                    document.body.classList.remove('modal-open');
+                }
+                return;
             }
         }
     });
