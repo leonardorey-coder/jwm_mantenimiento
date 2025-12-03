@@ -208,51 +208,71 @@ class PostgresManager {
                 console.log('✅ Columna tarea_id agregada');
             }
 
-            // Verificar y crear roles si no existen
+            // Verificar y crear roles faltantes (siempre, no solo cuando está vacía)
             const rolesCheck = await this.pool.query(`
-                SELECT COUNT(*) as count FROM roles
+                SELECT nombre FROM roles WHERE nombre IN ('ADMIN', 'SUPERVISOR', 'TECNICO')
             `);
+            const rolesExistentes = new Set(rolesCheck.rows.map(r => r.nombre.toUpperCase()));
+            const rolesFaltantes = ['ADMIN', 'SUPERVISOR', 'TECNICO'].filter(r => !rolesExistentes.has(r));
 
-            if (parseInt(rolesCheck.rows[0].count) === 0) {
-                console.log('🔄 Insertando roles por defecto...');
-                await this.pool.query(`
-                    INSERT INTO roles (nombre, descripcion, permisos) VALUES
-                    ('ADMIN', 'Administrador del sistema con acceso total', '{
-                        "all": true,
-                        "usuarios": true,
-                        "exportar_excel": true,
-                        "habitaciones": true,
-                        "espacios": true,
-                        "tareas": true,
-                        "checklist": true,
-                        "sabanas": true,
-                        "alertas": true
-                    }'::jsonb),
-                    ('SUPERVISOR', 'Supervisor con acceso a reportes y exportación (sin gestión de usuarios)', '{
-                        "all": false,
-                        "usuarios": false,
-                        "exportar_excel": true,
-                        "habitaciones": true,
-                        "espacios": true,
-                        "tareas": true,
-                        "checklist": true,
-                        "sabanas": true,
-                        "alertas": true
-                    }'::jsonb),
-                    ('TECNICO', 'Técnico de mantenimiento (sin usuarios ni exportación)', '{
-                        "all": false,
-                        "usuarios": false,
-                        "exportar_excel": false,
-                        "habitaciones": true,
-                        "espacios": true,
-                        "tareas": true,
-                        "checklist": true,
-                        "sabanas": false,
-                        "alertas": true
-                    }'::jsonb)
-                    ON CONFLICT (nombre) DO NOTHING
-                `);
-                console.log('✅ Roles por defecto insertados');
+            if (rolesFaltantes.length > 0) {
+                console.log('🔄 Insertando roles faltantes:', rolesFaltantes.join(', '));
+                
+                // Insertar cada rol faltante individualmente usando INSERT sin ID explícito
+                for (const rolNombre of rolesFaltantes) {
+                    let descripcion, permisos;
+                    
+                    if (rolNombre === 'ADMIN') {
+                        descripcion = 'Administrador del sistema con acceso total';
+                        permisos = JSON.stringify({
+                            all: true,
+                            usuarios: true,
+                            exportar_excel: true,
+                            habitaciones: true,
+                            espacios: true,
+                            tareas: true,
+                            checklist: true,
+                            sabanas: true,
+                            alertas: true
+                        });
+                    } else if (rolNombre === 'SUPERVISOR') {
+                        descripcion = 'Supervisor con acceso a reportes y exportación (sin gestión de usuarios)';
+                        permisos = JSON.stringify({
+                            all: false,
+                            usuarios: false,
+                            exportar_excel: true,
+                            habitaciones: true,
+                            espacios: true,
+                            tareas: true,
+                            checklist: true,
+                            sabanas: true,
+                            alertas: true
+                        });
+                    } else if (rolNombre === 'TECNICO') {
+                        descripcion = 'Técnico de mantenimiento (sin usuarios ni exportación)';
+                        permisos = JSON.stringify({
+                            all: false,
+                            usuarios: false,
+                            exportar_excel: false,
+                            habitaciones: true,
+                            espacios: true,
+                            tareas: true,
+                            checklist: true,
+                            sabanas: false,
+                            alertas: true
+                        });
+                    }
+                    
+                    await this.pool.query(`
+                        INSERT INTO roles (nombre, descripcion, permisos) 
+                        VALUES ($1, $2, $3::jsonb)
+                        ON CONFLICT (nombre) DO NOTHING
+                    `, [rolNombre, descripcion, permisos]);
+                    console.log(`✅ Rol ${rolNombre} insertado`);
+                }
+                console.log('✅ Roles faltantes insertados');
+            } else {
+                console.log('✅ Todos los roles ya existen: ADMIN, SUPERVISOR, TECNICO');
             }
 
         } catch (error) {
