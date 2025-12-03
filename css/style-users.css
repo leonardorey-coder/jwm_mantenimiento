@@ -921,15 +921,12 @@
 .switch-slider {
     position: absolute;
     cursor: pointer;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
     background-color: var(--gris-medio);
     border: 3px solid var(--negro-carbon);
     transition: 0.3s;
     border-radius: 28px;
     box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.15);
+    margin-left: 1.5rem;
 }
 
 .switch-slider::before {
