@@ -2874,6 +2874,7 @@ Object.defineProperty(window, 'tareasCargadas', {
 
 /**
  * Carga las tareas que vencen en los próximos 3 días
+ * Respeta los permisos de visibilidad según el rol del usuario
  */
 async function cargarProximosVencimientos() {
     const timeline = document.getElementById('tareasTimeline');
@@ -2910,8 +2911,14 @@ async function cargarProximosVencimientos() {
         tresDias.setDate(hoy.getDate() + 3);
         tresDias.setHours(23, 59, 59, 999);
 
-        // Filtrar tareas que vencen en los próximos 3 días
+        // Obtener rol del usuario actual y filtro activo
+        const rolUsuarioActual = obtenerRolUsuarioActual();
+        const selectRol = document.getElementById('filtroRolTarea');
+        const rolFiltro = selectRol ? selectRol.value : 'mi-rol';
+
+        // Filtrar tareas que vencen en los próximos 3 días Y respetan visibilidad
         const tareasProximas = todasLasTareas.filter(tarea => {
+            // Filtro de fecha y estado
             if (!tarea.fecha_vencimiento || tarea.estado === 'completada' || tarea.estado === 'cancelada') {
                 return false;
             }
@@ -2920,7 +2927,41 @@ async function cargarProximosVencimientos() {
             const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
             fechaVencimiento.setHours(0, 0, 0, 0);
 
-            return fechaVencimiento >= hoy && fechaVencimiento <= tresDias;
+            if (!(fechaVencimiento >= hoy && fechaVencimiento <= tresDias)) {
+                return false;
+            }
+
+            // Aplicar filtro de visibilidad por rol (igual que en filtrarTareas)
+            if (rolFiltro === 'mi-rol') {
+                if (!rolUsuarioActual) {
+                    return false;
+                }
+                // Solo mostrar tareas asignadas al rol del usuario actual
+                if (tarea.asignado_a_rol_nombre !== rolUsuarioActual) {
+                    return false;
+                }
+            } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol') {
+                // Filtro por rol específico
+                const rolMap = {
+                    'admin': 'ADMIN',
+                    'supervisor': 'SUPERVISOR',
+                    'tecnico': 'TECNICO',
+                    'ADMIN': 'ADMIN',
+                    'SUPERVISOR': 'SUPERVISOR',
+                    'TECNICO': 'TECNICO'
+                };
+                const rolBuscado = rolMap[rolFiltro] || rolMap[rolFiltro.toLowerCase()] || rolFiltro.toUpperCase();
+                if (tarea.asignado_a_rol_nombre !== rolBuscado) {
+                    return false;
+                }
+            } else if (rolFiltro === 'todos') {
+                // Si el usuario es supervisor, no mostrar tareas de ADMIN
+                if (rolUsuarioActual === 'SUPERVISOR' && tarea.asignado_a_rol_nombre === 'ADMIN') {
+                    return false;
+                }
+            }
+
+            return true;
         });
 
         // Ordenar por fecha de vencimiento (más cercano primero)
@@ -2928,7 +2969,7 @@ async function cargarProximosVencimientos() {
             parsearFechaLocal(a.fecha_vencimiento) - parsearFechaLocal(b.fecha_vencimiento)
         );
 
-        console.log(`📅 ${tareasProximas.length} tareas con vencimiento próximo`);
+        console.log(`📅 ${tareasProximas.length} tareas con vencimiento próximo (filtradas por rol: ${rolFiltro})`);
 
         // Mostrar tareas o mensaje de "todo al día"
         if (tareasProximas.length === 0) {
