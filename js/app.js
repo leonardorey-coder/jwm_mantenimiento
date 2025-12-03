@@ -2516,8 +2516,9 @@ function filterChecklistByEstado(estado) {
 }
 
 function exportarChecklistExcel() {
-    if (AppState.currentUser?.role !== 'admin') {
-        alert('Solo los administradores pueden exportar datos');
+    const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        alert('Solo administradores y supervisores pueden exportar datos');
         return;
     }
 
