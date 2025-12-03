@@ -706,27 +706,38 @@ function applyRolePermissions(role) {
     // Agregar clase al body según el rol
     document.body.classList.add(role);
 
+    // Manejar elementos admin-only (solo admin)
     if (role === 'admin') {
-        // Mostrar elementos exclusivos de admin (solo botones y links de navegación, no tabs)
         document.querySelectorAll('.admin-only').forEach(el => {
-            // Solo aplicar display inline a elementos de navegación, no a tabs
             if (!el.classList.contains('tab-content')) {
-                // Determinar el display apropiado según el tipo de elemento
                 if (el.tagName === 'A' || el.tagName === 'BUTTON') {
                     el.style.display = 'flex';
                 } else {
                     el.style.display = 'block';
                 }
             }
-            // Los tabs se controlan solo por CSS con body.admin
         });
     } else {
-        // Ocultar elementos de admin (solo elementos de navegación, no tabs)
         document.querySelectorAll('.admin-only').forEach(el => {
             if (!el.classList.contains('tab-content')) {
                 el.style.display = 'none';
             }
-            // Los tabs se controlan solo por CSS
+        });
+    }
+
+    // Manejar elementos supervisor-only (admin y supervisor pueden ver)
+    if (role === 'admin' || role === 'supervisor') {
+        document.querySelectorAll('.supervisor-only').forEach(el => {
+            if (el.tagName === 'A' || el.tagName === 'BUTTON') {
+                el.style.display = 'flex';
+            } else {
+                el.style.display = 'block';
+            }
+        });
+    } else {
+        // Técnico: ocultar elementos de supervisor
+        document.querySelectorAll('.supervisor-only').forEach(el => {
+            el.style.display = 'none';
         });
     }
 
@@ -1656,8 +1667,9 @@ function filterSabanaByEstado(estadoValor = '') {
 }
 
 function exportarSabanaExcel() {
-    if (AppState.currentUser.role !== 'admin') {
-        alert('Solo los administradores pueden exportar datos');
+    const userRole = AppState.currentUser?.role || 'tecnico';
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
         return;
     }
 
@@ -2442,17 +2454,15 @@ function openChecklistDetailsModal(cuartoId) {
     `).join('')}</div></div>`;
     const evidenciasBlock = `<div class="checklist-modal-evidencias"><h3>Evidencias Fotográficas</h3><div class="evidencias-upload-zone" onclick="document.getElementById('upload-evidencia-${cuartoId}').click()"><i class="fas fa-camera"></i><p><strong>Subir evidencia</strong><br>Click para seleccionar imágenes</p><input type="file" id="upload-evidencia-${cuartoId}" accept="image/*" multiple onchange="handleEvidenciaUpload(event, '${cuartoId}')"></div><div class="evidencias-grid" id="evidencias-grid-${cuartoId}">${buildEvidenciasHTML(habitacion)}</div></div>`;
     const historyBlock = `<div class="checklist-modal-history"><h3>Historial de Ediciones</h3><div class="checklist-history-list">${historialHTML}</div></div>`;
-    // Botones exportar con estilo del sistema
-    const exportBtns = `
-        <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}">
+    // Botones exportar con estilo del sistema (solo supervisor y admin pueden exportar)
+    const userRole = AppState.currentUser?.role || 'tecnico';
+    const canExport = userRole === 'admin' || userRole === 'supervisor';
+    const exportBtns = canExport ? `
+        <button class="filtros-action-button excel btn-export btn-excel supervisor-only" data-cuarto-id="${cuartoId}">
             <i class="fas fa-file-excel"></i>
             <div><div style="font-weight:700;">Exportar Excel</div><div style="font-size:0.8rem;opacity:0.8;">Descargar checklist</div></div>
         </button>
-        <button class="filtros-action-button pdf btn-export btn-pdf" data-cuarto-id="${cuartoId}">
-            <i class="fas fa-file-pdf"></i>
-            <div><div style="font-weight:700;">Exportar PDF</div><div style="font-size:0.8rem;opacity:0.8;">Descargar checklist</div></div>
-        </button>
-    `;
+    ` : '';
     modal.innerHTML = `
         <div class="modal-detalles-overlay"></div>
         <div class="modal-detalles-contenido checklist-details-content">
@@ -3283,8 +3293,9 @@ function changeChecklistPage(newPage) {
 }
 
 function exportarChecklistExcel() {
-    if (AppState.currentUser.role !== 'admin') {
-        alert('Solo los administradores pueden exportar datos');
+    const userRole = AppState.currentUser?.role || 'tecnico';
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
         return;
     }
 
