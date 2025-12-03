@@ -989,10 +989,6 @@
                 // Extraer fecha de dia_alerta si es timestamp
                 const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
 
-                // Todas estas alertas son pendientes (no emitidas)
-                const estadoTexto = '⏰ Programada';
-                const estadoClase = 'alerta-programada';
-
                 // Añadir todos los atributos data necesarios para el sistema de notificaciones
                 li.dataset.horaRaw = alerta.hora || '';
                 li.dataset.diaRaw = fechaAlerta || '';
@@ -1012,11 +1008,8 @@
                     <span class="rutina-descripcion">
                         ${escapeHtml(alerta.descripcion)}
                     </span>
-                    <span class="rutina-estado ${estadoClase}">
-                        ${estadoTexto}
-                    </span>
                 </span>
-                <button class="boton-ir-rutina" onclick="scrollToElement(${ubicacionId}, ${isEspacioComun})" title="Ver detalles">&#10148;</button>
+                <button class="boton-ir-rutina" onclick="scrollToElement(${ubicacionId}, ${isEspacioComun})" title="Ver ubicación">&#10148;</button>
             `;
                 listaAlertas.appendChild(li);
             });
@@ -1271,10 +1264,14 @@
 
     /**
      * Marcar automáticamente como emitidas las alertas cuya fecha/hora ya pasó
+     * Se ejecuta al inicio de la app y periódicamente
      */
     async function marcarAlertasPasadasComoEmitidas() {
         try {
-            console.log('🔄 Verificando alertas pasadas...');
+            // Obtener hora actual de Los Cabos para logging
+            const ahora = new Date();
+            const horaLosCabos = ahora.toLocaleString('es-MX', { timeZone: 'America/Mazatlan' });
+            console.log(`🔄 Verificando alertas pasadas... (Hora Los Cabos: ${horaLosCabos})`);
 
             const response = await fetch(`${API_BASE_URL}/api/alertas/marcar-pasadas`, {
                 method: 'POST',
@@ -1289,8 +1286,11 @@
 
             if (result.count > 0) {
                 console.log(`✅ ${result.count} alertas pasadas marcadas como emitidas`);
-                // Recargar datos para reflejar los cambios
-                await cargarDatos();
+                // Refrescar la UI de alertas para reflejar los cambios
+                if (typeof mostrarAlertasYRecientes === 'function') {
+                    console.log('🔄 Refrescando UI de alertas...');
+                    mostrarAlertasYRecientes();
+                }
             } else {
                 console.log('ℹ️ No hay alertas pasadas pendientes de marcar');
             }

@@ -678,28 +678,51 @@ class PostgresManager {
      * @returns {Promise<number>} Número de alertas marcadas
      */
     async marcarAlertasPasadasComoEmitidas() {
+        // Primero, log de diagnóstico para ver qué alertas están pendientes
+        const diagnosticQuery = `
+            SELECT id, dia_alerta, hora, descripcion,
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE as fecha_hoy,
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME as hora_actual
+            FROM mantenimientos 
+            WHERE tipo = 'rutina'
+            AND (alerta_emitida = FALSE OR alerta_emitida IS NULL)
+            AND dia_alerta IS NOT NULL
+        `;
+        const diagnosticResult = await this.pool.query(diagnosticQuery);
+        console.log('🔍 Diagnóstico de alertas pendientes:');
+        diagnosticResult.rows.forEach(r => {
+            const fechaHoy = r.fecha_hoy;
+            const horaActual = r.hora_actual;
+            const esPasada = r.dia_alerta < fechaHoy || 
+                            (r.dia_alerta.toISOString().split('T')[0] === fechaHoy && r.hora <= horaActual);
+            console.log(`   - ID ${r.id}: fecha=${r.dia_alerta} hora=${r.hora} (hoy=${fechaHoy} ahora=${horaActual}) => ${esPasada ? '⏰ PASADA' : '⏳ futura'}`);
+        });
+
         // Usar timezone de Los Cabos para comparar correctamente
+        // Incluir alertas donde hora es NULL si la fecha ya pasó
         const query = `
             UPDATE mantenimientos 
             SET alerta_emitida = TRUE 
             WHERE tipo = 'rutina'
-            AND alerta_emitida = FALSE
+            AND (alerta_emitida = FALSE OR alerta_emitida IS NULL)
             AND dia_alerta IS NOT NULL
-            AND hora IS NOT NULL
             AND (
                 dia_alerta < (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE
                 OR (
                     dia_alerta = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE 
-                    AND hora <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME
+                    AND (hora IS NULL OR hora <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME)
                 )
             )
-            RETURNING id
+            RETURNING id, dia_alerta, hora, descripcion
         `;
         const result = await this.pool.query(query);
         const count = result.rows.length;
 
         if (count > 0) {
-            console.log(`✅ Marcadas ${count} alertas pasadas como emitidas:`, result.rows.map(r => r.id));
+            console.log(`✅ Marcadas ${count} alertas pasadas como emitidas:`);
+            result.rows.forEach(r => console.log(`   - ID ${r.id}: ${r.dia_alerta} ${r.hora || 'sin hora'} - ${r.descripcion?.substring(0, 30)}`));
+        } else {
+            console.log('ℹ️ No hay alertas pasadas para marcar');
         }
 
         return count;
@@ -762,6 +785,9 @@ class PostgresManager {
      */
     async getAlertasPendientes() {
         // Alertas pendientes: NO emitidas Y cuya fecha/hora aún no ha pasado
+        // Una alerta es pendiente si:
+        // - fecha > hoy, O
+        // - fecha = hoy Y (hora es null O hora > ahora)
         const query = `
             SELECT 
                 m.*, 
@@ -769,7 +795,9 @@ class PostgresManager {
                 ec.nombre as espacio_nombre,
                 COALESCE(e_cuarto.nombre, e_espacio.nombre) as edificio_nombre,
                 m.dia_alerta::TEXT as dia_alerta_str,
-                m.hora::TEXT as hora_str
+                m.hora::TEXT as hora_str,
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE as fecha_hoy,
+                (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME as hora_actual
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e_cuarto ON c.edificio_id = e_cuarto.id
@@ -782,6 +810,7 @@ class PostgresManager {
                 m.dia_alerta > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE
                 OR (
                     m.dia_alerta = (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::DATE 
+                    AND m.hora IS NOT NULL
                     AND m.hora > (CURRENT_TIMESTAMP AT TIME ZONE 'America/Mazatlan')::TIME
                 )
             )
@@ -790,6 +819,11 @@ class PostgresManager {
 
         const result = await this.pool.query(query);
         console.log(`📝 getAlertasPendientes: Encontradas ${result.rows.length} alertas pendientes`);
+        if (result.rows.length > 0) {
+            result.rows.forEach(r => {
+                console.log(`   - ID ${r.id}: ${r.dia_alerta} ${r.hora || 'sin hora'} (hoy=${r.fecha_hoy} ahora=${r.hora_actual})`);
+            });
+        }
         return result.rows;
     }
 
