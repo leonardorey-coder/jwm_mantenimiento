@@ -2,6 +2,18 @@
 // CHECKLIST-TAB.JS - Módulo de Checklist JW Marriott
 // ========================================
 
+/**
+ * Obtener fecha local formateada como YYYY-MM-DD
+ * Evita el problema de UTC que causa +1 día en ciertas zonas horarias
+ */
+function getFechaLocalFormateada() {
+    const ahora = new Date();
+    const año = ahora.getFullYear();
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0');
+    const dia = String(ahora.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
+}
+
 // Extender AppState existente con propiedades de checklist (si no existen)
 (function extendAppState() {
     if (typeof AppState === 'undefined') {
@@ -1667,7 +1679,8 @@ function filterSabanaByEstado(estadoValor = '') {
 }
 
 function exportarSabanaExcel() {
-    const userRole = AppState.currentUser?.role || 'tecnico';
+    const userRole = (AppState.currentUser?.role || AppState.currentUser?.rol || 'tecnico').toLowerCase();
+    console.log('🔑 exportarSabanaExcel - Rol detectado:', userRole, 'Original:', AppState.currentUser?.role || AppState.currentUser?.rol);
     if (userRole !== 'admin' && userRole !== 'supervisor') {
         alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
         return;
@@ -1695,7 +1708,7 @@ function exportarSabanaExcel() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sabana_filtros_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `sabana_filtros_${getFechaLocalFormateada()}.csv`;
         a.click();
         window.URL.revokeObjectURL(url);
 
@@ -2800,7 +2813,7 @@ function exportChecklistToExcel(cuartoId) {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `checklist_${habitacion.numero}_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `checklist_${habitacion.numero}_${getFechaLocalFormateada()}.csv`;
     link.click();
 
     showNotification(`✅ Excel exportado: ${habitacion.numero}`, 'success');
@@ -3303,7 +3316,8 @@ function changeChecklistPage(newPage) {
 }
 
 function exportarChecklistExcel() {
-    const userRole = AppState.currentUser?.role || 'tecnico';
+    const userRole = (AppState.currentUser?.role || AppState.currentUser?.rol || 'tecnico').toLowerCase();
+    console.log('🔑 exportarChecklistExcel - Rol detectado:', userRole, 'Original:', AppState.currentUser?.role || AppState.currentUser?.rol);
     if (userRole !== 'admin' && userRole !== 'supervisor') {
         alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
         return;
@@ -3325,7 +3339,7 @@ function exportarChecklistExcel() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `checklist_inspecciones_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `checklist_inspecciones_${getFechaLocalFormateada()}.csv`;
         a.click();
 
         document.getElementById('downloadSpinner').style.display = 'none';
@@ -4066,7 +4080,8 @@ function eliminarUsuario(userId) {
 // ========================================
 
 function archivarPeriodo() {
-    const userRole = AppState.currentUser?.role || 'tecnico';
+    const userRole = (AppState.currentUser?.role || AppState.currentUser?.rol || 'tecnico').toLowerCase();
+    console.log('🔑 archivarPeriodo - Rol detectado:', userRole, 'Original:', AppState.currentUser?.role || AppState.currentUser?.rol);
     if (userRole !== 'admin' && userRole !== 'supervisor') {
         alert('Solo los administradores y supervisores pueden archivar periodos');
         return;
