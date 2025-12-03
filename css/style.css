@@ -5057,43 +5057,48 @@ body.admin .tab-content.admin-only.active {
   flex-direction: row;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
-  margin-top: 0.25rem;
+  gap: 0.3rem;
+  margin-top: 0.1rem;
+}
+
+.checklist-meta-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .checklist-meta-item {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--texto-secundario);
-  background: var(--gris-claro);
-  padding: 0.3rem 0.6rem;
-  border-radius: var(--radio-pequeno);
-  border: 2px solid var(--border-color);
-  transition: var(--transicion-rapida);
+  /* Sin background ni border - texto plano */
 }
 
 .checklist-meta-item i {
   font-size: 0.8rem;
-  opacity: 0.85;
+  opacity: 0.7;
 }
 
-.checklist-meta-item:hover {
-  background: var(--gris-separador);
-  transform: translateY(-1px);
+.checklist-meta-divider {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--texto-secundario);
+  opacity: 0.4;
 }
 
 /* Variante para el editor/responsable */
 .checklist-meta-item.checklist-editor-tag {
   color: var(--verde-oliva);
-  background: rgba(85, 107, 47, 0.08);
-  border-color: var(--verde-oliva);
 }
 
 .checklist-meta-item.checklist-editor-tag i {
   color: var(--verde-oliva);
+  opacity: 0.85;
 }
 
 /* Dark mode */
@@ -5102,32 +5107,29 @@ body.dark-mode .checklist-room-number {
 }
 
 body.dark-mode .checklist-meta-item {
-  background: var(--bg-tarjeta);
-  border-color: var(--border-color);
   color: var(--texto-secundario);
 }
 
 body.dark-mode .checklist-meta-item.checklist-editor-tag {
-  background: rgba(85, 107, 47, 0.15);
   color: var(--verde-claro);
-  border-color: var(--verde-oliva);
 }
 
 body.dark-mode .checklist-meta-item.checklist-editor-tag i {
   color: var(--verde-claro);
 }
 
+body.dark-mode .checklist-meta-divider {
+  background: var(--texto-secundario);
+}
+
 /* Responsive - móviles */
 @media (max-width: 480px) {
-  .checklist-header-bottom {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
+  .checklist-meta-group {
+    gap: 0.4rem;
   }
   
   .checklist-meta-item {
     font-size: 0.8rem;
-    padding: 0.25rem 0.5rem;
   }
   
   .checklist-room-number {
