@@ -1826,24 +1826,29 @@ async function refrescarTarjetasTareas() {
 }
 
 /**
- * Determina si el usuario actual puede editar una tarea
+ * Determina si el usuario actual puede ver el botón de editar una tarea
+ * NOTA: El técnico puede ver el botón en cualquier estado, pero al hacer clic
+ * en tareas completadas/canceladas, se muestra un modal de advertencia
  * @param {Object} tarea - Objeto de tarea
- * @returns {boolean} true si puede editar, false en caso contrario
+ * @returns {boolean} true si puede ver el botón de editar, false en caso contrario
  */
 function puedeEditarTarea(tarea) {
     const rolUsuario = obtenerRolUsuarioActual();
 
+    // Admin puede editar todo
     if (rolUsuario === 'admin') {
         return true;
     }
 
+    // Supervisor puede editar todo excepto tareas de admin
     if (rolUsuario === 'supervisor') {
         return tarea.asignado_a_rol_nombre !== 'ADMIN';
     }
 
+    // Técnico puede VER el botón de editar en tareas de técnicos
+    // El modal de advertencia se muestra al hacer clic si está completada/cancelada
     if (rolUsuario === 'tecnico') {
-        return tarea.asignado_a_rol_nombre === 'TECNICO' &&
-            tarea.estado !== 'cancelada';
+        return tarea.asignado_a_rol_nombre === 'TECNICO';
     }
 
     return false;

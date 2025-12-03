@@ -1013,6 +1013,15 @@ async function archivarPeriodo() {
 
 async function exportarSabanaExcel() {
     console.log('🟢🟢🟢 FUNCIÓN EXPORTAR LLAMADA 🟢🟢🟢');
+    
+    // Verificar permisos - solo admin y supervisor pueden exportar
+    const userRole = window.AppState?.currentUser?.role || 'tecnico';
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        console.warn('⚠️ Usuario sin permisos para exportar');
+        alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
+        return;
+    }
+    
     console.log('currentSabanaId:', currentSabanaId);
     console.log('currentSabanaItems.length:', currentSabanaItems?.length);
 

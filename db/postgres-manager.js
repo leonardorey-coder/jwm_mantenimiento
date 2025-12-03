@@ -208,6 +208,53 @@ class PostgresManager {
                 console.log('✅ Columna tarea_id agregada');
             }
 
+            // Verificar y crear roles si no existen
+            const rolesCheck = await this.pool.query(`
+                SELECT COUNT(*) as count FROM roles
+            `);
+
+            if (parseInt(rolesCheck.rows[0].count) === 0) {
+                console.log('🔄 Insertando roles por defecto...');
+                await this.pool.query(`
+                    INSERT INTO roles (nombre, descripcion, permisos) VALUES
+                    ('ADMIN', 'Administrador del sistema con acceso total', '{
+                        "all": true,
+                        "usuarios": true,
+                        "exportar_excel": true,
+                        "habitaciones": true,
+                        "espacios": true,
+                        "tareas": true,
+                        "checklist": true,
+                        "sabanas": true,
+                        "alertas": true
+                    }'::jsonb),
+                    ('SUPERVISOR', 'Supervisor con acceso a reportes y exportación (sin gestión de usuarios)', '{
+                        "all": false,
+                        "usuarios": false,
+                        "exportar_excel": true,
+                        "habitaciones": true,
+                        "espacios": true,
+                        "tareas": true,
+                        "checklist": true,
+                        "sabanas": true,
+                        "alertas": true
+                    }'::jsonb),
+                    ('TECNICO', 'Técnico de mantenimiento (sin usuarios ni exportación)', '{
+                        "all": false,
+                        "usuarios": false,
+                        "exportar_excel": false,
+                        "habitaciones": true,
+                        "espacios": true,
+                        "tareas": true,
+                        "checklist": true,
+                        "sabanas": false,
+                        "alertas": true
+                    }'::jsonb)
+                    ON CONFLICT (nombre) DO NOTHING
+                `);
+                console.log('✅ Roles por defecto insertados');
+            }
+
         } catch (error) {
             console.error('⚠️ Error ejecutando migraciones:', error);
             // No lanzar error para no bloquear la aplicación
@@ -1038,27 +1085,49 @@ class PostgresManager {
 
     /**
      * Resuelve el ID del rol a partir de nombre o ID
+     * Soporta: número, string numérico, o nombre de rol (case-insensitive)
      */
     async resolveRolId(rol) {
         if (!rol && rol !== 0) {
             throw new Error('Rol requerido');
         }
 
+        // Si es un número entero, devolverlo directamente
         if (typeof rol === 'number' && Number.isInteger(rol)) {
             return rol;
         }
 
+        // Si es un string que representa un número, convertirlo
         const numeric = parseInt(rol, 10);
-        if (!Number.isNaN(numeric)) {
+        if (!Number.isNaN(numeric) && String(numeric) === String(rol).trim()) {
             return numeric;
         }
 
+        // Buscar por nombre (case-insensitive)
+        const rolNombre = rol.toString().trim().toUpperCase();
+        console.log(`🔍 Buscando rol por nombre: "${rolNombre}"`);
+        
         const result = await this.pool.query(
             'SELECT id FROM roles WHERE UPPER(nombre) = $1',
-            [rol.toString().trim().toUpperCase()]
+            [rolNombre]
         );
 
         if (!result.rows.length) {
+            // Si no existe, intentar crearlo automáticamente
+            console.log(`⚠️ Rol "${rolNombre}" no encontrado, creándolo...`);
+            const insertResult = await this.pool.query(
+                `INSERT INTO roles (nombre, descripcion) 
+                 VALUES ($1, $2) 
+                 ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
+                 RETURNING id`,
+                [rolNombre, `Rol ${rolNombre}`]
+            );
+            
+            if (insertResult.rows.length) {
+                console.log(`✅ Rol "${rolNombre}" creado con ID: ${insertResult.rows[0].id}`);
+                return insertResult.rows[0].id;
+            }
+            
             throw new Error(`Rol no válido: ${rol}`);
         }
 
