@@ -2467,18 +2467,18 @@ function openChecklistDetailsModal(cuartoId) {
         <div class="modal-detalles-overlay"></div>
         <div class="modal-detalles-contenido checklist-details-content">
             <div class="modal-detalles-header">
-                <div class="checklist-header-flex" style="width:100%;display:flex;flex-direction:column;">
-                    <div class="checklist-room-title" style="width:100%;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:0.75rem;margin-bottom:0.2rem;">
-                        <span class="checklist-room-number" style="font-size:1.15rem;font-weight:900;">${habitacion.numero}</span>
+                <div class="checklist-header-flex">
+                    <div class="checklist-room-title">
+                        <span class="checklist-room-number">${habitacion.numero}</span>
                     </div>
-                    <div class="checklist-header-bottom" style="width:100%;display:flex;flex-direction:column;align-items:flex-start;gap:0.3rem;margin-top:0.1rem;">
-                        <span class="checklist-meta-item" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--negro-carbon);background:none;border:none;padding:0;">
+                    <div class="checklist-header-bottom">
+                        <span class="checklist-meta-item">
                             <i class="fas fa-building"></i> <span>${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'}</span>
                         </span>
-                        <span class="checklist-meta-item" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--negro-carbon);background:none;border:none;padding:0;">
+                        <span class="checklist-meta-item">
                             <i class="fas fa-clipboard-list"></i> <span>${habitacion.items.length} ítems</span>
                         </span>
-                        ${habitacion.ultimo_editor ? `<span class="checklist-meta-item checklist-editor-tag" style="display:flex;align-items:center;gap:0.3rem;font-size:0.95rem;font-weight:600;color:var(--verde-oliva);background:none;border:none;padding:0;"><i class=\"fas fa-user-edit\"></i> <span>${habitacion.ultimo_editor}</span></span>` : ''}
+                        ${habitacion.ultimo_editor ? `<span class="checklist-meta-item checklist-editor-tag"><i class="fas fa-user-edit"></i> <span>${habitacion.ultimo_editor}</span></span>` : ''}
                     </div>
                 </div>
                 <button class="modal-detalles-cerrar">

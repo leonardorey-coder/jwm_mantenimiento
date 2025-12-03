@@ -5024,6 +5024,118 @@ body.admin .tab-content.admin-only.active {
 }
 
 /* ========================================
+   CHECKLIST HEADER FLEX - Cards de habitación
+   ======================================== */
+.checklist-header-flex {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checklist-room-title {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.checklist-room-number {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--texto-principal);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.checklist-header-bottom {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 0.25rem;
+}
+
+.checklist-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  background: var(--gris-claro);
+  padding: 0.3rem 0.6rem;
+  border-radius: var(--radio-pequeno);
+  border: 2px solid var(--border-color);
+  transition: var(--transicion-rapida);
+}
+
+.checklist-meta-item i {
+  font-size: 0.8rem;
+  opacity: 0.85;
+}
+
+.checklist-meta-item:hover {
+  background: var(--gris-separador);
+  transform: translateY(-1px);
+}
+
+/* Variante para el editor/responsable */
+.checklist-meta-item.checklist-editor-tag {
+  color: var(--verde-oliva);
+  background: rgba(85, 107, 47, 0.08);
+  border-color: var(--verde-oliva);
+}
+
+.checklist-meta-item.checklist-editor-tag i {
+  color: var(--verde-oliva);
+}
+
+/* Dark mode */
+body.dark-mode .checklist-room-number {
+  color: var(--texto-principal);
+}
+
+body.dark-mode .checklist-meta-item {
+  background: var(--bg-tarjeta);
+  border-color: var(--border-color);
+  color: var(--texto-secundario);
+}
+
+body.dark-mode .checklist-meta-item.checklist-editor-tag {
+  background: rgba(85, 107, 47, 0.15);
+  color: var(--verde-claro);
+  border-color: var(--verde-oliva);
+}
+
+body.dark-mode .checklist-meta-item.checklist-editor-tag i {
+  color: var(--verde-claro);
+}
+
+/* Responsive - móviles */
+@media (max-width: 480px) {
+  .checklist-header-bottom {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .checklist-meta-item {
+    font-size: 0.8rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .checklist-room-number {
+    font-size: 1.2rem;
+  }
+}
+
+/* ========================================
    GESTIÓN DE USUARIOS
    ======================================== */
 .usuarios-container {
