@@ -1092,15 +1092,23 @@ class PostgresManager {
             throw new Error('Rol requerido');
         }
 
-        // Si es un número entero, devolverlo directamente
+        // Si es un número entero, verificar que existe y devolverlo
         if (typeof rol === 'number' && Number.isInteger(rol)) {
-            return rol;
+            const checkResult = await this.pool.query('SELECT id FROM roles WHERE id = $1', [rol]);
+            if (checkResult.rows.length) {
+                return rol;
+            }
+            throw new Error(`Rol con ID ${rol} no existe`);
         }
 
-        // Si es un string que representa un número, convertirlo
+        // Si es un string que representa un número, verificar que existe
         const numeric = parseInt(rol, 10);
         if (!Number.isNaN(numeric) && String(numeric) === String(rol).trim()) {
-            return numeric;
+            const checkResult = await this.pool.query('SELECT id FROM roles WHERE id = $1', [numeric]);
+            if (checkResult.rows.length) {
+                return numeric;
+            }
+            throw new Error(`Rol con ID ${numeric} no existe`);
         }
 
         // Buscar por nombre (case-insensitive)
@@ -1113,24 +1121,13 @@ class PostgresManager {
         );
 
         if (!result.rows.length) {
-            // Si no existe, intentar crearlo automáticamente
-            console.log(`⚠️ Rol "${rolNombre}" no encontrado, creándolo...`);
-            const insertResult = await this.pool.query(
-                `INSERT INTO roles (nombre, descripcion) 
-                 VALUES ($1, $2) 
-                 ON CONFLICT (nombre) DO UPDATE SET nombre = EXCLUDED.nombre
-                 RETURNING id`,
-                [rolNombre, `Rol ${rolNombre}`]
-            );
-            
-            if (insertResult.rows.length) {
-                console.log(`✅ Rol "${rolNombre}" creado con ID: ${insertResult.rows[0].id}`);
-                return insertResult.rows[0].id;
-            }
-            
-            throw new Error(`Rol no válido: ${rol}`);
+            // Listar roles disponibles para el mensaje de error
+            const rolesDisponibles = await this.pool.query('SELECT nombre FROM roles');
+            const nombresRoles = rolesDisponibles.rows.map(r => r.nombre).join(', ');
+            throw new Error(`Rol "${rol}" no válido. Roles disponibles: ${nombresRoles || 'ninguno'}`);
         }
 
+        console.log(`✅ Rol "${rolNombre}" encontrado con ID: ${result.rows[0].id}`);
         return result.rows[0].id;
     }
 
