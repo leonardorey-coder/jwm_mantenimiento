@@ -13,15 +13,16 @@ Sistema moderno de registro y gestión de mantenimiento de habitaciones para hot
 
 ## ✨ Características Principales
 
-- 🏨 **Gestión de Habitaciones y Espacios Comunes**: Administra habitaciones y áreas comunes por edificios
-- 🔧 **Mantenimientos**: Registro de mantenimientos normales y rutinas programadas
-- 🔔 **Alertas Programadas**: Sistema de notificaciones automáticas
-- 💾 **Offline-First**: Operación 100% offline (datos y acciones quedan en cola)
-- 📱 **PWA**: Instalable en móviles y equipos de escritorio vía navegador
-- 🗄️ **Base de datos central**: PostgreSQL (nube/servidor)
-- 🧰 **BD local (offline)**: IndexedDB con 50+ MB de capacidad
-- 🔄 **Sincronización**: Reintento automático al recuperar conectividad
-- ⚡ **Alto rendimiento**: Migración completa a IndexedDB para mejor escalabilidad
+- 🏨 **Habitaciones y Espacios Comunes**: administración por edificio con estados y métricas
+- 🔧 **Mantenimientos**: normal y rutina con prioridad, fecha/hora de alerta y emisión
+- 🔔 **Alertas Programadas**: notificaciones, sonido, historial y emisión automática
+- 🧾 **Checklist de inspecciones**: categorías/items, estados Bueno/Regular/Malo y progreso
+- 📋 **Tareas y sábanas**: asignación, prioridades, timeline y control de servicios programados
+- 👤 **Usuarios y roles**: ADMIN/SUPERVISOR/TECNICO con permisos UI y API
+- 💾 **Offline-First**: IndexedDB (50+ MB) con cola de sincronización diferida
+- 📱 **PWA**: instalable en móvil/escritorio con Service Worker y cache
+- 🗄️ **PostgreSQL**: base central con migraciones automáticas desde Node
+- 🔄 **Sincronización**: reintento automático al recuperar conectividad
 
 ## 🎯 Objetivo General
 
@@ -55,8 +56,9 @@ npm install
 
 # Configurar variables de entorno
 cp .env.example .env
-# Edita .env con tus credenciales de PostgreSQL:
+# Edita .env con tus credenciales y secretos:
 # DB_HOST, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, DB_SSL=true|false
+# JWT_SECRET, JWT_EXPIRATION, REFRESH_TOKEN_EXPIRATION
 ```
 
 ### Configurar la base de datos (PostgreSQL)
@@ -65,29 +67,36 @@ cp .env.example .env
 # Crear base de datos (ejemplo)
 psql -U postgres -c "CREATE DATABASE jwmantto;"
 
-# Cargar el esquema
-psql -U postgres -d jwmantto -f db/schema-postgres.sql
+# Aplicar esquema completo
+psql -U postgres -d jwmantto -f db/schema-postgres-completo.sql
+
+# (Opcional) Migraciones según versión previa
+# psql -U postgres -d jwmantto -f db/migration_tareas_tab.sql
+# psql -U postgres -d jwmantto -f db/migration_checklist_schema.sql
 ```
 
-### Ejecutar la Aplicación (PWA)
+### Ejecutar la Aplicación (PWA/API)
 
 ```bash
+# Express local (usa js/server.js)
 npm start
+
+# O emular entorno serverless Vercel
+npm run vercel:dev
 ```
 
-Accede desde el navegador en: `http://localhost:3001`. Desde ahí puedes instalar la PWA.
+Accede en `http://localhost:3001` (o `http://localhost:3000` con Vercel dev). Verifica `/api/health` y luego instala la PWA desde el navegador.
 
 ## 🧱 Arquitectura
 
-- **Frontend (PWA)**: `index.html`, `script.js`, `style.css`, `manifest.json`, `sw.js`
-  - Cache de recursos estáticos con Service Worker
-  - Persistencia local con IndexedDB (cola de cambios y datos esenciales)
-- **Backend (API REST)**: `server.js` en Node.js/Express
-  - Exposición de endpoints para edificios, cuartos y mantenimientos
-  - Conexión a PostgreSQL vía `pg` (node-postgres)
+- **Frontend (PWA)**: `index.html`, `css/style.css`, `js/app.js`, `manifest.json`, `sw.js`, módulos en `views/` (tareas, checklist, usuarios). Cache de recursos, estado global y consumo de API vía `fetchWithAuth`. Persistencia local con IndexedDB (cola de cambios y datos esenciales).
+- **Backend (API REST)**:
+  - Serverless Vercel: `api/index.js` (Express exportado como función) + `api/auth*.js` (JWT, roles).
+  - Express local: `js/server.js` (usa el mismo `PostgresManager` que Vercel).
+  - Conexión a PostgreSQL vía `pg`, migraciones automáticas en `db/postgres-manager.js`.
 - **Base de datos**:
-  - Central: PostgreSQL (producción/nube)
-  - Local: IndexedDB (modo offline)
+  - Central: PostgreSQL (producción/nube) con esquema completo (`db/schema-postgres-completo.sql`) y migraciones.
+  - Local/offline: IndexedDB en navegador (`indexeddb-manager.js`, `storage-helper.js`).
 
 ## 📐 Requerimientos del Sistema
 
@@ -115,20 +124,23 @@ Accede desde el navegador en: `http://localhost:3001`. Desde ahí puedes instala
 
 ```
 jwm_mant_cuartos/
-├── server.js                    # Servidor Express + API REST + estáticos PWA
+├── api/                         # Funciones serverless (Vercel): index.js, auth.js, auth-routes.js
+├── js/
+│   ├── app.js                   # Lógica principal PWA (tabs, auth, estados)
+│   ├── server.js                # Servidor Express local
+│   └── sw.js                    # Service Worker (cache PWA)
+├── views/                       # Módulos UI (tareas, checklist, usuarios, etc.)
 ├── db/
-│   ├── postgres-manager.js      # Gestor PostgreSQL (pg)
-│   └── schema-postgres.sql      # Esquema para PostgreSQL
-├── index.html                   # Interfaz principal (PWA)
-├── script.js                    # Lógica del frontend
-├── style.css                    # Estilos
-├── sw.js                        # Service Worker (PWA)
+│   ├── postgres-manager.js      # Gestor PostgreSQL (pool, migraciones automáticas)
+│   ├── schema-postgres-completo.sql  # Esquema completo recomendado
+│   ├── migration_*.sql          # Migraciones y seeds (tareas, checklist, dia_alerta, etc.)
+│   └── config.js                # Configuración de conexión
+├── docs/                        # Documentación técnica y manuales de módulos
+├── css/style.css                # Estilos generales
+├── index.html                   # Interfaz principal (tabs PWA)
 ├── manifest.json                # Manifiesto PWA
 ├── package.json                 # Scripts y dependencias
-├── docs/
-│   └── MIGRACION_POSTGRES.md    # Detalles de la migración a PostgreSQL
-├── icons/                       # Iconos para PWA
-└── sounds/                      # Sonidos de notificaciones
+└── sounds/, icons/              # Recursos estáticos
 ```
 
 ## 🛠️ Tecnologías
@@ -152,69 +164,32 @@ jwm_mant_cuartos/
 
 ## 📡 API REST
 
-El servidor expone los siguientes endpoints:
+Endpoints principales (base `/api`):
 
-### Edificios
-```
-GET    /api/edificios              # Listar todos los edificios
-```
-
-### Habitaciones
-```
-# Nota: En el código actual las rutas usan /api/cuartos (alias de habitaciones).
-GET    /api/cuartos                # Listar todas las habitaciones
-GET    /api/cuartos/:id            # Obtener una habitación específica
-```
-
-### Espacios Comunes (planificado)
-```
-# Se adicionará gestión equivalente a habitaciones:
-# GET    /api/espacios
-# GET    /api/espacios/:id
-# POST   /api/espacios
-# PUT    /api/espacios/:id
-# DELETE /api/espacios/:id
-```
-
-### Mantenimientos
-```
-GET    /api/mantenimientos         # Listar mantenimientos (opcional: ?cuarto_id=X)
-POST   /api/mantenimientos         # Crear nuevo mantenimiento
-PUT    /api/mantenimientos/:id     # Actualizar mantenimiento
-DELETE /api/mantenimientos/:id     # Eliminar mantenimiento
-PATCH  /api/mantenimientos/:id/emitir  # Marcar alerta como emitida
-```
-
-### Ejemplo de Request
-
-```javascript
-// Crear un nuevo mantenimiento
-fetch('http://localhost:3001/api/mantenimientos', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    cuarto_id: 1, // ID de la habitación (nombre de campo actual en la API)
-    descripcion: 'Reparar aire acondicionado',
-    tipo: 'normal'  // o 'rutina' para alertas programadas
-  })
-});
-```
+- **Auth**: `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/solicitar-acceso`, `POST /auth/cambiar-password-obligatorio`.
+- **Usuarios/Roles (ADMIN)**: `GET /auth/usuarios`, `GET /usuarios/roles`, `POST /usuarios`, `PUT /usuarios/:id`, `POST /usuarios/:id/desactivar|activar|desbloquear`.
+- **Edificios/Cuartos**: `GET /edificios`; `GET /cuartos`; `GET /cuartos/:id`; `PUT /cuartos/:id` (cambio de estado con validación).
+- **Mantenimientos/Alertas**: `GET /mantenimientos[?cuarto_id=X]`; `POST /mantenimientos`; `PUT /mantenimientos/:id`; `DELETE /mantenimientos/:id`; `PATCH /mantenimientos/:id/emitir` (marcar alerta emitida).
+- **Checklist**: categorías/items/inspecciones (ver `docs/README_CHECKLIST.md`).
+- **Tareas**: CRUD y filtros de tareas (ver `docs/README_TAREAS.md`, tabla `tareas` con estados/prioridades).
+- **Espacios comunes**: endpoints planificados en `docs/README_ESPACIOS_COMUNES.md` (mismos estados y mantenimientos específicos).
+- **Sábanas**: diseñados en `docs/README_SABANAS.md` (esquema `schema_sabanas.sql`).
+- **Health**: `GET /health` (estado del servicio y DB).
 
 ## 💾 Base de Datos
 
 ### PostgreSQL (Central)
 
-- **Configuración**: vía `.env` (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_SSL`)
-- **Esquema**: ver `db/schema-postgres.sql`
-- **Inicialización**: consulta `docs/MIGRACION_POSTGRES.md` para pasos de setup y migración
+- Configuración: `.env` o `.env.local` con `DB_HOST/PORT/NAME/USER/PASSWORD/SSL` o `DATABASE_URL`; `db/config.js` parsea SSL y muestra la config (oculta password).
+- Inicialización: `db/schema-postgres-completo.sql` (recomendado). Migraciones adicionales en `db/migration_*.sql` (tareas, checklist, dia_alerta, etc.).
+- Auto-migraciones: `db/postgres-manager.js` ejecuta `runMigrations()` al iniciar la API (agrega columnas, roles base, tabla tareas, etc.).
+- Seeds de datos estáticos: `db/importar_datos_con_estados.sql` (edificios/cuartos con estados), `db/insertar_restaurante.sql` (espacio común ejemplo), `schema_sabanas.sql` (módulo sábanas).
+- Backups: ver `CONFIGURACION_BD.md` para ejemplos de `pg_dump`/`psql`.
 
 ### BD Local (Offline)
 
-- **Motor**: IndexedDB (en el navegador)
-- **Uso**: almacenamiento de datos esenciales y cola de operaciones para sincronizar
-- **Sincronización**: al recuperar conexión, se reintentan las operaciones pendientes contra la API
+- Motor: IndexedDB (en navegador). Stores: auth, usuarios, edificios, cuartos, mantenimientos, cache, `sync_queue`.
+- Sincronización: las operaciones pendientes se reintentan al recuperar conexión (`storage-helper.processSyncQueue`).
 
 ## 🔔 Sistema de Notificaciones
 
@@ -254,11 +229,10 @@ ngrok http 3001
 
 ## 📦 Scripts npm Disponibles
 
-```json
-{
-  "start": "node server.js"
-}
-```
+- `npm start` → servidor Express local (`js/server.js`).
+- `npm run dev` → Express en modo development.
+- `npm run vercel:dev` → entorno Vercel local (funciones en `api/`).
+- `npm run setup:postgres` → asistente de configuración y `.env` rápido.
 
 ## 🔧 Desarrollo
 
@@ -270,12 +244,15 @@ ngrok http 3001
 
 ## 📄 Documentación Adicional
 
+- **[Manual Técnico JW Mantto](./Manual%20T%C3%A9cnico%20JW%20Mantto.md)** - Guía completa por módulos (arquitectura, BD, API, offline).
+
 ### 📊 Base de Datos
 - **[Esquema BD Completo](./docs/ESQUEMA_BD_COMPLETO.md)** - Documentación detallada del esquema completo v2.0
 - **[Diagrama BD Completo](./docs/DIAGRAMA_BD_COMPLETO.md)** - Diagrama visual de relaciones y estructura
 - **[Diagrama de Clases](./docs/DIAGRAMA_CLASES.md)** - Diseño orientado a objetos del sistema
 - **[README Esquemas](./db/README_ESQUEMAS.md)** - Guía de instalación y uso de esquemas SQL
 - [Migración a PostgreSQL](./docs/MIGRACION_POSTGRES.md) - Migración y configuración de PostgreSQL
+- [Migración IndexedDB](./docs/MIGRACION_INDEXEDDB.md) y [GUIA_RAPIDA_INDEXEDDB](./docs/GUIA_RAPIDA_INDEXEDDB.md) - Detalles de la base local offline
 
 ### 🌐 APIs y Arquitectura
 - **[Arquitectura API](./docs/ARQUITECTURA_API.md)** - Documentación de la arquitectura modular
@@ -302,9 +279,10 @@ lsof -ti:3001 | xargs kill -9
 
 ## 🔭 Backlog (Próximos pasos)
 
-- Exportación a Excel (mantenimientos, cuartos, edificios).
-- Sistema de autenticación y roles (admin, técnico, supervisor).
-- WebSockets para actualización en tiempo real.
+- Exportación a Excel/CSV (mantenimientos, cuartos, edificios, checklist, tareas).
+- Endpoints y UI completos para espacios comunes (CRUD + mantenimientos específicos).
+- Automatizar cron de alertas (marcar emitidas) y notificaciones push.
+- WebSockets/Server-Sent Events para actualización en tiempo real.
 
 ## 📝 Changelog
 
