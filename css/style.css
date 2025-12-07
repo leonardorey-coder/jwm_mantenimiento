@@ -9744,6 +9744,35 @@ tr[data-lazy="true"] {
   box-shadow: 2px 2px 0 var(--negro-carbon);
 }
 
+/* Botón de peligro/eliminar */
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-danger,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-danger,
+.btn-tarea-danger {
+  background: var(--rojo-vino);
+  color: var(--blanco);
+  border-color: var(--negro-carbon);
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+}
+
+.modal-editar-tarea .btn-cuarto-action.btn-tarea-danger:hover,
+.modal-crear-tarea .btn-cuarto-action.btn-tarea-danger:hover,
+.btn-tarea-danger:hover {
+  background: #8b0000;
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.btn-tarea-danger:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+/* Ancho mínimo para el botón de eliminar en desktop */
+.btn-tarea-danger {
+  min-width: 140px;
+  flex-shrink: 0;
+}
+
 /* Responsive para modales de tareas */
 @media (max-width: 768px) {
   .modal-editar-tarea .modal-detalles-contenido {
@@ -9766,9 +9795,23 @@ tr[data-lazy="true"] {
   }
 
   .btn-tarea-light,
-  .btn-tarea-primary {
-    width: 100%;
+  .btn-tarea-primary,
+  .btn-tarea-danger {
+    width: 100% !important;
     justify-content: center;
+    min-width: unset !important;
+  }
+
+  /* Selector más específico para el botón de eliminar */
+  .modal-editar-tarea .btn-cuarto-action.btn-tarea-danger,
+  .tarea-edit-actions .btn-tarea-danger {
+    width: 100% !important;
+    min-width: unset !important;
+  }
+
+  /* Ocultar espaciador flex en móvil */
+  .tarea-edit-actions>div[style*="flex: 1"] {
+    display: none;
   }
 }
 

@@ -515,6 +515,83 @@ function cerrarModal(modalId) {
     tareaIdActual = null;
 }
 
+/**
+ * Muestra un diálogo de confirmación antes de eliminar una tarea.
+ */
+function confirmarEliminarTarea() {
+    if (!tareaIdActual) {
+        mostrarNotificacion('No hay ninguna tarea seleccionada para eliminar', 'error');
+        return;
+    }
+
+    // Obtener el nombre de la tarea del formulario
+    const nombreTarea = document.getElementById('editarTareaNombre')?.value || 'esta tarea';
+
+    // Usar confirm nativo para simplicidad (puede reemplazarse por un modal personalizado)
+    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar "${nombreTarea}"?\n\nEsta acción no se puede deshacer.`);
+
+    if (confirmacion) {
+        eliminarTarea(tareaIdActual);
+    }
+}
+
+/**
+ * Elimina una tarea del sistema.
+ * @param {number} tareaId - El ID de la tarea a eliminar.
+ */
+async function eliminarTarea(tareaId) {
+    if (!tareaId) {
+        mostrarNotificacion('ID de tarea no válido', 'error');
+        return;
+    }
+
+    const btnEliminar = document.getElementById('btnEliminarTarea');
+    let textoOriginal = '';
+
+    // Deshabilitar botón mientras se procesa
+    if (btnEliminar) {
+        textoOriginal = btnEliminar.innerHTML;
+        btnEliminar.disabled = true;
+        btnEliminar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+            method: 'DELETE',
+            headers: obtenerHeadersConAuth()
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Error al eliminar la tarea: ${response.statusText}`);
+        }
+
+        console.log(`✅ Tarea ${tareaId} eliminada exitosamente`);
+
+        // Cerrar el modal
+        cerrarModal('modalEditarTarea');
+
+        // Mostrar notificación de éxito
+        mostrarNotificacion('Tarea eliminada correctamente', 'success');
+
+        // Refrescar la lista de tareas
+        await refrescarTarjetasTareas();
+
+        // Actualizar selectores de tareas
+        await actualizarSelectoresTareas();
+
+    } catch (error) {
+        console.error('Error al eliminar tarea:', error);
+        mostrarNotificacion(`Error al eliminar la tarea: ${error.message}`, 'error');
+    } finally {
+        // Restaurar botón
+        if (btnEliminar) {
+            btnEliminar.disabled = false;
+            btnEliminar.innerHTML = textoOriginal;
+        }
+    }
+}
+
 // ------------------------------
 // MANEJO DE FORMULARIOS
 // ------------------------------

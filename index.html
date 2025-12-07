@@ -10,7 +10,7 @@
     <meta name="author" content="JW Marriott Los Cabos">
     <meta name="robots" content="index, follow">
     <meta name="googlebot" content="index, follow">
-    
+
     <!-- Detectar modo standalone (PWA instalada) -->
     <script>
         if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
@@ -748,66 +748,64 @@
             <h2 class="titulos t-secundario">Control de Calidad de Habitaciones</h2>
 
             <div class="panel panel-filtros" data-aos="fade-down">
-                        <div class="checklist-categorias-toggle-bar">
-                            <button class="checklist-categorias-toggle" type="button" aria-expanded="false"
-                                id="toggleCategoriasBtn">
-                                <i class="fas fa-sliders-h"></i>
-                                <span>Filtros por categoría</span>
-                                <i class="fas fa-chevron-down toggle-indicator" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                        <div class="checklist-categorias-wrapper" id="checklistCategoriasWrapper"
-                            data-mobile-open="false">
-                            <div class="checklist-categorias-filtro" id="checklistCategoriasFiltro" role="tablist">
-                                <button class="categoria-btn active" type="button" data-categoria="" aria-pressed="true"
-                                    data-categoria-btn>
-                                    <div class="categoria-btn-icon" aria-hidden="true"><i class="fas fa-th"></i></div>
-                                    <div class="categoria-btn-text"><span
-                                            class="categoria-btn-label">Todas</span><small>Muestra todo</small></div>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="busqueda-filtros">
-                            <div class="campo-busqueda premium-search">
-                                <i class="fas fa-door-open icono-busqueda"></i>
-                                <input type="text" id="buscarHabitacionChecklist"
-                                    placeholder="Buscar habitación (ej: A101, 203...)">
-                            </div>
-                            
-                            <div class="campo-busqueda premium-search">
-                                <i class="fas fa-search icono-busqueda"></i>
-                                <input type="text" id="buscarChecklist"
-                                    placeholder="Buscar ítem (ej: sofá, aire...)">
-                            </div>
-
-                            <div class="select-container premium-select">
-                                <select id="filtroEdificioChecklist">
-                                    <option value="">Todos los edificios</option>
-                                </select>
-                                <i class="fas fa-chevron-down icono-select"></i>
-                            </div>
-
-                            <div class="select-container premium-select" data-semaforo-wrapper="estado">
-                                <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
-                                <select id="filtroEstadoChecklist" data-semaforo-select="estado">
-                                    <option value="">Todos los estados</option>
-                                    <option value="bueno">Bueno</option>
-                                    <option value="regular">Regular</option>
-                                    <option value="malo">Malo</option>
-                                </select>
-                                <i class="fas fa-chevron-down icono-select"></i>
-                            </div>
-
-                            <div class="select-container premium-select">
-                                <select id="filtroEditorChecklist" name="editor">
-                                    <option value="">Todos los editores</option>
-                                    <!-- Se carga dinámicamente desde la BD -->
-                                </select>
-                                <i class="fas fa-chevron-down icono-select"></i>
-                            </div>
-                        </div>
+                <div class="checklist-categorias-toggle-bar">
+                    <button class="checklist-categorias-toggle" type="button" aria-expanded="false"
+                        id="toggleCategoriasBtn">
+                        <i class="fas fa-sliders-h"></i>
+                        <span>Filtros por categoría</span>
+                        <i class="fas fa-chevron-down toggle-indicator" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div class="checklist-categorias-wrapper" id="checklistCategoriasWrapper" data-mobile-open="false">
+                    <div class="checklist-categorias-filtro" id="checklistCategoriasFiltro" role="tablist">
+                        <button class="categoria-btn active" type="button" data-categoria="" aria-pressed="true"
+                            data-categoria-btn>
+                            <div class="categoria-btn-icon" aria-hidden="true"><i class="fas fa-th"></i></div>
+                            <div class="categoria-btn-text"><span class="categoria-btn-label">Todas</span><small>Muestra
+                                    todo</small></div>
+                        </button>
                     </div>
+                </div>
+
+                <div class="busqueda-filtros">
+                    <div class="campo-busqueda premium-search">
+                        <i class="fas fa-door-open icono-busqueda"></i>
+                        <input type="text" id="buscarHabitacionChecklist"
+                            placeholder="Buscar habitación (ej: A101, 203...)">
+                    </div>
+
+                    <div class="campo-busqueda premium-search">
+                        <i class="fas fa-search icono-busqueda"></i>
+                        <input type="text" id="buscarChecklist" placeholder="Buscar ítem (ej: sofá, aire...)">
+                    </div>
+
+                    <div class="select-container premium-select">
+                        <select id="filtroEdificioChecklist">
+                            <option value="">Todos los edificios</option>
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
+                    </div>
+
+                    <div class="select-container premium-select" data-semaforo-wrapper="estado">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroEstadoChecklist" data-semaforo-select="estado">
+                            <option value="">Todos los estados</option>
+                            <option value="bueno">Bueno</option>
+                            <option value="regular">Regular</option>
+                            <option value="malo">Malo</option>
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
+                    </div>
+
+                    <div class="select-container premium-select">
+                        <select id="filtroEditorChecklist" name="editor">
+                            <option value="">Todos los editores</option>
+                            <!-- Se carga dinámicamente desde la BD -->
+                        </select>
+                        <i class="fas fa-chevron-down icono-select"></i>
+                    </div>
+                </div>
+            </div>
 
             <!-- Selector de vistas para móvil -->
             <div class="mobile-view-selector">
@@ -831,16 +829,49 @@
                                 <div class="skeleton-edificio"></div>
                             </div>
                             <div class="skeleton-stats">
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#22c55e"></div><div class="skeleton-stat-value"></div></div>
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#f59e0b"></div><div class="skeleton-stat-value"></div></div>
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#ef4444"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#22c55e"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#f59e0b"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#ef4444"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
                             </div>
                             <div class="skeleton-items-list">
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:60%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:75%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:50%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:60%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:75%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:50%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="skeleton-footer"><div class="skeleton-editor"></div><div class="skeleton-date"></div></div>
+                            <div class="skeleton-footer">
+                                <div class="skeleton-editor"></div>
+                                <div class="skeleton-date"></div>
+                            </div>
                         </div>
                         <div class="skeleton-checklist-card" style="animation-delay:0.1s">
                             <div class="skeleton-checklist-header">
@@ -848,16 +879,49 @@
                                 <div class="skeleton-edificio"></div>
                             </div>
                             <div class="skeleton-stats">
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#22c55e"></div><div class="skeleton-stat-value"></div></div>
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#f59e0b"></div><div class="skeleton-stat-value"></div></div>
-                                <div class="skeleton-stat"><div class="skeleton-stat-dot" style="background:#ef4444"></div><div class="skeleton-stat-value"></div></div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#22c55e"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#f59e0b"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
+                                <div class="skeleton-stat">
+                                    <div class="skeleton-stat-dot" style="background:#ef4444"></div>
+                                    <div class="skeleton-stat-value"></div>
+                                </div>
                             </div>
                             <div class="skeleton-items-list">
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:80%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:65%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
-                                <div class="skeleton-item"><div class="skeleton-item-name" style="width:70%"></div><div class="skeleton-item-buttons"><div class="skeleton-btn"></div><div class="skeleton-btn"></div><div class="skeleton-btn"></div></div></div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:80%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:65%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
+                                <div class="skeleton-item">
+                                    <div class="skeleton-item-name" style="width:70%"></div>
+                                    <div class="skeleton-item-buttons">
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                        <div class="skeleton-btn"></div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="skeleton-footer"><div class="skeleton-editor"></div><div class="skeleton-date"></div></div>
+                            <div class="skeleton-footer">
+                                <div class="skeleton-editor"></div>
+                                <div class="skeleton-date"></div>
+                            </div>
                         </div>
                     </div>
 
@@ -908,7 +972,8 @@
                         </div>
                     </div>
 
-                    <div class="panel panel-vista-rutinas gradient-card" id="panelAccionesChecklist" style="display: none;">
+                    <div class="panel panel-vista-rutinas gradient-card" id="panelAccionesChecklist"
+                        style="display: none;">
                         <h2><i class="fas fa-file-export"></i> Acciones</h2>
                         <button class="brutalist-card__button brutalist-card__button--read" id="btnExportarChecklist"><i
                                 class="fas fa-file-excel"></i> Exportar Checklist</button>
@@ -1049,7 +1114,7 @@
         <div class="tab-content admin-only" id="tab-usuarios" data-aos="fade-in">
             <h1 class="titulos t-principal">Gestión de Usuarios</h1>
             <h2 class="titulos t-secundario">Administración del Sistema</h2>
-            
+
             <!-- Panel de búsqueda y filtros (ancho completo) -->
             <div class="panel panel-filtros panel-filtros-usuarios" data-aos="fade-down">
                 <div class="busqueda-filtros usuarios-filtros">
@@ -1080,7 +1145,7 @@
                     </button>
                 </div>
             </div>
-            
+
             <!-- Grid de Usuarios (ancho completo) -->
             <div class="usuarios-grid" id="usuariosGrid" data-aos="fade-up">
                 <!-- Los usuarios se cargarán dinámicamente -->
@@ -1092,7 +1157,8 @@
     </div>
 
     <!-- Modal Usuario (Crear/Editar) -->
-    <div id="modalUsuario" class="modal-detalles modal-editar-tarea modal-usuario-form" style="display:none" aria-hidden="true">
+    <div id="modalUsuario" class="modal-detalles modal-editar-tarea modal-usuario-form" style="display:none"
+        aria-hidden="true">
         <div class="modal-detalles-overlay" onclick="cerrarModalUsuario()"></div>
         <div class="modal-detalles-contenido tarea-edit-modal">
             <div class="modal-detalles-header">
@@ -1113,7 +1179,8 @@
                     </div>
                     <div class="form-group full">
                         <label for="correoUsuario">Correo corporativo</label>
-                        <input type="email" id="correoUsuario" name="email" placeholder="usuario@jwmarriott.com" required>
+                        <input type="email" id="correoUsuario" name="email" placeholder="usuario@jwmarriott.com"
+                            required>
                     </div>
                     <div class="form-group">
                         <label for="departamentoUsuario">Departamento</label>
@@ -1138,8 +1205,10 @@
                     </div>
                     <div class="form-group full">
                         <label for="passwordUsuario">Contraseña temporal</label>
-                        <input type="password" id="passwordUsuario" name="password" placeholder="Mínimo 6 caracteres" minlength="6">
-                        <small class="input-help" id="passwordHelp">La contraseña temporal solo se solicita durante el registro inicial.</small>
+                        <input type="password" id="passwordUsuario" name="password" placeholder="Mínimo 6 caracteres"
+                            minlength="6">
+                        <small class="input-help" id="passwordHelp">La contraseña temporal solo se solicita durante el
+                            registro inicial.</small>
                     </div>
                     <div class="form-group full checkbox-group">
                         <label class="checkbox-label">
@@ -1150,7 +1219,8 @@
                     </div>
                     <div class="form-group full">
                         <label for="notasUsuario">Notas internas</label>
-                        <textarea id="notasUsuario" name="notas_admin" rows="3" placeholder="Notas para el equipo de administración"></textarea>
+                        <textarea id="notasUsuario" name="notas_admin" rows="3"
+                            placeholder="Notas para el equipo de administración"></textarea>
                     </div>
                 </div>
                 <div class="modal-detalles-acciones">
@@ -1253,7 +1323,8 @@
                             <i class="fas fa-archive"></i> Archivar sábana actual
                         </span>
                     </label>
-                    <div id="alertaArchivarActual" class="modal-nueva-sabana-alerta" style="margin-top: 0.75rem; margin-left: 0; display: none;">
+                    <div id="alertaArchivarActual" class="modal-nueva-sabana-alerta"
+                        style="margin-top: 0.75rem; margin-left: 0; display: none;">
                         <i class="fas fa-archive"></i>
                         <span>La sábana vigente se moverá al historial en automático.</span>
                     </div>
@@ -1774,6 +1845,11 @@
                 </div>
 
                 <div class="tarea-edit-actions">
+                    <button type="button" class="btn-cuarto-action btn-tarea-danger" id="btnEliminarTarea"
+                        onclick="confirmarEliminarTarea()">
+                        <i class="fas fa-trash-alt"></i> Eliminar
+                    </button>
+                    <div style="flex: 1;"></div>
                     <button type="button" class="btn-cuarto-action btn-tarea-light"
                         onclick="cerrarModal('modalEditarTarea')">
                         Cancelar
