@@ -154,11 +154,9 @@ function mostrarCuartos() {
             return;
         }
         if (li.dataset.loaded) {
-            console.log(`🏠 [HABITACIONES] renderCardContent: cuarto-${li.dataset.cuartoId} ya cargado, omitiendo`);
             return;
         }
 
-        console.log(`🏠 [HABITACIONES] renderCardContent INICIANDO: cuarto-${li.dataset.cuartoId}`);
         li.dataset.loading = '1';
 
         const cuartoId = parseInt(li.dataset.cuartoId, 10);
@@ -251,7 +249,6 @@ function mostrarCuartos() {
                     `;
 
             li.dataset.loaded = '1';
-            console.log(`🏠 [HABITACIONES] Card renderizada: cuarto-${cuartoId}`);
 
             // Limpiar clase lazy inmediatamente (sin animación)
             li.classList.remove('cuarto-lazy');
@@ -321,17 +318,12 @@ function mostrarCuartos() {
     // IntersectionObserver para cargar el contenido real cuando la card entra al viewport
     if (window.cuartoObserver) {
         window.cuartoObserver.disconnect();
-        console.log('🏠 [HABITACIONES] Observer anterior desconectado');
     }
 
-    console.log('🏠 [HABITACIONES] Configurando nuevo IntersectionObserver...');
-
     window.cuartoObserver = new IntersectionObserver((entries, observer) => {
-        console.log(`🏠 [HABITACIONES] Observer callback: ${entries.length} entries`);
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 const li = entry.target;
-                console.log(`🏠 [HABITACIONES] Card visible: cuarto-${li.dataset.cuartoId}, loaded=${li.dataset.loaded}`);
                 if (!li.dataset.loaded) {
                     // Marcar como cargando para evitar cargas duplicadas
                     li.dataset.loading = '1';
@@ -346,7 +338,6 @@ function mostrarCuartos() {
 
                     // Aplicar delay antes de mostrar la card
                     scheduleRender(() => {
-                        console.log(`🏠 [HABITACIONES] Renderizando card: cuarto-${li.dataset.cuartoId}`);
                         renderCardContent(li);
                     }, { timeout: delay });
                 }
@@ -361,13 +352,8 @@ function mostrarCuartos() {
     // Observar todas las cards después de renderizarlas
     requestAnimationFrame(() => {
         const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
-        console.log(`🏠 [HABITACIONES] Observando ${cards.length} cards con IntersectionObserver`);
         cards.forEach(li => window.cuartoObserver.observe(li));
     });
-
-    // Fallback CRÍTICO: renderizar TODAS las cards inmediatamente si el observer no dispara
-    // Esto soluciona el problema de skeletons colgados después del login
-    console.log('🏠 [HABITACIONES] Configurando fallback de renderizado...');
 
     // Función de fallback para renderizar cards pendientes
     const renderizarCardsPendientes = (intento) => {
@@ -375,16 +361,10 @@ function mostrarCuartos() {
         const cardsSkeleton = listaCuartos.querySelectorAll('.cuarto-lazy');
         const cardsPendientes = Array.from(cardsSkeleton).filter(li => !li.dataset.loaded || li.dataset.loaded !== '1');
 
-        console.log(`🏠 [HABITACIONES] Fallback intento ${intento}: ${cardsPendientes.length} cards pendientes de ${cardsSkeleton.length} totales`);
-
         if (cardsPendientes.length > 0) {
             cardsPendientes.forEach((li, index) => {
-                console.log(`🏠 [HABITACIONES] Fallback ${intento} renderizando card ${index + 1}/${cardsPendientes.length}: cuarto-${li.dataset.cuartoId}`);
                 renderCardContent(li);
             });
-            console.log(`🏠 [HABITACIONES] Fallback ${intento} completado, ${cardsPendientes.length} cards renderizadas`);
-        } else {
-            console.log(`🏠 [HABITACIONES] Fallback ${intento}: todas las cards ya estaban cargadas ✓`);
         }
     };
 

@@ -1661,8 +1661,6 @@
     function formatearDiaAlerta(fecha) {
         if (!fecha) return '';
 
-        console.log('🔍 formatearDiaAlerta - entrada:', fecha, 'tipo:', typeof fecha);
-
         // Si es un número (día del mes), crear una fecha para el mes actual
         if (typeof fecha === 'number' || (!isNaN(parseInt(fecha)) && !String(fecha).includes('-'))) {
             const diaNum = parseInt(fecha);
@@ -1707,7 +1705,6 @@
             const diaFormateado = fechaLocal.getDate();
             const mesFormateado = fechaLocal.toLocaleDateString('es-ES', { month: 'long' });
 
-            console.log(`✅ formatearDiaAlerta - resultado: ${diaFormateado} de ${mesFormateado}`);
             return `${diaFormateado} de ${mesFormateado}`;
 
         } catch (error) {

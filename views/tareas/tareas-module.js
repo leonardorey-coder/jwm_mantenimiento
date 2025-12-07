@@ -1205,10 +1205,12 @@ async function cargarTareasEnSelector(selectId, selectedTaskId = null) {
         const tareas = await response.json();
         select.innerHTML = '<option value="">-- Sin asignar existente --</option>';
 
+        console.log("Mostrando el total de tareas", tareas);
+
         tareas.forEach(tarea => {
             const option = document.createElement('option');
             option.value = tarea.id;
-            option.textContent = tarea.titulo;
+            option.textContent = `${tarea.titulo} (${tarea.asignado_a_nombre})`;
             if (tarea.id == selectedTaskId) {
                 option.selected = true;
             }
