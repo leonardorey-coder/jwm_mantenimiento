@@ -7737,6 +7737,27 @@ body.dark-mode .skeleton-card {
   border-radius: var(--radio-pequeno);
 }
 
+@media (max-width: 1082px) {
+  .campos-alerta-inline {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+}
+
+@media (max-width: 870px) {
+  .campos-alerta-inline {
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 355px) {
+  .campos-alerta-inline {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+}
+
 .prioridad-selector-inline {
   margin: 0.8rem 0;
 }
