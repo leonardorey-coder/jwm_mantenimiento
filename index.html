@@ -239,12 +239,13 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
-                    <div class="select-container premium-select">
-                        <select id="filtroPrioridad" name="prioridad">
+                    <div class="select-container premium-select" data-semaforo-wrapper="prioridad">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroPrioridad" name="prioridad" data-semaforo-select="prioridad">
                             <option value="">Todas las prioridades</option>
-                            <option value="baja">🟢 Baja</option>
-                            <option value="media">🟡 Media</option>
-                            <option value="alta">🔴 Alta</option>
+                            <option value="baja">Baja</option>
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>

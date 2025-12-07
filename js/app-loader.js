@@ -599,13 +599,35 @@
             if (buscarCuarto) buscarCuarto.addEventListener('input', filtrarCuartosHandler);
             if (buscarAveria) buscarAveria.addEventListener('input', filtrarCuartosHandler);
             if (filtroEdificio) filtroEdificio.addEventListener('change', filtrarCuartosHandler);
-            if (filtroPrioridad) filtroPrioridad.addEventListener('change', filtrarCuartosHandler);
+            if (filtroPrioridad) {
+                // Configurar semáforo visual para el filtro de prioridad
+                const semaforoWrapperPrioridad = filtroPrioridad.closest('[data-semaforo-wrapper]');
+                const semaforoIndicatorPrioridad = semaforoWrapperPrioridad ? semaforoWrapperPrioridad.querySelector('.semaforo-indicator') : null;
+
+                filtroPrioridad.addEventListener('change', function () {
+                    // Actualizar semáforo visual
+                    if (semaforoIndicatorPrioridad) {
+                        semaforoIndicatorPrioridad.classList.remove('prioridad-baja', 'prioridad-media', 'prioridad-alta');
+                        if (filtroPrioridad.value) {
+                            semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridad.value}`);
+                        }
+                    }
+
+                    // Ejecutar filtro
+                    filtrarCuartosHandler();
+                });
+
+                // Actualizar semáforo inicial si hay un valor seleccionado
+                if (semaforoIndicatorPrioridad && filtroPrioridad.value) {
+                    semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridad.value}`);
+                }
+            }
             if (filtroEstado) {
                 // Configurar semáforo visual para el filtro de estado
                 const semaforoWrapper = filtroEstado.closest('[data-semaforo-wrapper]');
                 const semaforoIndicator = semaforoWrapper ? semaforoWrapper.querySelector('.semaforo-indicator') : null;
 
-                filtroEstado.addEventListener('change', function() {
+                filtroEstado.addEventListener('change', function () {
                     // Actualizar semáforo visual
                     if (semaforoIndicator) {
                         semaforoIndicator.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera_servicio');
@@ -697,7 +719,7 @@
             cargarCuartosEnSelect();
             console.log('🖼️ [APP-LOADER] Llamando mostrarAlertasYRecientes...');
             mostrarAlertasYRecientes();
-            
+
             console.log(`🖼️ [APP-LOADER] renderHabitacionesUI COMPLETADO (${contexto})`);
         } catch (error) {
             console.error('❌ [APP-LOADER] Error renderizando habitaciones:', error);
@@ -921,19 +943,19 @@
     function mostrarAlertasYRecientes() {
         console.log('📝 [APP-LOADER] mostrarAlertasYRecientes INICIANDO...');
         console.log('📝 [APP-LOADER] Timestamp:', new Date().toISOString());
-        
+
         mostrarAlertas();
         console.log('📝 [APP-LOADER] mostrarAlertas llamado');
-        
+
         mostrarRecientes();
         console.log('📝 [APP-LOADER] mostrarRecientes llamado');
-        
+
         mostrarAlertasEmitidas();
         console.log('📝 [APP-LOADER] mostrarAlertasEmitidas llamado');
-        
+
         mostrarHistorialAlertas();
         console.log('📝 [APP-LOADER] mostrarHistorialAlertas llamado');
-        
+
         console.log('📝 [APP-LOADER] mostrarAlertasYRecientes COMPLETADO');
     }
 
@@ -945,16 +967,16 @@
         console.log('🚨 [APP-LOADER] mostrarAlertas INICIANDO...');
         console.log('🚨 [APP-LOADER] Timestamp:', new Date().toISOString());
         console.log('🚨 [APP-LOADER] ========================================');
-        
+
         const listaAlertas = document.getElementById('listaVistaRutinas');
         if (!listaAlertas) {
             console.warn('🚨 [APP-LOADER] Elemento listaVistaRutinas no encontrado');
             return;
         }
-        
+
         console.log('🚨 [APP-LOADER] Elemento listaVistaRutinas encontrado');
         console.log('🚨 [APP-LOADER] innerHTML actual:', listaAlertas.innerHTML.substring(0, 100) + '...');
-        
+
         // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
         const mensajeCargandoInicial = listaAlertas.querySelector('.mensaje-cargando');
         if (mensajeCargandoInicial) {
@@ -1037,7 +1059,7 @@
             });
 
             console.log(`✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
-            
+
             // Forzar actualización del DOM - quitar cualquier mensaje de "Cargando"
             const mensajeCargando = listaAlertas.querySelector('.mensaje-cargando');
             if (mensajeCargando) {
@@ -1049,7 +1071,7 @@
             console.error('❌ [APP-LOADER] Error cargando alertas pendientes:', error);
             listaAlertas.innerHTML = '<li class="mensaje-no-items">Error cargando alertas</li>';
         }
-        
+
         console.log('🚨 [APP-LOADER] mostrarAlertas COMPLETADO');
     }
 
@@ -1119,7 +1141,7 @@
         console.log('📅 [APP-LOADER] mostrarAlertasEmitidas INICIANDO...');
         console.log('📅 [APP-LOADER] Timestamp:', new Date().toISOString());
         console.log('📅 [APP-LOADER] ========================================');
-        
+
         const listaEmitidas = document.getElementById('listaAlertasEmitidas');
         const mensajeNoEmitidas = document.getElementById('mensaje-no-alertas-emitidas');
 
@@ -1127,9 +1149,9 @@
             console.warn('📅 [APP-LOADER] Elemento listaAlertasEmitidas no encontrado');
             return;
         }
-        
+
         console.log('📅 [APP-LOADER] Elemento listaAlertasEmitidas encontrado');
-        
+
         // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
         const mensajeCargandoInicial = listaEmitidas.querySelector('.mensaje-cargando');
         if (mensajeCargandoInicial) {
@@ -1199,7 +1221,7 @@
             }
             listaEmitidas.style.display = 'none';
         }
-        
+
         console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
     }
 
@@ -1211,7 +1233,7 @@
         console.log('📚 [APP-LOADER] mostrarHistorialAlertas INICIANDO...');
         console.log('📚 [APP-LOADER] Timestamp:', new Date().toISOString());
         console.log('📚 [APP-LOADER] ========================================');
-        
+
         const listaHistorial = document.getElementById('listaHistorialAlertas');
         const mensajeNoHistorial = document.getElementById('mensaje-no-historial');
 
@@ -1219,7 +1241,7 @@
             console.warn('📚 [APP-LOADER] Elemento listaHistorialAlertas no encontrado');
             return;
         }
-        
+
         // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
         const mensajeCargandoInicial = listaHistorial.querySelector('.mensaje-cargando');
         if (mensajeCargandoInicial) {
@@ -1336,51 +1358,51 @@
     async function verificarYEmitirAlertasPasadasFrontend() {
         try {
             console.log('🔍 [FRONTEND] Verificando alertas pasadas localmente...');
-            
+
             // Obtener fecha/hora actual de Los Cabos
             const ahora = new Date();
             const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
             const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
-            
+
             console.log(`🕐 [FRONTEND] Fecha actual: ${fechaActual}, Hora actual: ${horaActual}`);
-            
+
             // Filtrar rutinas que ya deberían haberse emitido
             const rutinas = mantenimientos.filter(m => m.tipo === 'rutina');
             console.log(`📋 [FRONTEND] Total rutinas: ${rutinas.length}`);
-            
+
             const alertasPasadas = rutinas.filter(m => {
                 if (!m.dia_alerta || !m.hora) return false;
                 if (m.alerta_emitida || alertasEmitidas.has(m.id)) return false;
-                
+
                 // Extraer fecha de dia_alerta
                 const fechaAlerta = m.dia_alerta.includes('T') ? m.dia_alerta.split('T')[0] : m.dia_alerta;
                 const horaAlerta = m.hora.slice(0, 5);
-                
+
                 // Verificar si la alerta ya pasó
                 const fechaPasada = fechaAlerta < fechaActual;
                 const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
                 const esPasada = fechaPasada || mismaFechaHoraPasada;
-                
+
                 if (esPasada) {
                     console.log(`⏰ [FRONTEND] Alerta ID ${m.id} debió emitirse: ${fechaAlerta} ${horaAlerta} <= ${fechaActual} ${horaActual}`);
                 }
-                
+
                 return esPasada;
             });
-            
+
             console.log(`🚨 [FRONTEND] Alertas pasadas sin emitir: ${alertasPasadas.length}`);
-            
+
             // Emitir cada alerta pasada
             for (const alerta of alertasPasadas) {
                 console.log(`📢 [FRONTEND] Emitiendo alerta pasada ID ${alerta.id}...`);
                 await emitirNotificacionAlerta(alerta);
             }
-            
+
             if (alertasPasadas.length > 0) {
                 // Refrescar UI
                 mostrarAlertasYRecientes();
             }
-            
+
         } catch (error) {
             console.error('❌ [FRONTEND] Error verificando alertas pasadas:', error);
         }
@@ -1684,7 +1706,7 @@
             const fechaLocal = new Date(year, month - 1, day);
             const diaFormateado = fechaLocal.getDate();
             const mesFormateado = fechaLocal.toLocaleDateString('es-ES', { month: 'long' });
-            
+
             console.log(`✅ formatearDiaAlerta - resultado: ${diaFormateado} de ${mesFormateado}`);
             return `${diaFormateado} de ${mesFormateado}`;
 
@@ -2793,7 +2815,7 @@
                 cerrarModalDetalles();
                 return;
             }
-            
+
             // Cerrar modal de detalles de checklist
             const modalChecklist = document.getElementById('checklist-details-modal');
             if (modalChecklist && modalChecklist.style.display !== 'none') {
