@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.log('🚀 [APP.JS] Timestamp:', new Date().toISOString());
     console.log('🚀 [APP.JS] ========================================');
     loadTabData(AppState.currentTab);
-    
+
     // FORZAR renderizado de habitaciones si es el tab inicial
     // Esto soluciona el problema de skeletons colgados después del login
     if (AppState.currentTab === 'habitaciones') {
@@ -841,6 +841,14 @@ function setupMobileViewSelector() {
                 viewButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
 
+                // Actualizar posición del slider animado
+                const buttonIndex = Array.from(viewButtons).indexOf(button);
+                if (buttonIndex === 0) {
+                    selector.classList.remove('slider-right');
+                } else {
+                    selector.classList.add('slider-right');
+                }
+
                 if (isChecklistTab) {
                     // En checklist tab: alternar entre grid y paneles laterales
                     const checklistGrid = columnaHabitaciones?.querySelector('.checklist-grid');
@@ -926,7 +934,7 @@ function switchTab(tabId, loadData = true) {
 function loadTabData(tabId) {
     console.log('📁 [APP.JS] loadTabData INICIANDO - Tab:', tabId);
     console.log('📁 [APP.JS] Timestamp:', new Date().toISOString());
-    
+
     switch (tabId) {
         case 'habitaciones':
             console.log('📁 [APP.JS] Procesando tab: habitaciones');
@@ -974,14 +982,14 @@ function loadTabData(tabId) {
 
 async function loadUsuariosData() {
     console.log('👥 Cargando datos de usuarios...');
-    
+
     // Si ya hay usuarios cargados, solo renderizar (no mostrar skeleton)
     if (AppState.usuarios && AppState.usuarios.length > 0) {
         console.log('👥 [USUARIOS] Usando datos en caché:', AppState.usuarios.length);
         renderUsuariosList();
         return;
     }
-    
+
     // Primera carga: cargar roles y usuarios
     await cargarRoles();
     await cargarUsuarios();
@@ -1389,7 +1397,7 @@ function loadChecklistData() {
  */
 function generarSkeletonChecklist(count = 6) {
     const itemWidths = ['60%', '75%', '50%', '80%', '65%', '70%'];
-    
+
     const skeletonCard = (index) => `
         <div class="skeleton-checklist-card" style="animation-delay: ${index * 0.1}s">
             <div class="skeleton-checklist-header">
@@ -1411,7 +1419,7 @@ function generarSkeletonChecklist(count = 6) {
                 </div>
             </div>
             <div class="skeleton-items-list">
-                ${[0,1,2,3,4].map(i => `
+                ${[0, 1, 2, 3, 4].map(i => `
                     <div class="skeleton-item">
                         <div class="skeleton-item-name" style="width: ${itemWidths[i % itemWidths.length]}"></div>
                         <div class="skeleton-item-buttons">
@@ -1958,13 +1966,13 @@ function updateChecklistCardSummary(cuartoId) {
     // Obtener datos de los ítems FILTRADOS (los que se muestran actualmente)
     // Esto mantiene la consistencia con los filtros aplicados
     const habitacionFiltrada = AppState.checklistFiltradas?.find(h => h.cuarto_id === cuartoId);
-    
+
     // Si no hay datos filtrados, obtener del localStorage como fallback
     if (!habitacionFiltrada) {
         const checklistData = JSON.parse(localStorage.getItem('checklistData') || '[]');
         const habitacion = checklistData.find(h => h.cuarto_id === cuartoId);
         if (!habitacion) return;
-        
+
         // Usar datos completos si no hay filtros activos
         const counts = { bueno: 0, regular: 0, malo: 0 };
         habitacion.items.forEach(item => {
@@ -1973,7 +1981,7 @@ function updateChecklistCardSummary(cuartoId) {
                 counts[estado]++;
             }
         });
-        
+
         CHECKLIST_ESTADOS.forEach(estado => {
             const valueEl = card.querySelector(`.checklist-card-stat[data-estado="${estado}"] .checklist-card-stat-value`);
             if (valueEl) {
@@ -1987,11 +1995,11 @@ function updateChecklistCardSummary(cuartoId) {
 
     // Contar estados de los ítems FILTRADOS (los visibles en la card)
     const counts = { bueno: 0, regular: 0, malo: 0 };
-    
+
     // Actualizar los estados desde localStorage para tener el valor más reciente
     const checklistDataActualizado = JSON.parse(localStorage.getItem('checklistData') || '[]');
     const habitacionCompleta = checklistDataActualizado.find(h => h.cuarto_id === cuartoId);
-    
+
     // Para cada ítem filtrado, obtener su estado actualizado del localStorage
     habitacionFiltrada.items.forEach(itemFiltrado => {
         // Buscar el estado actualizado en los datos completos
@@ -2622,7 +2630,7 @@ function initChecklistEventListeners() {
     const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
     const panelAcciones = document.getElementById('panelAccionesChecklist');
     const btnExportar = document.getElementById('btnExportarChecklist');
-    
+
     if (userRole === 'admin' || userRole === 'supervisor') {
         if (panelAcciones) panelAcciones.style.display = 'block';
         if (btnExportar) {
@@ -2707,9 +2715,9 @@ async function handleNuevaSeccionSubmit(event) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ 
-                        nombre: itemNombre, 
-                        categoria_id: nuevaCategoria.id 
+                    body: JSON.stringify({
+                        nombre: itemNombre,
+                        categoria_id: nuevaCategoria.id
                     })
                 });
             } catch (itemError) {
@@ -2726,15 +2734,15 @@ async function handleNuevaSeccionSubmit(event) {
 
         // 4. Re-renderizar solo el contenedor de categorías
         renderChecklistCategorias();
-        
+
         // 5. Limpiar formulario
         form.reset();
 
         if (feedback) {
             feedback.textContent = `✅ Sección "${nombre}" agregada correctamente.`;
             feedback.style.color = '#22c55e';
-            setTimeout(() => { 
-                feedback.textContent = ''; 
+            setTimeout(() => {
+                feedback.textContent = '';
                 feedback.style.color = '';
             }, 3000);
         }
@@ -3131,7 +3139,7 @@ async function cambiarEstadoEspacio(espacioId) {
 
 function formatearFecha(fecha) {
     if (!fecha) return '';
-    
+
     try {
         let year, month, day;
         const fechaStr = String(fecha);
@@ -3296,13 +3304,13 @@ function renderUsuariosList() {
         // Filtrar por estado
         if (filtroEstado === 'activo' && !usuario.activo) return false;
         if (filtroEstado === 'inactivo' && usuario.activo) return false;
-        
+
         // Filtrar por rol
         if (filtroRol) {
             const rolUsuario = (usuario.rol_nombre || 'tecnico').toLowerCase();
             if (rolUsuario !== filtroRol) return false;
         }
-        
+
         // Filtrar por texto de búsqueda
         if (textoBusqueda) {
             const coincide = [
@@ -3314,7 +3322,7 @@ function renderUsuariosList() {
             ].filter(Boolean).some(valor => valor.toLowerCase().includes(textoBusqueda));
             if (!coincide) return false;
         }
-        
+
         return true;
     });
 
@@ -3331,16 +3339,16 @@ function renderUsuarioCard(usuario) {
     const ultimaSesion = formatUsuarioFecha(usuario.ultima_sesion_login);
     const ultimoAcceso = formatUsuarioFecha(usuario.ultimo_acceso);
     const rol = (usuario.rol_nombre || 'tecnico').toLowerCase();
-    
+
     // Determinar clase de badge según rol
-    const badgeClass = rol === 'admin' ? 'badge-admin' 
-        : rol === 'supervisor' ? 'badge-supervisor' 
-        : 'badge-tecnico';
-    
+    const badgeClass = rol === 'admin' ? 'badge-admin'
+        : rol === 'supervisor' ? 'badge-supervisor'
+            : 'badge-tecnico';
+
     // Determinar icono del avatar según rol
-    const avatarIcon = rol === 'admin' ? 'fa-user-shield' 
-        : rol === 'supervisor' ? 'fa-user-tie' 
-        : 'fa-user';
+    const avatarIcon = rol === 'admin' ? 'fa-user-shield'
+        : rol === 'supervisor' ? 'fa-user-tie'
+            : 'fa-user';
 
     const estaBloqueado = usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date();
     const bloqueadoHasta = estaBloqueado ? formatUsuarioFecha(usuario.bloqueado_hasta) : null;
@@ -3481,7 +3489,7 @@ async function handleUsuarioFormSubmit(event) {
 
         const usuarioId = document.getElementById('usuarioIdEdicion')?.value;
         const isEdit = AppState.usuarioFormMode === 'edit' && usuarioId;
-        
+
         if (!isEdit && !payload.password) {
             throw new Error('La contraseña temporal es obligatoria para nuevos usuarios');
         }
@@ -3557,7 +3565,7 @@ function editarUsuario(id) {
     const modalSubtitulo = document.getElementById('modalUsuarioSubtitulo');
     const btnSubmit = document.getElementById('btnSubmitUsuario');
     const passwordHelp = document.getElementById('passwordHelp');
-    
+
     if (modalSubtitulo) modalSubtitulo.textContent = 'Editar usuario';
     if (modalTitulo) modalTitulo.textContent = 'Actualizar';
     if (btnSubmit) {
@@ -3601,18 +3609,18 @@ function editarUsuario(id) {
 // Función para abrir el modal de usuario
 function abrirModalUsuario(esEdicion = false) {
     const modal = document.getElementById('modalUsuario');
-    
+
     if (!esEdicion) {
         // Reset para nuevo usuario
         AppState.usuarioFormMode = 'create';
         AppState.usuarioEdicion = null;
-        
+
         const modalTitulo = document.getElementById('modalUsuarioTitulo');
         const modalSubtitulo = document.getElementById('modalUsuarioSubtitulo');
         const btnSubmit = document.getElementById('btnSubmitUsuario');
         const passwordHelp = document.getElementById('passwordHelp');
         const form = document.getElementById('formUsuario');
-        
+
         if (modalSubtitulo) modalSubtitulo.textContent = 'Nuevo usuario';
         if (modalTitulo) modalTitulo.textContent = 'Crear';
         if (btnSubmit) {
@@ -3622,14 +3630,14 @@ function abrirModalUsuario(esEdicion = false) {
             passwordHelp.textContent = 'La contraseña temporal solo se solicita durante el registro inicial.';
         }
         if (form) form.reset();
-        
+
         // Por defecto, marcar el checkbox de cambio de contraseña
         const requiereCambio = document.getElementById('requiereCambioPassword');
         if (requiereCambio) requiereCambio.checked = true;
-        
+
         document.getElementById('usuarioIdEdicion').value = '';
     }
-    
+
     if (modal) {
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');

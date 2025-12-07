@@ -656,13 +656,11 @@ body.admin .tab-content.admin-only.active {
    ======================================== */
 .mobile-view-selector {
   display: none;
-  gap: 0;
+  /* Cuando se muestre, será flex */
   background: var(--blanco);
-  border: 3px solid var(--negro-carbon);
   border-radius: var(--radio-grande);
   padding: 4px;
   margin: 0 0 1.5rem 0;
-  width: fit-content;
   margin-left: auto;
   margin-right: auto;
   box-shadow: var(--sombra-media);
@@ -670,10 +668,31 @@ body.admin .tab-content.admin-only.active {
   overflow: hidden;
 }
 
+/* Indicador deslizante del fondo oscuro */
+.mobile-view-selector::before {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  background: var(--negro-carbon);
+  border-radius: 10px;
+  transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* Mover el slider cuando el segundo botón está activo */
+.mobile-view-selector.slider-right::before {
+  transform: translateX(100%);
+}
+
 .mobile-view-selector .view-btn {
+  flex: 1;
   background: transparent;
   border: none;
-  padding: 0.75rem 2rem;
+  padding: 0.75rem 1.5rem;
   font-family: 'Montserrat', sans-serif;
   font-size: 0.95rem;
   font-weight: 600;
@@ -683,6 +702,7 @@ body.admin .tab-content.admin-only.active {
   border-radius: 10px;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
   position: relative;
@@ -707,9 +727,9 @@ body.admin .tab-content.admin-only.active {
 }
 
 .mobile-view-selector .view-btn.active {
-  background: var(--negro-carbon);
+  background: transparent;
   color: var(--blanco);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 }
 
 .mobile-view-selector .view-btn.active i {
@@ -745,7 +765,6 @@ body.admin .tab-content.admin-only.active {
   padding: 1.5rem;
   box-shadow: var(--sombra-media);
   margin-bottom: 2rem;
-  border: 3px solid var(--negro-carbon);
 }
 
 /* Botón toggle para móvil - oculto por defecto */
@@ -9749,6 +9768,7 @@ tr[data-lazy="true"] {
   color: var(--blanco);
   border-color: var(--negro-carbon);
   box-shadow: 4px 4px 0 var(--negro-carbon);
+  gap: 0.5rem;
 }
 
 .modal-editar-tarea .btn-cuarto-action.btn-tarea-danger:hover,
@@ -9791,12 +9811,19 @@ tr[data-lazy="true"] {
     padding: 1rem;
   }
 
-  .btn-tarea-light,
+  .btn-tarea-light:not(#btnAgregarTagEditar):not(#btnAgregarTag),
   .btn-tarea-primary,
   .btn-tarea-danger {
     width: 100% !important;
     justify-content: center;
     min-width: unset !important;
+  }
+
+  /* Mantener anchura auto para botones de añadir tags */
+  #btnAgregarTagEditar,
+  #btnAgregarTag {
+    width: auto !important;
+    flex-shrink: 0;
   }
 
   /* Selector más específico para el botón de eliminar */
