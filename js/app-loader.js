@@ -3267,8 +3267,15 @@
                 contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
 
                 if (serviciosCuarto.length === 0 && botonEditar) {
+                    // Salir del modo edición
                     botonEditar.classList.remove('modo-edicion-activo');
                     botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+                    // Ocultar el selector de estado
+                    const contenedorEditarEstadoInline = document.getElementById(`estado-selector-inline-id-${id}`);
+                    if (contenedorEditarEstadoInline) {
+                        contenedorEditarEstadoInline.style.display = "none";
+                    }
                 }
             }
         }

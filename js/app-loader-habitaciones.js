@@ -95,7 +95,7 @@ function mostrarCuartos() {
     const totalPaginasCuartos = s.totalPaginasCuartos;
     const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation based on screen size
     const mantenimientos = s.mantenimientos;
-    
+
     console.log('🏠 [HABITACIONES] Estado inicial:', {
         cuartos: cuartos?.length || 0,
         cuartosFiltradosActual: cuartosFiltradosActual?.length || 0,
@@ -323,9 +323,9 @@ function mostrarCuartos() {
         window.cuartoObserver.disconnect();
         console.log('🏠 [HABITACIONES] Observer anterior desconectado');
     }
-    
+
     console.log('🏠 [HABITACIONES] Configurando nuevo IntersectionObserver...');
-    
+
     window.cuartoObserver = new IntersectionObserver((entries, observer) => {
         console.log(`🏠 [HABITACIONES] Observer callback: ${entries.length} entries`);
         entries.forEach(entry => {
@@ -368,15 +368,15 @@ function mostrarCuartos() {
     // Fallback CRÍTICO: renderizar TODAS las cards inmediatamente si el observer no dispara
     // Esto soluciona el problema de skeletons colgados después del login
     console.log('🏠 [HABITACIONES] Configurando fallback de renderizado...');
-    
+
     // Función de fallback para renderizar cards pendientes
     const renderizarCardsPendientes = (intento) => {
         // Buscar cards con skeleton que aún no se hayan cargado
         const cardsSkeleton = listaCuartos.querySelectorAll('.cuarto-lazy');
         const cardsPendientes = Array.from(cardsSkeleton).filter(li => !li.dataset.loaded || li.dataset.loaded !== '1');
-        
+
         console.log(`🏠 [HABITACIONES] Fallback intento ${intento}: ${cardsPendientes.length} cards pendientes de ${cardsSkeleton.length} totales`);
-        
+
         if (cardsPendientes.length > 0) {
             cardsPendientes.forEach((li, index) => {
                 console.log(`🏠 [HABITACIONES] Fallback ${intento} renderizando card ${index + 1}/${cardsPendientes.length}: cuarto-${li.dataset.cuartoId}`);
@@ -387,7 +387,7 @@ function mostrarCuartos() {
             console.log(`🏠 [HABITACIONES] Fallback ${intento}: todas las cards ya estaban cargadas ✓`);
         }
     };
-    
+
     // Ejecutar fallback en 3 tiempos para garantizar renderizado
     setTimeout(() => renderizarCardsPendientes(1), 100);
     setTimeout(() => renderizarCardsPendientes(2), 300);
@@ -782,12 +782,8 @@ function actualizarCardCuartoEnUI(cuartoId) {
         // Actualizar inmediatamente sin animaciones
         serviciosContainer.innerHTML = generarServiciosHTML(mantenimientosCuarto, cuartoId, enModoEdicion);
 
-        // Actualizar botón de editar si es necesario
-        if (btnEditar && mantenimientosCuarto.length === 0) {
-            btnEditar.style.display = 'none';
-        } else if (btnEditar && mantenimientosCuarto.length > 0) {
-            btnEditar.style.display = '';
-        }
+        // El botón de editar siempre debe estar visible, incluso sin servicios
+        // (removida la lógica que lo ocultaba cuando no había servicios)
     }
 }
 
