@@ -248,13 +248,14 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
-                    <div class="select-container premium-select">
-                        <select id="filtroEstado" name="estado">
+                    <div class="select-container premium-select" data-semaforo-wrapper="estado">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroEstado" name="estado" data-semaforo-select="estado">
                             <option value="">Todos los estados</option>
-                            <option value="disponible">🟢 Disponible</option>
-                            <option value="ocupado">🔴 Ocupado</option>
-                            <option value="mantenimiento">🟡 Mantenimiento</option>
-                            <option value="fuera_servicio">⚫ Fuera de Servicio</option>
+                            <option value="disponible">Disponible</option>
+                            <option value="ocupado">Ocupado</option>
+                            <option value="mantenimiento">Mantenimiento</option>
+                            <option value="fuera_servicio">Fuera de Servicio</option>
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>

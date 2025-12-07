@@ -921,11 +921,29 @@ function setupSearchListeners() {
 
     const filtroEstadoChecklist = document.getElementById('filtroEstadoChecklist');
     if (filtroEstadoChecklist) {
+        // Configurar semáforo visual para el filtro de estado
+        const semaforoWrapper = filtroEstadoChecklist.closest('[data-semaforo-wrapper]');
+        const semaforoIndicator = semaforoWrapper ? semaforoWrapper.querySelector('.semaforo-indicator') : null;
+
         filtroEstadoChecklist.addEventListener('change', (e) => {
+            // Actualizar semáforo visual
+            if (semaforoIndicator) {
+                semaforoIndicator.classList.remove('estado-bueno', 'estado-regular', 'estado-malo');
+                if (e.target.value) {
+                    semaforoIndicator.classList.add(`estado-${e.target.value}`);
+                }
+            }
+
+            // Aplicar filtro
             AppState.checklistFilters.estado = e.target.value;
             AppState.checklistPagination.page = 1;
             applyChecklistFilters();
         });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicator && filtroEstadoChecklist.value) {
+            semaforoIndicator.classList.add(`estado-${filtroEstadoChecklist.value}`);
+        }
     }
 
     const buscarInspeccionReciente = document.getElementById('buscarInspeccionReciente');

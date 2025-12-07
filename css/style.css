@@ -8886,6 +8886,43 @@ tr[data-lazy="true"] {
   box-shadow: 0 0 4px var(--prioridad-alta);
 }
 
+/* Estilos de semáforo para estados de habitación */
+.semaforo-indicator.estado-disponible {
+  background: #4caf50;
+  box-shadow: 0 0 4px rgba(76, 175, 80, 0.5);
+}
+
+.semaforo-indicator.estado-ocupado {
+  background: #f44336;
+  box-shadow: 0 0 4px rgba(244, 67, 54, 0.5);
+}
+
+.semaforo-indicator.estado-mantenimiento {
+  background: #ff9800;
+  box-shadow: 0 0 4px rgba(255, 152, 0, 0.5);
+}
+
+.semaforo-indicator.estado-fuera_servicio {
+  background: #424242;
+  box-shadow: 0 0 4px rgba(66, 66, 66, 0.5);
+}
+
+/* Estilos de semáforo para estados de checklist */
+.semaforo-indicator.estado-bueno {
+  background: #10b981;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+}
+
+.semaforo-indicator.estado-regular {
+  background: #f59e0b;
+  box-shadow: 0 0 4px rgba(245, 158, 11, 0.5);
+}
+
+.semaforo-indicator.estado-malo {
+  background: #ef4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+}
+
 .tarea-card-title {
   font-size: 1.1rem;
   font-weight: 700;

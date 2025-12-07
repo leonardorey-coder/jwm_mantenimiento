@@ -600,7 +600,29 @@
             if (buscarAveria) buscarAveria.addEventListener('input', filtrarCuartosHandler);
             if (filtroEdificio) filtroEdificio.addEventListener('change', filtrarCuartosHandler);
             if (filtroPrioridad) filtroPrioridad.addEventListener('change', filtrarCuartosHandler);
-            if (filtroEstado) filtroEstado.addEventListener('change', filtrarCuartosHandler);
+            if (filtroEstado) {
+                // Configurar semáforo visual para el filtro de estado
+                const semaforoWrapper = filtroEstado.closest('[data-semaforo-wrapper]');
+                const semaforoIndicator = semaforoWrapper ? semaforoWrapper.querySelector('.semaforo-indicator') : null;
+
+                filtroEstado.addEventListener('change', function() {
+                    // Actualizar semáforo visual
+                    if (semaforoIndicator) {
+                        semaforoIndicator.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera_servicio');
+                        if (filtroEstado.value) {
+                            semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
+                        }
+                    }
+
+                    // Ejecutar filtro
+                    filtrarCuartosHandler();
+                });
+
+                // Actualizar semáforo inicial si hay un valor seleccionado
+                if (semaforoIndicator && filtroEstado.value) {
+                    semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
+                }
+            }
         } else {
             console.warn('⚠️ Handler filtrarCuartos no disponible en window, se omiten listeners de filtros.');
         }
