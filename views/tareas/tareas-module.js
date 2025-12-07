@@ -308,10 +308,11 @@ function aplicarFiltrosServicios() {
 
     // Aplicar filtros combinados
     serviciosFiltrados = todosLosServicios.filter(servicio => {
-        // Filtro por responsable
+        // Filtro por responsable - solo mostrar servicios asignados a esa persona
         if (responsableLower) {
-            const usuarioAsignado = (servicio.usuario_asignado_nombre || '').toLowerCase();
-            if (!usuarioAsignado.includes(responsableLower) && usuarioAsignado !== responsableLower) {
+            const usuarioAsignado = (servicio.usuario_asignado_nombre || '').toLowerCase().trim();
+            // Si no hay usuario asignado o no coincide con el responsable, excluir
+            if (!usuarioAsignado || usuarioAsignado !== responsableLower) {
                 return false;
             }
         }
