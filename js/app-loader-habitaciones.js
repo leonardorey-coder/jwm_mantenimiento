@@ -190,7 +190,7 @@ function mostrarCuartos() {
                 estadoText = 'Fuera de Servicio';
                 break;
             default:
-                estadoBadgeClass = 'estado-vacio';
+                estadoBadgeClass = 'estado-disponible';
                 estadoIcon = 'fa-check-circle';
                 estadoText = 'Disponible';
         }
@@ -680,7 +680,7 @@ function actualizarEstadoBadgeCard(cuartoId, nuevoEstado) {
     switch (nuevoEstado.toLowerCase()) {
         case 'disponible':
         case 'vacio':
-            estadoBadgeClass = 'estado-vacio';
+            estadoBadgeClass = 'estado-disponible';
             estadoIcon = 'fa-check-circle';
             estadoText = 'Disponible';
             break;
