@@ -561,25 +561,32 @@ function mostrarFormularioInlineEspacio(espacioId) {
             </button>
         </div>
         <form onsubmit="guardarServicioEspacioInline(event, ${espacioId})">
-            <input type="text" 
-                    class="input-inline" 
-                    name="descripcion" 
-                    placeholder="Descripción del servicio..." 
-                    required 
-                    autocomplete="off">
-            
-            <div class="tipo-toggle-inline">
-                <label class="toggle-label">
-                    <input type="checkbox" 
-                            class="toggle-checkbox" 
-                            id="tipoToggleEspacio-${espacioId}"
-                            onchange="toggleTipoServicioEspacioInline(${espacioId})">
-                    <span class="toggle-switch"></span>
-                    <span class="toggle-text">
-                        <span class="tipo-averia">Avería</span>
-                        <span class="tipo-alerta">Alerta</span>
-                    </span>
-                </label>
+            <div class="name-tipo-toggle-inline-container" style="display: flex; flex-direction: row; flex-wrap: nowrap; gap: 10px;">
+                <input type="text" 
+                            class="input-inline" 
+                            name="descripcion" 
+                            placeholder="Descripción del servicio..." 
+                            required 
+                            autocomplete="off">
+                    
+                    <div class="tipo-toggle-inline">
+                        <label class="toggle-label">
+                            <input type="checkbox" 
+                                    class="toggle-checkbox" 
+                                    id="tipoToggleEspacio-${espacioId}"
+                                    onchange="toggleTipoServicioEspacioInline(${espacioId})">
+                            <span class="toggle-switch"></span>
+                            <span class="toggle-text">
+                                <span class="tipo-averia">Avería</span>
+                                <span class="tipo-alerta">Alerta</span>
+                            </span>
+                        </label>
+                    </div>
+            </div>
+
+            <div class="campos-alerta-inline" id="camposAlertaEspacio-${espacioId}" style="display: none;">
+                <input type="time" class="input-inline" name="hora" placeholder="Hora">
+                <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
             </div>
             
             <div class="estado-mantenimiento-selector-inline">
@@ -644,11 +651,6 @@ function mostrarFormularioInlineEspacio(espacioId) {
                         <option value="">-- Sin asignar existente --</option>
                     </select>
                 </div>
-            </div>
-            
-            <div class="campos-alerta-inline" id="camposAlertaEspacio-${espacioId}" style="display: none;">
-                <input type="time" class="input-inline" name="hora" placeholder="Hora">
-                <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
             </div>
             
             <input type="hidden" name="tipo" value="normal">
@@ -727,7 +729,7 @@ function toggleTipoServicioEspacioInline(espacioId) {
     const inputTipo = form.querySelector('input[name="tipo"]');
 
     if (checkbox.checked) {
-        camposAlerta.style.display = 'block';
+        camposAlerta.style.display = 'flex';
         inputTipo.value = 'rutina';
     } else {
         camposAlerta.style.display = 'none';

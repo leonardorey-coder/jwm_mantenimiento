@@ -905,6 +905,12 @@ function mostrarFormularioInline(cuartoId) {
                 </label>
             </div>
         </div>
+
+            <!-- Campos adicionales de Alerta (solo hora y día) -->
+            <div class="campos-alerta-inline" id="camposAlerta-${cuartoId}" style="display: none;">
+                <input type="time" class="input-inline" name="hora" placeholder="Hora">
+                <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
+            </div>
             
             <!-- Selector de Estado del Mantenimiento -->
             <div class="estado-mantenimiento-selector-inline">
@@ -956,12 +962,6 @@ function mostrarFormularioInline(cuartoId) {
                         <span class="semaforo-circle red"></span>
                     </label>
                 </div>
-            </div>
-            
-            <!-- Campos adicionales de Alerta (solo hora y día) -->
-            <div class="campos-alerta-inline" id="camposAlerta-${cuartoId}" style="display: none;">
-                <input type="time" class="input-inline" name="hora" placeholder="Hora">
-                <input type="date" class="input-inline" name="dia_alerta" placeholder="Día">
             </div>
             
             <input type="hidden" name="tipo" value="normal">
@@ -1087,7 +1087,7 @@ function toggleTipoServicioInline(cuartoId) {
 
     if (checkbox.checked) {
         // Es alerta
-        camposAlerta.style.display = 'block';
+        camposAlerta.style.display = 'flex';
         inputTipo.value = 'rutina';
     } else {
         // Es avería

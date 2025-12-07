@@ -3582,6 +3582,7 @@ body.admin .tab-content.admin-only.active {
   cursor: pointer;
   font-size: 0.85rem;
   white-space: nowrap;
+  justify-content: center;
 }
 
 .btn-nueva-tarea i {
@@ -7729,9 +7730,8 @@ body.dark-mode .skeleton-card {
 
 .campos-alerta-inline {
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
-  padding: 0.8rem;
+  padding: 0.5rem;
   background: #fff9e6;
   border: 2px dashed var(--prioridad-media);
   border-radius: var(--radio-pequeno);
@@ -7869,6 +7869,7 @@ body.dark-mode .skeleton-card {
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  justify-content: center;
 }
 
 .btn-crear-tarea:hover {
