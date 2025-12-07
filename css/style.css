@@ -154,7 +154,7 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   transition: background-color 0.3s ease, color 0.3s ease;
-  
+
   /* iOS PWA Safe Area support */
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -178,7 +178,7 @@ body.modal-open {
   transition: all 0.3s ease;
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  
+
   /* iOS PWA Safe Area - Notch support */
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: env(safe-area-inset-left, 0px);
@@ -796,7 +796,7 @@ body.admin .tab-content.admin-only.active {
   margin: 0 auto;
 }
 
-#contenedorFiltrosTareas{
+#contenedorFiltrosTareas {
   grid-template-columns: repeat(6, 1fr);
 }
 
@@ -833,10 +833,10 @@ body.admin .tab-content.admin-only.active {
   }
 
 
-#contenedorFiltrosTareas{
-      grid-template-columns: 1fr;
+  #contenedorFiltrosTareas {
+    grid-template-columns: 1fr;
 
-}
+  }
 
   /* Botón nueva tarea responsive */
   .btn-nueva-tarea {
@@ -2384,7 +2384,7 @@ body.admin .tab-content.admin-only.active {
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.2);
     padding: 0.4rem 0.25rem;
     z-index: 1001;
-    
+
     /* iOS PWA Safe Area - Bottom notch/home indicator */
     padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
     padding-left: env(safe-area-inset-left, 0px);
@@ -3852,7 +3852,7 @@ body.admin .tab-content.admin-only.active {
   transform: scale(1.1);
 }
 
-.filtros-action-button > div {
+.filtros-action-button>div {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -3980,9 +3980,11 @@ body.admin .tab-content.admin-only.active {
     transform: rotate(45deg) scale(0);
     opacity: 0;
   }
+
   50% {
     transform: rotate(45deg) scale(1.2);
   }
+
   100% {
     transform: rotate(45deg) scale(1);
     opacity: 1;
@@ -5140,11 +5142,11 @@ body.dark-mode .checklist-meta-divider {
   .checklist-meta-group {
     gap: 0.4rem;
   }
-  
+
   .checklist-meta-item {
     font-size: 0.8rem;
   }
-  
+
   .checklist-room-number {
     font-size: 1.2rem;
   }
@@ -6981,8 +6983,8 @@ body.dark-mode .pagination-total {
 .habitacion-card[data-aos],
 #listaCuartos .habitacion-card,
 #listaEspacios .habitacion-card,
-#listaCuartos > li,
-#listaEspacios > li {
+#listaCuartos>li,
+#listaEspacios>li {
   transform: none !important;
   opacity: 1 !important;
   transition: none !important;
@@ -7962,6 +7964,12 @@ body.dark-mode .skeleton-card {
 
 .estado-pill-inline.fuera-servicio .pill-dot-inline {
   background: #ef4444;
+}
+
+.estado-pill-inline.disabled {
+  cursor: not-allowed;
+  color: var(--gris-grafito);
+  opacity: 0.8;
 }
 
 .pill-text-inline {
@@ -10179,16 +10187,17 @@ tr[data-lazy="true"] {
 
 /* Detectar modo standalone (PWA instalada) */
 @media (display-mode: standalone) {
+
   /* Agregar margen superior al contenedor para compensar el notch */
   .contenedor {
     padding-top: calc(1rem + env(safe-area-inset-top, 0px));
   }
-  
+
   /* Agregar margen superior a los títulos principales */
   .t-principal {
     margin-top: 0.5rem;
   }
-  
+
   /* Asegurar que el body tenga padding-bottom para el home indicator */
   body {
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -10197,21 +10206,22 @@ tr[data-lazy="true"] {
 
 /* Soporte adicional para iOS Safari standalone */
 @media (display-mode: standalone) and (max-width: 768px) {
+
   /* Aumentar espacio en contenedor móvil */
   .contenedor {
     padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
   }
-  
+
   /* Más espacio para títulos en móvil */
   .t-principal {
     margin-top: 0.75rem;
     font-size: 1.8rem;
   }
-  
+
   .t-secundario {
     margin-top: 0.25rem;
   }
-  
+
   /* Navegación inferior con más espacio para home indicator */
   .premium-nav-mobile {
     padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px));
@@ -10222,15 +10232,16 @@ tr[data-lazy="true"] {
 @supports (-webkit-touch-callout: none) {
   /* iOS specific - detecta Safari en iOS */
   @media screen and (max-width: 768px) {
+
     /* Cuando está en modo standalone en iOS */
     html.standalone-mode .contenedor {
       padding-top: calc(1rem + env(safe-area-inset-top, 0px));
     }
-    
+
     html.standalone-mode .t-principal {
       margin-top: 0.75rem;
     }
-    
+
     html.standalone-mode .premium-nav-mobile {
       padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
     }

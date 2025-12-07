@@ -332,19 +332,19 @@ function cargarContenidoEspacio(li, espacio) {
         <div class="estado-selector-inline" style="display: none" id="estado-selector-inline-espacio-${espacio.id}">
             <label class="estado-label-inline">Estado del Espacio</label>
             <div class="estado-pills-inline">
-                <button type="button" class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'disponible', this)">
+                <button type="button" ${estadoText === 'Disponible' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo disabled' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'disponible', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Disp.</span>
                 </button>
-                <button type="button" class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'ocupado', this)">
+                <button type="button" ${estadoText === 'Ocupado' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'ocupado', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Ocup.</span>
                 </button>
-                <button type="button" class="estado-pill-inline ${estadoText === 'Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'mantenimiento', this)">
+                <button type="button" ${estadoText === 'Mantenimiento' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'mantenimiento', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Mant.</span>
                 </button>
-                <button type="button" class="estado-pill-inline ${estadoText === 'Fuera de Servicio' ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'fuera_servicio', this)">
+                <button type="button" ${estadoText === 'Fuera de Servicio' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Fuera de Servicio' ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'fuera_servicio', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Fuera</span>
                 </button>
