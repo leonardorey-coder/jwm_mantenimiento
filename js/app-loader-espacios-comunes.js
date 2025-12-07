@@ -332,7 +332,7 @@ function cargarContenidoEspacio(li, espacio) {
         <div class="estado-selector-inline" style="display: none" id="estado-selector-inline-espacio-${espacio.id}">
             <label class="estado-label-inline">Estado del Espacio</label>
             <div class="estado-pills-inline">
-                <button type="button" ${estadoText === 'Disponible' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo disabled' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'disponible', this)">
+                <button type="button" ${estadoText === 'Disponible' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'disponible', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Disp.</span>
                 </button>
@@ -903,8 +903,12 @@ async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
 
         // Actualizar UI pills
         const contenedor = boton.closest('.estado-pills-inline');
-        contenedor.querySelectorAll('.estado-pill-inline').forEach(b => b.classList.remove('activo'));
+        contenedor.querySelectorAll('.estado-pill-inline').forEach(b => {
+            b.classList.remove('activo');
+            b.removeAttribute('disabled');
+        });
         boton.classList.add('activo');
+        boton.setAttribute('disabled', 'disabled');
 
         // Actualizar badge del header
         const li = document.querySelector(`li[data-espacio-id="${espacioId}"]`) ||

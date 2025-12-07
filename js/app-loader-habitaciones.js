@@ -1118,7 +1118,7 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
         }
 
         const resultado = await response.json();
-        console.log('✅ Estado actualizado:', resultado);
+        console.log('Estado actualizado:', resultado);
 
         // Actualizar el cuarto en el array local
         const cuarto = s.cuartos.find(c => c.id === cuartoId);
@@ -1145,14 +1145,6 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
         // Actualizar solo el badge de estado de la card específica
         actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
 
-        // Mapeo de estados a emojis y labels
-        const estadoEmojis = {
-            'disponible': '🟢',
-            'ocupado': '🔵',
-            'mantenimiento': '🟡',
-            'fuera_servicio': '🔴'
-        };
-
         const estadoLabels = {
             'disponible': 'Disponible',
             'ocupado': 'Ocupado',
@@ -1160,10 +1152,9 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
             'fuera_servicio': 'Fuera de Servicio'
         };
 
-        const emoji = estadoEmojis[nuevoEstado] || '⚪';
         const label = estadoLabels[nuevoEstado] || nuevoEstado;
 
-        window.mostrarMensaje(`${emoji} Estado actualizado a: ${label}`, 'success');
+        window.mostrarMensaje(`Estado actualizado a: ${label}`, 'success');
 
     } catch (error) {
         console.error('❌ Error al actualizar estado:', error);

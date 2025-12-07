@@ -7941,6 +7941,9 @@ body.dark-mode .skeleton-card {
   border-color: var(--negro-carbon);
   border-width: 3px;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.1);
+  cursor: not-allowed;
+  color: var(--gris-grafito);
+  opacity: 0.8;
 }
 
 .pill-dot-inline {
@@ -7964,12 +7967,6 @@ body.dark-mode .skeleton-card {
 
 .estado-pill-inline.fuera-servicio .pill-dot-inline {
   background: #ef4444;
-}
-
-.estado-pill-inline.disabled {
-  cursor: not-allowed;
-  color: var(--gris-grafito);
-  opacity: 0.8;
 }
 
 .pill-text-inline {
