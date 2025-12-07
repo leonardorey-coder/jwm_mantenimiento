@@ -269,17 +269,24 @@ async function cargarServiciosParaSeleccion() {
         const selectResponsable = document.getElementById('crearTareaResponsable');
         if (selectResponsable) {
             filtroResponsableActual = ''; // Resetear filtro de responsable
-            // Remover listeners anteriores para evitar duplicados (clonando el nodo)
-            const nuevoSelect = selectResponsable.cloneNode(true);
-            selectResponsable.parentNode.replaceChild(nuevoSelect, selectResponsable);
 
-            nuevoSelect.addEventListener('change', (e) => {
+            // Definir el handler para poder removerlo después
+            const handleResponsableChange = (e) => {
                 // Obtener el texto del option seleccionado (nombre del responsable)
                 const selectedOption = e.target.options[e.target.selectedIndex];
                 filtroResponsableActual = selectedOption && selectedOption.value ? selectedOption.text.trim() : '';
                 console.log('📋 Filtrando servicios por responsable:', filtroResponsableActual || 'todos');
                 aplicarFiltrosServicios();
-            });
+            };
+
+            // Remover listener anterior si existe (guardado en el elemento)
+            if (selectResponsable._filtroHandler) {
+                selectResponsable.removeEventListener('change', selectResponsable._filtroHandler);
+            }
+
+            // Guardar referencia al handler y agregar el listener
+            selectResponsable._filtroHandler = handleResponsableChange;
+            selectResponsable.addEventListener('change', handleResponsableChange);
         }
 
     } catch (error) {
