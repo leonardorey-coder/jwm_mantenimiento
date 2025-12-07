@@ -45,15 +45,15 @@ const obtenerHeadersConAuth = () => {
  */
 function parsearFechaLocal(fecha) {
     if (!fecha) return new Date();
-    
+
     // Si ya es Date, verificar si necesita ajuste
     if (fecha instanceof Date) {
         return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
     }
-    
+
     const fechaStr = String(fecha);
     let year, month, day;
-    
+
     // Formato ISO con timestamp (2025-12-03T00:00:00.000Z)
     if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
         const fechaPart = fechaStr.split('T')[0];
@@ -76,7 +76,7 @@ function parsearFechaLocal(fecha) {
             return new Date();
         }
     }
-    
+
     // Crear fecha local (month es 0-indexed en JavaScript)
     return new Date(year, month - 1, day);
 }
@@ -202,6 +202,8 @@ let serviciosFiltrados = [];
 let serviciosRenderizados = 0;
 const SERVICIOS_POR_LOTE = 20;
 let observerServicios = null;
+let filtroResponsableActual = ''; // Almacena el nombre del responsable para filtrar servicios
+let filtroBusquedaActual = ''; // Almacena el término de búsqueda para filtrar servicios
 
 /**
  * Carga TODOS los servicios para mostrarlos con lazy loading en el modal.
@@ -252,12 +254,31 @@ async function cargarServiciosParaSeleccion() {
         // Configurar evento de búsqueda
         if (inputBusqueda) {
             inputBusqueda.value = ''; // Limpiar búsqueda al abrir
+            filtroBusquedaActual = ''; // Resetear filtro de búsqueda
             // Remover listeners anteriores para evitar duplicados (clonando el nodo)
             const nuevoInput = inputBusqueda.cloneNode(true);
             inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
 
             nuevoInput.addEventListener('input', (e) => {
-                filtrarServicios(e.target.value);
+                filtroBusquedaActual = e.target.value;
+                aplicarFiltrosServicios();
+            });
+        }
+
+        // Configurar evento del selector de responsable para filtrar servicios
+        const selectResponsable = document.getElementById('crearTareaResponsable');
+        if (selectResponsable) {
+            filtroResponsableActual = ''; // Resetear filtro de responsable
+            // Remover listeners anteriores para evitar duplicados (clonando el nodo)
+            const nuevoSelect = selectResponsable.cloneNode(true);
+            selectResponsable.parentNode.replaceChild(nuevoSelect, selectResponsable);
+
+            nuevoSelect.addEventListener('change', (e) => {
+                // Obtener el texto del option seleccionado (nombre del responsable)
+                const selectedOption = e.target.options[e.target.selectedIndex];
+                filtroResponsableActual = selectedOption && selectedOption.value ? selectedOption.text.trim() : '';
+                console.log('📋 Filtrando servicios por responsable:', filtroResponsableActual || 'todos');
+                aplicarFiltrosServicios();
             });
         }
 
@@ -268,35 +289,51 @@ async function cargarServiciosParaSeleccion() {
 }
 
 /**
- * Filtra los servicios según el término de búsqueda y reinicia el renderizado
- * @param {string} termino - Término de búsqueda
+ * Aplica los filtros de búsqueda y responsable a los servicios y reinicia el renderizado
+ * Combina ambos filtros: busca por texto y filtra por el nombre del responsable seleccionado
  */
-function filtrarServicios(termino) {
+function aplicarFiltrosServicios() {
     const container = document.getElementById('listaServiciosCrear');
     if (!container) return;
 
-    const terminoLower = termino.toLowerCase().trim();
+    const terminoLower = (filtroBusquedaActual || '').toLowerCase().trim();
+    const responsableLower = (filtroResponsableActual || '').toLowerCase().trim();
 
-    if (!terminoLower) {
-        serviciosFiltrados = [...todosLosServicios];
-    } else {
-        serviciosFiltrados = todosLosServicios.filter(servicio => {
+    // Aplicar filtros combinados
+    serviciosFiltrados = todosLosServicios.filter(servicio => {
+        // Filtro por responsable
+        if (responsableLower) {
+            const usuarioAsignado = (servicio.usuario_asignado_nombre || '').toLowerCase();
+            if (!usuarioAsignado.includes(responsableLower) && usuarioAsignado !== responsableLower) {
+                return false;
+            }
+        }
+
+        // Filtro por término de búsqueda
+        if (terminoLower) {
             const descripcion = (servicio.descripcion || '').toLowerCase();
             const ubicacion = (servicio.cuarto_numero ? `hab. ${servicio.cuarto_numero}` : (servicio.edificio_nombre || '')).toLowerCase();
             const tipo = (servicio.tipo || '').toLowerCase();
 
-            return descripcion.includes(terminoLower) ||
-                ubicacion.includes(terminoLower) ||
-                tipo.includes(terminoLower);
-        });
-    }
+            if (!descripcion.includes(terminoLower) &&
+                !ubicacion.includes(terminoLower) &&
+                !tipo.includes(terminoLower)) {
+                return false;
+            }
+        }
+
+        return true;
+    });
 
     // Reiniciar renderizado
     serviciosRenderizados = 0;
     container.innerHTML = '';
 
     if (serviciosFiltrados.length === 0) {
-        container.innerHTML = '<p class="mensaje-vacio">No se encontraron servicios que coincidan.</p>';
+        const mensajeFiltro = responsableLower
+            ? `No se encontraron servicios asignados a "${filtroResponsableActual}"${terminoLower ? ` con búsqueda "${filtroBusquedaActual}"` : ''}`
+            : 'No se encontraron servicios que coincidan.';
+        container.innerHTML = `<p class="mensaje-vacio">${mensajeFiltro}</p>`;
         return;
     }
 
@@ -313,6 +350,16 @@ function filtrarServicios(termino) {
         observerServicios.disconnect();
         observerServicios.observe(sentinel);
     }
+}
+
+/**
+ * @deprecated Usa aplicarFiltrosServicios() en su lugar
+ * Filtra los servicios según el término de búsqueda y reinicia el renderizado
+ * @param {string} termino - Término de búsqueda
+ */
+function filtrarServicios(termino) {
+    filtroBusquedaActual = termino;
+    aplicarFiltrosServicios();
 }
 
 /**
