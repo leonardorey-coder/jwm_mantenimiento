@@ -1186,10 +1186,27 @@
             if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'none';
 
             listaEmitidas.innerHTML = '';
-            alertasEmitidasBD
+
+            // Pre-fetch all common space names in parallel
+            const alertasProcessadas = await Promise.all(alertasEmitidasBD.map(async (alerta) => {
+                const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
+                let nombreEspacioComuun = null;
+
+                if (isEspacioComun) {
+                    nombreEspacioComuun = await obtenerNombreEspacioComun(alerta.espacio_comun_id);
+                }
+
+                return {
+                    ...alerta,
+                    nombreEspacioComuun,
+                    isEspacioComun
+                };
+            }));
+
+            alertasProcessadas
                 .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
                 .forEach(alerta => {
-                    const nombreCuarto = alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+                    const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComuun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
                     // Extraer fecha de dia_alerta
                     const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
@@ -1224,6 +1241,16 @@
 
         console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
     }
+
+    async function obtenerNombreEspacioComun(id) {
+        const response = await fetch(`${API_BASE_URL}/api/espacios-comunes/${id}`);
+        const data = await response.json();
+        if (data) {
+            return data.nombre;
+        }
+        return null;
+    }
+    window.obtenerNombreEspacioComun = obtenerNombreEspacioComun;
 
     /**
      * Mostrar historial completo de alertas emitidas (desde API, sin filtro de fecha)
@@ -1272,8 +1299,35 @@
             if (mensajeNoHistorial) mensajeNoHistorial.style.display = 'none';
 
             listaHistorial.innerHTML = '';
-            todasAlertasEmitidas.forEach(alerta => {
-                const nombreCuarto = alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+
+            // Pre-fetch all common space names in parallel
+            const todasAlertasProcessadas = await Promise.all(todasAlertasEmitidas.map(async (alerta) => {
+                const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
+                let nombreEspacioComuun = null;
+
+                if (isEspacioComun) {
+                    nombreEspacioComuun = await obtenerNombreEspacioComun(alerta.espacio_comun_id);
+                }
+
+                return {
+                    ...alerta,
+                    nombreEspacioComuun,
+                    isEspacioComun
+                };
+            }));
+
+            // ordenar por fechaAlerta y hora mas reciente aunque cuarto id sea null (espaço comun)
+            todasAlertasProcessadas.sort((a, b) => {
+                const fechaA = new Date(a.dia_alerta);
+                const fechaB = new Date(b.dia_alerta);
+                if (fechaA.getTime() === fechaB.getTime()) {
+                    return new Date(b.hora) - new Date(a.hora);
+                }
+                return fechaB.getTime() - fechaA.getTime();
+            });
+
+            todasAlertasProcessadas.forEach(alerta => {
+                const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComuun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
                 // Extraer fecha de dia_alerta
                 const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
