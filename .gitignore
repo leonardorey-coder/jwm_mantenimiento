@@ -46,3 +46,4 @@ db/backups/
 storage/logs/*.log
 *.log.*
 .vercel
+.env*.local
