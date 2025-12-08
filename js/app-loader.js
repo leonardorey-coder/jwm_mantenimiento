@@ -3014,7 +3014,20 @@
             // Usar el ID del selector y pasar el tarea_id para pre-selección
             window.cargarTareasEnSelector(`tarea_asignada_edit-${servicioId}`, servicio.tarea_id);
         }
+
+        /**
+        * Poder enviar edicion con enter en el input descripcion
+        */
+
+        document.getElementById(`edit-desc-${servicioId}`).addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                guardarEdicionServicio(servicioId, id, esEspacio);
+            }
+        });
     };
+
+
+
 
     /**
      * Cancelar edición de servicio
