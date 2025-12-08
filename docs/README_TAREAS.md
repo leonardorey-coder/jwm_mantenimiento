@@ -21,7 +21,7 @@ El módulo de **Tareas** permite la creación, asignación y seguimiento de tare
 │       ├── tareas-module.js        # Módulo principal de tareas
 │       ├── tareas-cards.css        # Estilos de tarjetas
 │       ├── tareas-timeline.css     # Estilos de timeline
-│       └── tareas-cards-old.css    # Estilos anteriores (legacy)
+
 ├── api/
 │   └── index.js                    # Endpoints de API
 ├── db/

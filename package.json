@@ -15,7 +15,11 @@
     "vercel": "vercel dev",
     "vercel:dev": "vercel dev",
     "vercel:build": "vercel build",
-    "vercel:deploy": "vercel --prod"
+    "vercel:deploy": "vercel --prod",
+    "lint:js": "eslint .",
+    "check:duplication": "jscpd",
+    "lint:css": "stylelint \"**/*.css\"",
+    "format": "prettier --write \"**/*.{js,cjs,mjs,css,html,json,md}\""
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -25,7 +29,17 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.13.1"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "globals": "^16.5.0",
+    "jscpd": "^4.0.5",
+    "prettier": "^3.7.4",
+    "stylelint": "^16.26.1",
+    "stylelint-config-standard": "^39.0.1"
+  },
   "engines": {
     "node": ">=16.0.0",
     "npm": ">=8.0.0"

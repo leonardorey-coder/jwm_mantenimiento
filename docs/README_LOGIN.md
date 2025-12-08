@@ -18,7 +18,7 @@ El módulo de **Login** gestiona la autenticación de usuarios en el sistema SGS
 ```
 ├── login.html              # Página principal de login
 ├── js/
-│   ├── login.js            # Script básico de autenticación (localStorage)
+
 │   ├── login-jwt.js        # Script principal con autenticación JWT
 │   ├── indexeddb-manager.js # Gestor de IndexedDB para almacenamiento
 │   └── storage-helper.js   # Helper para manejo de storage
