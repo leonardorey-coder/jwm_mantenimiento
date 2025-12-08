@@ -1,5 +1,9 @@
 # Ignorar archivo de configuración con credenciales
 .env
+.env.local
+.env.vercel.local
+.env.example
+.env.*
 
 # Ignorar archivos temporales
 *.tmp
