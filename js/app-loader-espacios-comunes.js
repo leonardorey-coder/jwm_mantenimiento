@@ -872,12 +872,12 @@ async function guardarServicioEspacioInline(event, espacioId) {
         cerrarFormularioInlineEspacio(espacioId);
         renderizarServiciosEspacio(espacioId);
 
-        if (window.mostrarMensaje) window.mostrarMensaje('Servicio agregado correctamente', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Servicio agregado correctamente', 'success');
         actualizarEstadisticasEspacios();
 
     } catch (error) {
         console.error('Error:', error);
-        if (window.mostrarMensaje) window.mostrarMensaje('Error al guardar servicio', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al guardar servicio', 'error');
         if (btnGuardar) {
             btnGuardar.disabled = false;
             btnGuardar.innerHTML = '<i class="fas fa-check"></i> Guardar';
@@ -934,11 +934,11 @@ async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
         });
 
         actualizarEstadisticasEspacios();
-        if (window.mostrarMensaje) window.mostrarMensaje('Estado actualizado', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Estado actualizado', 'success');
 
     } catch (error) {
         console.error('Error:', error);
-        if (window.mostrarMensaje) window.mostrarMensaje('Error al actualizar estado', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar estado', 'error');
     }
 }
 
@@ -962,7 +962,7 @@ async function cambiarEstadoEspacio(espacioId) {
 
     const estado = estadoMap[nuevoEstado];
     if (!estado) {
-        if (window.mostrarMensaje) window.mostrarMensaje('Estado inválido', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Estado inválido', 'error');
         return;
     }
 
@@ -980,10 +980,10 @@ async function cambiarEstadoEspacio(espacioId) {
 
         espacio.estado = estado;
         mostrarEspaciosComunes();
-        if (window.mostrarMensaje) window.mostrarMensaje('Estado actualizado correctamente', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Estado actualizado correctamente', 'success');
     } catch (error) {
         console.error('Error actualizando estado:', error);
-        if (window.mostrarMensaje) window.mostrarMensaje('Error al actualizar estado', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar estado', 'error');
     }
 }
 

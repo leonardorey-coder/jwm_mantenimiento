@@ -31,8 +31,8 @@ function unlockBodyScrollIfNoModal() {
 
 // Helper para mostrar mensajes (compatible con app-loader.js)
 function mostrarMensajeSabana(mensaje, tipo = 'info') {
-    if (typeof mostrarMensaje === 'function') {
-        mostrarMensaje(mensaje, tipo);
+    if (window.mostrarAlertaBlur) {
+        window.mostrarAlertaBlur(mensaje, tipo);
     } else {
         console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
         if (tipo === 'error') {

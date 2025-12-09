@@ -213,7 +213,7 @@ function exportarBitacora(event) {
             // Ocultar spinner después de 2 segundos
             setTimeout(() => {
                 spinner.style.display = 'none';
-                mostrarNotificacion('Bitácora exportada exitosamente', 'success');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Bitácora exportada exitosamente', 'success');
             }, 2000);
         }, 500);
     }
@@ -232,7 +232,7 @@ function exportarFiltrosExcel() {
             
             setTimeout(() => {
                 spinner.style.display = 'none';
-                mostrarNotificacion('Excel generado exitosamente', 'success');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Excel generado exitosamente', 'success');
             }, 2000);
         }, 500);
     }
@@ -262,7 +262,7 @@ function archivarPeriodo() {
                     if (downloadText) {
                         downloadText.textContent = 'Generando documento...';
                     }
-                    mostrarNotificacion('Periodo archivado exitosamente', 'success');
+                    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Periodo archivado exitosamente', 'success');
                 }, 2000);
             }, 500);
         }
@@ -275,7 +275,7 @@ function archivarPeriodo() {
 // VER HISTORIAL DE FILTROS
 // ========================================
 function verHistorialFiltros() {
-    mostrarNotificacion('Abriendo historial de filtros...', 'info');
+    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Abriendo historial de filtros...', 'info');
     // Aquí se abriría un modal o nueva vista con el historial
     console.log('Ver historial de filtros');
 }

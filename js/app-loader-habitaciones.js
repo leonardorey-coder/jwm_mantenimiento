@@ -1154,11 +1154,11 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
 
         const label = estadoLabels[nuevoEstado] || nuevoEstado;
 
-        window.mostrarMensaje(`Estado actualizado a: ${label}`, 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
 
     } catch (error) {
         console.error('❌ Error al actualizar estado:', error);
-        window.mostrarMensaje(`Error al actualizar estado: ${error.message}`, 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
     }
 };
 window.seleccionarEstadoInline = seleccionarEstadoInline;
@@ -1261,17 +1261,17 @@ async function guardarServicioInline(event, cuartoId) {
 
     // Validaciones básicas
     if (!datos.descripcion || datos.descripcion.trim() === '') {
-        mostrarMensaje('Por favor ingresa una descripción', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
         return;
     }
 
     if (datos.tipo === 'rutina') {
         if (!datos.hora) {
-            mostrarMensaje('La hora es obligatoria para alertas', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La hora es obligatoria para alertas', 'error');
             return;
         }
         if (!datos.dia_alerta) {
-            mostrarMensaje('El día es obligatorio para alertas', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('El día es obligatorio para alertas', 'error');
             return;
         }
     }
@@ -1357,11 +1357,11 @@ async function guardarServicioInline(event, cuartoId) {
         }
 
         // Mostrar mensaje de éxito
-        window.mostrarMensaje('Servicio registrado exitosamente', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Servicio registrado exitosamente', 'success');
 
     } catch (error) {
         console.error('❌ Error al registrar servicio:', error);
-        window.mostrarMensaje(`Error al registrar servicio: ${error.message}`, 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al registrar servicio: ${error.message}`, 'error');
     }
 };
 window.guardarServicioInline = guardarServicioInline;
@@ -1418,12 +1418,12 @@ async function eliminarMantenimientoInline(mantenimientoId, cuartoId) {
         mostrarCuartos();
         window.mostrarAlertasYRecientes();
 
-        window.mostrarMensaje('Mantenimiento eliminado exitosamente', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Mantenimiento eliminado exitosamente', 'success');
         console.log('✅ Eliminación completada correctamente');
 
     } catch (error) {
         console.error('❌ Error eliminando mantenimiento:', error);
-        mostrarMensaje(`Error al eliminar mantenimiento: ${error.message}`, 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al eliminar mantenimiento: ${error.message}`, 'error');
     }
 };
 window.eliminarMantenimientoInline = eliminarMantenimientoInline;

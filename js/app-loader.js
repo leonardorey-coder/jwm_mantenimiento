@@ -360,7 +360,7 @@
 
                 renderHabitacionesUI('offline');
 
-                mostrarMensaje('Aplicación funcionando en modo offline', 'warning');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline', 'warning');
             } catch (offlineError) {
                 console.error('Error cargando datos offline:', offlineError);
                 mostrarError('Error crítico al cargar la aplicación.');
@@ -510,7 +510,7 @@
                         usuarios = offlineData.data.usuarios || [];
 
                         setTimeout(() => {
-                            mostrarMensaje('Datos cargados desde IndexedDB (modo offline)', 'info');
+                            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Datos cargados desde IndexedDB (modo offline)', 'info');
                         }, 2000);
 
                         return true;
@@ -542,7 +542,7 @@
                     });
 
                     setTimeout(() => {
-                        mostrarMensaje('Datos cargados desde caché local (sin conexión al servidor)', 'info');
+                        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Datos cargados desde caché local (sin conexión al servidor)', 'info');
                     }, 2000);
 
                     return true;
@@ -571,7 +571,7 @@
 
                 // Mostrar mensaje informativo al usuario
                 setTimeout(() => {
-                    mostrarMensaje('Aplicación funcionando en modo offline con datos de ejemplo', 'info');
+                    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline con datos de ejemplo', 'info');
                 }, 2000);
 
                 return true;
@@ -1483,22 +1483,22 @@
 
         // Validaciones básicas en frontend
         if (!datos.cuarto_id) {
-            mostrarMensaje('Por favor selecciona un cuarto', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor selecciona un cuarto', 'error');
             return;
         }
 
         if (!datos.descripcion || datos.descripcion.trim() === '') {
-            mostrarMensaje('Por favor ingresa una descripción', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
             return;
         }
 
         if (datos.tipo === 'rutina') {
             if (!datos.hora) {
-                mostrarMensaje('La hora es obligatoria para alertas', 'error');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La hora es obligatoria para alertas', 'error');
                 return;
             }
             if (!datos.dia_alerta) {
-                mostrarMensaje('El día es obligatorio para alertas', 'error');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('El día es obligatorio para alertas', 'error');
                 return;
             }
         }
@@ -1537,7 +1537,7 @@
         const pills = document.querySelectorAll('.estado-pill');
         pills.forEach(pill => pill.classList.remove('activo'));
 
-        mostrarMensaje('✨ Servicio agregado', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio agregado', 'success');
 
         try {
             console.log('🌐 Enviando request a:', `${API_BASE_URL}/api/mantenimientos`);
@@ -1588,7 +1588,7 @@
             actualizarCardCuartoEnUI(cuartoId);
             mostrarAlertasYRecientes();
 
-            mostrarMensaje(`❌ Error al registrar: ${error.message}`, 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`❌ Error al registrar: ${error.message}`, 'error');
         }
     }
 
@@ -1844,11 +1844,11 @@
             await mostrarAlertasEmitidas();
             await mostrarHistorialAlertas();
 
-            mostrarMensaje('Mantenimiento actualizado', 'success');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Mantenimiento actualizado', 'success');
 
         } catch (error) {
             console.error('Error:', error);
-            mostrarMensaje('Error al actualizar mantenimiento', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar mantenimiento', 'error');
         }
     };
 
@@ -2692,7 +2692,7 @@
         }
         mostrarAlertasYRecientes();
 
-        mostrarMensaje('✨ Servicio eliminado', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
 
         try {
             console.log('🗑️ Eliminando servicio desde modal:', servicioId);
@@ -2734,7 +2734,7 @@
             }
             mostrarAlertasYRecientes();
 
-            mostrarMensaje('❌ Error al eliminar: ' + error.message, 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al eliminar: ' + error.message, 'error');
         }
     };
 
@@ -3114,7 +3114,7 @@
         const descripcion = document.getElementById(`edit-desc-${servicioId}`).value.trim();
 
         if (!descripcion) {
-            mostrarMensaje('La descripción no puede estar vacía', 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La descripción no puede estar vacía', 'error');
             return;
         }
 
@@ -3161,7 +3161,7 @@
             const hora = horaInput ? horaInput.value : '';
 
             if (!fecha || !hora) {
-                mostrarMensaje('Fecha y hora son obligatorios para alertas', 'error');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Fecha y hora son obligatorios para alertas', 'error');
                 return;
             }
 
@@ -3198,7 +3198,7 @@
         }
         mostrarAlertasYRecientes();
 
-        mostrarMensaje('✨ Servicio actualizado', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio actualizado', 'success');
 
         try {
             console.log('💾 Guardando cambios del servicio:', servicioId, datosActualizados);
@@ -3295,7 +3295,7 @@
             }
             mostrarAlertasYRecientes();
 
-            mostrarMensaje('❌ Error al actualizar: ' + error.message, 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al actualizar: ' + error.message, 'error');
         }
     };
 
@@ -3345,7 +3345,7 @@
         }
         mostrarAlertasYRecientes();
 
-        mostrarMensaje('✨ Servicio eliminado', 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
 
         try {
             console.log('🗑️ Eliminando servicio inline:', servicioId);
@@ -3377,7 +3377,7 @@
             }
             mostrarAlertasYRecientes();
 
-            mostrarMensaje('❌ Error al eliminar: ' + error.message, 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al eliminar: ' + error.message, 'error');
         }
     };
 
@@ -3391,7 +3391,7 @@
         const cuartoId = selectCuarto ? parseInt(selectCuarto.value) : null;
 
         if (!cuartoId) {
-            mostrarMensaje('⚠️ Selecciona primero un cuarto', 'warning');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('⚠️ Selecciona primero un cuarto', 'warning');
             return;
         }
 
@@ -3453,14 +3453,14 @@
                 'fuera_servicio': 'Fuera de servicio'
             };
 
-            mostrarMensaje(
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(
                 `${estadoEmojis[nuevoEstado]} Estado actualizado: ${estadoLabels[nuevoEstado]}`,
                 'success'
             );
 
         } catch (error) {
             console.error('❌ Error actualizando estado:', error);
-            mostrarMensaje('Error al actualizar estado: ' + error.message, 'error');
+            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar estado: ' + error.message, 'error');
 
             // Revertir el selector al estado anterior
             actualizarSelectorEstado(cuartoId);

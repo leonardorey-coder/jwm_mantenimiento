@@ -1951,11 +1951,11 @@ async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
             updateChecklistEditorInfo(cuartoId);
         }
 
-        showNotification(`✅ Estado actualizado por ${usuarioNombre}`, 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`✅ Estado actualizado por ${usuarioNombre}`, 'success');
 
     } catch (error) {
         console.error('❌ [APP.JS] Error actualizando estado:', error);
-        showNotification('❌ Error al guardar cambio', 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al guardar cambio', 'error');
     }
 }
 
@@ -2503,8 +2503,8 @@ function openChecklistDetailsModal(cuartoId) {
                 window.URL.revokeObjectURL(url);
 
                 // Notificación de éxito
-                if (typeof showNotification === 'function') {
-                    showNotification('✅ Checklist exportado exitosamente', 'success');
+                if (window.mostrarAlertaBlur) {
+                    window.mostrarAlertaBlur('✅ Checklist exportado exitosamente', 'success');
                 } else {
                     console.log('✅ Checklist exportado exitosamente');
                 }
@@ -2747,7 +2747,7 @@ async function handleNuevaSeccionSubmit(event) {
             }, 3000);
         }
 
-        showNotification(`Sección "${nombre}" creada exitosamente`, 'success');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Sección "${nombre}" creada exitosamente`, 'success');
 
     } catch (error) {
         console.error('❌ Error al crear sección:', error);
@@ -2755,7 +2755,7 @@ async function handleNuevaSeccionSubmit(event) {
             feedback.textContent = `❌ ${error.message}`;
             feedback.style.color = '#ef4444';
         }
-        showNotification(`Error: ${error.message}`, 'error');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error: ${error.message}`, 'error');
     } finally {
         // Restaurar botón
         if (submitBtn) {
