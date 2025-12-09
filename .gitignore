@@ -47,3 +47,6 @@ storage/logs/*.log
 *.log.*
 .vercel
 .env*.local
+
+# Pruebas de integración
+js/notification-tester.js
