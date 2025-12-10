@@ -3083,7 +3083,7 @@ async function cargarAlertasEspacios() {
                 mensajeNoAlertasEspacios.style.display = 'none';
             }
             listaAlertas.innerHTML = alertasPendientes.map(alerta => `
-                <li class="alerta-item prioridad-${alerta.prioridad || 'media'}">
+                <li class="alerta-item prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
                     <div class="alerta-info">
                         <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
                         <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
@@ -3128,7 +3128,7 @@ async function cargarAlertasEspacios() {
                 mensajeNoAlertasEmitidas.style.display = 'none';
             }
             listaEmitidas.innerHTML = alertasEmitidas.map(alerta => `
-                <li class="alerta-item alerta-emitida prioridad-${alerta.prioridad || 'media'}">
+                <li class="alerta-item alerta-emitida prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
                     <div class="alerta-info">
                         <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
                         <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
@@ -3140,6 +3140,25 @@ async function cargarAlertasEspacios() {
                 </li>
             `).join('');
         }
+
+        listaEmitidas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'alerta-item'));
+    }
+
+    if (listaAlertas) {
+        listaAlertas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'alerta-item'));
+    }
+}
+
+function abrirModalDetalleServicioEnLista(e, claseDeListaItem) {
+    if (e.target.classList.contains(claseDeListaItem)) {
+        const alertaId = e.target.dataset.alertaId;
+        abrirModalDetalleServicio(Number(alertaId));
+    } else if (e.target.parentElement.classList.contains(claseDeListaItem)) {
+        const alertaId = e.target.parentElement.dataset.alertaId;
+        abrirModalDetalleServicio(Number(alertaId));
+    } else if (e.target.parentElement.parentElement.classList.contains(claseDeListaItem)) {
+        const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+        abrirModalDetalleServicio(Number(alertaId));
     }
 }
 

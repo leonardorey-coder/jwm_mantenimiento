@@ -2784,12 +2784,53 @@
             setTimeout(() => {
                 // IMPORTANTE: Expandir TODOS los servicios en modo edición
                 if (esEspacio) {
-                    renderizarServiciosEspacio(id);
+                    // Para espacios: generar TODOS los servicios expandidos (sin límite de 2)
+                    const contenedorServiciosEspacio = document.getElementById(`servicios-espacio-${id}`);
+                    if (contenedorServiciosEspacio) {
+                        const serviciosEspacio = window.appLoaderState.mantenimientosEspacios.filter(m => m.espacio_comun_id === id);
 
-                    // Activar edición del servicio específico
-                    setTimeout(() => {
-                        activarEdicionServicio(servicioId, id, esEspacio);
-                    }, 100);
+                        // Regenerar con TODOS los servicios (sin límite de 2)
+                        let htmlEspacio = serviciosEspacio.map(servicio => {
+                            const esAlerta = servicio.tipo === 'rutina';
+
+                            let fechaHoraMostrar = '';
+                            if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
+                                const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
+                                const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
+                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
+                            } else if (servicio.fecha_registro) {
+                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
+                            }
+
+                            return `
+                            <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
+                                <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${id}, true)" style="cursor: pointer;">
+                                    <div class="servicio-info">
+                                        <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
+                                        <div class="servicio-meta">
+                                            <span class="servicio-tipo-badge">
+                                                <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
+                                                ${esAlerta ? 'Alerta' : 'Avería'}
+                                            </span>
+                                            ${fechaHoraMostrar}
+                                        </div>
+                                    </div>
+                                    <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
+                                </div>
+                                <button class="btn-eliminar-inline" onclick="eliminarServicioInline(${servicio.id}, ${id}, true); event.stopPropagation();" title="Eliminar servicio">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                            </div>
+                        `;
+                        }).join('');
+
+                        contenedorServiciosEspacio.innerHTML = htmlEspacio;
+
+                        // Activar edición del servicio específico
+                        setTimeout(() => {
+                            activarEdicionServicio(servicioId, id, esEspacio);
+                        }, 100);
+                    }
                 } else {
                     const contenedorServicios = document.getElementById(`servicios-${id}`);
                     if (contenedorServicios) {
