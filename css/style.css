@@ -1422,10 +1422,6 @@ body.admin .tab-content.admin-only.active {
   margin-bottom: 0.75rem;
 }
 
-.panel-alertas-emitidas .lista-alertas-emitidas {
-  max-height: 220px;
-}
-
 .alert-search-container {
   margin-bottom: 1rem;
   position: relative;
@@ -1555,20 +1551,30 @@ body.admin .tab-content.admin-only.active {
   display: block;
   font-weight: 600;
   color: var(--negro-carbon);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
   font-size: 0.95rem;
   font-family: 'Montserrat', sans-serif;
+  line-height: 1.4;
 }
 
 .rutina-hora,
 .alerta-hora,
 .rutina-fecha,
 .alerta-fecha {
-  display: inline-block;
-  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-size: 0.8rem;
   color: var(--texto-secundario);
-  margin-right: 0.75rem;
   font-family: 'Montserrat', sans-serif;
+  font-weight: 500;
+  line-height: 1.3;
+  min-width: 100px;
+  transition: all 0.3s ease;
+}
+
+.lista-vista-rutinas li:hover .rutina-hora {
+  color: var(--negro-carbon);
 }
 
 .rutina-hora i,
@@ -1577,6 +1583,25 @@ body.admin .tab-content.admin-only.active {
 .alerta-fecha i {
   margin-right: 0.25rem;
   color: var(--verde-oliva);
+}
+
+.rutina-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.rutina-cuarto {
+  display: inline-block;
+  font-size: 0.75rem;
+  color: var(--verde-oliva);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  width: fit-content;
+}
+
+.lista-vista-rutinas li:hover .rutina-cuarto {
+  color: var(--negro-carbon);
 }
 
 .rutina-prioridad,
@@ -2141,20 +2166,30 @@ body.admin .tab-content.admin-only.active {
 .lista-vista-recientes li,
 .lista-alertas-emitidas li,
 .lista-historial-alertas li {
-  padding: 0.75rem;
-  background: var(--gris-claro);
-  border-left: 4px solid var(--verde-oliva);
-  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  background: var(--blanco);
+  border-left: 2px solid var(--verde-oliva);
+  border-radius: var(--radio-medio);
   font-size: 0.9rem;
-  transition: var(--transicion-rapida);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.lista-vista-rutinas li,
+.lista-vista-recientes li,
+.lista-alertas-emitidas li,
+.lista-historial-alertas li {
+  cursor: pointer;
 }
 
 .lista-vista-rutinas li:hover,
 .lista-vista-recientes li:hover,
 .lista-alertas-emitidas li:hover,
 .lista-historial-alertas li:hover {
-  transform: translateX(5px);
-  background: var(--gris-separador);
+  background: linear-gradient(135deg, rgba(76, 84, 76, 0.03) 0%, rgba(76, 84, 76, 0.01) 100%);
+  box-shadow: 0 2px 6px rgba(76, 84, 76, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* ========================================

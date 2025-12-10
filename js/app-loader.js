@@ -1034,6 +1034,7 @@
                 const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
 
                 // Añadir todos los atributos data necesarios para el sistema de notificaciones
+                li.dataset.alertaId = alerta.id;
                 li.dataset.horaRaw = alerta.hora || '';
                 li.dataset.diaRaw = fechaAlerta || '';
                 li.dataset.descripcion = alerta.descripcion || '';
@@ -1041,10 +1042,6 @@
                 li.dataset.cuartoId = ubicacionId || '';
 
                 li.innerHTML = `
-                <span class="rutina-hora">
-                    ${fechaAlerta ? formatearFechaCorta(fechaAlerta) : '??/??'} 
-                    ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
-                </span>
                 <span class="rutina-info">
                     <span class="rutina-cuarto" title="${escapeHtml(nombreEdificio)}">
                         ${escapeHtml(nombreUbicacion)}
@@ -1053,9 +1050,25 @@
                         ${escapeHtml(alerta.descripcion)}
                     </span>
                 </span>
-                <button class="boton-ir-rutina" onclick="scrollToElement(${ubicacionId}, ${isEspacioComun})" title="Ver ubicación">&#10148;</button>
+                <span class="rutina-hora">
+                    ${fechaAlerta ? formatearFechaCorta(fechaAlerta) : '??/??'} 
+                    ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
+                </span>
             `;
                 listaAlertas.appendChild(li);
+            });
+
+            listaAlertas.addEventListener('click', (e) => {
+                if (e.target.classList.contains('rutina-item')) {
+                    const alertaId = e.target.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                } else if (e.target.parentElement.classList.contains('rutina-item')) {
+                    const alertaId = e.target.parentElement.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                } else if (e.target.parentElement.parentElement.classList.contains('rutina-item')) {
+                    const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                }
             });
 
             console.log(`✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
@@ -1215,6 +1228,7 @@
                     const prioridadClass = alerta.prioridad ? `prioridad-${alerta.prioridad}` : 'prioridad-media';
 
                     const li = document.createElement('li');
+                    li.dataset.alertaId = alerta.id;
                     li.className = `alerta-emitida-item ${prioridadClass}`;
                     li.innerHTML = `
                     <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
@@ -1238,6 +1252,19 @@
             }
             listaEmitidas.style.display = 'none';
         }
+
+        listaEmitidas.addEventListener('click', (e) => {
+            if (e.target.classList.contains('alerta-emitida-item')) {
+                const alertaId = e.target.dataset.alertaId;
+                abrirModalDetalleServicio(Number(alertaId));
+            } else if (e.target.parentElement.classList.contains('alerta-emitida-item')) {
+                const alertaId = e.target.parentElement.dataset.alertaId;
+                abrirModalDetalleServicio(Number(alertaId));
+            } else if (e.target.parentElement.parentElement.classList.contains('alerta-emitida-item')) {
+                const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+                abrirModalDetalleServicio(Number(alertaId));
+            }
+        });
 
         console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
     }
@@ -1336,6 +1363,7 @@
                 const prioridadClass = alerta.prioridad ? `prioridad-${alerta.prioridad}` : 'prioridad-media';
 
                 const li = document.createElement('li');
+                li.dataset.alertaId = alerta.id;
                 li.className = `alerta-emitida-item ${prioridadClass}`;
                 li.innerHTML = `
                 <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
@@ -1346,6 +1374,19 @@
                 </div>
             `;
                 listaHistorial.appendChild(li);
+            });
+
+            listaHistorial.addEventListener('click', (e) => {
+                if (e.target.classList.contains('alerta-emitida-item')) {
+                    const alertaId = e.target.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                } else if (e.target.parentElement.classList.contains('alerta-emitida-item')) {
+                    const alertaId = e.target.parentElement.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                } else if (e.target.parentElement.parentElement.classList.contains('alerta-emitida-item')) {
+                    const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+                    abrirModalDetalleServicio(Number(alertaId));
+                }
             });
 
             console.log(`✅ Mostradas ${todasAlertasEmitidas.length} alertas en historial`);
@@ -2272,7 +2313,7 @@
                     window.focus();
                     const isEspacioComun = !!alerta.espacio_comun_id;
                     const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
-                    scrollToElement(ubicacionId, isEspacioComun);
+                    //scrollToElement(ubicacionId, isEspacioComun);
                     notification.close();
                 };
 
@@ -2375,7 +2416,8 @@
         let iconUbicacion = 'fa-door-closed';
 
         if (servicio.espacio_comun_id) {
-            const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === servicio.espacio_comun_id);
+            const espaciosComunes = window.appLoaderState?.espaciosComunes || [];
+            const espacio = espaciosComunes.find(e => e.id === servicio.espacio_comun_id);
             nombreUbicacion = espacio ? espacio.nombre : `Espacio ${servicio.espacio_comun_id}`;
             labelUbicacion = 'Espacio Común';
             iconUbicacion = 'fa-building';
