@@ -1014,6 +1014,13 @@
     justify-content: center;
 }
 
+/* En móvil alinear al fondo */
+@media (max-width: 768px) {
+    .modal-usuario-form {
+        align-items: flex-end;
+    }
+}
+
 .modal-usuario-form .modal-detalles-overlay {
     position: absolute;
     top: 0;
@@ -1027,15 +1034,24 @@
 .modal-usuario-form .modal-detalles-contenido {
     position: relative;
     max-width: 560px;
-    width: 90%;
+    width: 100%;
     max-height: 90vh;
     background: var(--blanco, #fff);
-    border-radius: 12px;
+    border-radius: 20px 20px 0 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15);
     z-index: 1;
+    animation: slideUpModal 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* En desktop usar border-radius completo y centrar */
+@media (min-width: 769px) {
+    .modal-usuario-form .modal-detalles-contenido {
+        border-radius: 16px;
+        width: 90%;
+    }
 }
 
 .modal-usuario-form .modal-detalles-header {
@@ -1303,10 +1319,12 @@
 }
 
 /* Responsive */
-@media (max-width: 576px) {
+@media (max-width: 768px) {
     .modal-usuario-form .modal-detalles-contenido {
-        width: 95%;
+        width: 100%;
+        max-width: none;
         max-height: 95vh;
+        border-radius: 20px 20px 0 0;
     }
 
     .modal-usuario-form .tarea-edit-grid {

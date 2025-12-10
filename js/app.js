@@ -532,7 +532,79 @@ function setupEventListeners() {
     // Gestión de usuarios (solo admin)
     setupUsuariosListeners();
 
+    // Drag to resize modals
+    setupModalDragResize();
+
     console.log('✅ Event listeners configurados');
+}
+
+// ========================================
+// MODAL DRAG TO RESIZE
+// ========================================
+function setupModalDragResize() {
+    // Usar delegación de eventos para capturar todos los modales
+    document.addEventListener('touchstart', handleModalDragStart, { passive: false });
+    document.addEventListener('mousedown', handleModalDragStart);
+}
+
+function handleModalDragStart(e) {
+    const header = e.target.closest('.modal-detalles-header');
+    if (!header) return;
+
+    const modalContent = header.closest('.modal-detalles-contenido, .checklist-details-content');
+    if (!modalContent) return;
+
+    // Solo activar si el touch/click es en la zona superior del header (cerca del indicador)
+    const headerRect = header.getBoundingClientRect();
+    const clickY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    const relativeY = clickY - headerRect.top;
+
+    // Solo activar si está en los primeros 25px (zona del drag indicator)
+    if (relativeY > 25) return;
+
+    e.preventDefault();
+
+    const startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+    const startHeight = modalContent.offsetHeight;
+    const windowHeight = window.innerHeight;
+    const minHeight = 300;
+    const maxHeight = windowHeight * 0.95;
+
+    modalContent.classList.add('modal-dragging');
+
+    function handleMove(moveEvent) {
+        const currentY = moveEvent.type === 'touchmove' ? moveEvent.touches[0].clientY : moveEvent.clientY;
+        const deltaY = startY - currentY; // Positivo cuando arrastra hacia arriba
+        let newHeight = startHeight + deltaY;
+
+        // Limitar altura
+        newHeight = Math.max(minHeight, Math.min(maxHeight, newHeight));
+
+        modalContent.style.maxHeight = newHeight + 'px';
+    }
+
+    function handleEnd() {
+        modalContent.classList.remove('modal-dragging');
+
+        // Si está casi al máximo, expandir completamente
+        const currentHeight = modalContent.offsetHeight;
+        if (currentHeight > windowHeight * 0.85) {
+            modalContent.classList.add('modal-expanded');
+            modalContent.style.maxHeight = '';
+        } else {
+            modalContent.classList.remove('modal-expanded');
+        }
+
+        document.removeEventListener('touchmove', handleMove);
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('touchend', handleEnd);
+        document.removeEventListener('mouseup', handleEnd);
+    }
+
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchend', handleEnd);
+    document.addEventListener('mouseup', handleEnd);
 }
 
 // Función para manejar el toggle de filtros en móvil
@@ -2387,8 +2459,8 @@ function openChecklistDetailsModal(cuartoId) {
         <div class="modal-detalles-contenido checklist-details-content">
             <div class="modal-detalles-header">
                 <div class="checklist-modal-header-info">
-                    <h3 style="margin:0;font-size:1.3rem;font-weight:700;color:#fff;">${habitacion.numero}</h3>
-                    <span style="font-size:0.9rem;color:rgba(255,255,255,0.85);margin-top:0.25rem;display:block;">
+                    <h3 style="margin:0;font-size:1.3rem;font-weight:700;">${habitacion.numero}</h3>
+                    <span style="font-size:0.9rem;margin-top:0.25rem;display:block;">
                         <i class="fas fa-building"></i> ${habitacion.edificio || habitacion.edificio_nombre || 'Sin edificio'} · 
                         <i class="fas fa-clipboard-list"></i> ${habitacion.items.length} ítems
                         ${habitacion.ultimo_editor ? ` · <i class="fas fa-user-edit"></i> ${habitacion.ultimo_editor}` : ''}

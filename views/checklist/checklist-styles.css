@@ -332,7 +332,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     grid-template-columns: repeat(2, 1fr);
     justify-content: stretch;
   }
-  
+
   .categoria-btn {
     justify-content: center;
   }
@@ -677,16 +677,35 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   animation: fadeIn 0.2s ease !important;
 }
 
+/* En móvil alinear al fondo */
+@media (max-width: 768px) {
+  .checklist-modal {
+    align-items: flex-end !important;
+  }
+}
+
 .checklist-modal[style*="display: flex"] {
   display: flex !important;
 }
 
 .checklist-details-content {
-  max-width: 600px !important;
-  width: min(600px, calc(100% - 2rem)) !important;
+  max-width: none !important;
+  width: 100% !important;
   display: flex !important;
   flex-direction: column !important;
   max-height: 90vh !important;
+  border-radius: 20px 20px 0 0 !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.15) !important;
+  animation: slideUpModal 0.35s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+/* En desktop usar border-radius completo y limitar ancho */
+@media (min-width: 769px) {
+  .checklist-details-content {
+    border-radius: 16px !important;
+    max-width: 600px !important;
+    width: 90% !important;
+  }
 }
 
 .checklist-details-body {
@@ -1378,9 +1397,20 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 @keyframes pulse-editor {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .checklist-card-stat.bueno .semaforo-dot {
@@ -2263,13 +2293,25 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
    SKELETON LOADING - CHECKLIST
    =================================== */
 @keyframes skeleton-shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .skeleton-checklist-card {
