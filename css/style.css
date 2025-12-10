@@ -1595,7 +1595,6 @@ body.admin .tab-content.admin-only.active {
   display: inline-block;
   font-size: 0.75rem;
   color: var(--verde-oliva);
-  text-transform: uppercase;
   letter-spacing: 0.5px;
   width: fit-content;
 }

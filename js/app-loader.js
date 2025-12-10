@@ -48,6 +48,7 @@
     let usuarioActualId = null; // ID del usuario actual logeado
     let intervalosNotificaciones = null;
     let alertasEmitidas = new Set(); // Para evitar duplicados
+    let diccNombresEspaciosPorId = {}; // Diccionario de nombres de espacios comunes por ID
 
     /**
      * Helper para obtener headers con autenticación JWT
@@ -421,6 +422,12 @@
                 fetch(`${API_BASE_URL}/api/edificios`),
                 fetch(`${API_BASE_URL}/api/mantenimientos`)
             ]);
+
+            const nombresEspacios = await obtenerNombresEspaciosComunes();
+            diccNombresEspaciosPorId = nombresEspacios ? nombresEspacios.reduce((acc, espacio) => {
+                acc[espacio.id] = espacio.nombre;
+                return acc;
+            }, {}) : {};
 
             // Validar respuestas principales
             if (!responseCuartos.ok) throw new Error(`❌ Error al cargar cuartos: ${responseCuartos.status}`);
@@ -1058,18 +1065,7 @@
                 listaAlertas.appendChild(li);
             });
 
-            listaAlertas.addEventListener('click', (e) => {
-                if (e.target.classList.contains('rutina-item')) {
-                    const alertaId = e.target.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                } else if (e.target.parentElement.classList.contains('rutina-item')) {
-                    const alertaId = e.target.parentElement.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                } else if (e.target.parentElement.parentElement.classList.contains('rutina-item')) {
-                    const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                }
-            });
+            listaAlertas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "rutina-item"));
 
             console.log(`✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
 
@@ -1200,26 +1196,22 @@
 
             listaEmitidas.innerHTML = '';
 
-            // Pre-fetch all common space names in parallel
-            const alertasProcessadas = await Promise.all(alertasEmitidasBD.map(async (alerta) => {
+            // Process alerts with common space names from dictionary
+            const alertasProcessadas = alertasEmitidasBD.map((alerta) => {
                 const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
-                let nombreEspacioComuun = null;
-
-                if (isEspacioComun) {
-                    nombreEspacioComuun = await obtenerNombreEspacioComun(alerta.espacio_comun_id);
-                }
+                const nombreEspacioComun = isEspacioComun ? diccNombresEspaciosPorId[alerta.espacio_comun_id] : null;
 
                 return {
                     ...alerta,
-                    nombreEspacioComuun,
+                    nombreEspacioComun,
                     isEspacioComun
                 };
-            }));
+            });
 
             alertasProcessadas
                 .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
                 .forEach(alerta => {
-                    const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComuun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+                    const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
                     // Extraer fecha de dia_alerta
                     const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
@@ -1253,31 +1245,33 @@
             listaEmitidas.style.display = 'none';
         }
 
-        listaEmitidas.addEventListener('click', (e) => {
-            if (e.target.classList.contains('alerta-emitida-item')) {
-                const alertaId = e.target.dataset.alertaId;
-                abrirModalDetalleServicio(Number(alertaId));
-            } else if (e.target.parentElement.classList.contains('alerta-emitida-item')) {
-                const alertaId = e.target.parentElement.dataset.alertaId;
-                abrirModalDetalleServicio(Number(alertaId));
-            } else if (e.target.parentElement.parentElement.classList.contains('alerta-emitida-item')) {
-                const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
-                abrirModalDetalleServicio(Number(alertaId));
-            }
-        });
+        listaEmitidas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "alerta-emitida-item"));
 
         console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
     }
 
-    async function obtenerNombreEspacioComun(id) {
-        const response = await fetch(`${API_BASE_URL}/api/espacios-comunes/${id}`);
+    function abrirModalDetalleServicioEnLista(e, claseDeListaItem) {
+        if (e.target.classList.contains(claseDeListaItem)) {
+            const alertaId = e.target.dataset.alertaId;
+            abrirModalDetalleServicio(Number(alertaId));
+        } else if (e.target.parentElement.classList.contains(claseDeListaItem)) {
+            const alertaId = e.target.parentElement.dataset.alertaId;
+            abrirModalDetalleServicio(Number(alertaId));
+        } else if (e.target.parentElement.parentElement.classList.contains(claseDeListaItem)) {
+            const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+            abrirModalDetalleServicio(Number(alertaId));
+        }
+    }
+
+    async function obtenerNombresEspaciosComunes() {
+        const response = await fetch(`${API_BASE_URL}/api/espacios-comunes`);
         const data = await response.json();
         if (data) {
-            return data.nombre;
+            return data;
         }
         return null;
     }
-    window.obtenerNombreEspacioComun = obtenerNombreEspacioComun;
+    window.obtenerNombresEspaciosComunes = obtenerNombresEspaciosComunes;
 
     /**
      * Mostrar historial completo de alertas emitidas (desde API, sin filtro de fecha)
@@ -1327,21 +1321,17 @@
 
             listaHistorial.innerHTML = '';
 
-            // Pre-fetch all common space names in parallel
-            const todasAlertasProcessadas = await Promise.all(todasAlertasEmitidas.map(async (alerta) => {
+            // Process alerts with common space names from dictionary
+            const todasAlertasProcessadas = todasAlertasEmitidas.map((alerta) => {
                 const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
-                let nombreEspacioComuun = null;
-
-                if (isEspacioComun) {
-                    nombreEspacioComuun = await obtenerNombreEspacioComun(alerta.espacio_comun_id);
-                }
+                const nombreEspacioComun = isEspacioComun ? diccNombresEspaciosPorId[alerta.espacio_comun_id] : null;
 
                 return {
                     ...alerta,
-                    nombreEspacioComuun,
+                    nombreEspacioComun,
                     isEspacioComun
                 };
-            }));
+            });
 
             // ordenar por fechaAlerta y hora mas reciente aunque cuarto id sea null (espaço comun)
             todasAlertasProcessadas.sort((a, b) => {
@@ -1354,7 +1344,7 @@
             });
 
             todasAlertasProcessadas.forEach(alerta => {
-                const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComuun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+                const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
                 // Extraer fecha de dia_alerta
                 const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
@@ -1376,18 +1366,7 @@
                 listaHistorial.appendChild(li);
             });
 
-            listaHistorial.addEventListener('click', (e) => {
-                if (e.target.classList.contains('alerta-emitida-item')) {
-                    const alertaId = e.target.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                } else if (e.target.parentElement.classList.contains('alerta-emitida-item')) {
-                    const alertaId = e.target.parentElement.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                } else if (e.target.parentElement.parentElement.classList.contains('alerta-emitida-item')) {
-                    const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
-                    abrirModalDetalleServicio(Number(alertaId));
-                }
-            });
+            listaHistorial.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "alerta-emitida-item"));
 
             console.log(`✅ Mostradas ${todasAlertasEmitidas.length} alertas en historial`);
 
@@ -2416,9 +2395,8 @@
         let iconUbicacion = 'fa-door-closed';
 
         if (servicio.espacio_comun_id) {
-            const espaciosComunes = window.appLoaderState?.espaciosComunes || [];
-            const espacio = espaciosComunes.find(e => e.id === servicio.espacio_comun_id);
-            nombreUbicacion = espacio ? espacio.nombre : `Espacio ${servicio.espacio_comun_id}`;
+            const nombreEspacioComun = diccNombresEspaciosPorId[servicio.espacio_comun_id];
+            nombreUbicacion = nombreEspacioComun || `Espacio ${servicio.espacio_comun_id}`;
             labelUbicacion = 'Espacio Común';
             iconUbicacion = 'fa-building';
         } else {
