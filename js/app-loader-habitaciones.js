@@ -121,7 +121,20 @@ function mostrarCuartos() {
 
     const totalCuartos = s.cuartosFiltradosActual.length;
 
+
     if (totalCuartos === 0) {
+        const datosCargados = !!s.datosHabitacionesCargados;
+
+        if (!datosCargados || cuartos.length === 0) {
+            // Mantener los skeletons en pantalla mientras llegan los datos reales.
+            // Si esta rama se ejecuta repetidamente sin datos, el observer y el fallback no dibujarán cards.
+            // Para evitar quedar en blanco, forzamos al menos los skeletons iniciales.
+            if (typeof window.mostrarSkeletonsIniciales === 'function') {
+                window.mostrarSkeletonsIniciales();
+            }
+            return;
+        }
+
         console.warn('No hay cuartos para mostrar');
         listaCuartos.style.display = 'grid';
         listaCuartos.innerHTML = '<li class="mensaje-no-cuartos">No hay cuartos registrados en el sistema.</li>';
@@ -1475,6 +1488,40 @@ window.toggleMantenimientos = toggleMantenimientos;
 window.eliminarMantenimientoInline = eliminarMantenimientoInline;
 window.actualizarSelectorEstado = actualizarSelectorEstado;
 window.actualizarEstadoBadgeCard = actualizarEstadoBadgeCard;
+
+// Escuchar evento cuando los datos de habitaciones están listos y forzar render
+window.addEventListener('habitaciones:dataCargada', (event) => {
+    const s = getState();
+    s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
+    s.paginaActualCuartos = 1;
+
+
+    if (typeof window.mostrarCuartos === 'function') {
+        window.mostrarCuartos();
+    }
+});
+
+// Fallback: observar carga de datos y renderizar cuando existan cuartos
+(function iniciarWatcherDatosHabitaciones() {
+    let intentos = 0;
+    const maxIntentos = 40; // ~20s si interval es 500ms
+    const interval = setInterval(() => {
+        intentos += 1;
+        const s = getState();
+        const total = Array.isArray(s.cuartos) ? s.cuartos.length : 0;
+        if (total > 0) {
+            s.datosHabitacionesCargados = true;
+            s.cuartosFiltradosActual = [...s.cuartos];
+
+            if (typeof window.mostrarCuartos === 'function') {
+                window.mostrarCuartos();
+            }
+            clearInterval(interval);
+        } else if (intentos >= maxIntentos) {
+            clearInterval(interval);
+        }
+    }, 500);
+})();
 
 console.log('✅ [APP-LOADER-HABITACIONES] Funciones exportadas a window');
 

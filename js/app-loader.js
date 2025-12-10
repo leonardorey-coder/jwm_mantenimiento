@@ -94,6 +94,8 @@
     window.appLoaderState = {
         get cuartos() { return cuartos; },
         set cuartos(val) { cuartos = val; },
+        get datosHabitacionesCargados() { return cuartos?.length > 0 || !!window._datosHabitacionesCargadosFlag; },
+        set datosHabitacionesCargados(val) { window._datosHabitacionesCargadosFlag = !!val; },
         get mantenimientos() { return mantenimientos; },
         set mantenimientos(val) { mantenimientos = val; },
         get edificios() { return edificios; },
@@ -318,7 +320,30 @@
             configurarEventos();
 
             // Mostrar datos en la interfaz
+            window.appLoaderState.datosHabitacionesCargados = true;
             renderHabitacionesUI('datos-cargados');
+
+            // Disparar evento para listeners externos (seguro si app.js ya intentó antes)
+            try {
+                window.dispatchEvent(new CustomEvent('habitaciones:dataCargada', {
+                    detail: {
+                        cuartos: cuartos?.length || 0,
+                        edificios: edificios?.length || 0,
+                        mantenimientos: mantenimientos?.length || 0
+                    }
+                }));
+            } catch (e) {
+                console.warn('No se pudo despachar evento habitaciones:dataCargada', e);
+            }
+
+            // Forzar render directo por si algún flujo no llamó renderHabitacionesUI
+            if (typeof window.mostrarCuartos === 'function') {
+                try {
+                    window.mostrarCuartos();
+                } catch (e) {
+                    console.warn('No se pudo forzar mostrarCuartos post-carga', e);
+                }
+            }
 
             // Iniciar sistema de notificaciones
             console.log('🔔 Iniciando sistema de notificaciones...');
@@ -359,6 +384,7 @@
                 edificios = datosOffline.edificios;
                 mantenimientos = datosOffline.mantenimientos;
 
+                window.appLoaderState.datosHabitacionesCargados = true;
                 renderHabitacionesUI('offline');
 
                 if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline', 'warning');
