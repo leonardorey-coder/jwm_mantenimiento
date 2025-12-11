@@ -2716,9 +2716,20 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
                 estadoBadge.innerHTML = '<i class="fas fa-spinner"></i> En Proceso';
             }
             if (btnAccionar) {
-                btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
                 btnAccionar.className = 'tarea-modal-btn btn-success';
                 btnAccionar.onclick = () => accionarTarea(tareaId, 'completada');
+
+                // Verificar si hay servicios que no estén completados
+                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId && s.estado !== 'cancelado');
+                const serviciosNoCompletados = serviciosAsignados.filter(s => s.estado !== 'completado');
+
+                if (serviciosNoCompletados.length > 0) {
+                    btnAccionar.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
+                    btnAccionar.title = `Hay ${serviciosNoCompletados.length} servicios pendientes`;
+                } else {
+                    btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
+                    btnAccionar.title = '';
+                }
             }
             if (nextStepText) nextStepText.textContent = 'Completar';
 
@@ -2775,6 +2786,46 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
                 btnAccionar.className = 'tarea-modal-btn btn-secondary';
             }
             if (nextStepText) nextStepText.textContent = 'Finalizada';
+
+            // Completar todos los servicios asociados que no estén completados
+            try {
+                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId && s.estado !== 'cancelado');
+                const serviciosNoCompletados = serviciosAsignados.filter(s => s.estado !== 'completado');
+
+                if (serviciosNoCompletados.length > 0) {
+                    console.log(`📋 Completando ${serviciosNoCompletados.length} servicios...`);
+
+                    // Actualizar cada servicio a 'completado'
+                    const promesasActualizacion = serviciosNoCompletados.map(async (servicio) => {
+                        try {
+                            const respuesta = await fetch(`${API_URL}/mantenimientos/${servicio.id}`, {
+                                method: 'PUT',
+                                headers: obtenerHeadersConAuth(),
+                                body: JSON.stringify({ estado: 'completado' })
+                            });
+
+                            if (respuesta.ok) {
+                                console.log(`✅ Servicio ${servicio.id} completado`);
+                                // Actualizar en cache
+                                servicio.estado = 'completado';
+                                return true;
+                            }
+                            return false;
+                        } catch (error) {
+                            console.error(`❌ Error al completar servicio ${servicio.id}:`, error);
+                            return false;
+                        }
+                    });
+
+                    await Promise.all(promesasActualizacion);
+
+                    // Recargar servicios en el modal
+                    await cargarServiciosAsignados(tareaId);
+                }
+            } catch (error) {
+                console.error('❌ Error al completar servicios:', error);
+            }
+
             mostrarNotificacion('¡Tarea completada con éxito!', 'success');
         }
 
