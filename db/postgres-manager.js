@@ -217,11 +217,11 @@ class PostgresManager {
 
             if (rolesFaltantes.length > 0) {
                 console.log('🔄 Insertando roles faltantes:', rolesFaltantes.join(', '));
-                
+
                 // Insertar cada rol faltante individualmente usando INSERT sin ID explícito
                 for (const rolNombre of rolesFaltantes) {
                     let descripcion, permisos;
-                    
+
                     if (rolNombre === 'ADMIN') {
                         descripcion = 'Administrador del sistema con acceso total';
                         permisos = JSON.stringify({
@@ -262,7 +262,7 @@ class PostgresManager {
                             alertas: true
                         });
                     }
-                    
+
                     await this.pool.query(`
                         INSERT INTO roles (nombre, descripcion, permisos) 
                         VALUES ($1, $2, $3::jsonb)
@@ -709,18 +709,18 @@ class PostgresManager {
             const fechaHoy = r.fecha_hoy;
             const horaActual = r.hora_actual;
             // Comparar correctamente
-            const fechaAlerta = typeof r.dia_alerta === 'object' && r.dia_alerta instanceof Date 
-                ? r.dia_alerta.toISOString().split('T')[0] 
+            const fechaAlerta = typeof r.dia_alerta === 'object' && r.dia_alerta instanceof Date
+                ? r.dia_alerta.toISOString().split('T')[0]
                 : String(r.dia_alerta).split('T')[0];
             const fechaHoyStr = typeof fechaHoy === 'object' && fechaHoy instanceof Date
                 ? fechaHoy.toISOString().split('T')[0]
                 : String(fechaHoy).split('T')[0];
-            
+
             const fechaPasada = fechaAlerta < fechaHoyStr;
             const mismaFecha = fechaAlerta === fechaHoyStr;
             const horaPasada = r.hora === null || r.hora <= horaActual;
             const esPasada = fechaPasada || (mismaFecha && horaPasada);
-            
+
             console.log(`   - ID ${r.id}: fecha=${fechaAlerta} hora=${r.hora || 'NULL'} emitida=${r.alerta_emitida}`);
             console.log(`     → hoy=${fechaHoyStr} ahora=${horaActual} => fechaPasada=${fechaPasada} mismaFecha=${mismaFecha} horaPasada=${horaPasada} => ${esPasada ? '⏰ DEBE MARCARSE' : '⏳ aún futura'}`);
         });
@@ -1195,7 +1195,7 @@ class PostgresManager {
         // Buscar por nombre (case-insensitive)
         const rolNombre = rol.toString().trim().toUpperCase();
         console.log(`🔍 Buscando rol por nombre: "${rolNombre}"`);
-        
+
         const result = await this.pool.query(
             'SELECT id FROM roles WHERE UPPER(nombre) = $1',
             [rolNombre]
@@ -1501,13 +1501,15 @@ class PostgresManager {
                    ua.rol_id as asignado_a_rol_id,
                    r.nombre as asignado_a_rol_nombre,
                    (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id) as total_mantenimientos,
-                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id AND m.estado = 'completado') as mantenimientos_completados
+                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id AND m.estado = 'completado') as mantenimientos_completados,
+                   (SELECT COUNT(*) FROM tareas_adjuntos ta WHERE ta.tarea_id = t.id) as total_adjuntos
             FROM tareas t
             LEFT JOIN usuarios uc ON t.creado_por = uc.id
             LEFT JOIN usuarios ua ON t.asignado_a = ua.id
             LEFT JOIN roles r ON ua.rol_id = r.id
             WHERE 1=1
         `;
+
 
         const params = [];
         let paramCount = 1;
@@ -1778,15 +1780,15 @@ class PostgresManager {
             LEFT JOIN checklist_categorias cat ON ci.categoria_id = cat.id
             WHERE ci.activo = TRUE
         `;
-        
+
         const params = [];
         if (categoriaId) {
             query += ' AND ci.categoria_id = $1';
             params.push(categoriaId);
         }
-        
+
         query += ' ORDER BY cat.orden, ci.orden, ci.id';
-        
+
         const result = await this.pool.query(query, params);
         return result.rows;
     }
@@ -1798,13 +1800,13 @@ class PostgresManager {
         const slug = data.slug || data.nombre.toLowerCase()
             .replace(/[^a-z0-9]+/g, '-')
             .replace(/^-+|-+$/g, '');
-        
+
         const result = await this.pool.query(`
             INSERT INTO checklist_categorias (nombre, slug, icono, orden)
             VALUES ($1, $2, $3, COALESCE($4, (SELECT COALESCE(MAX(orden), 0) + 1 FROM checklist_categorias)))
             RETURNING *
         `, [data.nombre, slug, data.icono || 'fa-layer-group', data.orden]);
-        
+
         return result.rows[0];
     }
 
@@ -1817,7 +1819,7 @@ class PostgresManager {
             VALUES ($1, $2, COALESCE($3, (SELECT COALESCE(MAX(orden), 0) + 1 FROM checklist_catalog_items WHERE categoria_id = $2)))
             RETURNING *
         `, [data.nombre, data.categoria_id, data.orden]);
-        
+
         return result.rows[0];
     }
 
@@ -1854,7 +1856,7 @@ class PostgresManager {
             WHERE c.id = $1 AND ci.activo = TRUE AND (cat.activo = TRUE OR cat.activo IS NULL)
             ORDER BY cat.orden, ci.orden
         `, [cuartoId]);
-        
+
         return result.rows;
     }
 
@@ -1864,7 +1866,7 @@ class PostgresManager {
     async getAllChecklistData(filters = {}) {
         console.log('[PostgresManager.getAllChecklistData] Iniciando...');
         console.log('[PostgresManager.getAllChecklistData] Filtros:', filters);
-        
+
         let query = `
             SELECT 
                 c.id as cuarto_id,
@@ -1911,17 +1913,17 @@ class PostgresManager {
 
         console.log('[PostgresManager.getAllChecklistData] Query:', query);
         console.log('[PostgresManager.getAllChecklistData] Params:', params);
-        
+
         const result = await this.pool.query(query, params);
-        
+
         console.log('[PostgresManager.getAllChecklistData] Filas obtenidas:', result.rows.length);
         if (result.rows.length > 0) {
             console.log('[PostgresManager.getAllChecklistData] Primera fila:', result.rows[0]);
         }
-        
+
         // Agrupar resultados por cuarto
         const cuartosMap = new Map();
-        
+
         for (const row of result.rows) {
             if (!cuartosMap.has(row.cuarto_id)) {
                 cuartosMap.set(row.cuarto_id, {
@@ -1936,9 +1938,9 @@ class PostgresManager {
                     items: []
                 });
             }
-            
+
             const cuarto = cuartosMap.get(row.cuarto_id);
-            
+
             cuarto.items.push({
                 id: row.item_id,
                 nombre: row.item_nombre,
@@ -1949,7 +1951,7 @@ class PostgresManager {
                 observacion: row.observacion,
                 foto_url: row.foto_url
             });
-            
+
             // Actualizar último editor si hay una fecha más reciente
             if (row.ultimo_editor && row.fecha_ultima_edicion) {
                 if (!cuarto.fecha_ultima_edicion || new Date(row.fecha_ultima_edicion) > new Date(cuarto.fecha_ultima_edicion)) {
@@ -1958,7 +1960,7 @@ class PostgresManager {
                 }
             }
         }
-        
+
         const resultado = Array.from(cuartosMap.values());
         console.log('[PostgresManager.getAllChecklistData] Cuartos procesados:', resultado.length);
         if (resultado.length > 0) {
@@ -1983,7 +1985,7 @@ class PostgresManager {
             'SELECT nombre, categoria_id FROM checklist_catalog_items WHERE id = $1',
             [catalogItemId]
         );
-        
+
         if (itemQuery.rows.length === 0) {
             throw new Error('Ítem del catálogo no encontrado');
         }
@@ -2012,7 +2014,7 @@ class PostgresManager {
      */
     async updateChecklistItemsBulk(cuartoId, items, usuarioId) {
         const results = [];
-        
+
         for (const item of items) {
             try {
                 const result = await this.updateChecklistItemEstado(
@@ -2027,7 +2029,7 @@ class PostgresManager {
                 results.push({ success: false, error: error.message, item_id: item.catalog_item_id || item.id });
             }
         }
-        
+
         return results;
     }
 
@@ -2044,14 +2046,14 @@ class PostgresManager {
             WHERE ci.activo = TRUE
             GROUP BY COALESCE(rcr.estado, 'bueno')
         `, [cuartoId]);
-        
+
         const resumen = { bueno: 0, regular: 0, malo: 0, total: 0 };
-        
+
         for (const row of result.rows) {
             resumen[row.estado] = parseInt(row.cantidad);
             resumen.total += parseInt(row.cantidad);
         }
-        
+
         return resumen;
     }
 
@@ -2076,7 +2078,7 @@ class PostgresManager {
             GROUP BY c.id, c.numero, e.nombre
             ORDER BY c.numero
         `);
-        
+
         return result.rows;
     }
 
@@ -2090,7 +2092,7 @@ class PostgresManager {
             WHERE id = $1 
             RETURNING *
         `, [categoriaId]);
-        
+
         return result.rows[0];
     }
 
@@ -2104,7 +2106,7 @@ class PostgresManager {
             WHERE id = $1 
             RETURNING *
         `, [itemId]);
-        
+
         return result.rows[0];
     }
 }

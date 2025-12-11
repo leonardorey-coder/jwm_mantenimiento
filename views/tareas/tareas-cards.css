@@ -79,16 +79,21 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, 
-        rgba(255, 255, 255, 0.3) 0%, 
-        rgba(255, 255, 255, 0) 50%, 
-        rgba(255, 255, 255, 0.3) 100%);
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.3) 0%,
+            rgba(255, 255, 255, 0) 50%,
+            rgba(255, 255, 255, 0.3) 100%);
     animation: shimmer 2s infinite;
 }
 
 @keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
 }
 
 /* Progreso completo - color especial */
@@ -276,6 +281,31 @@
     letter-spacing: 0.5px;
     border: 2px solid var(--negro-carbon);
 }
+
+/* Chip de adjuntos - minimal */
+.tarea-adjuntos-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--texto-secundario);
+    background: transparent;
+    border: 1px dashed var(--gris-oscuro);
+    margin-top: 0.75rem;
+}
+
+.tarea-adjuntos-chip i {
+    font-size: 0.8rem;
+    color: var(--verde-oliva);
+}
+
+.tarea-adjuntos-chip span {
+    font-weight: 700;
+}
+
 
 /* Footer section - estilo brutal consistente */
 .cuarto-acciones {

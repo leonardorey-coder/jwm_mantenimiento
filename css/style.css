@@ -10709,6 +10709,8 @@ tr[data-lazy="true"] {
   width: 95%;
   padding: 0.5rem;
   padding-bottom: 2rem;
+  /* Permitir que el contenido dicte el tamaño mínimo */
+  min-height: fit-content;
 }
 
 .preview-adjunto-body {
@@ -10717,31 +10719,39 @@ tr[data-lazy="true"] {
   gap: 1rem;
 }
 
-/* Contenedor de preview */
+/* Contenedor de preview - sin max-height para evitar recorte */
 .preview-container {
   background: var(--bg-secundario);
   border: 3px solid var(--gris-separador);
   border-radius: var(--radio-pequeno);
-  min-height: 250px;
-  max-height: 400px;
+  min-height: 200px;
+  /* Permitir que el contenido crezca naturalmente */
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
+  /* Permitir resize vertical hacia arriba abajo */
+  resize: vertical;
+  max-height: 70vh;
 }
 
-/* Imagen preview */
+/* Imagen preview - sin recorte */
 .preview-container img {
   max-width: 100%;
-  max-height: 380px;
+  max-height: 60vh;
   object-fit: contain;
   border-radius: var(--radio-pequeno);
+  /* Evitar que la imagen se corte */
+  width: auto;
+  height: auto;
 }
 
-/* PDF preview iframe */
+/* PDF preview iframe - altura dinámica */
 .preview-container iframe {
   width: 100%;
-  height: 380px;
+  min-height: 350px;
+  height: 50vh;
+  max-height: 65vh;
   border: none;
   border-radius: var(--radio-pequeno);
 }
@@ -10766,6 +10776,7 @@ tr[data-lazy="true"] {
   font-size: 0.9rem;
   margin: 0;
 }
+
 
 /* Info del archivo */
 .preview-adjunto-info {
@@ -10828,17 +10839,33 @@ tr[data-lazy="true"] {
     max-width: 100px;
   }
 
+  /* Modal preview en móvil - sin altura máxima fija para evitar recorte */
+  .modal-preview-adjunto .preview-adjunto-contenido {
+    min-height: auto;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  /* Preview container en móvil - adaptable al contenido */
   .preview-container {
-    min-height: 180px;
-    max-height: 280px;
+    min-height: 150px;
+    max-height: 55vh;
+    resize: vertical;
+    overflow: auto;
   }
 
+  /* Imagen en móvil - tamaño inteligente */
   .preview-container img {
-    max-height: 260px;
+    max-height: 50vh;
+    width: auto;
+    height: auto;
   }
 
+  /* PDF en móvil - altura dinámica */
   .preview-container iframe {
-    height: 260px;
+    min-height: 250px;
+    height: 45vh;
+    max-height: 55vh;
   }
 
   .preview-adjunto-actions {

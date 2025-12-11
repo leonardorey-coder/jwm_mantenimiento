@@ -2225,7 +2225,15 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                         ${tarea.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 ` : ''}
+                
+                ${parseInt(tarea.total_adjuntos) > 0 ? `
+                    <div class="tarea-adjuntos-chip">
+                        <i class="fas fa-paperclip"></i>
+                        <span>${tarea.total_adjuntos}</span>
+                    </div>
+                ` : ''}
             </div>
+
             
             <div class="cuarto-acciones">
                 <div class="tarea-responsable">
