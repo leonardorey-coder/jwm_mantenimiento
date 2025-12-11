@@ -1615,6 +1615,21 @@
                     </div>
                 </div>
 
+                <!-- Documentos Adjuntos -->
+                <div class="tarea-modal-heading">
+                    <h4>Documentos Adjuntos</h4>
+                    <button type="button" class="btn-add-adjunto" id="btnAgregarAdjuntoModal" title="Agregar archivo">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div id="tareaModalAdjuntos" class="adjuntos-chips-container">
+                    <!-- Chips de archivos adjuntos se cargan dinámicamente -->
+                    <span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>
+                </div>
+                <input type="file" id="inputAdjuntoModal" style="display:none;"
+                    accept=".pdf,.docx,.doc,.md,.txt,.csv,.xls,.xlsx,.xlsm,.png,.jpg,.jpeg,.gif,.webp,.zip,.rar,.7z,.tar,.gz">
+
+
                 <!-- Sección de Servicios Asignados -->
                 <div class="tarea-modal-servicios" id="tareaModalServiciosContainer" style="display: none;">
                     <div class="tarea-modal-heading">
@@ -1835,6 +1850,10 @@
                         <h4>Archivos adjuntos</h4>
                         <p>Sube o revisa la documentación.</p>
                     </div>
+                    <!-- Chips de adjuntos existentes (editable) -->
+                    <div id="adjuntosEditarChips" class="adjuntos-chips-container adjuntos-editable">
+                        <!-- Se cargan dinámicamente al abrir el modal de edición -->
+                    </div>
                     <div class="tarea-edit-attachments">
                         <label class="upload-label" for="editarTareaAdjuntos">
                             <i class="fas fa-cloud-upload-alt"></i>
@@ -1888,6 +1907,45 @@
                         Entendido
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Preview Adjunto -->
+    <div id="modalPreviewAdjunto" class="modal-detalles modal-preview-adjunto" style="display:none" aria-hidden="true">
+        <div class="modal-detalles-overlay" data-close-preview-modal></div>
+        <div class="modal-detalles-contenido preview-adjunto-contenido">
+            <div class="modal-detalles-header">
+                <div>
+                    <p class="modal-detalles-subtitulo">Vista previa</p>
+                    <h3 id="previewAdjuntoNombre">documento.pdf</h3>
+                </div>
+                <button class="modal-detalles-cerrar" data-close-preview-modal>
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body preview-adjunto-body">
+                <div id="previewAdjuntoContainer" class="preview-container">
+                    <!-- Preview dinámico (imagen, iframe PDF, o ícono genérico) -->
+                    <div class="preview-placeholder">
+                        <i class="fas fa-file-alt"></i>
+                        <p>Vista previa no disponible</p>
+                    </div>
+                </div>
+                <div class="preview-adjunto-info">
+                    <span id="previewAdjuntoTipo"><i class="fas fa-file"></i> PDF</span>
+                    <span id="previewAdjuntoTamano"><i class="fas fa-database"></i> 2.4 MB</span>
+                    <span id="previewAdjuntoFecha"><i class="fas fa-calendar"></i> 10 Dic 2025</span>
+                    <span id="previewAdjuntoSubidoPor"><i class="fas fa-user"></i> Usuario</span>
+                </div>
+            </div>
+            <div class="preview-adjunto-actions">
+                <button type="button" class="tarea-modal-btn" data-close-preview-modal>
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" class="tarea-modal-btn btn-primary" id="btnDescargarAdjunto">
+                    <i class="fas fa-download"></i> Descargar
+                </button>
             </div>
         </div>
     </div>

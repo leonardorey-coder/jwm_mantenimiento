@@ -475,6 +475,9 @@ async function abrirModalEditarTarea(tareaId) {
         // Poblar formulario con los datos de la tarea
         await poblarFormularioEdicion(tarea);
 
+        // Cargar adjuntos existentes (en modo editable)
+        await cargarAdjuntosTarea(tareaId, true, 'adjuntosEditarChips');
+
         modal.style.display = 'flex';
         modal.setAttribute('aria-hidden', 'false');
         lockBodyScroll();
@@ -706,6 +709,26 @@ async function submitCrearTarea(event) {
             mostrarNotificacion('¡Tarea creada con éxito!', 'success');
         }
 
+        // Subir archivos adjuntos si hay alguno seleccionado
+        if (archivosSeleccionados && archivosSeleccionados.length > 0) {
+            console.log(`📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${nuevaTarea.id}...`);
+
+            for (const file of archivosSeleccionados) {
+                try {
+                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+                    await subirAdjuntoTarea(file, nuevaTarea.id);
+                    console.log(`✅ Archivo ${file.name} subido`);
+                } catch (uploadError) {
+                    console.error(`Error al subir ${file.name}:`, uploadError);
+                    mostrarNotificacion(`Error al subir ${file.name}`, 'error');
+                }
+            }
+
+            // Limpiar archivos seleccionados
+            archivosSeleccionados = [];
+            mostrarNotificacion('Archivos adjuntados correctamente', 'success');
+        }
+
         cerrarModal('modalCrearTarea');
 
         // Actualizar selectores con la nueva tarea
@@ -803,6 +826,26 @@ async function submitEditarTarea(event) {
 
         // Guardar el ID antes de cerrar el modal (porque cerrarModal resetea tareaIdActual)
         const tareaId = tareaIdActual;
+
+        // Subir archivos adjuntos si hay alguno seleccionado
+        if (archivosSeleccionados && archivosSeleccionados.length > 0) {
+            console.log(`📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${tareaId}...`);
+
+            for (const file of archivosSeleccionados) {
+                try {
+                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+                    await subirAdjuntoTarea(file, tareaId);
+                    console.log(`✅ Archivo ${file.name} subido`);
+                } catch (uploadError) {
+                    console.error(`Error al subir ${file.name}:`, uploadError);
+                    mostrarNotificacion(`Error al subir ${file.name}`, 'error');
+                }
+            }
+
+            // Limpiar archivos seleccionados
+            archivosSeleccionados = [];
+            mostrarNotificacion('Archivos adjuntados correctamente', 'success');
+        }
 
         cerrarModal('modalEditarTarea');
         mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
@@ -1141,7 +1184,8 @@ function eliminarTag(tagElement) {
 }
 
 /**
- * Maneja la selección de un archivo adjunto.
+ * Maneja la selección de archivos para adjuntar.
+ * CORREGIDO: Ahora acumula archivos en lugar de sobrescribirlos.
  * @param {Event} event - El evento del input de tipo file.
  * @param {string} previewContainerId - El ID del contenedor de previsualización
  */
@@ -1149,18 +1193,46 @@ function manejarArchivoAdjunto(event, previewContainerId) {
     const previewContainer = document.getElementById(previewContainerId);
     if (!previewContainer) return;
 
-    previewContainer.innerHTML = '';
-
     const files = event.target.files;
-    archivosSeleccionados = Array.from(files);
 
-    if (files.length > 0) {
-        for (const file of files) {
-            const fileInfo = document.createElement('div');
-            fileInfo.className = 'file-preview-item';
-            fileInfo.textContent = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
-            previewContainer.appendChild(fileInfo);
-        }
+    // Acumular nuevos archivos al array existente
+    const nuevosArchivos = Array.from(files);
+    archivosSeleccionados = [...archivosSeleccionados, ...nuevosArchivos];
+
+    // Agregar cada nuevo archivo al preview (sin borrar los existentes)
+    for (const file of nuevosArchivos) {
+        const fileInfo = document.createElement('div');
+        fileInfo.className = 'file-preview-item';
+
+        // Agregar botón para remover archivo
+        fileInfo.innerHTML = `
+            <span class="file-preview-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+            <button type="button" class="file-preview-remove" onclick="removerArchivoPreview(this, '${file.name}', '${previewContainerId}')" title="Quitar">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        fileInfo.dataset.fileName = file.name;
+        previewContainer.appendChild(fileInfo);
+    }
+
+    // Reset el input para permitir seleccionar el mismo archivo de nuevo
+    event.target.value = '';
+}
+
+/**
+ * Remueve un archivo del preview y del array de archivos seleccionados
+ * @param {HTMLElement} button - El botón que se clickeó
+ * @param {string} fileName - Nombre del archivo a remover
+ * @param {string} previewContainerId - ID del contenedor
+ */
+function removerArchivoPreview(button, fileName, previewContainerId) {
+    // Remover del array
+    archivosSeleccionados = archivosSeleccionados.filter(f => f.name !== fileName);
+
+    // Remover del DOM
+    const fileItem = button.closest('.file-preview-item');
+    if (fileItem) {
+        fileItem.remove();
     }
 }
 
@@ -2421,6 +2493,9 @@ async function verDetalleTarea(tareaId) {
             tagsContainer.innerHTML = '<span class="tarea-tag-mini">General</span>';
         }
 
+        // Cargar adjuntos de la tarea
+        await cargarAdjuntosTarea(tareaId);
+
         // Cargar servicios asignados
         await cargarServiciosAsignados(tareaId);
 
@@ -2885,8 +2960,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const inputArchivoEditar = document.getElementById('editarTareaAdjuntos');
     if (inputArchivoEditar) {
-        inputArchivoEditar.addEventListener('change', (e) => {
+        inputArchivoEditar.addEventListener('change', async (e) => {
+            // Mostrar preview local
             manejarArchivoAdjunto(e, 'filePreviewEditar');
+
+            // Subir archivos inmediatamente si tenemos tareaIdActual
+            if (tareaIdActual && e.target.files && e.target.files.length > 0) {
+                const files = Array.from(e.target.files);
+
+                for (const file of files) {
+                    try {
+                        mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+                        await subirAdjuntoTarea(file, tareaIdActual);
+                        mostrarNotificacion(`${file.name} subido correctamente`, 'success');
+                    } catch (error) {
+                        console.error('Error al subir archivo:', error);
+                        mostrarNotificacion(error.message || `Error al subir ${file.name}`, 'error');
+                    }
+                }
+
+                // Recargar los chips de adjuntos
+                await cargarAdjuntosTarea(tareaIdActual, true, 'adjuntosEditarChips');
+            }
         });
     }
 
@@ -2994,6 +3089,7 @@ window.cargarTareasEnSelector = cargarTareasEnSelector;
 window.verDetalleTarea = verDetalleTarea;
 window.cerrarModalDetalleTarea = cerrarModalDetalleTarea;
 window.cerrarModalAdvertenciaEdicion = cerrarModalAdvertenciaEdicion;
+window.removerArchivoPreview = removerArchivoPreview;
 
 // Exportar el flag de carga como getter/setter
 Object.defineProperty(window, 'tareasCargadas', {
@@ -3177,5 +3273,452 @@ async function cargarProximosVencimientos() {
 // Exponer funciones al scope global
 window.cargarProximosVencimientos = cargarProximosVencimientos;
 window.verificarYActualizarTareaIndividual = verificarYActualizarTareaIndividual;
+
+// ------------------------------
+// DOCUMENTOS ADJUNTOS
+// ------------------------------
+
+// Variable para almacenar el adjunto actualmente en preview
+let adjuntoActual = null;
+
+// Mapeo de extensiones a iconos de Font Awesome
+const ICONO_POR_EXTENSION = {
+    'pdf': 'fa-file-pdf',
+    'doc': 'fa-file-word',
+    'docx': 'fa-file-word',
+    'xls': 'fa-file-excel',
+    'xlsx': 'fa-file-excel',
+    'xlsm': 'fa-file-excel',
+    'csv': 'fa-file-csv',
+    'txt': 'fa-file-lines',
+    'md': 'fa-file-code',
+    'png': 'fa-file-image',
+    'jpg': 'fa-file-image',
+    'jpeg': 'fa-file-image',
+    'gif': 'fa-file-image',
+    'webp': 'fa-file-image',
+    'zip': 'fa-file-zipper',
+    'rar': 'fa-file-zipper',
+    '7z': 'fa-file-zipper',
+    'tar': 'fa-file-zipper',
+    'gz': 'fa-file-zipper'
+};
+
+/**
+ * Obtiene el icono correspondiente a una extensión de archivo
+ * @param {string} extension - Extensión del archivo
+ * @returns {string} Clase de icono Font Awesome
+ */
+function obtenerIconoAdjunto(extension) {
+    return ICONO_POR_EXTENSION[extension?.toLowerCase()] || 'fa-file';
+}
+
+/**
+ * Formatea el tamaño de archivo en formato legible
+ * @param {number} bytes - Tamaño en bytes
+ * @returns {string} Tamaño formateado (ej: "2.4 MB")
+ */
+function formatearTamanoArchivo(bytes) {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/**
+ * Carga y renderiza los adjuntos de una tarea
+ * @param {number} tareaId - ID de la tarea
+ * @param {boolean} editable - Si es true, muestra botón eliminar en chips
+ * @param {string} containerId - ID del contenedor (por defecto 'tareaModalAdjuntos')
+ */
+async function cargarAdjuntosTarea(tareaId, editable = false, containerId = 'tareaModalAdjuntos') {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    try {
+        // Mostrar loading
+        container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-spinner fa-spin"></i> Cargando...</span>';
+
+        // Llamada real a la API
+        const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
+            headers: obtenerHeadersConAuth()
+        });
+
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        const adjuntos = await response.json();
+        console.log(`📎 ${adjuntos.length} adjuntos cargados para tarea ${tareaId}`);
+
+        if (adjuntos.length === 0) {
+            container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
+            return;
+        }
+
+        // Renderizar chips de adjuntos con o sin botón eliminar según modo
+        container.innerHTML = adjuntos.map(adjunto => renderAdjuntoChip(adjunto, editable)).join('');
+
+    } catch (error) {
+        console.error('Error al cargar adjuntos:', error);
+        container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-exclamation-triangle"></i> Error al cargar</span>';
+    }
+}
+
+/**
+ * Renderiza un chip de adjunto
+ * @param {object} adjunto - Objeto con datos del adjunto
+ * @param {boolean} editable - Si es true, muestra botón de eliminar
+ * @returns {string} HTML del chip
+ */
+function renderAdjuntoChip(adjunto, editable = false) {
+    const icono = obtenerIconoAdjunto(adjunto.extension);
+    const nombre = adjunto.nombre_original || 'archivo';
+    const subidoPor = adjunto.subido_por_nombre || 'Usuario';
+
+    // Botón delete solo si es editable
+    const deleteBtn = editable ? `
+        <button type="button" class="adjunto-chip-delete" onclick="event.stopPropagation(); confirmarEliminarAdjunto(${adjunto.id})" title="Eliminar">
+            <i class="fas fa-times"></i>
+        </button>
+    ` : '';
+
+    return `
+        <div class="adjunto-chip" onclick="abrirPreviewAdjunto(${adjunto.id})" data-adjunto-id="${adjunto.id}" 
+             data-nombre="${nombre}" data-extension="${adjunto.extension}" 
+             data-tamano="${adjunto.tamano_bytes}" data-fecha="${adjunto.created_at}"
+             data-subido-por="${subidoPor}">
+            <span class="adjunto-chip-icon tipo-${adjunto.extension}">
+                <i class="fas ${icono}"></i>
+            </span>
+            <span class="adjunto-chip-nombre" title="${nombre}">${nombre}</span>
+            ${deleteBtn}
+        </div>
+    `;
+}
+
+/**
+ * Abre el modal de vista previa de un adjunto
+ * @param {number} adjuntoId - ID del adjunto
+ */
+function abrirPreviewAdjunto(adjuntoId) {
+    const modal = document.getElementById('modalPreviewAdjunto');
+    const chip = document.querySelector(`[data-adjunto-id="${adjuntoId}"]`);
+
+    if (!modal || !chip) return;
+
+    // Obtener datos del chip
+    const nombre = chip.dataset.nombre;
+    const extension = chip.dataset.extension;
+    const tamano = parseInt(chip.dataset.tamano);
+    const fecha = chip.dataset.fecha;
+    const subidoPor = chip.dataset.subidoPor || 'Usuario';
+
+    // Almacenar adjunto actual
+    adjuntoActual = { id: adjuntoId, nombre, extension, tamano, fecha, subidoPor };
+
+    // Actualizar modal
+    document.getElementById('previewAdjuntoNombre').textContent = nombre;
+    document.getElementById('previewAdjuntoTipo').innerHTML =
+        `<i class="fas ${obtenerIconoAdjunto(extension)}"></i> ${extension.toUpperCase()}`;
+    document.getElementById('previewAdjuntoTamano').innerHTML =
+        `<i class="fas fa-database"></i> ${formatearTamanoArchivo(tamano)}`;
+
+    // Formatear fecha con hora
+    const fechaObj = new Date(fecha);
+    const opciones = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+    document.getElementById('previewAdjuntoFecha').innerHTML =
+        `<i class="fas fa-calendar"></i> ${fechaObj.toLocaleDateString('es-ES', opciones)}`;
+
+    // Mostrar quién lo subió
+    const subidoPorElement = document.getElementById('previewAdjuntoSubidoPor');
+    if (subidoPorElement) {
+        subidoPorElement.innerHTML = `<i class="fas fa-user"></i> ${subidoPor}`;
+    }
+
+    // Actualizar área de preview según tipo
+    const previewContainer = document.getElementById('previewAdjuntoContainer');
+    const extensionesImagen = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+    const token = localStorage.getItem('token');
+
+    if (extensionesImagen.includes(extension.toLowerCase())) {
+        // Para imágenes: cargar desde API con autenticación
+        previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+
+        fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+            headers: obtenerHeadersConAuth()
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Error al cargar imagen');
+                return response.blob();
+            })
+            .then(blob => {
+                const imgUrl = URL.createObjectURL(blob);
+                previewContainer.innerHTML = `
+                <img src="${imgUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" />
+            `;
+            })
+            .catch(error => {
+                console.error('Error cargando preview:', error);
+                previewContainer.innerHTML = '<div class="preview-placeholder"><i class="fas fa-image"></i><p>Imagen no disponible</p></div>';
+            });
+    } else if (extension.toLowerCase() === 'pdf') {
+        // Para PDF: usar embed con blob
+        previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando PDF...</div>';
+
+        fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+            headers: obtenerHeadersConAuth()
+        })
+            .then(response => {
+                if (!response.ok) throw new Error('Error al cargar PDF');
+                return response.blob();
+            })
+            .then(blob => {
+                const pdfUrl = URL.createObjectURL(blob);
+                previewContainer.innerHTML = `
+                <embed src="${pdfUrl}" type="application/pdf" width="100%" height="400px" />
+            `;
+            })
+            .catch(error => {
+                console.error('Error cargando PDF:', error);
+                previewContainer.innerHTML = `
+                <div class="preview-placeholder">
+                    <i class="fas fa-file-pdf"></i>
+                    <p>No se pudo cargar el PDF</p>
+                    <small>Haz clic en Descargar para ver el archivo</small>
+                </div>
+            `;
+            });
+    } else {
+        // Para otros archivos: placeholder genérico
+        previewContainer.innerHTML = `
+            <div class="preview-placeholder">
+                <i class="fas ${obtenerIconoAdjunto(extension)}"></i>
+                <p>Vista previa no disponible</p>
+                <small>Haz clic en Descargar para abrir el archivo</small>
+            </div>
+        `;
+    }
+
+    // Mostrar modal
+    modal.style.display = 'flex';
+    lockBodyScroll();
+}
+
+/**
+ * Cierra el modal de preview de adjunto
+ */
+function cerrarPreviewAdjunto() {
+    const modal = document.getElementById('modalPreviewAdjunto');
+    if (modal) {
+        modal.style.display = 'none';
+        adjuntoActual = null;
+        unlockBodyScrollIfNoModal();
+    }
+}
+
+/**
+ * Descarga el adjunto actual
+ */
+function descargarAdjunto() {
+    if (!adjuntoActual) return;
+
+    // Construir URL de descarga con token de autenticación
+    const token = localStorage.getItem('token');
+    const downloadUrl = `${API_URL}/tareas/adjuntos/${adjuntoActual.id}/download`;
+
+    mostrarNotificacion(`Descargando ${adjuntoActual.nombre}...`, 'info');
+
+    // Crear un enlace temporal para descargar con autenticación
+    fetch(downloadUrl, {
+        headers: obtenerHeadersConAuth()
+    })
+        .then(response => {
+            if (!response.ok) throw new Error('Error al descargar');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = adjuntoActual.nombre;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        })
+        .catch(error => {
+            console.error('Error al descargar:', error);
+            mostrarNotificacion('Error al descargar el archivo', 'error');
+        });
+}
+
+/**
+ * Muestra confirmación antes de eliminar un adjunto
+ * @param {number} adjuntoId - ID del adjunto
+ */
+function confirmarEliminarAdjunto(adjuntoId) {
+    if (confirm('¿Estás seguro de que deseas eliminar este archivo?')) {
+        eliminarAdjunto(adjuntoId);
+    }
+}
+
+/**
+ * Elimina un adjunto
+ * @param {number} adjuntoId - ID del adjunto
+ */
+async function eliminarAdjunto(adjuntoId) {
+    console.log(`📎 Eliminando adjunto ID: ${adjuntoId}`);
+
+    // Encontrar TODOS los chips con este ID (puede haber en modal detalle y modal editar)
+    const chips = document.querySelectorAll(`[data-adjunto-id="${adjuntoId}"]`);
+    console.log(`📎 Chips encontrados: ${chips.length}`);
+
+    // Feedback visual inmediato - hacer los chips semi-transparentes
+    chips.forEach(chip => {
+        chip.style.opacity = '0.5';
+        chip.style.pointerEvents = 'none';
+    });
+
+    try {
+        // Llamar a API para eliminar
+        const response = await fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}`, {
+            method: 'DELETE',
+            headers: obtenerHeadersConAuth()
+        });
+
+        if (!response.ok) {
+            // Restaurar chips si hay error
+            chips.forEach(chip => {
+                chip.style.opacity = '1';
+                chip.style.pointerEvents = 'auto';
+            });
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+
+        console.log(`✅ Adjunto ${adjuntoId} eliminado del servidor`);
+
+        // Animar la eliminación de todos los chips
+        chips.forEach(chip => {
+            chip.style.transition = 'all 0.3s ease';
+            chip.style.transform = 'scale(0.8)';
+            chip.style.opacity = '0';
+        });
+
+        setTimeout(() => {
+            // Remover todos los chips
+            chips.forEach(chip => chip.remove());
+            console.log(`📎 ${chips.length} chips removidos del DOM`);
+
+            // Verificar si quedan adjuntos en ambos contenedores
+            ['tareaModalAdjuntos', 'adjuntosEditarChips'].forEach(containerId => {
+                const container = document.getElementById(containerId);
+                if (container && container.querySelectorAll('.adjunto-chip').length === 0) {
+                    container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
+                }
+            });
+        }, 300);
+
+        mostrarNotificacion('Archivo eliminado correctamente', 'success');
+
+    } catch (error) {
+        console.error('Error al eliminar adjunto:', error);
+        mostrarNotificacion('Error al eliminar el archivo', 'error');
+    }
+}
+
+/**
+ * Sube un archivo adjunto a una tarea
+ * @param {File} file - Archivo a subir
+ * @param {number} tareaId - ID de la tarea
+ * @returns {Promise<Object>} Datos del adjunto creado
+ */
+async function subirAdjuntoTarea(file, tareaId) {
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    const headers = obtenerHeadersConAuth();
+    // Remover Content-Type para que fetch lo maneje automáticamente con FormData
+    delete headers['Content-Type'];
+
+    const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
+        method: 'POST',
+        headers: headers,
+        body: formData
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        throw new Error(errorData.error || `Error ${response.status}`);
+    }
+
+    return await response.json();
+}
+
+// Exponer funciones de adjuntos al scope global
+window.abrirPreviewAdjunto = abrirPreviewAdjunto;
+window.cerrarPreviewAdjunto = cerrarPreviewAdjunto;
+window.descargarAdjunto = descargarAdjunto;
+window.confirmarEliminarAdjunto = confirmarEliminarAdjunto;
+window.subirAdjuntoTarea = subirAdjuntoTarea;
+
+// Event listeners para modal de preview (se ejecutan en DOMContentLoaded extendido)
+document.addEventListener('DOMContentLoaded', () => {
+    // Cerrar modal preview con overlay
+    document.querySelectorAll('[data-close-preview-modal]').forEach(el => {
+        el.addEventListener('click', cerrarPreviewAdjunto);
+    });
+
+    // Botón de descarga
+    const btnDescargar = document.getElementById('btnDescargarAdjunto');
+    if (btnDescargar) {
+        btnDescargar.addEventListener('click', descargarAdjunto);
+    }
+
+    // Botón agregar adjunto en modal de detalle (solo lectura - no permitir subir)
+    const btnAgregarAdjunto = document.getElementById('btnAgregarAdjuntoModal');
+    const inputAdjunto = document.getElementById('inputAdjuntoModal');
+    if (btnAgregarAdjunto && inputAdjunto) {
+        btnAgregarAdjunto.addEventListener('click', () => {
+            // Solo permitir subir si estamos en modo edición (verificar si existe tareaIdActual)
+            if (!tareaIdActual) {
+                mostrarNotificacion('Abre el modal de edición para subir archivos', 'warning');
+                return;
+            }
+            inputAdjunto.click();
+        });
+
+        inputAdjunto.addEventListener('change', async (e) => {
+            if (e.target.files && e.target.files.length > 0 && tareaIdActual) {
+                const file = e.target.files[0];
+                try {
+                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+                    await subirAdjuntoTarea(file, tareaIdActual);
+                    mostrarNotificacion('Archivo subido correctamente', 'success');
+                    // Recargar adjuntos
+                    await cargarAdjuntosTarea(tareaIdActual, false, 'tareaModalAdjuntos');
+                } catch (error) {
+                    console.error('Error al subir archivo:', error);
+                    mostrarNotificacion(error.message || 'Error al subir archivo', 'error');
+                }
+                e.target.value = ''; // Reset input
+            }
+        });
+    }
+
+    // Cerrar preview con Escape (solo cierra el preview, no otros modales)
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            const modalPreview = document.getElementById('modalPreviewAdjunto');
+            if (modalPreview && modalPreview.style.display === 'flex') {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                e.preventDefault();
+                cerrarPreviewAdjunto();
+            }
+        }
+    }, true); // Usar capture=true para interceptar antes que otros handlers
+});
 
 console.log('Módulo tareas-module.js cargado.');

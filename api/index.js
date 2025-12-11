@@ -7,6 +7,7 @@ const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
+const multer = require('multer');
 const PostgresManager = require('../db/postgres-manager');
 const { verificarAutenticacion, verificarAdmin, verificarSupervisor } = require('./auth');
 const authRoutes = require('./auth-routes');
@@ -1342,6 +1343,139 @@ app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req,
 // RUTAS DE TAREAS
 // ====================================
 
+// *** IMPORTANTE: Las rutas específicas de adjuntos deben ir ANTES de /api/tareas/:id ***
+// para evitar que Express interprete 'adjuntos' como un :id
+
+// Descargar un adjunto (DEBE IR ANTES de /api/tareas/:id)
+app.get('/api/tareas/adjuntos/:id/download', verificarAutenticacion, async (req, res) => {
+    try {
+        const adjuntoId = parseInt(req.params.id);
+        console.log(`📎 Descargando adjunto ${adjuntoId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
+        const result = await postgresManager.pool.query(query, [adjuntoId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Adjunto no encontrado' });
+        }
+
+        const adjunto = result.rows[0];
+
+        // Verificar que el archivo existe
+        if (!fs.existsSync(adjunto.ruta_archivo)) {
+            return res.status(404).json({ error: 'Archivo no encontrado en el servidor' });
+        }
+
+        // Enviar archivo
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(adjunto.nombre_original)}"`);
+        res.setHeader('Content-Type', adjunto.mime_type);
+        res.sendFile(adjunto.ruta_archivo);
+    } catch (error) {
+        console.error('❌ Error al descargar adjunto:', error);
+        res.status(500).json({ error: 'Error al descargar adjunto', details: error.message });
+    }
+});
+
+// Eliminar un adjunto (DEBE IR ANTES de /api/tareas/:id)
+app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        const adjuntoId = parseInt(req.params.id);
+        console.log(`📎 Eliminando adjunto ${adjuntoId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Obtener info del adjunto antes de eliminar
+        const queryGet = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
+        const resultGet = await postgresManager.pool.query(queryGet, [adjuntoId]);
+
+        if (resultGet.rows.length === 0) {
+            return res.status(404).json({ error: 'Adjunto no encontrado' });
+        }
+
+        const adjunto = resultGet.rows[0];
+
+        // Eliminar de la base de datos
+        const queryDelete = 'DELETE FROM tareas_adjuntos WHERE id = $1';
+        await postgresManager.pool.query(queryDelete, [adjuntoId]);
+
+        // Eliminar archivo físico
+        if (fs.existsSync(adjunto.ruta_archivo)) {
+            fs.unlinkSync(adjunto.ruta_archivo);
+            console.log('✅ Archivo físico eliminado:', adjunto.ruta_archivo);
+        }
+
+        console.log('✅ Adjunto eliminado:', adjuntoId);
+        res.json({ success: true, message: 'Adjunto eliminado correctamente' });
+    } catch (error) {
+        console.error('❌ Error al eliminar adjunto:', error);
+        res.status(500).json({ error: 'Error al eliminar adjunto', details: error.message });
+    }
+});
+
+// Ver preview de un adjunto (DEBE IR ANTES de /api/tareas/:id)
+app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, res) => {
+    try {
+        const adjuntoId = parseInt(req.params.id);
+        console.log(`📎 Preview adjunto ${adjuntoId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
+        const result = await postgresManager.pool.query(query, [adjuntoId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Adjunto no encontrado' });
+        }
+
+        const adjunto = result.rows[0];
+
+        if (!fs.existsSync(adjunto.ruta_archivo)) {
+            return res.status(404).json({ error: 'Archivo no encontrado en el servidor' });
+        }
+
+        res.setHeader('Content-Type', adjunto.mime_type);
+        res.sendFile(adjunto.ruta_archivo);
+    } catch (error) {
+        console.error('❌ Error al obtener preview adjunto:', error);
+        res.status(500).json({ error: 'Error al obtener preview', details: error.message });
+    }
+});
+
+// Obtener lista de adjuntos de una tarea (DEBE IR ANTES de /api/tareas/:id)
+app.get('/api/tareas/:id/adjuntos', verificarAutenticacion, async (req, res) => {
+    try {
+        const tareaId = parseInt(req.params.id);
+        console.log(`📎 Obteniendo adjuntos de tarea ${tareaId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = `
+            SELECT ta.*, u.nombre as subido_por_nombre
+            FROM tareas_adjuntos ta
+            LEFT JOIN usuarios u ON ta.subido_por = u.id
+            WHERE ta.tarea_id = $1
+            ORDER BY ta.created_at DESC
+        `;
+        const result = await postgresManager.pool.query(query, [tareaId]);
+
+        console.log(`✅ ${result.rows.length} adjuntos encontrados`);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ Error al obtener adjuntos:', error);
+        res.status(500).json({ error: 'Error al obtener adjuntos', details: error.message });
+    }
+});
+
 // Obtener todas las tareas
 app.get('/api/tareas', async (req, res) => {
     try {
@@ -1389,7 +1523,7 @@ app.post('/api/tareas', async (req, res) => {
 
         // Obtener usuario creador desde JWT o body
         let creadoPor = req.body.usuario_creador_id;
-        
+
         // Si no viene en el body, intentar obtenerlo del token JWT
         if (!creadoPor) {
             const authHeader = req.headers.authorization;
@@ -1426,10 +1560,10 @@ app.post('/api/tareas', async (req, res) => {
         res.status(201).json(nuevaTarea);
     } catch (error) {
         console.error('❌ Error al crear tarea:', error);
-        res.status(500).json({ 
-            error: 'Error al crear tarea', 
+        res.status(500).json({
+            error: 'Error al crear tarea',
             message: error.message,
-            details: error.detail || error.message 
+            details: error.detail || error.message
         });
     }
 });
@@ -1477,10 +1611,35 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
-        const tareaEliminada = await postgresManager.deleteTarea(req.params.id);
+
+        const tareaId = req.params.id;
+
+        // Primero obtener los adjuntos para eliminar los archivos físicos
+        const queryAdjuntos = 'SELECT ruta_archivo FROM tareas_adjuntos WHERE tarea_id = $1';
+        const adjuntosResult = await postgresManager.pool.query(queryAdjuntos, [tareaId]);
+        const adjuntos = adjuntosResult.rows;
+
+        console.log(`📎 Tarea ${tareaId} tiene ${adjuntos.length} adjuntos a eliminar`);
+
+        // Eliminar la tarea (los registros de adjuntos se eliminan por CASCADE)
+        const tareaEliminada = await postgresManager.deleteTarea(tareaId);
         if (!tareaEliminada) {
             return res.status(404).json({ error: 'Tarea no encontrada' });
         }
+
+        // Eliminar archivos físicos del disco
+        for (const adjunto of adjuntos) {
+            if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
+                try {
+                    fs.unlinkSync(adjunto.ruta_archivo);
+                    console.log('✅ Archivo físico eliminado:', adjunto.ruta_archivo);
+                } catch (fileError) {
+                    console.error('⚠️ Error al eliminar archivo físico:', fileError);
+                }
+            }
+        }
+
+        console.log(`✅ Tarea ${tareaId} eliminada con ${adjuntos.length} archivos`);
         res.json({ success: true, message: 'Tarea eliminada correctamente' });
     } catch (error) {
         console.error('Error al eliminar tarea:', error);
@@ -1893,6 +2052,174 @@ app.get('/api/checklist/resumen', async (req, res) => {
         res.status(500).json({ error: 'Error al obtener resumen general', details: error.message });
     }
 });
+
+// ====================================
+// RUTAS DE ADJUNTOS DE TAREAS
+// ====================================
+
+// Configuración de multer para subida de archivos
+const storageAdjuntos = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const uploadPath = path.join(__dirname, '..', 'storage', 'adjuntos');
+        // Crear directorio si no existe
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: function (req, file, cb) {
+        // Generar nombre único: timestamp_random_nombreoriginal
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ext = path.extname(file.originalname);
+        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+        cb(null, `${uniqueSuffix}_${baseName}${ext}`);
+    }
+});
+
+// Extensiones permitidas y límites de tamaño
+const EXTENSIONES_PERMITIDAS = {
+    // Documentos e imágenes: 10MB
+    'pdf': 10 * 1024 * 1024,
+    'doc': 10 * 1024 * 1024,
+    'docx': 10 * 1024 * 1024,
+    'md': 10 * 1024 * 1024,
+    'txt': 10 * 1024 * 1024,
+    'csv': 10 * 1024 * 1024,
+    'xls': 10 * 1024 * 1024,
+    'xlsx': 10 * 1024 * 1024,
+    'xlsm': 10 * 1024 * 1024,
+    'png': 10 * 1024 * 1024,
+    'jpg': 10 * 1024 * 1024,
+    'jpeg': 10 * 1024 * 1024,
+    'gif': 10 * 1024 * 1024,
+    'webp': 10 * 1024 * 1024,
+    // Comprimidos: 50MB
+    'zip': 50 * 1024 * 1024,
+    'rar': 50 * 1024 * 1024,
+    '7z': 50 * 1024 * 1024,
+    'tar': 50 * 1024 * 1024,
+    'gz': 50 * 1024 * 1024
+};
+
+const uploadAdjuntos = multer({
+    storage: storageAdjuntos,
+    limits: {
+        fileSize: 50 * 1024 * 1024 // 50MB máximo (se valida específicamente después)
+    },
+    fileFilter: function (req, file, cb) {
+        const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+        if (!EXTENSIONES_PERMITIDAS[ext]) {
+            cb(new Error(`Extensión .${ext} no permitida`), false);
+            return;
+        }
+        cb(null, true);
+    }
+});
+
+// Subir archivo adjunto a una tarea
+app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntos.single('archivo'), async (req, res) => {
+    try {
+        const tareaId = parseInt(req.params.id);
+        const usuarioId = req.usuario?.id;
+
+        console.log(`📎 Subiendo adjunto para tarea ${tareaId}`);
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'No se recibió ningún archivo' });
+        }
+
+        if (!postgresManager) {
+            // Eliminar archivo si no hay BD
+            fs.unlinkSync(req.file.path);
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Verificar que la tarea existe
+        const tarea = await postgresManager.getTareaById(tareaId);
+        if (!tarea) {
+            fs.unlinkSync(req.file.path);
+            return res.status(404).json({ error: 'Tarea no encontrada' });
+        }
+
+        // Validar tamaño según extensión
+        const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
+        const maxSize = EXTENSIONES_PERMITIDAS[ext];
+        if (req.file.size > maxSize) {
+            fs.unlinkSync(req.file.path);
+            return res.status(400).json({
+                error: `Archivo demasiado grande. Máximo permitido para .${ext}: ${(maxSize / (1024 * 1024)).toFixed(0)}MB`
+            });
+        }
+
+        // Obtener MIME type
+        const mimeTypes = {
+            'pdf': 'application/pdf',
+            'doc': 'application/msword',
+            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'xls': 'application/vnd.ms-excel',
+            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+            'csv': 'text/csv',
+            'txt': 'text/plain',
+            'md': 'text/markdown',
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'webp': 'image/webp',
+            'zip': 'application/zip',
+            'rar': 'application/vnd.rar',
+            '7z': 'application/x-7z-compressed',
+            'tar': 'application/x-tar',
+            'gz': 'application/gzip'
+        };
+
+        // Guardar en base de datos
+        const adjuntoData = {
+            tarea_id: tareaId,
+            nombre_original: req.file.originalname,
+            nombre_archivo: req.file.filename,
+            extension: ext,
+            mime_type: mimeTypes[ext] || 'application/octet-stream',
+            tamano_bytes: req.file.size,
+            ruta_archivo: req.file.path,
+            subido_por: usuarioId
+        };
+
+        const query = `
+            INSERT INTO tareas_adjuntos 
+            (tarea_id, nombre_original, nombre_archivo, extension, mime_type, tamano_bytes, ruta_archivo, subido_por)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *, 
+            (SELECT nombre FROM usuarios WHERE id = $8) as subido_por_nombre
+        `;
+        const values = [
+            adjuntoData.tarea_id,
+            adjuntoData.nombre_original,
+            adjuntoData.nombre_archivo,
+            adjuntoData.extension,
+            adjuntoData.mime_type,
+            adjuntoData.tamano_bytes,
+            adjuntoData.ruta_archivo,
+            adjuntoData.subido_por
+        ];
+
+        const result = await postgresManager.pool.query(query, values);
+        const nuevoAdjunto = result.rows[0];
+
+        console.log('✅ Adjunto guardado:', nuevoAdjunto.id, nuevoAdjunto.nombre_original);
+
+        res.status(201).json(nuevoAdjunto);
+    } catch (error) {
+        console.error('❌ Error al subir adjunto:', error);
+        // Eliminar archivo si hubo error
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        res.status(500).json({ error: 'Error al subir adjunto', details: error.message });
+    }
+});
+
 
 // Manejar rutas no encontradas (debe ir al final, después de todas las rutas)
 app.use((req, res) => {
