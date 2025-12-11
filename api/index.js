@@ -12,6 +12,31 @@ const PostgresManager = require('../db/postgres-manager');
 const { verificarAutenticacion, verificarAdmin, verificarSupervisor } = require('./auth');
 const authRoutes = require('./auth-routes');
 
+// UploadThing para almacenamiento de archivos en la nube (Server-side uploads)
+// Leer token de UploadThing desde .env.local sin afectar otras variables de entorno
+const { UTApi } = require('uploadthing/server');
+let uploadthingToken = process.env.UPLOADTHING_TOKEN;
+
+// Si no está en el entorno, intentar leer solo esa variable del archivo .env.local
+if (!uploadthingToken) {
+    try {
+        const envPath = path.join(__dirname, '..', '.env.local');
+        if (fs.existsSync(envPath)) {
+            const envContent = fs.readFileSync(envPath, 'utf8');
+            const match = envContent.match(/^UPLOADTHING_TOKEN=['"]?([^'"\n]+)['"]?/m);
+            if (match) {
+                uploadthingToken = match[1];
+                console.log('✅ UPLOADTHING_TOKEN cargado desde .env.local');
+            }
+        }
+    } catch (e) {
+        console.warn('⚠️ No se pudo leer UPLOADTHING_TOKEN de .env.local:', e.message);
+    }
+}
+
+const utapi = new UTApi({ token: uploadthingToken });
+
+
 const app = express();
 
 // Inicializar base de datos PostgreSQL
@@ -75,6 +100,8 @@ app.use(cors({
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+
 
 // Middleware para inicializar DB en cada request (si no está inicializada)
 app.use(async (req, res, next) => {
@@ -1346,40 +1373,6 @@ app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req,
 // *** IMPORTANTE: Las rutas específicas de adjuntos deben ir ANTES de /api/tareas/:id ***
 // para evitar que Express interprete 'adjuntos' como un :id
 
-// Descargar un adjunto (DEBE IR ANTES de /api/tareas/:id)
-app.get('/api/tareas/adjuntos/:id/download', verificarAutenticacion, async (req, res) => {
-    try {
-        const adjuntoId = parseInt(req.params.id);
-        console.log(`📎 Descargando adjunto ${adjuntoId}`);
-
-        if (!postgresManager) {
-            return res.status(500).json({ error: 'Base de datos no disponible' });
-        }
-
-        const query = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
-        const result = await postgresManager.pool.query(query, [adjuntoId]);
-
-        if (result.rows.length === 0) {
-            return res.status(404).json({ error: 'Adjunto no encontrado' });
-        }
-
-        const adjunto = result.rows[0];
-
-        // Verificar que el archivo existe
-        if (!fs.existsSync(adjunto.ruta_archivo)) {
-            return res.status(404).json({ error: 'Archivo no encontrado en el servidor' });
-        }
-
-        // Enviar archivo
-        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(adjunto.nombre_original)}"`);
-        res.setHeader('Content-Type', adjunto.mime_type);
-        res.sendFile(adjunto.ruta_archivo);
-    } catch (error) {
-        console.error('❌ Error al descargar adjunto:', error);
-        res.status(500).json({ error: 'Error al descargar adjunto', details: error.message });
-    }
-});
-
 // Eliminar un adjunto (DEBE IR ANTES de /api/tareas/:id)
 app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) => {
     try {
@@ -1404,10 +1397,18 @@ app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) 
         const queryDelete = 'DELETE FROM tareas_adjuntos WHERE id = $1';
         await postgresManager.pool.query(queryDelete, [adjuntoId]);
 
-        // Eliminar archivo físico
-        if (fs.existsSync(adjunto.ruta_archivo)) {
+        // Eliminar de UploadThing si tiene key
+        if (adjunto.uploadthing_key) {
+            try {
+                await utapi.deleteFiles(adjunto.uploadthing_key);
+                console.log('✅ Archivo eliminado de UploadThing:', adjunto.uploadthing_key);
+            } catch (utError) {
+                console.warn('⚠️ Error eliminando de UploadThing (archivo puede no existir):', utError.message);
+            }
+        } else if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
+            // Fallback: eliminar archivo físico local si existe (para adjuntos antiguos)
             fs.unlinkSync(adjunto.ruta_archivo);
-            console.log('✅ Archivo físico eliminado:', adjunto.ruta_archivo);
+            console.log('✅ Archivo físico local eliminado:', adjunto.ruta_archivo);
         }
 
         console.log('✅ Adjunto eliminado:', adjuntoId);
@@ -1417,6 +1418,7 @@ app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) 
         res.status(500).json({ error: 'Error al eliminar adjunto', details: error.message });
     }
 });
+
 
 // Ver preview de un adjunto (DEBE IR ANTES de /api/tareas/:id)
 app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, res) => {
@@ -1437,19 +1439,72 @@ app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, 
 
         const adjunto = result.rows[0];
 
-        if (!fs.existsSync(adjunto.ruta_archivo)) {
-            return res.status(404).json({ error: 'Archivo no encontrado en el servidor' });
+        // Si tiene URL de UploadThing, redirigir
+        if (adjunto.url) {
+            console.log('📎 Redirigiendo a UploadThing URL:', adjunto.url);
+            return res.redirect(adjunto.url);
         }
 
-        res.setHeader('Content-Type', adjunto.mime_type);
-        res.sendFile(adjunto.ruta_archivo);
+        // Fallback: servir archivo local (para adjuntos antiguos)
+        if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
+            res.setHeader('Content-Type', adjunto.mime_type);
+            return res.sendFile(adjunto.ruta_archivo);
+        }
+
+        return res.status(404).json({ error: 'Archivo no encontrado' });
     } catch (error) {
         console.error('❌ Error al obtener preview adjunto:', error);
         res.status(500).json({ error: 'Error al obtener preview', details: error.message });
     }
 });
 
-// Obtener lista de adjuntos de una tarea (DEBE IR ANTES de /api/tareas/:id)
+// Descargar un adjunto (DEBE IR ANTES de /api/tareas/:id)
+app.get('/api/tareas/adjuntos/:id/download', verificarAutenticacion, async (req, res) => {
+    try {
+        const adjuntoId = parseInt(req.params.id);
+        console.log(`📎 Descargando adjunto ${adjuntoId}`);
+
+        if (!postgresManager) {
+            console.log('❌ postgresManager no disponible');
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const query = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
+        const result = await postgresManager.pool.query(query, [adjuntoId]);
+        console.log(`📎 Query resultado: ${result.rows.length} filas`);
+
+        if (result.rows.length === 0) {
+            console.log(`❌ Adjunto ${adjuntoId} no encontrado en BD`);
+            return res.status(404).json({ error: 'Adjunto no encontrado' });
+        }
+
+        const adjunto = result.rows[0];
+        console.log(`📎 Adjunto encontrado: url=${adjunto.url}, ruta=${adjunto.ruta_archivo}`);
+
+        // Si tiene URL de UploadThing, redirigir para descarga
+        if (adjunto.url) {
+            console.log('📎 Redirigiendo a UploadThing URL para descarga:', adjunto.url);
+            return res.redirect(adjunto.url);
+        }
+
+        // Fallback: servir archivo local (para adjuntos antiguos)
+        if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
+            console.log('📎 Sirviendo archivo local:', adjunto.ruta_archivo);
+            res.setHeader('Content-Type', adjunto.mime_type);
+            res.setHeader('Content-Disposition', `attachment; filename="${adjunto.nombre_original}"`);
+            return res.sendFile(path.resolve(adjunto.ruta_archivo));
+        }
+
+        console.log('❌ Archivo no encontrado (sin URL ni archivo local)');
+        return res.status(404).json({ error: 'Archivo no encontrado' });
+    } catch (error) {
+        console.error('❌ Error al descargar adjunto:', error);
+        res.status(500).json({ error: 'Error al descargar adjunto', details: error.message });
+    }
+});
+
+
+
 app.get('/api/tareas/:id/adjuntos', verificarAutenticacion, async (req, res) => {
     try {
         const tareaId = parseInt(req.params.id);
@@ -1614,12 +1669,17 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
 
         const tareaId = req.params.id;
 
-        // Primero obtener los adjuntos para eliminar los archivos físicos
-        const queryAdjuntos = 'SELECT ruta_archivo FROM tareas_adjuntos WHERE tarea_id = $1';
+        // Primero obtener los adjuntos para eliminar los archivos
+        const queryAdjuntos = 'SELECT uploadthing_key, ruta_archivo FROM tareas_adjuntos WHERE tarea_id = $1';
         const adjuntosResult = await postgresManager.pool.query(queryAdjuntos, [tareaId]);
         const adjuntos = adjuntosResult.rows;
 
         console.log(`📎 Tarea ${tareaId} tiene ${adjuntos.length} adjuntos a eliminar`);
+
+        // Recolectar keys de UploadThing para eliminar
+        const uploadthingKeys = adjuntos
+            .filter(a => a.uploadthing_key)
+            .map(a => a.uploadthing_key);
 
         // Eliminar la tarea (los registros de adjuntos se eliminan por CASCADE)
         const tareaEliminada = await postgresManager.deleteTarea(tareaId);
@@ -1627,9 +1687,19 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
             return res.status(404).json({ error: 'Tarea no encontrada' });
         }
 
-        // Eliminar archivos físicos del disco
+        // Eliminar archivos de UploadThing
+        if (uploadthingKeys.length > 0) {
+            try {
+                await utapi.deleteFiles(uploadthingKeys);
+                console.log(`✅ ${uploadthingKeys.length} archivos eliminados de UploadThing`);
+            } catch (utError) {
+                console.warn('⚠️ Error eliminando de UploadThing:', utError.message);
+            }
+        }
+
+        // Eliminar archivos físicos locales (para adjuntos antiguos)
         for (const adjunto of adjuntos) {
-            if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
+            if (adjunto.ruta_archivo && !adjunto.ruta_archivo.includes('utfs.io') && fs.existsSync(adjunto.ruta_archivo)) {
                 try {
                     fs.unlinkSync(adjunto.ruta_archivo);
                     console.log('✅ Archivo físico eliminado:', adjunto.ruta_archivo);
@@ -1646,6 +1716,7 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
         res.status(500).json({ error: 'Error al eliminar tarea', details: error.message });
     }
 });
+
 
 // ====================================
 // RUTAS DE CHECKLIST
@@ -2054,61 +2125,24 @@ app.get('/api/checklist/resumen', async (req, res) => {
 });
 
 // ====================================
-// RUTAS DE ADJUNTOS DE TAREAS
+// RUTAS DE ADJUNTOS DE TAREAS (UploadThing)
 // ====================================
 
-// Configuración de multer para subida de archivos
-const storageAdjuntos = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadPath = path.join(__dirname, '..', 'storage', 'adjuntos');
-        // Crear directorio si no existe
-        if (!fs.existsSync(uploadPath)) {
-            fs.mkdirSync(uploadPath, { recursive: true });
-        }
-        cb(null, uploadPath);
-    },
-    filename: function (req, file, cb) {
-        // Generar nombre único: timestamp_random_nombreoriginal
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        const ext = path.extname(file.originalname);
-        const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-        cb(null, `${uniqueSuffix}_${baseName}${ext}`);
-    }
-});
-
-// Extensiones permitidas y límites de tamaño
-const EXTENSIONES_PERMITIDAS = {
-    // Documentos e imágenes: 10MB
-    'pdf': 10 * 1024 * 1024,
-    'doc': 10 * 1024 * 1024,
-    'docx': 10 * 1024 * 1024,
-    'md': 10 * 1024 * 1024,
-    'txt': 10 * 1024 * 1024,
-    'csv': 10 * 1024 * 1024,
-    'xls': 10 * 1024 * 1024,
-    'xlsx': 10 * 1024 * 1024,
-    'xlsm': 10 * 1024 * 1024,
-    'png': 10 * 1024 * 1024,
-    'jpg': 10 * 1024 * 1024,
-    'jpeg': 10 * 1024 * 1024,
-    'gif': 10 * 1024 * 1024,
-    'webp': 10 * 1024 * 1024,
-    // Comprimidos: 50MB
-    'zip': 50 * 1024 * 1024,
-    'rar': 50 * 1024 * 1024,
-    '7z': 50 * 1024 * 1024,
-    'tar': 50 * 1024 * 1024,
-    'gz': 50 * 1024 * 1024
-};
-
-const uploadAdjuntos = multer({
-    storage: storageAdjuntos,
+// Configuración de multer para subida de archivos en MEMORIA (para serverless)
+// Luego se suben a UploadThing usando UTApi
+const uploadAdjuntosMemory = multer({
+    storage: multer.memoryStorage(),
     limits: {
-        fileSize: 50 * 1024 * 1024 // 50MB máximo (se valida específicamente después)
+        fileSize: 50 * 1024 * 1024 // 50MB máximo
     },
     fileFilter: function (req, file, cb) {
+        const extensionesPermitidas = [
+            'pdf', 'doc', 'docx', 'md', 'txt', 'csv', 'xls', 'xlsx', 'xlsm',
+            'png', 'jpg', 'jpeg', 'gif', 'webp',
+            'zip', 'rar', '7z', 'tar', 'gz'
+        ];
         const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
-        if (!EXTENSIONES_PERMITIDAS[ext]) {
+        if (!extensionesPermitidas.includes(ext)) {
             cb(new Error(`Extensión .${ext} no permitida`), false);
             return;
         }
@@ -2116,92 +2150,74 @@ const uploadAdjuntos = multer({
     }
 });
 
-// Subir archivo adjunto a una tarea
-app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntos.single('archivo'), async (req, res) => {
+// Subir archivo adjunto a una tarea usando UploadThing (Server-side upload)
+// El archivo se recibe via multer en memoria y luego se sube a UploadThing
+app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemory.single('archivo'), async (req, res) => {
     try {
         const tareaId = parseInt(req.params.id);
         const usuarioId = req.usuario?.id;
 
         console.log(`📎 Subiendo adjunto para tarea ${tareaId}`);
 
+        // Verificar si hay archivo
         if (!req.file) {
             return res.status(400).json({ error: 'No se recibió ningún archivo' });
         }
 
         if (!postgresManager) {
-            // Eliminar archivo si no hay BD
-            fs.unlinkSync(req.file.path);
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         // Verificar que la tarea existe
         const tarea = await postgresManager.getTareaById(tareaId);
         if (!tarea) {
-            fs.unlinkSync(req.file.path);
             return res.status(404).json({ error: 'Tarea no encontrada' });
         }
 
-        // Validar tamaño según extensión
-        const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
-        const maxSize = EXTENSIONES_PERMITIDAS[ext];
-        if (req.file.size > maxSize) {
-            fs.unlinkSync(req.file.path);
-            return res.status(400).json({
-                error: `Archivo demasiado grande. Máximo permitido para .${ext}: ${(maxSize / (1024 * 1024)).toFixed(0)}MB`
+        console.log(`📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`);
+
+        // Crear un File-like object desde el buffer de multer
+        const { UTFile } = require('uploadthing/server');
+        const uploadFile = new UTFile([req.file.buffer], req.file.originalname, {
+            type: req.file.mimetype
+        });
+
+        // Subir a UploadThing usando UTApi
+        const uploadResult = await utapi.uploadFiles(uploadFile);
+
+        if (uploadResult.error) {
+            console.error('❌ Error subiendo a UploadThing:', uploadResult.error);
+            return res.status(500).json({
+                error: 'Error al subir archivo a almacenamiento',
+                details: uploadResult.error.message
             });
         }
 
-        // Obtener MIME type
-        const mimeTypes = {
-            'pdf': 'application/pdf',
-            'doc': 'application/msword',
-            'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'xls': 'application/vnd.ms-excel',
-            'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
-            'csv': 'text/csv',
-            'txt': 'text/plain',
-            'md': 'text/markdown',
-            'png': 'image/png',
-            'jpg': 'image/jpeg',
-            'jpeg': 'image/jpeg',
-            'gif': 'image/gif',
-            'webp': 'image/webp',
-            'zip': 'application/zip',
-            'rar': 'application/vnd.rar',
-            '7z': 'application/x-7z-compressed',
-            'tar': 'application/x-tar',
-            'gz': 'application/gzip'
-        };
+        const { key, url, name, size } = uploadResult.data;
+        console.log(`✅ Archivo subido a UploadThing: ${url}`);
 
-        // Guardar en base de datos
-        const adjuntoData = {
-            tarea_id: tareaId,
-            nombre_original: req.file.originalname,
-            nombre_archivo: req.file.filename,
-            extension: ext,
-            mime_type: mimeTypes[ext] || 'application/octet-stream',
-            tamano_bytes: req.file.size,
-            ruta_archivo: req.file.path,
-            subido_por: usuarioId
-        };
+        // Obtener extensión
+        const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
 
+        // Guardar metadatos en base de datos
         const query = `
             INSERT INTO tareas_adjuntos 
-            (tarea_id, nombre_original, nombre_archivo, extension, mime_type, tamano_bytes, ruta_archivo, subido_por)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            (tarea_id, nombre_original, nombre_archivo, extension, mime_type, tamano_bytes, ruta_archivo, uploadthing_key, url, subido_por)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *, 
-            (SELECT nombre FROM usuarios WHERE id = $8) as subido_por_nombre
+            (SELECT nombre FROM usuarios WHERE id = $10) as subido_por_nombre
         `;
         const values = [
-            adjuntoData.tarea_id,
-            adjuntoData.nombre_original,
-            adjuntoData.nombre_archivo,
-            adjuntoData.extension,
-            adjuntoData.mime_type,
-            adjuntoData.tamano_bytes,
-            adjuntoData.ruta_archivo,
-            adjuntoData.subido_por
+            tareaId,
+            req.file.originalname,
+            key,
+            ext,
+            req.file.mimetype,
+            req.file.size,
+            url, // Guardamos la URL en ruta_archivo para compatibilidad
+            key,
+            url,
+            usuarioId
         ];
 
         const result = await postgresManager.pool.query(query, values);
@@ -2212,13 +2228,11 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntos.sing
         res.status(201).json(nuevoAdjunto);
     } catch (error) {
         console.error('❌ Error al subir adjunto:', error);
-        // Eliminar archivo si hubo error
-        if (req.file && fs.existsSync(req.file.path)) {
-            fs.unlinkSync(req.file.path);
-        }
         res.status(500).json({ error: 'Error al subir adjunto', details: error.message });
     }
 });
+
+
 
 
 // Manejar rutas no encontradas (debe ir al final, después de todas las rutas)

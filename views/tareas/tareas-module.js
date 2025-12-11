@@ -3376,6 +3376,8 @@ function renderAdjuntoChip(adjunto, editable = false) {
     const icono = obtenerIconoAdjunto(adjunto.extension);
     const nombre = adjunto.nombre_original || 'archivo';
     const subidoPor = adjunto.subido_por_nombre || 'Usuario';
+    // URL directa de UploadThing (si existe)
+    const url = adjunto.url || '';
 
     // Botón delete solo si es editable
     const deleteBtn = editable ? `
@@ -3388,7 +3390,7 @@ function renderAdjuntoChip(adjunto, editable = false) {
         <div class="adjunto-chip" onclick="abrirPreviewAdjunto(${adjunto.id})" data-adjunto-id="${adjunto.id}" 
              data-nombre="${nombre}" data-extension="${adjunto.extension}" 
              data-tamano="${adjunto.tamano_bytes}" data-fecha="${adjunto.created_at}"
-             data-subido-por="${subidoPor}">
+             data-subido-por="${subidoPor}" data-url="${url}">
             <span class="adjunto-chip-icon tipo-${adjunto.extension}">
                 <i class="fas ${icono}"></i>
             </span>
@@ -3414,9 +3416,10 @@ function abrirPreviewAdjunto(adjuntoId) {
     const tamano = parseInt(chip.dataset.tamano);
     const fecha = chip.dataset.fecha;
     const subidoPor = chip.dataset.subidoPor || 'Usuario';
+    const directUrl = chip.dataset.url; // URL directa de UploadThing
 
-    // Almacenar adjunto actual
-    adjuntoActual = { id: adjuntoId, nombre, extension, tamano, fecha, subidoPor };
+    // Almacenar adjunto actual (incluyendo URL)
+    adjuntoActual = { id: adjuntoId, nombre, extension, tamano, fecha, subidoPor, url: directUrl };
 
     // Actualizar modal
     document.getElementById('previewAdjuntoNombre').textContent = nombre;
@@ -3443,53 +3446,70 @@ function abrirPreviewAdjunto(adjuntoId) {
     const token = localStorage.getItem('token');
 
     if (extensionesImagen.includes(extension.toLowerCase())) {
-        // Para imágenes: cargar desde API con autenticación
+        // Para imágenes: usar URL directa de UploadThing si existe
         previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
 
-        fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
-            headers: obtenerHeadersConAuth()
-        })
-            .then(response => {
-                if (!response.ok) throw new Error('Error al cargar imagen');
-                return response.blob();
-            })
-            .then(blob => {
-                const imgUrl = URL.createObjectURL(blob);
-                previewContainer.innerHTML = `
-                <img src="${imgUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" />
+        if (directUrl) {
+            // Usar URL directa de UploadThing
+            previewContainer.innerHTML = `
+                <img src="${directUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" 
+                     onerror="this.parentElement.innerHTML='<div class=\'preview-placeholder\'><i class=\'fas fa-image\'></i><p>Imagen no disponible</p></div>'" />
             `;
+        } else {
+            // Fallback: cargar desde API con autenticación (para archivos antiguos)
+            fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+                headers: obtenerHeadersConAuth()
             })
-            .catch(error => {
-                console.error('Error cargando preview:', error);
-                previewContainer.innerHTML = '<div class="preview-placeholder"><i class="fas fa-image"></i><p>Imagen no disponible</p></div>';
-            });
+                .then(response => {
+                    if (!response.ok) throw new Error('Error al cargar imagen');
+                    return response.blob();
+                })
+                .then(blob => {
+                    const imgUrl = URL.createObjectURL(blob);
+                    previewContainer.innerHTML = `
+                    <img src="${imgUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" />
+                `;
+                })
+                .catch(error => {
+                    console.error('Error cargando preview:', error);
+                    previewContainer.innerHTML = '<div class="preview-placeholder"><i class="fas fa-image"></i><p>Imagen no disponible</p></div>';
+                });
+        }
     } else if (extension.toLowerCase() === 'pdf') {
-        // Para PDF: usar embed con blob
+        // Para PDF: usar URL directa o embed con blob
         previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando PDF...</div>';
 
-        fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
-            headers: obtenerHeadersConAuth()
-        })
-            .then(response => {
-                if (!response.ok) throw new Error('Error al cargar PDF');
-                return response.blob();
-            })
-            .then(blob => {
-                const pdfUrl = URL.createObjectURL(blob);
-                previewContainer.innerHTML = `
-                <embed src="${pdfUrl}" type="application/pdf" width="100%" height="400px" />
+        if (directUrl) {
+            // Usar URL directa de UploadThing
+            previewContainer.innerHTML = `
+                <embed src="${directUrl}" type="application/pdf" width="100%" height="400px" />
             `;
+        } else {
+            // Fallback: cargar desde API
+            fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+                headers: obtenerHeadersConAuth()
             })
-            .catch(error => {
-                console.error('Error cargando PDF:', error);
-                previewContainer.innerHTML = `
-                <div class="preview-placeholder">
-                    <i class="fas fa-file-pdf"></i>
-                    <p>No se pudo cargar el PDF</p>
-                    <small>Haz clic en Descargar para ver el archivo</small>
-                </div>
-            `;
-            });
+                .then(response => {
+                    if (!response.ok) throw new Error('Error al cargar PDF');
+                    return response.blob();
+                })
+                .then(blob => {
+                    const pdfUrl = URL.createObjectURL(blob);
+                    previewContainer.innerHTML = `
+                    <embed src="${pdfUrl}" type="application/pdf" width="100%" height="400px" />
+                `;
+                })
+                .catch(error => {
+                    console.error('Error cargando PDF:', error);
+                    previewContainer.innerHTML = `
+                    <div class="preview-placeholder">
+                        <i class="fas fa-file-pdf"></i>
+                        <p>No se pudo cargar el PDF</p>
+                        <small>Haz clic en Descargar para ver el archivo</small>
+                    </div>
+                `;
+                });
+        }
     } else {
         // Para otros archivos: placeholder genérico
         previewContainer.innerHTML = `
@@ -3524,13 +3544,38 @@ function cerrarPreviewAdjunto() {
 function descargarAdjunto() {
     if (!adjuntoActual) return;
 
-    // Construir URL de descarga con token de autenticación
-    const token = localStorage.getItem('token');
-    const downloadUrl = `${API_URL}/tareas/adjuntos/${adjuntoActual.id}/download`;
-
     mostrarNotificacion(`Descargando ${adjuntoActual.nombre}...`, 'info');
 
-    // Crear un enlace temporal para descargar con autenticación
+    // Si el adjunto tiene URL directa de UploadThing, descargar directamente
+    if (adjuntoActual.url && adjuntoActual.url.includes('utfs.io')) {
+        // Fetch del archivo desde UploadThing y crear blob para descarga
+        fetch(adjuntoActual.url)
+            .then(response => {
+                if (!response.ok) throw new Error('Error al descargar');
+                return response.blob();
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = adjuntoActual.nombre;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                mostrarNotificacion(`${adjuntoActual.nombre} descargado`, 'success');
+            })
+            .catch(error => {
+                console.error('Error al descargar desde UploadThing:', error);
+                // Fallback: abrir en nueva pestaña si fetch falla
+                window.open(adjuntoActual.url, '_blank');
+            });
+        return;
+    }
+
+    // Fallback: descargar via API con autenticación (para archivos locales antiguos)
+    const downloadUrl = `${API_URL}/tareas/adjuntos/${adjuntoActual.id}/download`;
+
     fetch(downloadUrl, {
         headers: obtenerHeadersConAuth()
     })
@@ -3553,6 +3598,7 @@ function descargarAdjunto() {
             mostrarNotificacion('Error al descargar el archivo', 'error');
         });
 }
+
 
 /**
  * Muestra confirmación antes de eliminar un adjunto
@@ -3630,11 +3676,15 @@ async function eliminarAdjunto(adjuntoId) {
 
 /**
  * Sube un archivo adjunto a una tarea
+ * El servidor se encarga de subirlo a UploadThing y guardar los metadatos
+ * 
  * @param {File} file - Archivo a subir
  * @param {number} tareaId - ID de la tarea
  * @returns {Promise<Object>} Datos del adjunto creado
  */
 async function subirAdjuntoTarea(file, tareaId) {
+    console.log(`📤 Subiendo ${file.name} a tarea ${tareaId}...`);
+
     const formData = new FormData();
     formData.append('archivo', file);
 
@@ -3653,8 +3703,11 @@ async function subirAdjuntoTarea(file, tareaId) {
         throw new Error(errorData.error || `Error ${response.status}`);
     }
 
-    return await response.json();
+    const adjunto = await response.json();
+    console.log('✅ Adjunto subido:', adjunto);
+    return adjunto;
 }
+
 
 // Exponer funciones de adjuntos al scope global
 window.abrirPreviewAdjunto = abrirPreviewAdjunto;
