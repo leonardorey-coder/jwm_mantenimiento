@@ -15,6 +15,20 @@ let tareaIdActual = null; // Almacena el ID de la tarea al editar
 let archivosSeleccionados = []; // Almacena archivos seleccionados
 let todosLosServiciosCache = []; // Cache de servicios para calcular progreso de tareas
 
+/**
+ * Función auxiliar para mostrar notificaciones
+ * Usa mostrarAlertaBlur si está disponible, o console.log como fallback
+ * @param {string} mensaje - El mensaje a mostrar
+ * @param {string} tipo - Tipo: 'success', 'error', 'warning', 'info'
+ */
+function notificar(mensaje, tipo = 'info') {
+    if (typeof window.mostrarAlertaBlur === 'function') {
+        window.mostrarAlertaBlur(mensaje, tipo);
+    } else {
+        console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+    }
+}
+
 // Headers para peticiones autenticadas
 const obtenerHeadersConAuth = () => {
     // Intentar obtener el token de diferentes fuentes
@@ -896,35 +910,15 @@ function cerrarModalAdvertenciaEdicion() {
 }
 
 /**
- * Muestra una notificación al usuario
+ * Muestra una notificación al usuario.
+ * Wrapper para compatibilidad - usa la función notificar() internamente
  * @param {string} mensaje - El mensaje a mostrar
  * @param {string} tipo - El tipo de notificación ('success', 'error', 'warning', 'info')
  */
 function mostrarNotificacion(mensaje, tipo = 'info') {
-    // Buscar si existe una función global de notificaciones y NO es esta misma función
-    if (typeof window.mostrarNotificacion === 'function' && window.mostrarNotificacion !== mostrarNotificacion) {
-        window.mostrarNotificacion(mensaje, tipo);
-        return;
-    }
-
-    // Fallback: usar alert o console
-    if (tipo === 'error') {
-        console.error(`Error: ${mensaje}`);
-        // No usar alert para no bloquear la UI en loops
-    } else {
-        console.log(`${tipo.toUpperCase()}: ${mensaje}`);
-    }
-
-    // Si existe un contenedor de notificaciones en el DOM, usarlo (implementación simple)
-    const container = document.getElementById('notification-container');
-    if (container) {
-        const notif = document.createElement('div');
-        notif.className = `notification ${tipo}`;
-        notif.textContent = mensaje;
-        container.appendChild(notif);
-        setTimeout(() => notif.remove(), 3000);
-    }
+    notificar(mensaje, tipo);
 }
+
 
 /**
  * Limpia los campos de un formulario.
@@ -1204,20 +1198,76 @@ function manejarArchivoAdjunto(event, previewContainerId) {
         const fileInfo = document.createElement('div');
         fileInfo.className = 'file-preview-item';
 
-        // Agregar botón para remover archivo
+        // Crear ID único para el archivo basado en nombre
+        const fileId = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+
+        // Agregar botón para remover archivo con barra de progreso
         fileInfo.innerHTML = `
-            <span class="file-preview-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
-            <button type="button" class="file-preview-remove" onclick="removerArchivoPreview(this, '${file.name}', '${previewContainerId}')" title="Quitar">
-                <i class="fas fa-times"></i>
-            </button>
+            <div class="file-preview-info">
+                <span class="file-preview-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                <button type="button" class="file-preview-remove" onclick="removerArchivoPreview(this, '${file.name}', '${previewContainerId}')" title="Quitar">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="file-upload-progress" id="progress-${fileId}">
+                <div class="file-progress-bar" style="width: 0%"></div>
+                <span class="file-progress-status">Esperando...</span>
+            </div>
         `;
         fileInfo.dataset.fileName = file.name;
+        fileInfo.dataset.fileId = fileId;
         previewContainer.appendChild(fileInfo);
     }
 
     // Reset el input para permitir seleccionar el mismo archivo de nuevo
     event.target.value = '';
 }
+
+/**
+ * Actualiza el progreso de subida de un archivo en el preview
+ * @param {string} fileName - Nombre del archivo
+ * @param {number} percent - Porcentaje 0-100
+ * @param {string} status - 'uploading' | 'uploaded' | 'error'
+ * @param {string} message - Mensaje de estado opcional
+ */
+function actualizarProgresoArchivo(fileName, percent, status, message) {
+    // Buscar el file preview item por nombre
+    const fileItems = document.querySelectorAll('.file-preview-item');
+    for (const item of fileItems) {
+        if (item.dataset.fileName === fileName) {
+            const progressBar = item.querySelector('.file-progress-bar');
+            const progressStatus = item.querySelector('.file-progress-status');
+
+            if (progressBar) {
+                // Usar CSS custom property para el progreso
+                progressBar.style.setProperty('--progress', `${percent}%`);
+
+                // Cambiar estado
+                progressBar.classList.remove('uploading', 'uploaded', 'error');
+                progressBar.classList.add(status);
+            }
+
+            if (progressStatus) {
+                // Limpiar clases previas
+                progressStatus.classList.remove('success', 'error');
+
+                if (status === 'uploading') {
+                    progressStatus.textContent = message || `${percent}%`;
+                } else if (status === 'uploaded') {
+                    progressStatus.textContent = '✓ Listo';
+                    progressStatus.classList.add('success');
+                } else if (status === 'error') {
+                    progressStatus.textContent = '✗ Error';
+                    progressStatus.classList.add('error');
+                }
+            }
+
+            break;
+        }
+    }
+}
+
+
 
 /**
  * Remueve un archivo del preview y del array de archivos seleccionados
@@ -2978,12 +3028,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 for (const file of files) {
                     try {
-                        mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+                        // La barra de progreso muestra el estado, no necesitamos notificación de inicio
                         await subirAdjuntoTarea(file, tareaIdActual);
-                        mostrarNotificacion(`${file.name} subido correctamente`, 'success');
+                        // Solo notificar éxito al final
+                        notificar(`${file.name} subido correctamente`, 'success');
                     } catch (error) {
                         console.error('Error al subir archivo:', error);
-                        mostrarNotificacion(error.message || `Error al subir ${file.name}`, 'error');
+                        // La barra de progreso muestra el error, pero notificamos también
+                        notificar(error.message || `Error al subir ${file.name}`, 'error');
                     }
                 }
 
@@ -3693,6 +3745,9 @@ async function eliminarAdjunto(adjuntoId) {
 async function subirAdjuntoTarea(file, tareaId) {
     console.log(`📤 Subiendo ${file.name} a tarea ${tareaId}...`);
 
+    // Actualizar progreso: Iniciando
+    actualizarProgresoArchivo(file.name, 5, 'uploading');
+
     const formData = new FormData();
     formData.append('archivo', file);
 
@@ -3700,21 +3755,52 @@ async function subirAdjuntoTarea(file, tareaId) {
     // Remover Content-Type para que fetch lo maneje automáticamente con FormData
     delete headers['Content-Type'];
 
-    const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
-        method: 'POST',
-        headers: headers,
-        body: formData
-    });
+    try {
+        // Actualizar progreso: Subiendo
+        actualizarProgresoArchivo(file.name, 20, 'uploading');
 
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: response.statusText }));
-        throw new Error(errorData.error || `Error ${response.status}`);
+        // Simular progreso incremental durante la subida
+        let currentProgress = 20;
+        let progressInterval = setInterval(() => {
+            if (currentProgress < 80) {
+                currentProgress += 8;
+                actualizarProgresoArchivo(file.name, currentProgress, 'uploading');
+            }
+        }, 400);
+
+
+        const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
+            method: 'POST',
+            headers: headers,
+            body: formData
+        });
+
+        clearInterval(progressInterval);
+
+        if (!response.ok) {
+            actualizarProgresoArchivo(file.name, 100, 'error');
+            const errorData = await response.json().catch(() => ({ error: response.statusText }));
+            throw new Error(errorData.error || `Error ${response.status}`);
+        }
+
+        // Actualizar progreso: Procesando respuesta
+        actualizarProgresoArchivo(file.name, 90, 'uploading');
+
+        const adjunto = await response.json();
+
+        // Actualizar progreso: Completado
+        actualizarProgresoArchivo(file.name, 100, 'uploaded');
+
+        console.log('✅ Adjunto subido:', adjunto);
+        return adjunto;
+
+    } catch (error) {
+        actualizarProgresoArchivo(file.name, 100, 'error');
+        throw error;
     }
-
-    const adjunto = await response.json();
-    console.log('✅ Adjunto subido:', adjunto);
-    return adjunto;
 }
+
+
 
 
 // Exponer funciones de adjuntos al scope global
@@ -3744,7 +3830,7 @@ document.addEventListener('DOMContentLoaded', () => {
         btnAgregarAdjunto.addEventListener('click', () => {
             // Solo permitir subir si estamos en modo edición (verificar si existe tareaIdActual)
             if (!tareaIdActual) {
-                mostrarNotificacion('Abre el modal de edición para subir archivos', 'warning');
+                notificar('Abre el modal de edición para subir archivos', 'warning');
                 return;
             }
             inputAdjunto.click();
@@ -3753,15 +3839,39 @@ document.addEventListener('DOMContentLoaded', () => {
         inputAdjunto.addEventListener('change', async (e) => {
             if (e.target.files && e.target.files.length > 0 && tareaIdActual) {
                 const file = e.target.files[0];
+                const container = document.getElementById('tareaModalAdjuntos');
+
+                // Crear skeleton chip mientras se sube
+                const skeletonId = `skeleton-${Date.now()}`;
+                const skeletonChip = document.createElement('div');
+                skeletonChip.className = 'adjunto-chip adjunto-chip-skeleton';
+                skeletonChip.id = skeletonId;
+                skeletonChip.innerHTML = `
+                    <span class="adjunto-chip-icon skeleton-icon">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                    <span class="adjunto-chip-nombre skeleton-text">${file.name}</span>
+                `;
+
+                // Insertar skeleton al inicio del contenedor
+                if (container) {
+                    // Quitar mensaje "Sin adjuntos" si existe
+                    const emptyMsg = container.querySelector('.adjuntos-empty-msg');
+                    if (emptyMsg) emptyMsg.remove();
+                    container.insertBefore(skeletonChip, container.firstChild);
+                }
+
                 try {
-                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
                     await subirAdjuntoTarea(file, tareaIdActual);
-                    mostrarNotificacion('Archivo subido correctamente', 'success');
-                    // Recargar adjuntos
+                    notificar(`${file.name} subido`, 'success');
+                    // Recargar adjuntos (esto reemplazará el skeleton con el chip real)
                     await cargarAdjuntosTarea(tareaIdActual, false, 'tareaModalAdjuntos');
                 } catch (error) {
                     console.error('Error al subir archivo:', error);
-                    mostrarNotificacion(error.message || 'Error al subir archivo', 'error');
+                    notificar(error.message || 'Error al subir archivo', 'error');
+                    // Remover skeleton en caso de error
+                    const skeleton = document.getElementById(skeletonId);
+                    if (skeleton) skeleton.remove();
                 }
                 e.target.value = ''; // Reset input
             }

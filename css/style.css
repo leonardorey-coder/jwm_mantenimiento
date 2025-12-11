@@ -9866,6 +9866,142 @@ tr[data-lazy="true"] {
   color: white;
 }
 
+/* ============================================
+   FILE PREVIEW - MINIMAL PROGRESS BAR
+   ============================================ */
+
+/* Estructura del item de archivo */
+.file-preview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secundario);
+  border: 1px solid var(--gris-separador);
+  border-radius: var(--radio-pequeno);
+  font-size: 0.8rem;
+}
+
+.file-preview-item::before {
+  display: none;
+  /* Ocultar el ícono por defecto */
+}
+
+.file-preview-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.file-preview-name {
+  flex: 1;
+  color: var(--texto-principal);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-preview-remove {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--texto-terciario);
+  font-size: 0.65rem;
+  transition: var(--transicion-rapida);
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.file-preview-remove:hover {
+  background: var(--rojo-vino);
+  color: white;
+  opacity: 1;
+}
+
+/* Barra de progreso minimalista */
+.file-upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  height: auto;
+  background: transparent;
+}
+
+.file-progress-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--gris-separador);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+.file-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--verde-oliva);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Estados de la barra */
+.file-progress-bar.uploading::after {
+  background: var(--texto-secundario);
+  animation: progressShimmer 1.2s ease-in-out infinite;
+}
+
+.file-progress-bar.uploaded::after {
+  background: var(--verde-oliva);
+}
+
+.file-progress-bar.error::after {
+  background: var(--rojo-vino);
+}
+
+@keyframes progressShimmer {
+  0% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.5;
+  }
+}
+
+/* Texto de estado minimalista */
+.file-progress-status {
+  font-size: 0.65rem;
+  color: var(--texto-terciario);
+  white-space: nowrap;
+  min-width: 60px;
+  text-align: right;
+}
+
+.file-progress-status.success {
+  color: var(--verde-oliva);
+}
+
+.file-progress-status.error {
+  color: var(--rojo-vino);
+}
+
 /* Contenedor de chips editable */
 .adjuntos-editable {
   margin-bottom: 1rem;
@@ -10673,6 +10809,35 @@ tr[data-lazy="true"] {
 .adjunto-chip-delete:hover {
   background: var(--rojo-vino);
   color: white;
+}
+
+/* Skeleton loading para chip de adjunto */
+.adjunto-chip-skeleton {
+  opacity: 0.7;
+  pointer-events: none;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+.adjunto-chip-skeleton .skeleton-icon {
+  background: var(--gris-separador);
+  color: var(--texto-terciario);
+}
+
+.adjunto-chip-skeleton .skeleton-text {
+  color: var(--texto-terciario);
+  font-style: italic;
+}
+
+@keyframes skeletonPulse {
+
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+
+  50% {
+    opacity: 0.8;
+  }
 }
 
 /* Botón agregar adjunto */
