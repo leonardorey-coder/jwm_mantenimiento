@@ -49,6 +49,7 @@
     let intervalosNotificaciones = null;
     let alertasEmitidas = new Set(); // Para evitar duplicados
     let diccNombresEspaciosPorId = {}; // Diccionario de nombres de espacios comunes por ID
+    let eventosFiltrosConfigurados = false; // Para asegurarnos de enlazar filtros al menos una vez
 
     /**
      * Helper para obtener headers con autenticación JWT
@@ -500,6 +501,16 @@
 
             console.log('🎉 Todos los datos cargados exitosamente desde API');
 
+            // Repoblar select de edificios y re-aplicar filtros con datos reales
+            try {
+                mostrarEdificios();
+                if (typeof window.filtrarCuartos === 'function') {
+                    window.filtrarCuartos();
+                }
+            } catch (e) {
+                console.warn('No se pudo repoblar edificios/filtrar tras carga', e);
+            }
+
             // Guardar en IndexedDB primero, luego localStorage como respaldo
             try {
                 if (window.storageHelper) {
@@ -682,6 +693,16 @@
             console.warn('⚠️ Handler filtrarCuartos no disponible en window, se omiten listeners de filtros.');
         }
 
+        // Reset inicial de filtros solo la primera vez para evitar valores persistentes tras hot reload
+        if (!eventosFiltrosConfigurados && filtrarCuartosHandler) {
+            if (buscarCuarto) buscarCuarto.value = '';
+            if (buscarAveria) buscarAveria.value = '';
+            if (filtroEdificio) filtroEdificio.value = '';
+            if (filtroPrioridad) filtroPrioridad.value = '';
+            if (filtroEstado) filtroEstado.value = '';
+            filtrarCuartosHandler();
+        }
+
         // Configurar formulario de agregar mantenimiento
         const formAgregar = document.getElementById('formAgregarMantenimientoLateral');
         if (formAgregar) {
@@ -730,6 +751,12 @@
                 edificios: edificios?.length || 0,
                 mantenimientos: mantenimientos?.length || 0
             });
+
+            // Asegurar configuración de eventos de filtros aunque app.js haya renderizado antes
+            if (!eventosFiltrosConfigurados && typeof configurarEventos === 'function') {
+                configurarEventos();
+                eventosFiltrosConfigurados = true;
+            }
 
             if (typeof window.sincronizarCuartosFiltrados === 'function') {
                 console.log('🖼️ [APP-LOADER] Llamando sincronizarCuartosFiltrados...');
@@ -929,6 +956,7 @@
             option.textContent = edificio.nombre;
             filtroEdificio.appendChild(option);
         });
+
     }
 
     /**

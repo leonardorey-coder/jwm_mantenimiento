@@ -1003,6 +1003,26 @@ function switchTab(tabId, loadData = true) {
     console.log('📄 Tab activo:', tabId);
 }
 
+const MAX_HAB_RENDER_RETRIES = 5;
+let habRenderAttempts = 0;
+
+function renderHabitacionesSafely(origen = 'tab-switch') {
+    habRenderAttempts += 1;
+
+    if (window.renderHabitacionesUI) {
+        window.renderHabitacionesUI(origen);
+        return true;
+    }
+
+    if (habRenderAttempts <= MAX_HAB_RENDER_RETRIES) {
+        setTimeout(() => renderHabitacionesSafely(`${origen}-retry${habRenderAttempts}`), 200);
+    } else {
+        console.warn('renderHabitacionesUI no disponible tras reintentos', { origen, habRenderAttempts });
+    }
+
+    return false;
+}
+
 function loadTabData(tabId) {
     console.log('📁 [APP.JS] loadTabData INICIANDO - Tab:', tabId);
     console.log('📁 [APP.JS] Timestamp:', new Date().toISOString());
@@ -1010,14 +1030,10 @@ function loadTabData(tabId) {
     switch (tabId) {
         case 'habitaciones':
             console.log('📁 [APP.JS] Procesando tab: habitaciones');
-            if (window.renderHabitacionesUI) {
-                console.log('📁 [APP.JS] Llamando renderHabitacionesUI...');
-                window.renderHabitacionesUI('tab-switch');
-            } else if (window.mostrarCuartos) {
-                console.log('📁 [APP.JS] Llamando mostrarCuartos...');
-                window.mostrarCuartos();
-            } else {
-                console.warn('📁 [APP.JS] Ni renderHabitacionesUI ni mostrarCuartos disponibles!');
+            // reset attempts on tab load
+            habRenderAttempts = 0;
+            if (!renderHabitacionesSafely('tab-switch')) {
+                console.warn('📁 [APP.JS] renderHabitacionesUI no disponible, se reintentará');
             }
             break;
         case 'espacios':
