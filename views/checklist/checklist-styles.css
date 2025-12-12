@@ -2446,3 +2446,446 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   animation: skeleton-shimmer 1.5s infinite;
   border-radius: 4px;
 }
+
+/* ========================================
+   CHECKLIST FOTOS
+   ======================================== */
+
+/* Botón de cámara en cada ítem */
+.checklist-foto-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin-left: 0.35rem;
+  background: var(--blanco);
+  border: 3px solid var(--gris-medio);
+  border-radius: var(--radio-pequeno);
+  color: var(--texto-secundario);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.checklist-foto-btn:hover {
+  border-color: var(--verde-oliva);
+  color: var(--verde-oliva);
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 rgba(93, 127, 95, 0.2);
+}
+
+.checklist-foto-btn:active {
+  transform: translateY(0);
+  box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.08);
+}
+
+.checklist-foto-btn i {
+  font-size: 1rem;
+}
+
+/* Header camera button - smaller version */
+.checklist-header-foto-btn {
+  width: 36px;
+  height: 36px;
+}
+
+.checklist-header-foto-btn i {
+  font-size: 0.9rem;
+}
+
+/* Modal de preview de foto */
+.checklist-foto-preview-modal {
+  z-index: 2100 !important;
+}
+
+.checklist-foto-preview-content {
+  max-width: none !important;
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 95vh !important;
+  border-radius: 20px 20px 0 0 !important;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2) !important;
+  animation: slideUpModal 0.35s cubic-bezier(0.32, 0.72, 0, 1) !important;
+}
+
+.checklist-foto-header-info h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checklist-foto-header-info h3 i {
+  color: var(--verde-oliva);
+}
+
+.checklist-foto-timestamp {
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.checklist-foto-timestamp i {
+  margin-right: 0.25rem;
+}
+
+.checklist-foto-preview-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1rem 1.25rem !important;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.checklist-foto-preview-image-container {
+  position: relative;
+  width: 100%;
+  max-height: 40vh;
+  overflow: hidden;
+  border-radius: var(--radio-medio);
+  border: 3px solid var(--negro-carbon);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.1);
+  background: var(--gris-claro);
+}
+
+.checklist-foto-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.checklist-foto-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.checklist-foto-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checklist-foto-form-group label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checklist-foto-form-group label i {
+  color: var(--verde-oliva);
+}
+
+.checklist-foto-select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: 3px solid var(--gris-medio);
+  border-radius: var(--radio-pequeno);
+  background: var(--blanco);
+  color: var(--texto-principal);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+}
+
+.checklist-foto-select:focus {
+  outline: none;
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(93, 127, 95, 0.2);
+}
+
+.checklist-foto-textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  border: 3px solid var(--gris-medio);
+  border-radius: var(--radio-pequeno);
+  background: var(--blanco);
+  color: var(--texto-principal);
+  resize: vertical;
+  min-height: 80px;
+  transition: var(--transicion-rapida);
+}
+
+.checklist-foto-textarea:focus {
+  outline: none;
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(93, 127, 95, 0.2);
+}
+
+.checklist-foto-textarea::placeholder {
+  color: var(--texto-secundario);
+}
+
+.checklist-foto-preview-footer {
+  display: flex;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-top: 2px solid var(--border-color);
+  background: var(--gris-claro);
+}
+
+.checklist-foto-btn-cancelar,
+.checklist-foto-btn-guardar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  border-radius: var(--radio-pequeno);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  border: 3px solid var(--negro-carbon);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.15);
+}
+
+.checklist-foto-btn-cancelar {
+  background: var(--blanco);
+  color: var(--texto-principal);
+}
+
+.checklist-foto-btn-cancelar:hover {
+  background: var(--gris-claro);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.checklist-foto-btn-guardar {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+.checklist-foto-btn-guardar:hover {
+  background: var(--verde-oscuro);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
+}
+
+.checklist-foto-btn-guardar:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ========================================
+   CARRUSEL DE FOTOS EN MODAL DE DETALLES
+   ======================================== */
+
+.checklist-fotos-section {
+  margin-bottom: 1.5rem;
+}
+
+.checklist-fotos-section h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin-bottom: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checklist-fotos-section h3 i {
+  color: var(--verde-oliva);
+}
+
+.checklist-fotos-carousel {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.5rem 0;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
+.checklist-fotos-carousel::-webkit-scrollbar {
+  height: 4px;
+}
+
+.checklist-fotos-carousel::-webkit-scrollbar-track {
+  background: var(--gris-claro);
+  border-radius: 2px;
+}
+
+.checklist-fotos-carousel::-webkit-scrollbar-thumb {
+  background: var(--gris-medio);
+  border-radius: 2px;
+}
+
+.checklist-foto-thumb {
+  flex: 0 0 auto;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radio-pequeno);
+  border: 3px solid var(--gris-medio);
+  overflow: hidden;
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  scroll-snap-align: start;
+  position: relative;
+}
+
+.checklist-foto-thumb:hover {
+  border-color: var(--verde-oliva);
+  transform: translateY(-2px);
+  box-shadow: 3px 3px 0 rgba(93, 127, 95, 0.2);
+}
+
+.checklist-foto-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checklist-foto-thumb-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.25rem;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 0.65rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Clickable wrapper for photo */
+.checklist-foto-thumb-clickable {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* Delete button on photo thumbnail */
+.checklist-foto-delete-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  z-index: 10;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 0.65rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: var(--transicion-rapida);
+}
+
+.checklist-foto-thumb:hover .checklist-foto-delete-btn {
+  opacity: 1;
+}
+
+.checklist-foto-delete-btn:hover {
+  background: rgba(0, 0, 0, 0.9);
+  transform: scale(1.1);
+}
+
+/* En móvil, siempre visible */
+@media (max-width: 768px) {
+  .checklist-foto-delete-btn {
+    opacity: 1;
+  }
+}
+
+.checklist-fotos-empty {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--texto-secundario);
+  font-size: 0.9rem;
+  border: 2px dashed var(--gris-medio);
+  border-radius: var(--radio-medio);
+  background: var(--gris-claro);
+}
+
+.checklist-fotos-empty i {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--gris-medio);
+}
+
+/* Modal de foto completa */
+.checklist-foto-completa-modal {
+  z-index: 2200 !important;
+}
+
+.checklist-foto-completa-content {
+  max-width: none !important;
+  width: 100% !important;
+  height: 100vh !important;
+  border-radius: 0 !important;
+  background: rgba(0, 0, 0, 0.95) !important;
+}
+
+.checklist-foto-completa-img {
+  width: 100%;
+  height: 60vh;
+  object-fit: contain;
+}
+
+.checklist-foto-completa-info {
+  padding: 1rem;
+  color: white;
+}
+
+.checklist-foto-completa-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.checklist-foto-completa-info p {
+  margin: 0.25rem 0;
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+/* Responsive para desktop */
+@media (min-width: 769px) {
+  .checklist-foto-preview-content {
+    border-radius: 16px !important;
+    max-width: 550px !important;
+    width: 90% !important;
+    max-height: 85vh !important;
+  }
+
+  .checklist-foto-preview-image-container {
+    max-height: 35vh;
+  }
+
+  .checklist-foto-preview-footer {
+    border-radius: 0 0 16px 16px;
+  }
+
+  .checklist-foto-thumb {
+    width: 120px;
+    height: 120px;
+  }
+}

@@ -2125,6 +2125,151 @@ app.get('/api/checklist/resumen', async (req, res) => {
 });
 
 // ====================================
+// RUTAS DE FOTOS DE CHECKLIST
+// ====================================
+
+// Configuración de multer para fotos de checklist (en memoria para UploadThing)
+const uploadChecklistFotosMemory = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 20 * 1024 * 1024 // 20MB máximo para fotos
+    },
+    fileFilter: function (req, file, cb) {
+        const extensionesPermitidas = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif'];
+        const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+        if (!extensionesPermitidas.includes(ext)) {
+            cb(new Error(`Extensión .${ext} no permitida. Solo imágenes permitidas.`), false);
+            return;
+        }
+        cb(null, true);
+    }
+});
+
+// Obtener fotos de checklist por cuarto
+app.get('/api/checklist/cuartos/:cuartoId/fotos', async (req, res) => {
+    try {
+        const cuartoId = parseInt(req.params.cuartoId);
+        console.log(`📷 GET /api/checklist/cuartos/${cuartoId}/fotos`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Ejecutar migración si no existe la tabla
+        await postgresManager.runChecklistFotosMigration();
+
+        const fotos = await postgresManager.getChecklistFotosByCuarto(cuartoId);
+        console.log(`✅ ${fotos.length} fotos encontradas para cuarto ${cuartoId}`);
+        res.json(fotos);
+    } catch (error) {
+        console.error('❌ Error al obtener fotos de checklist:', error);
+        res.status(500).json({ error: 'Error al obtener fotos', details: error.message });
+    }
+});
+
+// Subir foto de checklist
+app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploadChecklistFotosMemory.single('foto'), async (req, res) => {
+    try {
+        const cuartoId = parseInt(req.params.cuartoId);
+        const usuarioId = req.usuario?.id;
+        const catalogItemId = req.body.catalog_item_id ? parseInt(req.body.catalog_item_id) : null;
+        const notas = req.body.notas || null;
+
+        console.log(`📷 Subiendo foto para cuarto ${cuartoId}`, { catalogItemId, notas });
+
+        if (!req.file) {
+            return res.status(400).json({ error: 'No se recibió ninguna imagen' });
+        }
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Ejecutar migración si no existe la tabla
+        await postgresManager.runChecklistFotosMigration();
+
+        console.log(`📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`);
+        // Sanitizar nombre de archivo (remover espacios y caracteres especiales)
+        const ext = path.extname(req.file.originalname).toLowerCase();
+        const timestamp = Date.now();
+        const sanitizedFilename = `checklist_foto_${timestamp}${ext}`;
+        console.log(`📷 Filename sanitizado: ${sanitizedFilename}, mimetype: ${req.file.mimetype}`);
+
+        // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
+        const { Blob } = require('buffer');
+        const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+        const file = new File([blob], sanitizedFilename, { type: req.file.mimetype });
+
+        console.log(`📤 Iniciando upload a UploadThing (file size: ${file.size})...`);
+        const uploadResult = await utapi.uploadFiles(file);
+
+        if (uploadResult.error) {
+            console.error('❌ Error subiendo a UploadThing:', uploadResult.error);
+            return res.status(500).json({
+                error: 'Error al subir imagen a almacenamiento',
+                details: uploadResult.error.message
+            });
+        }
+
+        const { key, url } = uploadResult.data;
+        console.log(`✅ Foto subida a UploadThing: ${url}`);
+
+        // Guardar metadatos en base de datos
+        const nuevaFoto = await postgresManager.createChecklistFoto({
+            cuartoId,
+            catalogItemId,
+            fotoUrl: url,
+            uploadthingKey: key,
+            notas,
+            usuarioId
+        });
+
+        console.log('✅ Foto guardada en BD:', nuevaFoto.id);
+        res.status(201).json(nuevaFoto);
+    } catch (error) {
+        console.error('❌ Error al subir foto de checklist:', error);
+        res.status(500).json({ error: 'Error al subir foto', details: error.message });
+    }
+});
+
+// Eliminar foto de checklist
+app.delete('/api/checklist/fotos/:id', verificarAutenticacion, async (req, res) => {
+    try {
+        const fotoId = parseInt(req.params.id);
+        console.log(`📷 Eliminando foto de checklist ${fotoId}`);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        // Obtener info de la foto antes de eliminar
+        const foto = await postgresManager.getChecklistFotoById(fotoId);
+        if (!foto) {
+            return res.status(404).json({ error: 'Foto no encontrada' });
+        }
+
+        // Eliminar de base de datos
+        const fotoEliminada = await postgresManager.deleteChecklistFoto(fotoId);
+
+        // Eliminar de UploadThing si tiene key
+        if (foto.uploadthing_key) {
+            try {
+                await utapi.deleteFiles(foto.uploadthing_key);
+                console.log('✅ Foto eliminada de UploadThing:', foto.uploadthing_key);
+            } catch (utError) {
+                console.warn('⚠️ Error eliminando de UploadThing:', utError.message);
+            }
+        }
+
+        console.log(`✅ Foto ${fotoId} eliminada`);
+        res.json({ success: true, message: 'Foto eliminada correctamente', foto: fotoEliminada });
+    } catch (error) {
+        console.error('❌ Error al eliminar foto de checklist:', error);
+        res.status(500).json({ error: 'Error al eliminar foto', details: error.message });
+    }
+});
+
+// ====================================
 // RUTAS DE ADJUNTOS DE TAREAS (UploadThing)
 // ====================================
 
@@ -2176,14 +2321,13 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemor
 
         console.log(`📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`);
 
-        // Crear un File-like object desde el buffer de multer
-        const { UTFile } = require('uploadthing/server');
-        const uploadFile = new UTFile([req.file.buffer], req.file.originalname, {
-            type: req.file.mimetype
-        });
+        // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
+        const { Blob } = require('buffer');
+        const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+        const file = new File([blob], req.file.originalname, { type: req.file.mimetype });
 
         // Subir a UploadThing usando UTApi
-        const uploadResult = await utapi.uploadFiles(uploadFile);
+        const uploadResult = await utapi.uploadFiles(file);
 
         if (uploadResult.error) {
             console.error('❌ Error subiendo a UploadThing:', uploadResult.error);

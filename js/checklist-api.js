@@ -169,29 +169,29 @@ const ChecklistAPI = {
         try {
             let url = `${this.baseUrl}/cuartos`;
             const params = new URLSearchParams();
-            
+
             if (filters.edificio_id) {
                 params.append('edificio_id', filters.edificio_id);
             }
             if (filters.categoria_id) {
                 params.append('categoria_id', filters.categoria_id);
             }
-            
+
             if (params.toString()) {
                 url += `?${params.toString()}`;
             }
 
             console.log('[ChecklistAPI.getAllChecklistData] URL final:', url);
             console.log('[ChecklistAPI.getAllChecklistData] Headers:', this.getHeaders());
-            
+
             const response = await fetch(url, {
                 method: 'GET',
                 headers: this.getHeaders()
             });
-            
+
             console.log('[ChecklistAPI.getAllChecklistData] Response status:', response.status);
             console.log('[ChecklistAPI.getAllChecklistData] Response ok:', response.ok);
-            
+
             const data = await this.handleResponse(response);
             console.log('[ChecklistAPI.getAllChecklistData] Datos parseados:');
             console.log('   - Es array:', Array.isArray(data));
@@ -289,6 +289,74 @@ const ChecklistAPI = {
             return await this.handleResponse(response);
         } catch (error) {
             console.error('❌ Error obteniendo resumen general:', error);
+            throw error;
+        }
+    },
+
+    // ==========================================
+    // FOTOS DE CHECKLIST
+    // ==========================================
+
+    /**
+     * Obtener fotos de un cuarto
+     */
+    async getFotosByCuarto(cuartoId) {
+        try {
+            const response = await fetch(`${this.baseUrl}/cuartos/${cuartoId}/fotos`, {
+                method: 'GET',
+                headers: this.getHeaders()
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Error obteniendo fotos:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Subir foto de checklist
+     */
+    async uploadFoto(cuartoId, file, catalogItemId = null, notas = null) {
+        try {
+            const formData = new FormData();
+            formData.append('foto', file);
+            if (catalogItemId) {
+                formData.append('catalog_item_id', catalogItemId);
+            }
+            if (notas) {
+                formData.append('notas', notas);
+            }
+
+            const token = this.getAuthToken();
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch(`${this.baseUrl}/cuartos/${cuartoId}/fotos`, {
+                method: 'POST',
+                headers: headers,
+                body: formData
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Error subiendo foto:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Eliminar foto de checklist
+     */
+    async deleteFoto(fotoId) {
+        try {
+            const response = await fetch(`${this.baseUrl.replace('/checklist', '')}/checklist/fotos/${fotoId}`, {
+                method: 'DELETE',
+                headers: this.getHeaders()
+            });
+            return await this.handleResponse(response);
+        } catch (error) {
+            console.error('❌ Error eliminando foto:', error);
             throw error;
         }
     },

@@ -2109,6 +2109,122 @@ class PostgresManager {
 
         return result.rows[0];
     }
+
+    // ==========================================
+    // CHECKLIST FOTOS
+    // ==========================================
+
+    /**
+     * Ejecutar migración de tabla de fotos de checklist
+     */
+    async runChecklistFotosMigration() {
+        try {
+            // Verificar si la tabla ya existe
+            const tableCheck = await this.pool.query(`
+                SELECT COUNT(*) as count 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'checklist_fotos'
+            `);
+
+            if (parseInt(tableCheck.rows[0].count) > 0) {
+                console.log('✅ Tabla checklist_fotos ya existe');
+                return;
+            }
+
+            console.log('🔄 Creando tabla checklist_fotos...');
+
+            await this.pool.query(`
+                CREATE TABLE IF NOT EXISTS checklist_fotos (
+                    id SERIAL PRIMARY KEY,
+                    cuarto_id INTEGER REFERENCES cuartos(id) ON DELETE CASCADE,
+                    catalog_item_id INTEGER REFERENCES checklist_catalog_items(id) ON DELETE SET NULL,
+                    foto_url TEXT NOT NULL,
+                    uploadthing_key TEXT,
+                    notas TEXT,
+                    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+                    fecha_tomada TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            `);
+
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_fotos_cuarto ON checklist_fotos(cuarto_id)`);
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_fotos_item ON checklist_fotos(catalog_item_id)`);
+            await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_fotos_fecha ON checklist_fotos(created_at DESC)`);
+
+            console.log('✅ Tabla checklist_fotos creada');
+        } catch (error) {
+            console.error('⚠️ Error en migración de checklist_fotos:', error);
+        }
+    }
+
+    /**
+     * Crear una nueva foto de checklist
+     */
+    async createChecklistFoto({ cuartoId, catalogItemId, fotoUrl, uploadthingKey, notas, usuarioId }) {
+        const result = await this.pool.query(`
+            INSERT INTO checklist_fotos 
+            (cuarto_id, catalog_item_id, foto_url, uploadthing_key, notas, usuario_id)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *,
+            (SELECT nombre FROM usuarios WHERE id = $6) as usuario_nombre,
+            (SELECT nombre FROM checklist_catalog_items WHERE id = $2) as item_nombre
+        `, [cuartoId, catalogItemId || null, fotoUrl, uploadthingKey || null, notas || null, usuarioId || null]);
+
+        return result.rows[0];
+    }
+
+    /**
+     * Obtener fotos de checklist por cuarto
+     */
+    async getChecklistFotosByCuarto(cuartoId) {
+        const result = await this.pool.query(`
+            SELECT 
+                cf.*,
+                u.nombre as usuario_nombre,
+                ci.nombre as item_nombre,
+                cat.nombre as categoria_nombre
+            FROM checklist_fotos cf
+            LEFT JOIN usuarios u ON cf.usuario_id = u.id
+            LEFT JOIN checklist_catalog_items ci ON cf.catalog_item_id = ci.id
+            LEFT JOIN checklist_categorias cat ON ci.categoria_id = cat.id
+            WHERE cf.cuarto_id = $1
+            ORDER BY cf.created_at DESC
+        `, [cuartoId]);
+
+        return result.rows;
+    }
+
+    /**
+     * Eliminar una foto de checklist
+     */
+    async deleteChecklistFoto(fotoId) {
+        const result = await this.pool.query(`
+            DELETE FROM checklist_fotos 
+            WHERE id = $1 
+            RETURNING *
+        `, [fotoId]);
+
+        return result.rows[0];
+    }
+
+    /**
+     * Obtener una foto de checklist por ID
+     */
+    async getChecklistFotoById(fotoId) {
+        const result = await this.pool.query(`
+            SELECT 
+                cf.*,
+                u.nombre as usuario_nombre,
+                ci.nombre as item_nombre
+            FROM checklist_fotos cf
+            LEFT JOIN usuarios u ON cf.usuario_id = u.id
+            LEFT JOIN checklist_catalog_items ci ON cf.catalog_item_id = ci.id
+            WHERE cf.id = $1
+        `, [fotoId]);
+
+        return result.rows[0];
+    }
 }
 
 module.exports = PostgresManager;

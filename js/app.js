@@ -1889,6 +1889,9 @@ function renderChecklistGrid(data) {
                         </span>
                     </div>
                     <div class="checklist-header-actions">
+                        <button class="checklist-foto-btn checklist-header-foto-btn" type="button" onclick="event.stopPropagation(); abrirCapturaFotoGeneral(${habitacion.cuarto_id}, '${numero}')" title="Tomar foto general">
+                            <i class="fas fa-camera"></i>
+                        </button>
                         <button class="checklist-action-btn" title="Ver detalles">
                             <i class="fas fa-ellipsis-v"></i>
                         </button>
@@ -1986,6 +1989,9 @@ function buildChecklistItemHTML(habitacion, item, itemIndex) {
             </div>
             <div class="checklist-item-right">
                 <div class="checklist-semaforo-group" role="radiogroup" aria-label="Estado para ${safeNombre}">${optionsHTML}</div>
+                <button class="checklist-foto-btn" type="button" onclick="abrirCapturaFotoItem(${habitacion.cuarto_id}, ${itemId}, '${safeNombre.replace(/'/g, "\\'")}')" title="Tomar foto de ${safeNombre}">
+                    <i class="fas fa-camera"></i>
+                </button>
             </div>
         </div>
     `;
@@ -2537,6 +2543,12 @@ function openChecklistDetailsModal(cuartoId) {
                         </div>
                     </div>
                 </div>
+                <div class="checklist-fotos-section" id="checklistFotosSection">
+                    <h3><i class="fas fa-images"></i> Fotos de Inspección</h3>
+                    <div class="checklist-fotos-carousel" id="checklistFotosCarousel">
+                        <div class="checklist-fotos-empty"><i class="fas fa-spinner fa-spin"></i>Cargando fotos...</div>
+                    </div>
+                </div>
                 <div class="checklist-modal-history">
                     <h3>Historial de Ediciones</h3>
                     <div class="checklist-history-list">${buildHistorialHTML()}</div>
@@ -2598,6 +2610,9 @@ function openChecklistDetailsModal(cuartoId) {
                 }
             });
         }
+
+        // Cargar fotos del cuarto
+        cargarFotosChecklist(cuartoId);
     }, 0);
 }
 
@@ -3879,6 +3894,392 @@ function mostrarModalNuevoUsuario() {
 }
 
 
+// ==========================================
+// CHECKLIST FOTOS - CAPTURA Y PREVIEW
+// ==========================================
+
+let checklistFotoActual = {
+    file: null,
+    cuartoId: null,
+    itemId: null,
+    itemNombre: null
+};
+
+// Cache de items del catálogo para el selector
+let checklistCatalogItemsCache = null;
+
+/**
+ * Obtiene los items del catálogo de checklist
+ */
+async function obtenerChecklistCatalogItems() {
+    if (checklistCatalogItemsCache) {
+        return checklistCatalogItemsCache;
+    }
+
+    try {
+        if (typeof ChecklistAPI !== 'undefined') {
+            checklistCatalogItemsCache = await ChecklistAPI.getCatalogItems();
+            console.log(`📷 Catálogo cargado: ${checklistCatalogItemsCache.length} ítems`);
+            return checklistCatalogItemsCache;
+        }
+    } catch (error) {
+        console.error('❌ Error cargando catálogo:', error);
+    }
+
+    return [];
+}
+
+/**
+ * Abre el input de captura de foto para foto general (sin ítem específico)
+ */
+function abrirCapturaFotoGeneral(cuartoId, cuartoNumero) {
+    console.log(`📷 Abriendo captura de foto GENERAL para cuarto ${cuartoId}: ${cuartoNumero}`);
+
+    // Guardar contexto sin ítem específico
+    checklistFotoActual.cuartoId = cuartoId;
+    checklistFotoActual.itemId = null;
+    checklistFotoActual.itemNombre = null;
+
+    abrirInputFotoChecklist();
+}
+
+/**
+ * Abre el input de captura de foto para un ítem específico
+ */
+function abrirCapturaFotoItem(cuartoId, itemId, itemNombre) {
+    console.log(`📷 Abriendo captura de foto para cuarto ${cuartoId}, ítem ${itemId}: ${itemNombre}`);
+
+    // Guardar contexto
+    checklistFotoActual.cuartoId = cuartoId;
+    checklistFotoActual.itemId = Number(itemId);
+    checklistFotoActual.itemNombre = itemNombre;
+
+    abrirInputFotoChecklist();
+}
+
+/**
+ * Abre el input file para captura de foto (compartido entre todas las funciones de captura)
+ */
+function abrirInputFotoChecklist() {
+    // Crear input file invisible
+    let inputFile = document.getElementById('checklistFotoInput');
+    if (!inputFile) {
+        inputFile = document.createElement('input');
+        inputFile.type = 'file';
+        inputFile.id = 'checklistFotoInput';
+        inputFile.accept = 'image/*';
+        inputFile.capture = 'environment'; // Cámara trasera en móvil
+        inputFile.style.display = 'none';
+        inputFile.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                checklistFotoActual.file = file;
+                mostrarFotoPreview(file);
+            }
+        };
+        document.body.appendChild(inputFile);
+    }
+
+    // Limpiar y abrir
+    inputFile.value = '';
+    inputFile.click();
+}
+
+/**
+ * Crea y muestra el modal de preview de foto
+ */
+async function mostrarFotoPreview(file) {
+    // Crear modal si no existe
+    let modal = document.getElementById('modalFotoPreview');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalFotoPreview';
+        modal.className = 'modal-detalles checklist-foto-preview-modal';
+        document.body.appendChild(modal);
+    }
+
+    // Obtener items del catálogo para el selector (desde API)
+    const catalogItems = await obtenerChecklistCatalogItems();
+    const preselectedItemId = checklistFotoActual.itemId;
+
+    const itemsOptions = catalogItems.map(item => {
+        const isSelected = Number(item.id) === Number(preselectedItemId);
+        return `<option value="${item.id}" ${isSelected ? 'selected' : ''}>${item.nombre}</option>`;
+    }).join('');
+
+    console.log(`📷 Items en selector: ${catalogItems.length}, preseleccionado: ${preselectedItemId}`);
+
+    const usuarioNombre = AppState.currentUser?.nombre || AppState.currentUser?.name || 'Usuario';
+    const fechaHora = new Date().toLocaleString('es-MX', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    });
+
+    // Crear URL temporal para preview
+    const previewUrl = URL.createObjectURL(file);
+
+    modal.innerHTML = `
+        <div class="modal-detalles-overlay" onclick="cerrarModalFotoPreview()"></div>
+        <div class="modal-detalles-contenido checklist-foto-preview-content">
+            <div class="modal-detalles-header">
+                <div class="checklist-foto-header-info">
+                    <h3><i class="fas fa-camera"></i> Registrar Foto de Inspección</h3>
+                    <span class="checklist-foto-timestamp">
+                        <i class="fas fa-user"></i> ${usuarioNombre} · 
+                        <i class="fas fa-clock"></i> ${fechaHora}
+                    </span>
+                </div>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalFotoPreview()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body checklist-foto-preview-body">
+                <div class="checklist-foto-preview-image-container">
+                    <img src="${previewUrl}" alt="Preview de foto" class="checklist-foto-preview-img">
+                </div>
+                <div class="checklist-foto-form">
+                    <div class="checklist-foto-form-group">
+                        <label for="fotoItemSelect"><i class="fas fa-link"></i> Vincular a ítem</label>
+                        <select id="fotoItemSelect" class="checklist-foto-select">
+                            <option value="">Sin vincular (foto general)</option>
+                            ${itemsOptions}
+                        </select>
+                    </div>
+                    <div class="checklist-foto-form-group">
+                        <label for="fotoNotas"><i class="fas fa-sticky-note"></i> Notas / Observaciones</label>
+                        <textarea id="fotoNotas" class="checklist-foto-textarea" placeholder="Describe lo que se observa en la foto..." rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="checklist-foto-preview-footer">
+                <button class="checklist-foto-btn-cancelar" onclick="cerrarModalFotoPreview()">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="checklist-foto-btn-guardar" onclick="guardarFotoChecklist()">
+                    <i class="fas fa-cloud-upload-alt"></i> Guardar Foto
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+
+    // Limpiar URL cuando se cierre
+    modal.dataset.previewUrl = previewUrl;
+
+    // Cerrar con ESC
+    const handleEsc = (e) => {
+        if (e.key === 'Escape') {
+            cerrarModalFotoPreview();
+            document.removeEventListener('keydown', handleEsc);
+        }
+    };
+    document.addEventListener('keydown', handleEsc);
+}
+
+/**
+ * Guarda la foto en el servidor
+ */
+async function guardarFotoChecklist() {
+    if (!checklistFotoActual.file || !checklistFotoActual.cuartoId) {
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ No hay foto para guardar', 'error');
+        return;
+    }
+
+    const itemId = document.getElementById('fotoItemSelect')?.value || null;
+    const notas = document.getElementById('fotoNotas')?.value || null;
+
+    const btnGuardar = document.querySelector('.checklist-foto-btn-guardar');
+    const textoOriginal = btnGuardar?.innerHTML;
+    if (btnGuardar) {
+        btnGuardar.disabled = true;
+        btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo...';
+    }
+
+    try {
+        console.log(`📤 Subiendo foto para cuarto ${checklistFotoActual.cuartoId}...`);
+
+        const resultado = await ChecklistAPI.uploadFoto(
+            checklistFotoActual.cuartoId,
+            checklistFotoActual.file,
+            itemId ? parseInt(itemId) : null,
+            notas
+        );
+
+        console.log('✅ Foto subida:', resultado);
+
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✅ Foto guardada correctamente', 'success');
+
+        cerrarModalFotoPreview();
+
+        // Limpiar estado
+        checklistFotoActual = { file: null, cuartoId: null, itemId: null, itemNombre: null };
+
+    } catch (error) {
+        console.error('❌ Error subiendo foto:', error);
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al guardar foto: ' + error.message, 'error');
+    } finally {
+        if (btnGuardar) {
+            btnGuardar.disabled = false;
+            btnGuardar.innerHTML = textoOriginal;
+        }
+    }
+}
+
+/**
+ * Cierra el modal de preview de foto
+ */
+function cerrarModalFotoPreview() {
+    const modal = document.getElementById('modalFotoPreview');
+    if (modal) {
+        // Limpiar URL temporal
+        if (modal.dataset.previewUrl) {
+            URL.revokeObjectURL(modal.dataset.previewUrl);
+        }
+        modal.style.display = 'none';
+    }
+    document.body.classList.remove('modal-open');
+}
+
+/**
+ * Carga las fotos de un cuarto y las muestra en el carrusel
+ */
+async function cargarFotosChecklist(cuartoId) {
+    const carousel = document.getElementById('checklistFotosCarousel');
+    if (!carousel) return;
+
+    try {
+        console.log(`📷 Cargando fotos del cuarto ${cuartoId}...`);
+
+        if (typeof ChecklistAPI === 'undefined') {
+            carousel.innerHTML = '<div class="checklist-fotos-empty"><i class="fas fa-camera-retro"></i>API no disponible</div>';
+            return;
+        }
+
+        const fotos = await ChecklistAPI.getFotosByCuarto(cuartoId);
+        console.log(`📷 ${fotos.length} fotos encontradas`);
+
+        if (fotos.length === 0) {
+            carousel.innerHTML = '<div class="checklist-fotos-empty"><i class="fas fa-camera-retro"></i>No hay fotos de inspección</div>';
+            return;
+        }
+
+        // Renderizar fotos
+        carousel.innerHTML = fotos.map(foto => {
+            const itemLabel = foto.item_nombre || 'General';
+            return `
+                <div class="checklist-foto-thumb">
+                    <button class="checklist-foto-delete-btn" onclick="event.stopPropagation(); eliminarFotoChecklist(${foto.id}, ${foto.cuarto_id})" title="Eliminar foto">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div class="checklist-foto-thumb-clickable" onclick="mostrarFotoCompletaChecklist(${foto.id}, '${foto.foto_url}', '${(foto.item_nombre || '').replace(/'/g, "\\'")}', '${(foto.notas || '').replace(/'/g, "\\'")}', '${foto.usuario_nombre || 'Usuario'}', '${foto.created_at}')">
+                        <img src="${foto.foto_url}" alt="Foto de ${itemLabel}" loading="lazy">
+                        <div class="checklist-foto-thumb-overlay">${itemLabel}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('❌ Error cargando fotos:', error);
+        carousel.innerHTML = '<div class="checklist-fotos-empty"><i class="fas fa-exclamation-triangle"></i>Error al cargar fotos</div>';
+    }
+}
+
+/**
+ * Muestra una foto en pantalla completa con todos sus detalles
+ */
+function mostrarFotoCompletaChecklist(fotoId, fotoUrl, itemNombre, notas, usuarioNombre, fecha) {
+    // Crear modal si no existe
+    let modal = document.getElementById('modalFotoCompleta');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'modalFotoCompleta';
+        modal.className = 'modal-detalles checklist-foto-completa-modal';
+        document.body.appendChild(modal);
+    }
+
+    const fechaFormateada = fecha ? new Date(fecha).toLocaleString('es-MX', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    }) : 'Sin fecha';
+
+    modal.innerHTML = `
+        <div class="modal-detalles-overlay" onclick="cerrarModalFotoCompleta()"></div>
+        <div class="modal-detalles-contenido checklist-foto-preview-content">
+            <div class="modal-detalles-header">
+                <div class="checklist-foto-header-info">
+                    <h3><i class="fas fa-image"></i> ${itemNombre || 'Foto de Inspección'}</h3>
+                    <span class="checklist-foto-timestamp">
+                        <i class="fas fa-user"></i> ${usuarioNombre} · 
+                        <i class="fas fa-clock"></i> ${fechaFormateada}
+                    </span>
+                </div>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalFotoCompleta()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body checklist-foto-preview-body">
+                <div class="checklist-foto-preview-image-container" style="max-height: 55vh;">
+                    <img src="${fotoUrl}" alt="Foto completa" class="checklist-foto-preview-img">
+                </div>
+                ${notas ? `
+                <div class="checklist-foto-form">
+                    <div class="checklist-foto-form-group">
+                        <label><i class="fas fa-sticky-note"></i> Notas / Observaciones</label>
+                        <p style="margin: 0; padding: 0.75rem; background: var(--gris-claro); border-radius: var(--radio-pequeno); font-size: 0.95rem;">${notas}</p>
+                    </div>
+                </div>
+                ` : ''}
+            </div>
+            <div class="checklist-foto-preview-footer">
+                <button class="checklist-foto-btn-cancelar" onclick="cerrarModalFotoCompleta()">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </button>
+            </div>
+        </div>
+    `;
+
+    modal.style.display = 'flex';
+    document.body.classList.add('modal-open');
+}
+
+/**
+ * Cierra el modal de foto completa
+ */
+function cerrarModalFotoCompleta() {
+    const modal = document.getElementById('modalFotoCompleta');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+    // No quitar modal-open porque el modal de detalles sigue abierto
+}
+
+/**
+ * Elimina una foto de checklist con confirmación
+ */
+async function eliminarFotoChecklist(fotoId, cuartoId) {
+    if (!confirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        console.log(`🗑️ Eliminando foto ${fotoId}...`);
+
+        await ChecklistAPI.deleteFoto(fotoId);
+
+        console.log('✅ Foto eliminada');
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✅ Foto eliminada', 'success');
+
+        // Recargar el carrusel
+        cargarFotosChecklist(cuartoId);
+
+    } catch (error) {
+        console.error('❌ Error eliminando foto:', error);
+        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al eliminar foto', 'error');
+    }
+}
 
 // Hacer funciones globales para uso en HTML
 window.toggleServicioRealizado = toggleServicioRealizado;
@@ -3903,5 +4304,14 @@ window.eliminarMantenimientoEspacio = eliminarMantenimientoEspacio;
 window.cambiarEstadoEspacio = cambiarEstadoEspacio;
 window.cargarAlertasEspacios = cargarAlertasEspacios;
 window.recargarChecklistData = recargarChecklistData;
+window.abrirCapturaFotoItem = abrirCapturaFotoItem;
+window.abrirCapturaFotoGeneral = abrirCapturaFotoGeneral;
+window.mostrarFotoPreview = mostrarFotoPreview;
+window.guardarFotoChecklist = guardarFotoChecklist;
+window.cerrarModalFotoPreview = cerrarModalFotoPreview;
+window.cargarFotosChecklist = cargarFotosChecklist;
+window.mostrarFotoCompletaChecklist = mostrarFotoCompletaChecklist;
+window.cerrarModalFotoCompleta = cerrarModalFotoCompleta;
+window.eliminarFotoChecklist = eliminarFotoChecklist;
 
 console.log('✅ App.js cargado completamente');
