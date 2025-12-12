@@ -3001,6 +3001,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (todasLasTareas.length > 0) {
                 aplicarFiltrosTareas();
             }
+
+            // Recargar timeline de vencimientos
+            if (typeof cargarProximosVencimientos === 'function') {
+                cargarProximosVencimientos();
+            }
         });
     }
 
@@ -3277,8 +3282,12 @@ async function cargarProximosVencimientos() {
                 if (!rolUsuarioActual) {
                     return false;
                 }
+                // Comparación insensible a mayúsculas/minúsculas
+                const rolUsuarioUpper = rolUsuarioActual.toUpperCase();
+                const tareaRolUpper = (tarea.asignado_a_rol_nombre || '').toUpperCase();
+
                 // Solo mostrar tareas asignadas al rol del usuario actual
-                if (tarea.asignado_a_rol_nombre !== rolUsuarioActual) {
+                if (tareaRolUpper !== rolUsuarioUpper) {
                     return false;
                 }
             } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol') {
@@ -3347,22 +3356,20 @@ async function cargarProximosVencimientos() {
 
                 return `
                     <li class="timeline-task-item ${claseVencimiento}" onclick="window.verDetalleTarea(${tarea.id})" style="cursor: pointer;">
-                        <div class="timeline-task-info">
-                            <div class="timeline-task-header">
-                                <span class="timeline-task-titulo">${tarea.titulo}</span>
-                                <span class="badge-mini ${clasePrioridad}">${tarea.prioridad}</span>
-                            </div>
-                            <div class="timeline-task-meta">
-                                <span class="timeline-vencimiento ${claseVencimiento}">
-                                    <i class="fas fa-clock"></i> ${textoVencimiento}
-                                </span>
-                                ${tarea.ubicacion ? `
-                                    <span class="timeline-ubicacion">
-                                        <i class="fas fa-map-marker-alt"></i> ${tarea.ubicacion}
-                                    </span>
-                                ` : ''}
-                            </div>
-                        </div>
+                        <span class="timeline-info">
+                            <span class="timeline-cuarto" title="${tarea.ubicacion || 'General'}">
+                                ${tarea.ubicacion || 'General'}
+                            </span>
+                            <span class="timeline-descripcion">
+                                ${tarea.titulo}
+                            </span>
+                        </span>
+                        <span class="timeline-meta-right">
+                            <span class="timeline-prioridad badge-mini ${clasePrioridad}">${tarea.prioridad}</span>
+                            <span class="timeline-vencimiento-text ${claseVencimiento}">
+                                <i class="fas fa-clock"></i> ${textoVencimiento}
+                            </span>
+                        </span>
                     </li>
                 `;
             }).join('');
