@@ -1455,45 +1455,53 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   background: var(--verde-oliva);
 }
 
-/* Item individual */
+/* Item individual - Mobile First */
 .checklist-item {
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1rem;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.75rem;
   background: var(--blanco);
-  border: 3px solid var(--negro-carbon);
+  border: 2.5px solid var(--negro-carbon);
   border-radius: var(--radio-medio);
-  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.06);
   transition: var(--transicion-rapida);
+  position: relative;
 }
 
 .checklist-item:hover {
   transform: translate(-1px, -1px);
-  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.1);
+  border-color: var(--verde-oliva);
 }
 
 .checklist-item-left {
   display: flex;
   align-items: center;
-  min-width: 0;
+  flex: 1 1 auto;
+  min-width: 100px;
 }
 
 .checklist-item-name {
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 700;
   color: var(--texto-principal);
-  letter-spacing: 0.3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+  /* MOBILE FIRST: texto visible siempre */
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-word;
+  line-height: 1.35;
 }
 
 /* Semáforo estilo Prioridad */
 .checklist-item-right {
   display: flex;
-  gap: 0.35rem;
+  flex-shrink: 0;
+  gap: 0.3rem;
 }
 
 .checklist-semaforo-group {
@@ -1513,19 +1521,20 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   pointer-events: none;
 }
 
+/* Estilo circular para todos los tamaños */
 .semaforo-visual {
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  padding: 0.45rem 0.55rem;
-  border: 3px solid var(--gris-medio);
-  border-radius: var(--radio-pequeno);
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 2.5px solid var(--gris-medio);
+  border-radius: 50%;
   background: var(--blanco);
   cursor: pointer;
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
   transition: var(--transicion-rapida);
-  min-width: 56px;
 }
 
 .semaforo-visual:hover {
@@ -1534,22 +1543,17 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 .checklist-semaforo-option .semaforo-dot {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 2px solid var(--negro-carbon);
+  border: 2.5px solid var(--negro-carbon);
   background: var(--gris-claro);
   transition: var(--transicion-rapida);
 }
 
+/* Ocultar texto del semáforo en todos los tamaños */
 .checklist-semaforo-option .semaforo-text {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  color: var(--texto-secundario);
-  text-align: center;
-  line-height: 1.1;
+  display: none;
 }
 
 /* Estados del semáforo - Solo dot tiene color */
@@ -1600,6 +1604,38 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 @media (max-width: 1200px) {
   .categoria-btn {
     flex: 1 1 calc(50% - 0.65rem);
+  }
+}
+
+/* Stats compactos para evitar desbordamiento en pantallas medianas */
+@media (max-width: 1056px) and (min-width: 859px) {
+  .checklist-card-stats {
+    gap: 0.25rem;
+    padding-right: 0;
+    padding-left: 0;
+  }
+
+  .checklist-card-stat {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.2rem 0.3rem;
+    gap: 0.2rem;
+  }
+
+  /* Reducir tamaño de texto de etiquetas */
+  .checklist-card-stat-label {
+    font-size: 0.55rem;
+    gap: 0.2rem;
+    letter-spacing: 0;
+  }
+
+  .checklist-card-stat .semaforo-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+  }
+
+  .checklist-card-stat-value {
+    font-size: 1rem;
   }
 }
 
@@ -1722,13 +1758,12 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   }
 
   .checklist-item {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+    gap: 0.6rem;
   }
 
   .checklist-semaforo-group {
     justify-content: flex-start;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
 
   .add-section-grid {
@@ -1836,55 +1871,35 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     border-width: 2px;
   }
 
-  /* Items: mantener dos columnas con wrap en el nombre para evitar corte de texto */
+  /* Items: layout flex mejorado para móvil */
   .checklist-item {
-    grid-template-columns: 1fr auto;
-    gap: 0.75rem;
-    padding: 0.8rem 0.9rem;
-    align-items: flex-start;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    padding: 0.7rem 0.65rem;
+    align-items: center;
+  }
+
+  .checklist-item-left {
+    flex: 1 1 0;
+    min-width: 0;
   }
 
   /* Permitir que el nombre se ajuste en múltiples líneas */
   .checklist-item-name {
-    font-size: 0.9rem;
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
+    font-size: 0.85rem;
     line-height: 1.3;
-    word-wrap: break-word;
-    padding-right: 0.25rem;
   }
 
-  /* Semáforo visual: botones compactos que quepan en línea */
-  .semaforo-visual {
-    padding: 0.65rem 0.6rem;
-    min-width: 58px;
-    border-width: 3px;
-  }
-
-  .checklist-semaforo-option .semaforo-dot {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
-  }
-
-  /* Grupo semáforo: mantener en línea sin desbordamiento */
+  /* Grupo semáforo: mantener en línea horizontal siempre */
   .checklist-semaforo-group {
-    gap: 0.4rem;
+    gap: 0.3rem;
     flex-wrap: nowrap;
     flex-shrink: 0;
-    max-width: 100%;
   }
 
   /* Reducir tamaños de texto que ocupan mucho espacio */
   .checklist-card-stat-value {
     font-size: 1.2rem;
-  }
-
-  /* Texto del semáforo más legible */
-  .checklist-semaforo-option .semaforo-text {
-    font-size: 0.65rem;
-    font-weight: 800;
   }
 
   /* Limitar altura de items para scroll de 2-3 elementos visibles en móvil */
@@ -1912,6 +1927,87 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   .checklist-search-clear {
     width: 36px;
     height: 36px;
+  }
+}
+
+/* ========================================
+   EXTRA SMALL SCREENS (≤400px)
+   Optimizaciones para pantallas muy pequeñas
+   ======================================== */
+@media (max-width: 400px) {
+
+  /* Items ultra compactos para pantallas muy pequeñas */
+  .checklist-item {
+    gap: 0.4rem;
+    padding: 0.6rem 0.5rem;
+  }
+
+  .checklist-item-left {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+
+  .checklist-item-name {
+    font-size: 0.8rem;
+    line-height: 1.25;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+  }
+
+  /* Semáforos ultra compactos: solo círculos de color */
+  .semaforo-visual {
+    min-width: 34px;
+    height: 34px;
+    padding: 0.35rem;
+    border-width: 2px;
+    border-radius: 50%;
+  }
+
+  .checklist-semaforo-option .semaforo-dot {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+  }
+
+  .checklist-semaforo-group {
+    gap: 0.25rem;
+  }
+
+  /* Cards más compactas */
+  .checklist-card {
+    padding: 0.75rem;
+    border-width: 2.5px;
+  }
+
+  .checklist-room-number {
+    font-size: 1.25rem;
+  }
+
+  .checklist-estado-badge {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  .checklist-action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+    border-width: 2px;
+  }
+
+  .checklist-items {
+    gap: 0.5rem;
+    max-height: 240px;
+  }
+
+  /* Stats más compactos */
+  .checklist-card-stats {
+    gap: 0;
+  }
+
+  .checklist-card-stat {
+    min-width: 90px;
+    flex: 0 0 30%;
   }
 }
 
