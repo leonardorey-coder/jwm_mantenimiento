@@ -1340,10 +1340,8 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 /* Stats resumen */
 .checklist-card-stats {
   display: flex;
-  gap: 0.65rem;
+  gap: 0.5rem;
   flex-shrink: 0;
-  padding: 0.75rem 0;
-  border-bottom: 2px dashed var(--gris-medio);
   padding-left: 1px;
   padding-right: 6px;
 }
@@ -1352,13 +1350,13 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   flex: 1;
   border: 2px solid var(--negro-carbon);
   border-radius: var(--radio-pequeno);
-  padding: 0.5rem 0.65rem;
+  padding: 0rem 0.5rem;
   background: var(--blanco);
   display: flex;
-  flex-direction: column;
   align-items: center;
   gap: 0.35rem;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
+  justify-content: center;
 }
 
 .checklist-card-stat-label {
@@ -1821,16 +1819,13 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   .checklist-card-stats {
     display: flex;
     overflow-x: auto;
-    padding-bottom: 0.6rem;
     justify-content: space-between;
-    padding-left: 1px;
-    padding-right: 6px;
+    gap: 0rem;
   }
 
   .checklist-card-stat {
     flex: 0 0 28%;
     min-width: 120px;
-    padding: 0.55rem 0.6rem;
     align-items: center;
   }
 
