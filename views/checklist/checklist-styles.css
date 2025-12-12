@@ -1954,13 +1954,17 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     -webkit-hyphens: auto;
   }
 
-  /* Semáforos ultra compactos: solo círculos de color */
+  /* Semáforos ultra compactos: círculos perfectos */
   .semaforo-visual {
-    min-width: 34px;
+    width: 34px;
     height: 34px;
-    padding: 0.35rem;
+    min-width: 34px;
+    max-width: 34px;
+    padding: 0;
     border-width: 2px;
     border-radius: 50%;
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
   }
 
   .checklist-semaforo-option .semaforo-dot {
