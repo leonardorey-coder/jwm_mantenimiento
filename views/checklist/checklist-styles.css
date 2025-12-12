@@ -294,7 +294,8 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   transition: transform 0.2s ease;
 }
 
-.checklist-categorias-toggle.is-open .toggle-indicator {
+.checklist-categorias-toggle.is-open .toggle-indicator,
+.checklist-categorias-toggle.open .toggle-indicator {
   transform: rotate(180deg);
 }
 
@@ -523,18 +524,19 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 .checklist-action-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid var(--border-color);
+  border: 3px solid var(--gris-medio);
   border-radius: var(--radio-pequeno);
   background: var(--blanco);
   color: var(--texto-secundario);
   cursor: pointer;
   transition: var(--transicion-rapida);
   font-size: 0.9rem;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
 }
 
 .checklist-action-btn:hover {
@@ -2452,13 +2454,15 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
    ======================================== */
 
 /* Botón de cámara en cada ítem */
+/* Botón de cámara en cada ítem - mismo tamaño que semaforo-visual */
 .checklist-foto-btn {
-  display: flex;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
+  gap: 0.1rem;
+  padding: 0.45rem 0.55rem;
+  min-width: 56px;
   margin-left: 0.35rem;
   background: var(--blanco);
   border: 3px solid var(--gris-medio);

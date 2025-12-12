@@ -1908,6 +1908,11 @@ function renderChecklistGrid(data) {
                             <i class="fas fa-clipboard-list"></i>
                             <span>${totalItems} ítems</span>
                         </span>
+                        <span class="checklist-meta-divider"></span>
+                        <span class="checklist-meta-item checklist-foto-counter" data-cuarto-id="${habitacion.cuarto_id}">
+                            <i class="fas fa-images"></i>
+                            <span class="foto-count">-</span>
+                        </span>
                         ${ultimoEditor ? `
                         <span class="checklist-meta-divider"></span>
                         <span class="checklist-meta-item checklist-editor-tag">
@@ -1958,6 +1963,9 @@ function renderChecklistGrid(data) {
             actionBtn.addEventListener('click', () => openChecklistDetailsModal(habitacion.cuarto_id));
         }
     });
+
+    // Cargar contadores de fotos para las tarjetas visibles
+    cargarContadoresFotos();
 }
 
 function buildChecklistItemHTML(habitacion, item, itemIndex) {
@@ -2664,16 +2672,30 @@ function exportarChecklistExcel() {
 }
 
 function initChecklistEventListeners() {
-    // Toggle de categorías (móvil)
+    // Toggle de categorías (móvil) - usar onclick para evitar listeners duplicados
     const toggleBtn = document.getElementById('toggleCategoriasBtn');
     const wrapper = document.getElementById('checklistCategoriasWrapper');
 
     if (toggleBtn && wrapper) {
-        toggleBtn.addEventListener('click', () => {
+        // Restaurar estado previo si existe (para mantenerlo al cambiar de tab)
+        if (typeof AppState.checklistFilterOpen === 'undefined') {
+            AppState.checklistFilterOpen = false;
+        }
+
+        // Aplicar estado inicial
+        wrapper.setAttribute('data-mobile-open', AppState.checklistFilterOpen ? 'true' : 'false');
+        toggleBtn.setAttribute('aria-expanded', AppState.checklistFilterOpen ? 'true' : 'false');
+        toggleBtn.classList.toggle('open', AppState.checklistFilterOpen);
+
+        // Handler del toggle
+        toggleBtn.onclick = () => {
             const isOpen = wrapper.getAttribute('data-mobile-open') === 'true';
-            wrapper.setAttribute('data-mobile-open', !isOpen ? 'true' : 'false');
-            toggleBtn.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
-        });
+            const newState = !isOpen;
+            AppState.checklistFilterOpen = newState; // Guardar en estado
+            wrapper.setAttribute('data-mobile-open', newState ? 'true' : 'false');
+            toggleBtn.setAttribute('aria-expanded', newState ? 'true' : 'false');
+            toggleBtn.classList.toggle('open', newState);
+        };
     }
 
     // Búsqueda general
@@ -4188,6 +4210,28 @@ async function cargarFotosChecklist(cuartoId) {
 }
 
 /**
+ * Carga los contadores de fotos para todas las tarjetas de checklist visibles
+ */
+async function cargarContadoresFotos() {
+    const counters = document.querySelectorAll('.checklist-foto-counter');
+
+    for (const counter of counters) {
+        const cuartoId = counter.dataset.cuartoId;
+        if (!cuartoId) continue;
+
+        try {
+            const fotos = await ChecklistAPI.getFotosByCuarto(cuartoId);
+            const countSpan = counter.querySelector('.foto-count');
+            if (countSpan) {
+                countSpan.textContent = fotos.length;
+            }
+        } catch (error) {
+            console.warn(`⚠️ Error cargando foto count para cuarto ${cuartoId}`);
+        }
+    }
+}
+
+/**
  * Muestra una foto en pantalla completa con todos sus detalles
  */
 function mostrarFotoCompletaChecklist(fotoId, fotoUrl, itemNombre, notas, usuarioNombre, fecha) {
@@ -4243,6 +4287,20 @@ function mostrarFotoCompletaChecklist(fotoId, fotoUrl, itemNombre, notas, usuari
 
     modal.style.display = 'flex';
     document.body.classList.add('modal-open');
+
+    // Cerrar con ESC (removiendo listener previo si existe)
+    if (window.fotoCompletaEscHandler) {
+        document.removeEventListener('keydown', window.fotoCompletaEscHandler, true);
+    }
+    window.fotoCompletaEscHandler = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            cerrarModalFotoCompleta();
+        }
+    };
+    // Usar capture: true para interceptar antes que otros handlers
+    document.addEventListener('keydown', window.fotoCompletaEscHandler, true);
 }
 
 /**
@@ -4252,6 +4310,11 @@ function cerrarModalFotoCompleta() {
     const modal = document.getElementById('modalFotoCompleta');
     if (modal) {
         modal.style.display = 'none';
+    }
+    // Remover listener de ESC (con capture:true para que coincida)
+    if (window.fotoCompletaEscHandler) {
+        document.removeEventListener('keydown', window.fotoCompletaEscHandler, true);
+        window.fotoCompletaEscHandler = null;
     }
     // No quitar modal-open porque el modal de detalles sigue abierto
 }
