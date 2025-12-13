@@ -141,6 +141,12 @@ async function refreshAccessToken() {
 
 // Limpiar datos de autenticación
 function clearAuthData() {
+    // Limpiar persistencia de Electron (si existe)
+    if (window.electronAPI && window.electronAPI.auth) {
+        console.log('🔴 [LOGOUT] Limpiando almacenamiento persistente de Electron...');
+        window.electronAPI.auth.clear().catch(err => console.error('❌ Error limpiando Electron Auth:', err));
+    }
+
     // Limpiar localStorage
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
