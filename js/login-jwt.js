@@ -112,6 +112,32 @@ function updateThemeIcon(theme) {
 // Inicializar sistema de autenticación
 async function initializeAuth() {
     console.log('🔵 [LOGIN-JWT] initializeAuth() - Iniciando verificación de autenticación');
+
+    // INTENTO DE RECUPERACIÓN VÍA ELECTRON (Persistencia Desktop)
+    if (window.electronAPI && window.electronAPI.auth) {
+        try {
+            console.log('🔵 [LOGIN-JWT] Intentando recuperar sesión de Electron Storage...');
+            const electronAuth = await window.electronAPI.auth.get();
+
+            if (electronAuth && electronAuth.accessToken) {
+                console.log('✅ [LOGIN-JWT] Sesión recuperada de Electron Storage');
+
+                // Restaurar en localStorage para que el resto de la app funcione
+                localStorage.setItem('accessToken', electronAuth.accessToken);
+                localStorage.setItem('refreshToken', electronAuth.refreshToken);
+                localStorage.setItem('tokenExpiration', electronAuth.tokenExpiration);
+                localStorage.setItem('tokenType', electronAuth.tokenType);
+                localStorage.setItem('sesionId', electronAuth.sesionId);
+
+                if (electronAuth.currentUser) {
+                    localStorage.setItem('currentUser', JSON.stringify(electronAuth.currentUser));
+                }
+            }
+        } catch (err) {
+            console.warn('⚠️ [LOGIN-JWT] Error recuperando sesión de Electron:', err);
+        }
+    }
+
     // Verificar si hay token JWT válido (en localStorage o sessionStorage)
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
@@ -228,6 +254,38 @@ loginForm.addEventListener('submit', async (e) => {
                 }
             }
 
+            // Guardar información del usuario
+            const requiereCambioPassword = !!data.usuario.requiere_cambio_password;
+
+            const userData = {
+                id: data.usuario.id,
+                nombre: data.usuario.nombre,
+                email: data.usuario.email,
+                numero_empleado: data.usuario.numero_empleado,
+                departamento: data.usuario.departamento,
+                telefono: data.usuario.telefono,
+                rol: data.usuario.rol,
+                permisos: data.usuario.permisos,
+                requiere_cambio_password: requiereCambioPassword
+            };
+
+            // PERSISTENCIA ELECTRON (Si es Desktop y Recordarme)
+            if (rememberMe && window.electronAPI && window.electronAPI.auth) {
+                try {
+                    await window.electronAPI.auth.save({
+                        accessToken: data.tokens.accessToken,
+                        refreshToken: data.tokens.refreshToken,
+                        tokenExpiration: data.tokens.expiresIn,
+                        tokenType: data.tokens.tokenType,
+                        sesionId: data.sesion_id,
+                        currentUser: userData
+                    });
+                    console.log('✅ [LOGIN-JWT] Sesión guardada en Electron Storage');
+                } catch (err) {
+                    console.error('❌ [LOGIN-JWT] Error guardando en Electron:', err);
+                }
+            }
+
             // Guardar tokens también en localStorage/sessionStorage como fallback
             if (rememberMe) {
                 localStorage.setItem('accessToken', data.tokens.accessToken);
@@ -250,20 +308,12 @@ loginForm.addEventListener('submit', async (e) => {
                 sesionId: data.sesion_id
             });
 
-            // Guardar información del usuario
-            const requiereCambioPassword = !!data.usuario.requiere_cambio_password;
-
-            const userData = {
-                id: data.usuario.id,
-                nombre: data.usuario.nombre,
-                email: data.usuario.email,
-                numero_empleado: data.usuario.numero_empleado,
-                departamento: data.usuario.departamento,
-                telefono: data.usuario.telefono,
-                rol: data.usuario.rol,
-                permisos: data.usuario.permisos,
-                requiere_cambio_password: requiereCambioPassword
-            };
+            // Guardar información del usuario - YA DEFINIDO ARRIBA
+            // const requiereCambioPassword = !!data.usuario.requiere_cambio_password;
+            //
+            // const userData = {
+            //    ...
+            // };
 
             // Guardar usuario en IndexedDB
             if (window.storageHelper) {
@@ -356,6 +406,9 @@ async function refreshAccessToken() {
 
 // Limpiar datos de autenticación
 function clearAuthData() {
+    if (window.electronAPI && window.electronAPI.auth) {
+        window.electronAPI.auth.clear().catch(e => console.error(e));
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('tokenExpiration');

@@ -3,8 +3,9 @@
  * Entry point para la aplicación de escritorio
  */
 
-const { app, BrowserWindow, shell } = require('electron');
+const fs = require('fs/promises');
 const path = require('path');
+const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const express = require('express');
 const cors = require('cors');
 
@@ -19,6 +20,47 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 let server;
 let serverPort;
+
+/**
+ * Gestión de almacenamiento persistente para Auth (Tokens)
+ * Necesario porque el puerto dinámico cambia el origen y borra localStorage
+ */
+const authDataPath = path.join(app.getPath('userData'), 'auth-data.json');
+
+async function saveAuthData(data) {
+    try {
+        await fs.writeFile(authDataPath, JSON.stringify(data, null, 2));
+        return { success: true };
+    } catch (error) {
+        console.error('Error guardando auth data:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+async function getAuthData() {
+    try {
+        const data = await fs.readFile(authDataPath, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        // Si no existe el archivo, no es error, solo no hay datos
+        if (error.code !== 'ENOENT') {
+            console.error('Error leyendo auth data:', error);
+        }
+        return null;
+    }
+}
+
+async function clearAuthData() {
+    try {
+        await fs.unlink(authDataPath);
+        return { success: true };
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            console.error('Error borrando auth data:', error);
+        }
+        return { success: false };
+    }
+}
 
 /**
  * Inicia el servidor Express local con archivos estáticos y API
@@ -82,7 +124,7 @@ async function startServer() {
  */
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 420,
+        width: 400,
         height: 700,
         minWidth: 400,
         minHeight: 550,
@@ -151,16 +193,26 @@ function resizeForPage(url) {
     if (!mainWindow) return;
 
     if (url.includes('login.html')) {
-        // Tamaño compacto para login
-        mainWindow.setSize(420, 700);
-        mainWindow.setMinimumSize(400, 550);
-        mainWindow.center();
-        // Titlebar transparente con símbolos oscuros para login
+        // Asegurar que no esté maximizada
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize();
+        }
+
+        // Configurar título y controles primero
         mainWindow.setTitleBarOverlay({
             color: '#00000000',
             symbolColor: '#1E1E1E',
             height: 32
         });
+
+        // IMPORTANTE: Primero reducir el tamaño mínimo para permitir que setSize funcione
+        mainWindow.setMinimumSize(400, 550);
+        mainWindow.setResizable(true);
+
+        // Ahora sí cambiar el tamaño
+        mainWindow.setSize(400, 700);
+        mainWindow.center();
+        mainWindow.focus(); // Asegurar que la ventana recupere el foco para UI interactiva
     } else if (url.includes('index.html') || url.endsWith('/')) {
         // Tamaño completo para dashboard
         mainWindow.setSize(1400, 900);
@@ -184,6 +236,11 @@ app.whenReady().then(async () => {
         console.log('🚀 Iniciando JW Mantto Desktop...');
         console.log(`📁 Directorio: ${__dirname}`);
         console.log(`🌍 Entorno: ${isDev ? 'development' : 'production'}`);
+
+        // Registrar handlers IPC para Auth
+        ipcMain.handle('auth:save', async (event, data) => saveAuthData(data));
+        ipcMain.handle('auth:get', async () => getAuthData());
+        ipcMain.handle('auth:clear', async () => clearAuthData());
 
         // Verificar variables de entorno críticas
         if (!process.env.DATABASE_URL && !process.env.DB_HOST) {

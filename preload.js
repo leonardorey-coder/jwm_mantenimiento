@@ -18,7 +18,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     // Verificar si está en Electron
-    isElectron: true
+    isElectron: true,
+
+    // Métodos de autenticación persistente
+    auth: {
+        save: (data) => ipcRenderer.invoke('auth:save', data),
+        get: () => ipcRenderer.invoke('auth:get'),
+        clear: () => ipcRenderer.invoke('auth:clear')
+    }
 });
 
 // Indicar que la app se ejecuta en Electron (para detección en el frontend)

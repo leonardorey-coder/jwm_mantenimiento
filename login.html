@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Login - JW Marriott Sistema de Mantenimiento</title>
-    
+
     <!-- Detectar modo standalone (PWA instalada) y establecer tema -->
     <script>
-        (function() {
+        (function () {
             // Detectar modo standalone
             if (window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
                 document.documentElement.classList.add('standalone-mode');
@@ -17,7 +18,7 @@
             document.documentElement.setAttribute('data-theme', theme);
         })();
     </script>
-    
+
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/login-style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -29,13 +30,15 @@
     <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png">
     <link rel="shortcut icon" href="icons/favicon.ico">
 </head>
+
 <body class="login-body">
     <div class="login-container">
         <!-- Logo Container con animación -->
         <div class="login-logo-container">
             <img src="logo_high.png" alt="JW Marriott Logo" class="login-logo">
             <h1 class="login-title">SGSOM</h1>
-            <p class="login-subtitle">Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y Espacios Comunes</p>
+            <p class="login-subtitle">Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y Espacios Comunes
+            </p>
         </div>
 
         <!-- Switch de Tema en el login -->
@@ -62,13 +65,7 @@
                     <i class="fas fa-envelope"></i>
                     Correo Electrónico
                 </label>
-                <input 
-                    type="email" 
-                    id="loginEmail" 
-                    class="form-input" 
-                    placeholder="correo@ejemplo.com" 
-                    required
-                >
+                <input type="email" id="loginEmail" class="form-input" placeholder="correo@ejemplo.com" required>
             </div>
 
             <div class="form-group">
@@ -77,13 +74,7 @@
                     Contraseña
                 </label>
                 <div class="password-input-container">
-                    <input 
-                        type="password" 
-                        id="loginPassword" 
-                        class="form-input" 
-                        placeholder="••••••••" 
-                        required
-                    >
+                    <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required>
                     <button type="button" class="toggle-password" data-target="loginPassword">
                         <i class="fas fa-eye"></i>
                     </button>
@@ -165,7 +156,8 @@
 
                     <label for="forgotNotes">
                         <span>Comentarios para el administrador (opcional)</span>
-                        <textarea id="forgotNotes" rows="3" placeholder="Agrega contexto para acelerar el soporte"></textarea>
+                        <textarea id="forgotNotes" rows="3"
+                            placeholder="Agrega contexto para acelerar el soporte"></textarea>
                     </label>
 
                     <div class="forgot-admin-card" id="forgotAdminCard">
@@ -173,7 +165,8 @@
                             <i class="fas fa-headset"></i>
                         </div>
                         <div class="admin-contact">
-                            <p>Tu solicitud será atendida por <strong id="forgotAdminName">Fidel Cruz Lozada</strong>.</p>
+                            <p>Tu solicitud será atendida por <strong id="forgotAdminName">Fidel Cruz Lozada</strong>.
+                            </p>
                             <a href="mailto:fcruz@grupodiestra.com" id="forgotAdminEmail">fcruz@grupodiestra.com</a>
                             <span id="forgotAdminPhone">+52 624 237 1063</span>
                         </div>
@@ -196,7 +189,8 @@
                     <i class="fas fa-shield-alt"></i>
                     <div>
                         <h3>Actualiza tu contraseña</h3>
-                        <p>Por seguridad, <span id="forcePasswordUser">tu cuenta</span> debe establecer una nueva contraseña antes de continuar.</p>
+                        <p>Por seguridad, <span id="forcePasswordUser">tu cuenta</span> debe establecer una nueva
+                            contraseña antes de continuar.</p>
                     </div>
                 </div>
                 <form id="forcePasswordForm" class="force-password-form" novalidate>
@@ -232,20 +226,20 @@
         // Importar módulos de IndexedDB
         import dbManager from './js/indexeddb-manager.js';
         import storageHelper from './js/storage-helper.js';
-        
+
         // Exponer globalmente para compatibilidad
         window.dbManager = dbManager;
         window.storageHelper = storageHelper;
-        
+
         // Inicializar IndexedDB antes de cargar login
         console.log('🔧 [Login] Inicializando sistema de almacenamiento...');
-        
+
         Promise.all([
             dbManager.init(),
             storageHelper.init()
         ]).then(() => {
             console.log('✅ [Login] Sistema de almacenamiento inicializado');
-            
+
             // Cargar script de login
             const script = document.createElement('script');
             script.src = 'js/login-jwt.js?v=' + Date.now();
@@ -254,7 +248,7 @@
             document.body.appendChild(script);
         }).catch(error => {
             console.error('❌ [Login] Error al inicializar storage:', error);
-            
+
             // Cargar de todas formas (fallback)
             const script = document.createElement('script');
             script.src = 'js/login-jwt.js?v=' + Date.now();
@@ -263,4 +257,5 @@
         });
     </script>
 </body>
+
 </html>
