@@ -2,15 +2,17 @@
   "name": "jw-mantto",
   "version": "1.2.0",
   "description": "JW Mantto - Sistema de Gestión de Mantenimiento (PWA + PostgreSQL)",
-  "main": "server.js",
+  "main": "js/server.js",
   "author": {
     "name": "JW Marriott",
     "email": "mantto@jwmarriott.com"
   },
   "scripts": {
-    "start": "node server.js",
-    "dev": "NODE_ENV=development node server.js",
-    "prod": "NODE_ENV=production node server.js",
+    "dev": "next dev -p 3000",
+    "build": "next build",
+    "start": "next start -p 3000",
+    "backend": "NODE_ENV=development node js/server.js",
+    "backend:prod": "NODE_ENV=production node js/server.js",
     "setup:postgres": "./scripts/setup-postgres.sh",
     "vercel": "vercel dev",
     "vercel:dev": "vercel dev",
@@ -28,7 +30,10 @@
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "next": "^15.0.3",
     "pg": "^8.13.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "uploadthing": "^7.7.4"
   },
   "devDependencies": {
@@ -43,8 +48,8 @@
     "stylelint-config-standard": "^39.0.1"
   },
   "engines": {
-    "node": ">=16.0.0",
-    "npm": ">=8.0.0"
+    "node": ">=18.18.0",
+    "npm": ">=9.0.0"
   },
   "keywords": [
     "mantenimiento",

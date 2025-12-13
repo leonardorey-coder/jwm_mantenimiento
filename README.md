@@ -1,6 +1,6 @@
 # Sistema de Gestión de Servicios Operativa de Mantenimiento (SGSOM) - JW Mantto
 
-Sistema moderno de registro y gestión de mantenimiento de habitaciones para hoteles, construido como **PWA (Progressive Web App) con Node.js/Express + PostgreSQL**. Funciona online y offline, con **sincronización automática** cuando se recupera la conexión.
+Sistema moderno de registro y gestión de mantenimiento de habitaciones para hoteles. Ahora se entrega con **frontend Next.js + React**, utilidades de estilo **tailwind-like centralizadas** y un backend **Node.js/Express vanilla** con PostgreSQL. Funciona online y offline, con **sincronización automática** cuando se recupera la conexión.
 
 > 🎯 Arquitectura actualizada: PWA + PostgreSQL con soporte offline y sincronización diferida (cola de cambios en BD local del navegador).
 
@@ -40,7 +40,7 @@ Diseñar e implementar un sistema web (PWA) para la gestión operativa de manten
 
 ### Prerrequisitos
 
-- **Node.js** v16 o superior
+- **Node.js** v18.18 o superior (requerido por Next.js 15)
 - **npm** (incluido con Node.js)
 - **PostgreSQL** 13+ (local o en la nube)
 
@@ -75,21 +75,25 @@ psql -U postgres -d jwmantto -f db/schema-postgres-completo.sql
 # psql -U postgres -d jwmantto -f db/migration_checklist_schema.sql
 ```
 
-### Ejecutar la Aplicación (PWA/API)
+### Ejecutar la Aplicación (Next.js + backend Express)
 
 ```bash
-# Express local (usa js/server.js)
-npm start
+# Frontend Next.js con estilos centralizados (puerto 3000)
+npm run dev
 
-# O emular entorno serverless Vercel
+# Backend JS vanilla existente (puerto 3001)
+npm run backend
+
+# Entorno serverless Vercel (opcional)
 npm run vercel:dev
 ```
 
-Accede en `http://localhost:3001` (o `http://localhost:3000` con Vercel dev). Verifica `/api/health` y luego instala la PWA desde el navegador.
+Accede en `http://localhost:3000` para la nueva UI Next.js. El backend Express continúa disponible en `http://localhost:3001` y puede ser consumido desde el frontend.
 
 ## 🧱 Arquitectura
 
-- **Frontend (PWA)**: `index.html`, `css/style.css`, `js/app.js`, `manifest.json`, `sw.js`, módulos en `views/` (tareas, checklist, usuarios). Cache de recursos, estado global y consumo de API vía `fetchWithAuth`. Persistencia local con IndexedDB (cola de cambios y datos esenciales).
+- **Frontend (Next.js + React)**: directorio `app/` con layout y página principal, componentes en `components/` y utilidades de estilo unificadas en `styles/jwm-mantto-tailwind.css` (tailwind-like sin dependencia externa). La UI se construye con renderización híbrida (SSR/CSR) y puede integrarse con el backend vía fetch.
+- **Frontend legacy (PWA)**: `index.html`, `css/style.css`, `js/app.js`, `manifest.json`, `sw.js`, módulos en `views/` (tareas, checklist, usuarios). Cache de recursos, estado global y consumo de API vía `fetchWithAuth`. Persistencia local con IndexedDB (cola de cambios y datos esenciales).
 - **Backend (API REST)**:
   - Serverless Vercel: `api/index.js` (Express exportado como función) + `api/auth*.js` (JWT, roles).
   - Express local: `js/server.js` (usa el mismo `PostgresManager` que Vercel).
