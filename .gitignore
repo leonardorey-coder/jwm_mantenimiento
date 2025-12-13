@@ -32,7 +32,6 @@ test-*.js
 
 # Archivos PHP legacy (proyecto migrado a Node.js)
 *.php
-/app/
 /config/
 bootstrap.php
 
