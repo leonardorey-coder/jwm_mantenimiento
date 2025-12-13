@@ -1,0 +1,30 @@
+/**
+ * JW Mantto - Electron Preload Script
+ * Proporciona un puente seguro entre el proceso de renderizado y el principal
+ */
+
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Exponer APIs seguras al proceso de renderizado
+contextBridge.exposeInMainWorld('electronAPI', {
+    // Información de la plataforma
+    platform: process.platform,
+
+    // Versiones
+    versions: {
+        node: process.versions.node,
+        chrome: process.versions.chrome,
+        electron: process.versions.electron
+    },
+
+    // Verificar si está en Electron
+    isElectron: true
+});
+
+// Indicar que la app se ejecuta en Electron (para detección en el frontend)
+window.addEventListener('DOMContentLoaded', () => {
+    console.log('🖥️ JW Mantto Desktop cargado');
+
+    // Add electron-app class for CSS styling
+    document.body.classList.add('electron-app');
+});

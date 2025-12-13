@@ -3,9 +3,10 @@
 // ========================================
 
 // Configuración de la API
+// En Vercel: URL relativa. En Electron/localhost: usar origin (puerto dinámico)
 const API_BASE_URL = window.location.hostname.includes('vercel.app') ||
     window.location.hostname.includes('vercel.com') ? '' :
-    window.location.port === '3000' ? '' : 'http://localhost:3001';
+    window.location.hostname === 'localhost' ? '' : '';
 
 // Estado global de la aplicación
 const AppState = {

@@ -18,6 +18,7 @@
 
 # Directorios de build
 /dist
+/dist-electron
 /out
 
 # Archivos de prueba
