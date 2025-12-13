@@ -106,7 +106,7 @@ jwm_mant_cuartos/
 └── ...
 ```
 
-> ℹ️ Vercel detecta automáticamente Next.js y publica el artefacto que genera la CLI (`.vercel/output`) sin requerir `outputDirectory` manual.
+> ℹ️ Vercel detecta automáticamente Next.js y publica el artefacto que genera la CLI (`.vercel/output`).
 
 ## 🔄 Diferencias entre Entornos
 
