@@ -1,5 +1,4 @@
 # 🚀 Guía de Despliegue y Desarrollo con Vercel
-
 Esta guía explica cómo trabajar con la aplicación JW Mantto usando Vercel, tanto para desarrollo local como para producción.
 
 ## 📋 Requisitos Previos
@@ -107,7 +106,7 @@ jwm_mant_cuartos/
 └── ...
 ```
 
-> ℹ️ El build de Next.js se publica en `.vercel/output`, configurado en `vercel.json` para que Vercel lo recoja automáticamente.
+> ℹ️ Vercel detecta automáticamente Next.js y publica el artefacto que genera la CLI (`.vercel/output`) sin requerir `outputDirectory` manual.
 
 ## 🔄 Diferencias entre Entornos
 

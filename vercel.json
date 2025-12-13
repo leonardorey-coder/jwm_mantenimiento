@@ -60,6 +60,5 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "buildCommand": "npm run build",
-  "outputDirectory": ".vercel/output"
+  "buildCommand": "npm run build"
 }
