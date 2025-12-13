@@ -107,6 +107,8 @@ jwm_mant_cuartos/
 └── ...
 ```
 
+> ℹ️ El build de Next.js se publica en `.vercel/output`, configurado en `vercel.json` para que Vercel lo recoja automáticamente.
+
 ## 🔄 Diferencias entre Entornos
 
 ### Desarrollo Local (Express)

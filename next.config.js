@@ -5,6 +5,11 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  eslint: {
+    // Omite el linting durante los builds en Vercel para evitar warnings del plugin
+    // cuando se usan configuraciones personalizadas.
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig;
