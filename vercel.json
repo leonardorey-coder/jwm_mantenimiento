@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "outputDirectory": ".vercel/output",
   "functions": {
     "api/index.js": {
       "maxDuration": 30
