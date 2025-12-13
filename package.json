@@ -2,7 +2,7 @@
   "name": "jw-mantto",
   "version": "1.2.0",
   "description": "JW Mantto - Sistema de Gestión de Mantenimiento (PWA + PostgreSQL)",
-  "main": "server.js",
+  "main": "main.js",
   "author": {
     "name": "JW Marriott",
     "email": "mantto@jwmarriott.com"
@@ -16,6 +16,10 @@
     "vercel:dev": "vercel dev",
     "vercel:build": "vercel build",
     "vercel:deploy": "vercel --prod",
+    "electron": "electron .",
+    "electron:dev": "cross-env NODE_ENV=development electron .",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
     "lint:js": "eslint .",
     "check:duplication": "jscpd",
     "lint:css": "stylelint \"**/*.css\"",
@@ -29,10 +33,14 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "pg": "^8.13.1",
+    "pg-connection-string": "^2.6.2",
     "uploadthing": "^7.7.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "cross-env": "^7.0.3",
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1",
     "eslint": "^9.39.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
@@ -41,6 +49,43 @@
     "prettier": "^3.7.4",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1"
+  },
+  "build": {
+    "appId": "com.jwmarriott.mantto",
+    "productName": "JW Mantto",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/.cache/**/*",
+      "!dist/**/*",
+      "!dist-electron/**/*",
+      "!.git/**/*",
+      "!.vercel/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": ".env",
+        "to": ".env",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ],
+      "icon": "icons/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "icons/icon.ico",
+      "uninstallerIcon": "icons/icon.ico"
+    }
   },
   "engines": {
     "node": ">=16.0.0",
@@ -53,7 +98,9 @@
     "postgresql",
     "jw-marriott",
     "habitaciones",
-    "offline-first"
+    "offline-first",
+    "electron",
+    "desktop"
   ],
   "repository": {
     "type": "git",

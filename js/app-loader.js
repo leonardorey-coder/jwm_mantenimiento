@@ -13,24 +13,23 @@
     // En Vercel, usa la URL relativa. En local, usa localhost:3000 (Vercel dev) o 3001 (Express)
     const API_BASE_URL = (() => {
         const hostname = window.location.hostname;
-        const port = window.location.port;
 
         // Detectar si estamos en Vercel (producción o preview)
         if (hostname.includes('vercel.app') || hostname.includes('vercel.com')) {
-            // En Vercel, usar URL relativa (mismo dominio)
             console.log('🌐 Entorno: Vercel (producción/preview)');
             return '';
         }
 
-        // En desarrollo local con Vercel CLI (puerto 3000)
-        if (port === '3000') {
-            console.log('🌐 Entorno: Vercel Dev (localhost:3000)');
-            return ''; // Usar URL relativa, Vercel dev maneja las rutas
+        // En localhost (Vercel Dev, Express, o Electron) usar URLs relativas
+        // Esto funciona con cualquier puerto dinámico
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            console.log('🌐 Entorno: Localhost (puerto:', window.location.port, ')');
+            return ''; // Usar URL relativa, funciona con cualquier puerto
         }
 
-        // En desarrollo local con Express (puerto 3001)
-        console.log('🌐 Entorno: Express local (localhost:3001)');
-        return 'http://localhost:3001';
+        // Fallback para otros entornos
+        console.log('🌐 Entorno: Otro -', hostname);
+        return '';
     })();
 
     console.log('🔧 DEBUG: app-loader.js - Configuración:', {

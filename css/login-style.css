@@ -35,6 +35,7 @@
         opacity: 0;
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -46,6 +47,7 @@
         opacity: 0;
         transform: translateX(-10px);
     }
+
     to {
         opacity: 1;
         transform: translateX(0);
@@ -57,6 +59,7 @@
         opacity: 0;
         transform: translateY(-30px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -68,6 +71,7 @@
         opacity: 0;
         transform: scale(0.8);
     }
+
     to {
         opacity: 1;
         transform: scale(1);
@@ -75,9 +79,19 @@
 }
 
 @keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-10px); }
-    75% { transform: translateX(10px); }
+
+    0%,
+    100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(-10px);
+    }
+
+    75% {
+        transform: translateX(10px);
+    }
 }
 
 /* ========================================
@@ -94,6 +108,37 @@
     padding: 0;
     transition: background 0.3s ease;
     overflow-x: hidden;
+}
+
+/* ========================================
+   ELECTRON DESKTOP STYLES
+   ======================================== */
+/* Hide scrollbar for Electron app */
+.login-body::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.login-body {
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+/* Custom titlebar spacing for Electron frameless window */
+.electron-app .login-container {
+    padding-top: calc(32px + 1.5rem);
+    /* Titlebar height + original padding */
+    -webkit-app-region: drag;
+}
+
+.electron-app .login-container button,
+.electron-app .login-container a,
+.electron-app .login-container input,
+.electron-app .login-container .theme-toggle-btn {
+    -webkit-app-region: no-drag;
 }
 
 /* ========================================
@@ -124,11 +169,11 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, 
-        transparent 0%, 
-        var(--login-btn-bg) 15%, 
-        var(--login-btn-bg) 85%, 
-        transparent 100%);
+    background: linear-gradient(90deg,
+            transparent 0%,
+            var(--login-btn-bg) 15%,
+            var(--login-btn-bg) 85%,
+            transparent 100%);
 }
 
 /* ========================================
@@ -257,8 +302,13 @@
     animation: fadeInUp 0.5s ease both;
 }
 
-.form-group:nth-child(1) { animation-delay: 0.15s; }
-.form-group:nth-child(2) { animation-delay: 0.25s; }
+.form-group:nth-child(1) {
+    animation-delay: 0.15s;
+}
+
+.form-group:nth-child(2) {
+    animation-delay: 0.25s;
+}
 
 .form-group label {
     display: flex;
@@ -332,7 +382,10 @@
    ======================================== */
 .form-options {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    align-items: center;
     gap: 0.75rem;
     margin-bottom: 1.5rem;
     font-size: 0.85rem;
@@ -345,6 +398,7 @@
     gap: 0.5rem;
     color: var(--login-text-secondary);
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .remember-me input[type="checkbox"] {
@@ -354,11 +408,17 @@
     accent-color: var(--login-btn-bg);
 }
 
+.remember-me span {
+    cursor: pointer;
+}
+
 .forgot-password {
     color: var(--login-btn-bg);
     text-decoration: none;
     font-weight: 600;
     transition: all 0.3s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .forgot-password:hover {
@@ -929,12 +989,6 @@ body.login-body.modal-open {
         font-size: 0.9rem;
     }
 
-    .form-options {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-    }
-
     .login-footer {
         margin-top: 2rem;
         padding-top: 1.5rem;
@@ -1036,6 +1090,7 @@ body.login-body.modal-open {
    MODALES EN MÓVIL - FULLSCREEN
    ======================================== */
 @media (max-width: 599px) {
+
     .forgot-card,
     .force-password-card {
         max-height: calc(100vh - 2rem);

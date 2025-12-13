@@ -3,9 +3,10 @@
 // ======================================== 
 
 // Configuración de la API
-const API_BASE_URL = window.location.hostname.includes('vercel.app') || 
-                     window.location.hostname.includes('vercel.com') ? '' : 
-                     window.location.port === '3000' ? '' : 'http://localhost:3001';
+// En Vercel: URL relativa. En Electron/localhost: usar origin (puerto dinámico)
+const API_BASE_URL = window.location.hostname.includes('vercel.app') ||
+    window.location.hostname.includes('vercel.com') ? '' :
+    window.location.hostname === 'localhost' ? '' : '';
 let adminContactCache = null;
 let loginPageInitialized = false;
 
@@ -40,11 +41,11 @@ const registerForm = document.getElementById('registerForm');
 toggleButtons.forEach(button => {
     button.addEventListener('click', () => {
         const mode = button.getAttribute('data-mode');
-        
+
         // Actualizar botones activos
         toggleButtons.forEach(btn => btn.classList.remove('active'));
         button.classList.add('active');
-        
+
         // Mostrar formulario correspondiente
         if (mode === 'login') {
             loginForm.classList.add('active');
@@ -53,7 +54,7 @@ toggleButtons.forEach(button => {
             registerForm.classList.add('active');
             loginForm.classList.remove('active');
         }
-        
+
         // Limpiar mensajes
         hideMessage();
     });
@@ -66,7 +67,7 @@ togglePasswordButtons.forEach(button => {
         const targetId = button.getAttribute('data-target');
         const input = document.getElementById(targetId);
         const icon = button.querySelector('i');
-        
+
         if (input.type === 'password') {
             input.type = 'text';
             icon.classList.remove('fa-eye');
@@ -83,9 +84,9 @@ togglePasswordButtons.forEach(button => {
 const themeToggleBtn = document.getElementById('themeToggleLogin');
 if (themeToggleBtn) {
     themeToggleBtn.addEventListener('click', () => {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    
+        const currentTheme = document.documentElement.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
         updateThemeIcon(newTheme);
@@ -95,10 +96,10 @@ if (themeToggleBtn) {
 function updateThemeIcon(theme) {
     const themeBtn = document.getElementById('themeToggleLogin');
     if (!themeBtn) return;
-    
+
     const icon = themeBtn.querySelector('i');
     if (!icon) return;
-    
+
     if (theme === 'dark') {
         icon.classList.remove('fa-moon');
         icon.classList.add('fa-sun');
@@ -115,14 +116,14 @@ async function initializeAuth() {
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-    
-    console.log('🔵 [LOGIN-JWT] Tokens encontrados:', { 
-        hasAccessToken: !!accessToken, 
-        hasRefreshToken: !!refreshToken, 
+
+    console.log('🔵 [LOGIN-JWT] Tokens encontrados:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
         hasCurrentUser: !!currentUser,
-        userRole: currentUser?.rol 
+        userRole: currentUser?.rol
     });
-    
+
     if (accessToken && currentUser) {
         // Verificar si el token está expirado
         const tokenExpiration = localStorage.getItem('tokenExpiration') || sessionStorage.getItem('tokenExpiration');
@@ -163,25 +164,25 @@ async function initializeAuth() {
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     console.log('🟢 [LOGIN-JWT] Formulario de login enviado');
-    
+
     const email = document.getElementById('loginEmail').value.trim();
     const password = document.getElementById('loginPassword').value;
     const rememberMe = document.getElementById('rememberMe').checked;
-    
+
     console.log('🟢 [LOGIN-JWT] Datos de login:', { email, rememberMe });
-    
+
     if (!email || !password) {
         console.log('🔴 [LOGIN-JWT] Campos vacíos');
         showMessage('Por favor completa todos los campos', 'error');
         return;
     }
-    
+
     // Mostrar loading
     const submitBtn = loginForm.querySelector('.btn-submit');
     const originalText = submitBtn.innerHTML;
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
     submitBtn.disabled = true;
-    
+
     try {
         console.log('🟢 [LOGIN-JWT] Enviando petición de login a:', `${API_BASE_URL}/api/auth/login`);
         const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -191,26 +192,26 @@ loginForm.addEventListener('submit', async (e) => {
             },
             body: JSON.stringify({ email, password })
         });
-        
+
         console.log('🟢 [LOGIN-JWT] Respuesta recibida, status:', response.status);
         const data = await response.json();
-        console.log('🟢 [LOGIN-JWT] Data recibida:', { 
-            success: data.success, 
-            usuario: data.usuario ? { 
-                nombre: data.usuario.nombre, 
-                email: data.usuario.email, 
-                rol: data.usuario.rol 
+        console.log('🟢 [LOGIN-JWT] Data recibida:', {
+            success: data.success,
+            usuario: data.usuario ? {
+                nombre: data.usuario.nombre,
+                email: data.usuario.email,
+                rol: data.usuario.rol
             } : null,
             hasSesionId: !!data.sesion_id
         });
-        
+
         if (!response.ok) {
             throw new Error(data.mensaje || data.error || 'Error al iniciar sesión');
         }
-        
+
         if (data.success) {
             console.log('🟢 [LOGIN-JWT] Login exitoso, guardando datos...');
-            
+
             // Guardar en IndexedDB si está disponible
             if (window.storageHelper) {
                 try {
@@ -226,7 +227,7 @@ loginForm.addEventListener('submit', async (e) => {
                     console.warn('⚠️ Error guardando tokens en IndexedDB:', idbError);
                 }
             }
-            
+
             // Guardar tokens también en localStorage/sessionStorage como fallback
             if (rememberMe) {
                 localStorage.setItem('accessToken', data.tokens.accessToken);
@@ -241,14 +242,14 @@ loginForm.addEventListener('submit', async (e) => {
                 sessionStorage.setItem('tokenType', data.tokens.tokenType);
                 sessionStorage.setItem('sesionId', data.sesion_id);
             }
-            
+
             console.log('🟢 [LOGIN-JWT] Tokens guardados:', {
                 hasAccessToken: !!data.tokens.accessToken,
                 hasRefreshToken: !!data.tokens.refreshToken,
                 expiresIn: data.tokens.expiresIn,
                 sesionId: data.sesion_id
             });
-            
+
             // Guardar información del usuario
             const requiereCambioPassword = !!data.usuario.requiere_cambio_password;
 
@@ -263,7 +264,7 @@ loginForm.addEventListener('submit', async (e) => {
                 permisos: data.usuario.permisos,
                 requiere_cambio_password: requiereCambioPassword
             };
-            
+
             // Guardar usuario en IndexedDB
             if (window.storageHelper) {
                 try {
@@ -273,7 +274,7 @@ loginForm.addEventListener('submit', async (e) => {
                     console.warn('⚠️ Error guardando usuario en IndexedDB:', idbError);
                 }
             }
-            
+
             // Fallback a localStorage/sessionStorage
             if (rememberMe) {
                 localStorage.setItem('currentUser', JSON.stringify(userData));
@@ -281,7 +282,7 @@ loginForm.addEventListener('submit', async (e) => {
                 sessionStorage.setItem('currentUser', JSON.stringify(userData));
             }
             console.log('🟢 [LOGIN-JWT] Usuario guardado:', { id: userData.id, nombre: userData.nombre, rol: userData.rol });
-            
+
             if (requiereCambioPassword) {
                 console.log('🟡 [LOGIN-JWT] Usuario debe cambiar su contraseña inmediatamente');
                 submitBtn.innerHTML = originalText;
@@ -293,14 +294,14 @@ loginForm.addEventListener('submit', async (e) => {
 
             // Mostrar mensaje de éxito
             showMessage(`¡Bienvenido, ${data.usuario.nombre}!`, 'success');
-            
+
             // Redirigir después de 1 segundo
             console.log('🟢 [LOGIN-JWT] Redirigiendo al dashboard en 1 segundo...');
             setTimeout(() => {
                 redirectToDashboard(data.usuario.rol);
             }, 1000);
         }
-        
+
     } catch (error) {
         console.error('Error en login:', error);
         showMessage(error.message, 'error');
@@ -312,12 +313,12 @@ loginForm.addEventListener('submit', async (e) => {
 // Refrescar access token usando refresh token
 async function refreshAccessToken() {
     const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
-    
+
     if (!refreshToken) {
         clearAuthData();
         return false;
     }
-    
+
     try {
         const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
             method: 'POST',
@@ -326,13 +327,13 @@ async function refreshAccessToken() {
             },
             body: JSON.stringify({ refreshToken })
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
             throw new Error(data.mensaje || 'Error al refrescar token');
         }
-        
+
         if (data.success) {
             // Actualizar tokens en el storage correspondiente
             const isRemembered = localStorage.getItem('refreshToken') !== null;
@@ -345,7 +346,7 @@ async function refreshAccessToken() {
             }
             return true;
         }
-        
+
     } catch (error) {
         console.error('Error al refrescar token:', error);
         clearAuthData();
@@ -382,7 +383,7 @@ function showMessage(text, type = 'info') {
     const messageDiv = document.getElementById('authMessage');
     messageDiv.textContent = text;
     messageDiv.className = `auth-message ${type} show`;
-    
+
     // Auto-ocultar después de 5 segundos
     setTimeout(() => {
         hideMessage();
@@ -725,22 +726,22 @@ async function handleForcePasswordSubmit(event) {
 async function fetchWithAuth(url, options = {}) {
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const tokenType = localStorage.getItem('tokenType') || sessionStorage.getItem('tokenType') || 'Bearer';
-    
+
     if (!accessToken) {
         throw new Error('No hay sesión activa');
     }
-    
+
     const headers = {
         ...options.headers,
         'Authorization': `${tokenType} ${accessToken}`,
         'Content-Type': 'application/json'
     };
-    
+
     const response = await fetch(url, {
         ...options,
         headers
     });
-    
+
     // Si el token expiró, intentar refrescar
     if (response.status === 401) {
         const refreshed = await refreshAccessToken();
@@ -751,7 +752,7 @@ async function fetchWithAuth(url, options = {}) {
             return await fetch(url, { ...options, headers });
         }
     }
-    
+
     return response;
 }
 
