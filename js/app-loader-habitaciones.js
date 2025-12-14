@@ -1032,7 +1032,16 @@ function mostrarFormularioInline(cuartoId) {
     // Focus en el input de descripción
     setTimeout(() => {
         const input = contenedorServicios.querySelector('.input-inline[name="descripcion"]');
-        if (input) input.focus();
+        if (input) {
+            // Asegurar que el input esté habilitado
+            input.readOnly = false;
+            input.disabled = false;
+            input.removeAttribute('readonly');
+            input.removeAttribute('disabled');
+
+            // Dar focus al input
+            input.focus();
+        }
     }, 100);
 }
 
@@ -1402,7 +1411,7 @@ window.toggleMantenimientos = toggleMantenimientos;
 async function eliminarMantenimientoInline(mantenimientoId, cuartoId) {
     console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
 
-    if (!confirm('¿Está seguro de eliminar este mantenimiento?')) {
+    if (!window.electronSafeConfirm('¿Está seguro de eliminar este mantenimiento?')) {
         console.log('❌ Eliminación cancelada por el usuario');
         return;
     }

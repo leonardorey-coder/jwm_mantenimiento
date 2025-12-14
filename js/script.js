@@ -92,7 +92,7 @@ function manejarMensajes() {
         }
         
         // Usar notificación más moderna si está disponible (ej. Toastify, SweetAlert) o alert simple
-        // alert(textoMensaje); 
+        // electronSafeAlert(textoMensaje); 
         console.log("Mensaje:", textoMensaje); // Log para depuración
     }
     
@@ -115,7 +115,7 @@ function manejarMensajes() {
         textoError = textoError[error] || textoError['default'];
         
         // Usar notificación más moderna o alert simple
-        alert(textoError); // Mostrar errores importantes al usuario
+        electronSafeAlert(textoError); // Mostrar errores importantes al usuario
         console.error("Error:", textoError); // Log para depuración
     }
     

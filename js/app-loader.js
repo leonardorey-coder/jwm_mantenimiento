@@ -2356,12 +2356,12 @@
 
             } else {
                 // Fallback: mostrar alert del navegador
-                alert(`${titulo}\n\n${mensaje}`);
+                electronSafeAlert(`${titulo}\n\n${mensaje}`);
             }
         } catch (error) {
             console.warn('Error mostrando notificación del navegador:', error);
             // Fallback final
-            alert(`${titulo}\n\n${mensaje}`);
+            electronSafeAlert(`${titulo}\n\n${mensaje}`);
         }
     }
 
@@ -2727,7 +2727,7 @@
      * Eliminar servicio desde el modal
      */
     window.eliminarServicioDesdeModal = async function (servicioId, id, esEspacio = false) {
-        if (!confirm('¿Está seguro de eliminar este servicio?')) {
+        if (!window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')) {
             return;
         }
 
@@ -3417,7 +3417,7 @@
      * Eliminar servicio inline (desde la vista de edición)
      */
     window.eliminarServicioInline = async function (servicioId, id, esEspacio = false) {
-        if (!confirm('¿Está seguro de eliminar este servicio?')) {
+        if (!window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')) {
             return;
         }
 
@@ -3636,3 +3636,4 @@
     console.log('App Loader cargado - JW Mantto v1.3 con Edición Inline Completa Modular completo pendiente');
 
 })();
+

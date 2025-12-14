@@ -8,6 +8,44 @@ const API_BASE_URL = window.location.hostname.includes('vercel.app') ||
     window.location.hostname.includes('vercel.com') ? '' :
     window.location.hostname === 'localhost' ? '' : '';
 
+/**
+ * WORKAROUND para bug de Electron con ventanas frameless:
+ * Después de diálogos nativos (confirm/alert), el webContents pierde la capacidad
+ * de procesar input de teclado. Esta función hace el ciclo blur/focus necesario.
+ */
+function refreshElectronFocus() {
+    if (window.electronAPI && window.electronAPI.refreshWindowFocus) {
+        window.electronAPI.refreshWindowFocus().catch(err => {
+            console.warn('Error refrescando foco:', err);
+        });
+    }
+}
+
+/**
+ * Wrapper seguro para confirm() que restaura el foco en Electron
+ * @param {string} message - Mensaje del confirm
+ * @returns {boolean} - Resultado del confirm
+ */
+function electronSafeConfirm(message) {
+    const result = confirm(message);
+    refreshElectronFocus();
+    return result;
+}
+
+/**
+ * Wrapper seguro para alert() que restaura el foco en Electron
+ * @param {string} message - Mensaje del alert
+ */
+function electronSafeAlert(message) {
+    alert(message);
+    refreshElectronFocus();
+}
+
+// Exponer globalmente para uso en otros archivos
+window.electronSafeConfirm = electronSafeConfirm;
+window.electronSafeAlert = electronSafeAlert;
+window.refreshElectronFocus = refreshElectronFocus;
+
 // Estado global de la aplicación
 const AppState = {
     currentUser: null,
@@ -370,7 +408,7 @@ function applyRolePermissions(role) {
 }
 
 async function logout() {
-    if (!confirm('¿Está seguro que desea cerrar sesión?')) {
+    if (!electronSafeConfirm('¿Está seguro que desea cerrar sesión?')) {
         return;
     }
 
@@ -2646,7 +2684,7 @@ function filterChecklistByEstado(estado) {
 function exportarChecklistExcel() {
     const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
     if (userRole !== 'admin' && userRole !== 'supervisor') {
-        alert('Solo administradores y supervisores pueden exportar datos');
+        electronSafeAlert('Solo administradores y supervisores pueden exportar datos');
         return;
     }
 
@@ -2674,7 +2712,7 @@ function exportarChecklistExcel() {
         a.click();
 
         if (spinner) spinner.style.display = 'none';
-        alert('Checklist exportado exitosamente');
+        electronSafeAlert('Checklist exportado exitosamente');
     }, 1000);
 }
 
@@ -2911,7 +2949,7 @@ function verHistorialFiltros() {
     const historial = JSON.parse(localStorage.getItem('sabanaHistorial')) || [];
 
     if (historial.length === 0) {
-        alert('No hay periodos archivados disponibles');
+        electronSafeAlert('No hay periodos archivados disponibles');
         return;
     }
 
@@ -2921,11 +2959,11 @@ function verHistorialFiltros() {
         mensaje += `${index + 1}. ${periodo.periodo} - Archivado el ${fecha}\n`;
     });
 
-    alert(mensaje);
+    electronSafeAlert(mensaje);
 }
 
 function generarReporteChecklist() {
-    alert('Generación de reporte PDF en desarrollo.\nPróximamente podrá descargar reportes detallados en formato PDF.');
+    electronSafeAlert('Generación de reporte PDF en desarrollo.\nPróximamente podrá descargar reportes detallados en formato PDF.');
 }
 
 // ========================================
@@ -3223,15 +3261,15 @@ function abrirModalDetalleServicioEnLista(e, claseDeListaItem) {
 }
 
 function seleccionarEspacioComun(espacioId) {
-    alert(`Funcionalidad en desarrollo: Agregar servicio al espacio ${espacioId}`);
+    electronSafeAlert(`Funcionalidad en desarrollo: Agregar servicio al espacio ${espacioId}`);
 }
 
 function editarMantenimientoEspacio(mantenimientoId) {
-    alert(`Funcionalidad en desarrollo: Editar mantenimiento ${mantenimientoId}`);
+    electronSafeAlert(`Funcionalidad en desarrollo: Editar mantenimiento ${mantenimientoId}`);
 }
 
 async function eliminarMantenimientoEspacio(mantenimientoId) {
-    if (!confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
+    if (!electronSafeConfirm('¿Estás seguro de que deseas eliminar este servicio?')) {
         return;
     }
 
@@ -3241,14 +3279,14 @@ async function eliminarMantenimientoEspacio(mantenimientoId) {
         });
 
         if (response.ok) {
-            alert('Servicio eliminado correctamente');
+            electronSafeAlert('Servicio eliminado correctamente');
             await loadEspaciosComunesData();
         } else {
             throw new Error('Error al eliminar servicio');
         }
     } catch (error) {
         console.error('Error eliminando servicio:', error);
-        alert('Error al eliminar el servicio');
+        electronSafeAlert('Error al eliminar el servicio');
     }
 }
 
@@ -3277,14 +3315,14 @@ async function cambiarEstadoEspacio(espacioId) {
         });
 
         if (response.ok) {
-            alert('Estado actualizado correctamente');
+            electronSafeAlert('Estado actualizado correctamente');
             await loadEspaciosComunesData();
         } else {
             throw new Error('Error al actualizar estado');
         }
     } catch (error) {
         console.error('Error actualizando estado:', error);
-        alert('Error al actualizar el estado');
+        electronSafeAlert('Error al actualizar el estado');
     }
 }
 
@@ -3664,13 +3702,13 @@ async function handleUsuarioFormSubmit(event) {
             throw new Error(data.error || 'Error al guardar usuario');
         }
 
-        alert(isEdit ? 'Usuario actualizado exitosamente' : 'Usuario creado exitosamente');
+        electronSafeAlert(isEdit ? 'Usuario actualizado exitosamente' : 'Usuario creado exitosamente');
         cerrarModalUsuario();
         await cargarUsuarios(true);
         resetUsuarioForm();
     } catch (error) {
         console.error('Error al guardar usuario:', error);
-        alert(error.message || 'Error al guardar usuario');
+        electronSafeAlert(error.message || 'Error al guardar usuario');
     } finally {
         if (submitBtn) {
             submitBtn.disabled = false;
@@ -3704,7 +3742,7 @@ function buildUsuarioPayload() {
 function editarUsuario(id) {
     const usuario = AppState.usuarios.find(u => u.id === id);
     if (!usuario) {
-        alert('Usuario no encontrado');
+        electronSafeAlert('Usuario no encontrado');
         return;
     }
 
@@ -3833,14 +3871,14 @@ async function toggleUsuarioEstado(id, activar) {
         }
     } catch (error) {
         console.error('Error al cambiar estado de usuario:', error);
-        alert(error.message || 'Error al cambiar estado del usuario');
+        electronSafeAlert(error.message || 'Error al cambiar estado del usuario');
         // Recargar para restaurar el estado original del switch
         await cargarUsuarios(true);
     }
 }
 
 async function desactivarUsuario(id) {
-    if (!confirm('¿Está seguro que desea desactivar este usuario?')) {
+    if (!electronSafeConfirm('¿Está seguro que desea desactivar este usuario?')) {
         return;
     }
 
@@ -3860,16 +3898,16 @@ async function desactivarUsuario(id) {
             throw new Error(data.error || 'Error al desactivar usuario');
         }
 
-        alert('Usuario desactivado exitosamente');
+        electronSafeAlert('Usuario desactivado exitosamente');
         await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al desactivar usuario:', error);
-        alert(error.message || 'Error al desactivar usuario');
+        electronSafeAlert(error.message || 'Error al desactivar usuario');
     }
 }
 
 async function activarUsuario(id) {
-    if (!confirm('¿Está seguro que desea reactivar este usuario?')) {
+    if (!electronSafeConfirm('¿Está seguro que desea reactivar este usuario?')) {
         return;
     }
 
@@ -3882,16 +3920,16 @@ async function activarUsuario(id) {
             throw new Error(data.error || 'Error al reactivar usuario');
         }
 
-        alert('Usuario reactivado exitosamente');
+        electronSafeAlert('Usuario reactivado exitosamente');
         await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al reactivar usuario:', error);
-        alert(error.message || 'Error al activar usuario');
+        electronSafeAlert(error.message || 'Error al activar usuario');
     }
 }
 
 async function desbloquearUsuario(id) {
-    if (!confirm('¿Deseas desbloquear este usuario? Podrá intentar iniciar sesión nuevamente.')) {
+    if (!electronSafeConfirm('¿Deseas desbloquear este usuario? Podrá intentar iniciar sesión nuevamente.')) {
         return;
     }
 
@@ -3904,16 +3942,16 @@ async function desbloquearUsuario(id) {
             throw new Error(data.error || 'Error al desbloquear usuario');
         }
 
-        alert('Usuario desbloqueado exitosamente');
+        electronSafeAlert('Usuario desbloqueado exitosamente');
         await cargarUsuarios(true);
     } catch (error) {
         console.error('Error al desbloquear usuario:', error);
-        alert(error.message || 'Error al desbloquear usuario. Intenta nuevamente.');
+        electronSafeAlert(error.message || 'Error al desbloquear usuario. Intenta nuevamente.');
     }
 }
 
 function eliminarUsuario() {
-    alert('Los usuarios no se pueden eliminar por seguridad.\nSolo se pueden desactivar.');
+    electronSafeAlert('Los usuarios no se pueden eliminar por seguridad.\nSolo se pueden desactivar.');
 }
 
 function mostrarModalNuevoUsuario() {
@@ -4330,7 +4368,7 @@ function cerrarModalFotoCompleta() {
  * Elimina una foto de checklist con confirmación
  */
 async function eliminarFotoChecklist(fotoId, cuartoId) {
-    if (!confirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')) {
+    if (!electronSafeConfirm('¿Eliminar esta foto? Esta acción no se puede deshacer.')) {
         return;
     }
 
@@ -4385,3 +4423,4 @@ window.cerrarModalFotoCompleta = cerrarModalFotoCompleta;
 window.eliminarFotoChecklist = eliminarFotoChecklist;
 
 console.log('✅ App.js cargado completamente');
+

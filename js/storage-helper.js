@@ -28,7 +28,7 @@ class StorageHelper {
 
         this.initPromise = (async () => {
             await this.dbManager.init();
-            
+
             // Realizar migración automática si es necesario
             const migrated = localStorage.getItem('__indexeddb_migrated__');
             if (migrated !== 'true') {
@@ -53,9 +53,9 @@ class StorageHelper {
      */
     async saveAuthTokens(tokens, persistent = true) {
         await this.init();
-        
+
         const { accessToken, refreshToken, tokenType = 'Bearer', expiresIn, sesionId } = tokens;
-        
+
         await Promise.all([
             this.dbManager.setAuth('accessToken', accessToken, 'token', persistent),
             this.dbManager.setAuth('refreshToken', refreshToken, 'token', persistent),
@@ -98,7 +98,7 @@ class StorageHelper {
     async saveCurrentUser(user, persistent = true) {
         await this.init();
         await this.dbManager.setAuth('currentUser', user, 'user', persistent);
-        
+
         if (user.id) {
             await this.dbManager.setAuth('usuarioActualId', user.id, 'user', persistent);
         }
@@ -127,7 +127,7 @@ class StorageHelper {
      */
     async clearAuth(persistent = true) {
         await this.init();
-        
+
         const authKeys = [
             'accessToken',
             'refreshToken',
@@ -163,7 +163,7 @@ class StorageHelper {
      */
     async saveCuartos(cuartos) {
         await this.init();
-        
+
         if (!Array.isArray(cuartos)) {
             console.error('❌ [StorageHelper] saveCuartos: se esperaba un array');
             return;
@@ -171,10 +171,10 @@ class StorageHelper {
 
         const result = await this.dbManager.setCuartos(cuartos);
         console.log(`✅ [Data] ${result.success} cuartos guardados en IndexedDB`);
-        
+
         // También guardar en cache para acceso rápido
         await this.dbManager.setCache('ultimosCuartos', cuartos, 60);
-        
+
         return result;
     }
 
@@ -191,7 +191,7 @@ class StorageHelper {
      */
     async saveEdificios(edificios) {
         await this.init();
-        
+
         if (!Array.isArray(edificios)) {
             console.error('❌ [StorageHelper] saveEdificios: se esperaba un array');
             return;
@@ -199,9 +199,9 @@ class StorageHelper {
 
         const result = await this.dbManager.setEdificios(edificios);
         console.log(`✅ [Data] ${result.success} edificios guardados en IndexedDB`);
-        
+
         await this.dbManager.setCache('ultimosEdificios', edificios, 60);
-        
+
         return result;
     }
 
@@ -218,7 +218,7 @@ class StorageHelper {
      */
     async saveMantenimientos(mantenimientos) {
         await this.init();
-        
+
         if (!Array.isArray(mantenimientos)) {
             console.error('❌ [StorageHelper] saveMantenimientos: se esperaba un array');
             return;
@@ -226,9 +226,9 @@ class StorageHelper {
 
         const result = await this.dbManager.setMantenimientos(mantenimientos);
         console.log(`✅ [Data] ${result.success} mantenimientos guardados en IndexedDB`);
-        
+
         await this.dbManager.setCache('ultimosMantenimientos', mantenimientos, 60);
-        
+
         return result;
     }
 
@@ -245,7 +245,7 @@ class StorageHelper {
      */
     async saveUsuarios(usuarios) {
         await this.init();
-        
+
         if (!Array.isArray(usuarios)) {
             console.error('❌ [StorageHelper] saveUsuarios: se esperaba un array');
             return;
@@ -253,9 +253,9 @@ class StorageHelper {
 
         const result = await this.dbManager.setUsuarios(usuarios);
         console.log(`✅ [Data] ${result.success} usuarios guardados en IndexedDB`);
-        
+
         await this.dbManager.setCache('ultimosUsuarios', usuarios, 60);
-        
+
         return result;
     }
 
@@ -272,9 +272,9 @@ class StorageHelper {
      */
     async saveAllData(data) {
         await this.init();
-        
+
         const { cuartos, edificios, mantenimientos, usuarios } = data;
-        
+
         const results = await Promise.allSettled([
             cuartos && this.saveCuartos(cuartos),
             edificios && this.saveEdificios(edificios),
@@ -284,7 +284,7 @@ class StorageHelper {
 
         const successful = results.filter(r => r.status === 'fulfilled').length;
         console.log(`✅ [Data] ${successful}/${results.length} operaciones completadas`);
-        
+
         return results;
     }
 
@@ -293,7 +293,7 @@ class StorageHelper {
      */
     async getAllData() {
         await this.init();
-        
+
         const [cuartos, edificios, mantenimientos, usuarios] = await Promise.all([
             this.getCuartos(),
             this.getEdificios(),
@@ -309,15 +309,15 @@ class StorageHelper {
      */
     async loadOfflineData() {
         await this.init();
-        
+
         console.log('🔄 [StorageHelper] Cargando datos offline desde IndexedDB...');
-        
+
         const data = await this.getAllData();
-        
-        const hasData = data.cuartos.length > 0 || 
-                       data.edificios.length > 0 || 
-                       data.mantenimientos.length > 0 || 
-                       data.usuarios.length > 0;
+
+        const hasData = data.cuartos.length > 0 ||
+            data.edificios.length > 0 ||
+            data.mantenimientos.length > 0 ||
+            data.usuarios.length > 0;
 
         if (hasData) {
             console.log('✅ [StorageHelper] Datos offline cargados:', {
@@ -380,7 +380,7 @@ class StorageHelper {
      */
     async addToSyncQueue(type, endpoint, method, data) {
         await this.init();
-        
+
         const operation = {
             type,
             endpoint,
@@ -399,16 +399,16 @@ class StorageHelper {
      */
     async processSyncQueue(apiBaseUrl) {
         await this.init();
-        
+
         const operations = await this.dbManager.getPendingSyncOperations();
-        
+
         if (operations.length === 0) {
             console.log('✅ [Sync] No hay operaciones pendientes');
             return { success: 0, failed: 0 };
         }
 
         console.log(`🔄 [Sync] Procesando ${operations.length} operaciones pendientes...`);
-        
+
         let success = 0;
         let failed = 0;
 
@@ -439,7 +439,7 @@ class StorageHelper {
         }
 
         console.log(`✅ [Sync] Sincronización completada: ${success} exitosas, ${failed} fallidas`);
-        
+
         return { success, failed, total: operations.length };
     }
 
@@ -452,12 +452,12 @@ class StorageHelper {
      */
     async cleanExpiredData() {
         await this.init();
-        
+
         const cacheDeleted = await this.dbManager.cleanExpiredCache();
         const syncDeleted = await this.dbManager.cleanCompletedSyncOperations();
-        
+
         console.log(`🧹 [Maintenance] Limpieza completada: ${cacheDeleted} cache, ${syncDeleted} sync`);
-        
+
         return { cacheDeleted, syncDeleted };
     }
 
@@ -475,19 +475,19 @@ class StorageHelper {
     async exportBackup() {
         await this.init();
         const data = await this.dbManager.exportData();
-        
+
         // Crear blob para descarga
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-        
+
         // Crear link de descarga
         const a = document.createElement('a');
         a.href = url;
         a.download = `jwm-backup-${new Date().toISOString()}.json`;
         a.click();
-        
+
         URL.revokeObjectURL(url);
-        
+
         console.log('✅ [Backup] Datos exportados');
     }
 
@@ -496,13 +496,13 @@ class StorageHelper {
      */
     async clearAllData() {
         await this.init();
-        
-        const confirmed = confirm('¿Estás seguro de que quieres eliminar todos los datos locales?');
+
+        const confirmed = window.electronSafeConfirm ? window.electronSafeConfirm('¿Estás seguro de que quieres eliminar todos los datos locales?') : confirm('¿Estás seguro de que quieres eliminar todos los datos locales?');
         if (!confirmed) return false;
 
         await this.dbManager.clearAll();
         console.log('🧹 [Maintenance] Todos los datos han sido eliminados');
-        
+
         return true;
     }
 
@@ -533,7 +533,7 @@ class StorageHelper {
     async showStorageInfo() {
         const stats = await this.getStorageStats();
         const estimate = await this.getStorageEstimate();
-        
+
         console.group('📊 [Storage Info]');
         console.log('IndexedDB Stats:', stats);
         if (estimate) {
@@ -544,7 +544,7 @@ class StorageHelper {
             });
         }
         console.groupEnd();
-        
+
         return { stats, estimate };
     }
 }
