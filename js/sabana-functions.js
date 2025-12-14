@@ -36,7 +36,7 @@ function mostrarMensajeSabana(mensaje, tipo = 'info') {
     } else {
         console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
         if (tipo === 'error') {
-            alert(mensaje);
+            electronSafeAlert(mensaje);
         }
     }
 }
@@ -394,11 +394,11 @@ async function toggleRealizadoSabana(itemId, realizado) {
                         const fechaRealizado = data.item.fecha_realizado
                             ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                             : null;
-                        
+
                         fechaRealizadoCell.innerHTML = fechaRealizado
                             ? `<span class="fecha-realizado">${fechaRealizado}</span>`
                             : '<span style="color: #999;">-</span>';
-                        
+
                         fechaRealizadoCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
                         setTimeout(() => {
                             fechaRealizadoCell.style.backgroundColor = '';
@@ -544,7 +544,7 @@ function filterSabana() {
 async function abrirModalNuevaSabana() {
     const modal = document.getElementById('modalNuevaSabana');
     if (!modal) {
-        alert('Modal no encontrado');
+        electronSafeAlert('Modal no encontrado');
         return;
     }
 
@@ -742,7 +742,7 @@ async function confirmarNuevaSabana() {
     const debeArchivarActual = switchArchivar?.checked || false;
 
     if (!nombreServicio) {
-        alert('Ingresa el nombre del servicio');
+        electronSafeAlert('Ingresa el nombre del servicio');
         if (btnConfirmarNuevaSabana) {
             btnConfirmarNuevaSabana.disabled = false;
             btnConfirmarNuevaSabana.innerHTML = originalText;
@@ -780,7 +780,7 @@ async function confirmarNuevaSabana() {
             } catch (archivarError) {
                 console.error('❌ Error en proceso de archivado:', archivarError);
                 // Preguntar si desea continuar
-                if (!confirm('Error al archivar la sábana actual. ¿Desea continuar creando la nueva sábana?')) {
+                if (!window.electronSafeConfirm('Error al archivar la sábana actual. ¿Desea continuar creando la nueva sábana?')) {
                     // Restaurar botón al cancelar
                     if (btnConfirmarNuevaSabana) {
                         btnConfirmarNuevaSabana.disabled = false;
@@ -847,7 +847,7 @@ async function confirmarNuevaSabana() {
 
     } catch (error) {
         console.error('❌ Error creando sábana:', error);
-        alert('Error al crear la sábana: ' + error.message);
+        electronSafeAlert('Error al crear la sábana: ' + error.message);
         if (btnConfirmarNuevaSabana) {
             btnConfirmarNuevaSabana.disabled = false;
             btnConfirmarNuevaSabana.innerHTML = originalText;
@@ -861,7 +861,7 @@ async function verHistorialServicios() {
     const listaContainer = document.getElementById('listaHistorialSabanas');
 
     if (!modal || !listaContainer) {
-        alert('Error al abrir el historial');
+        electronSafeAlert('Error al abrir el historial');
         return;
     }
 
@@ -924,7 +924,7 @@ async function verHistorialServicios() {
 
     } catch (error) {
         console.error('❌ Error cargando historial:', error);
-        alert('Error al cargar el historial');
+        electronSafeAlert('Error al cargar el historial');
     }
 }
 
@@ -959,21 +959,21 @@ async function cargarSabanaDesdeHistorial(sabanaId) {
 
 async function archivarPeriodo() {
     if (AppState.currentUser?.role !== 'admin') {
-        alert('Solo los administradores pueden archivar sábanas');
+        electronSafeAlert('Solo los administradores pueden archivar sábanas');
         return;
     }
 
     if (!currentSabanaId) {
-        alert('Selecciona una sábana para archivar');
+        electronSafeAlert('Selecciona una sábana para archivar');
         return;
     }
 
     if (currentSabanaArchivada) {
-        alert('Esta sábana ya está archivada');
+        electronSafeAlert('Esta sábana ya está archivada');
         return;
     }
 
-    if (!confirm('¿Archivar esta sábana? Ya no podrá ser editada.')) {
+    if (!window.electronSafeConfirm('¿Archivar esta sábana? Ya no podrá ser editada.')) {
         return;
     }
 
@@ -1007,27 +1007,27 @@ async function archivarPeriodo() {
 
     } catch (error) {
         console.error('❌ Error archivando sábana:', error);
-        alert('Error al archivar la sábana');
+        electronSafeAlert('Error al archivar la sábana');
     }
 }
 
 async function exportarSabanaExcel() {
     console.log('🟢🟢🟢 FUNCIÓN EXPORTAR LLAMADA 🟢🟢🟢');
-    
+
     // Verificar permisos - solo admin y supervisor pueden exportar
     const userRole = window.AppState?.currentUser?.role || 'tecnico';
     if (userRole !== 'admin' && userRole !== 'supervisor') {
         console.warn('⚠️ Usuario sin permisos para exportar');
-        alert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
+        electronSafeAlert('No tienes permisos para exportar. Esta función es solo para supervisores y administradores.');
         return;
     }
-    
+
     console.log('currentSabanaId:', currentSabanaId);
     console.log('currentSabanaItems.length:', currentSabanaItems?.length);
 
     if (!currentSabanaId) {
         console.warn('⚠️ No hay sábana seleccionada');
-        alert('Selecciona una sábana para exportar');
+        electronSafeAlert('Selecciona una sábana para exportar');
         return;
     }
 
@@ -1037,7 +1037,7 @@ async function exportarSabanaExcel() {
     // Usar los datos que ya están cargados en memoria
     if (!currentSabanaItems || currentSabanaItems.length === 0) {
         console.warn('⚠️ Sin datos para exportar');
-        alert('No hay datos para exportar. Por favor, carga una sábana primero.');
+        electronSafeAlert('No hay datos para exportar. Por favor, carga una sábana primero.');
         return;
     }
 
@@ -1118,7 +1118,7 @@ async function exportarSabanaExcel() {
 
     } catch (error) {
         console.error('❌ Error exportando sábana:', error);
-        alert('Error al exportar la sábana');
+        electronSafeAlert('Error al exportar la sábana');
     }
 }
 
@@ -1203,7 +1203,7 @@ async function crearNuevaSabana(servicioId) {
 
     } catch (error) {
         console.error('❌ Error creando sábana:', error);
-        alert('Error al crear la sábana: ' + error.message);
+        electronSafeAlert('Error al crear la sábana: ' + error.message);
         if (btnConfirmarNuevaSabana) {
             btnConfirmarNuevaSabana.disabled = false;
             btnConfirmarNuevaSabana.innerHTML = originalText;
@@ -1262,7 +1262,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
             } catch (archivarError) {
                 console.error('❌ Error en proceso de archivado:', archivarError);
                 // Preguntar si desea continuar
-                if (!confirm('Error al archivar la sábana actual. ¿Desea continuar creando la nueva sábana?')) {
+                if (!window.electronSafeConfirm('Error al archivar la sábana actual. ¿Desea continuar creando la nueva sábana?')) {
                     // Restaurar botón al cancelar
                     if (btnConfirmarNuevaSabana) {
                         btnConfirmarNuevaSabana.disabled = false;
@@ -1333,7 +1333,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
 
     } catch (error) {
         console.error('❌ Error creando sábana personalizada:', error);
-        alert('Error al crear la sábana: ' + error.message);
+        electronSafeAlert('Error al crear la sábana: ' + error.message);
         if (btnConfirmarNuevaSabana) {
             btnConfirmarNuevaSabana.disabled = false;
             btnConfirmarNuevaSabana.innerHTML = originalText;
@@ -1377,3 +1377,4 @@ console.log('📋 Funciones disponibles:', {
     crearNuevaSabana: typeof window.crearNuevaSabana,
     crearNuevaSabanaPersonalizada: typeof window.crearNuevaSabanaPersonalizada
 });
+

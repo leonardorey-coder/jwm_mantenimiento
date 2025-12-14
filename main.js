@@ -119,6 +119,8 @@ async function startServer() {
     });
 }
 
+let dummyWindow = null;
+
 /**
  * Crea la ventana principal de la aplicación
  */
@@ -128,23 +130,40 @@ function createWindow() {
         height: 700,
         minWidth: 400,
         minHeight: 550,
-        icon: path.join(__dirname, 'icons', 'icon.ico'),
+        icon: path.join(__dirname, 'assets/icon.png'), // Updated icon path
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, 'preload.js')
+            preload: path.join(__dirname, 'preload.js'),
+            devTools: isDev // Added devTools based on isDev
         },
-        frame: false, // Frameless para custom titlebar
+        frame: false, // Sin bordes nativos
         titleBarStyle: 'hidden',
         titleBarOverlay: {
             color: '#00000000', // Transparente
             symbolColor: '#1E1E1E', // Oscuro para login
             height: 32
         },
-        show: false,
-        backgroundColor: '#FFFFFF',
+        show: false, // No mostrar hasta que esté lista
+        backgroundColor: '#f5f5f5', // Updated background color
         resizable: true,
         center: true
+    });
+
+    // Crear ventana dummy para el manejo de foco (invisible)
+    // Esto evita que al hacer refreshFocus el foco salte a otra aplicacion del OS
+    dummyWindow = new BrowserWindow({
+        width: 1,
+        height: 1,
+        show: false,
+        frame: false,
+        focusable: true,
+        transparent: true,
+        skipTaskbar: true, // No mostrar en barra de tareas
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true
+        }
     });
 
     // Cargar la página de login primero
@@ -241,6 +260,31 @@ app.whenReady().then(async () => {
         ipcMain.handle('auth:save', async (event, data) => saveAuthData(data));
         ipcMain.handle('auth:get', async () => getAuthData());
         ipcMain.handle('auth:clear', async () => clearAuthData());
+
+        // Handler para refrescar el foco de la ventana
+        // WORKAROUND: Usamos la ventana dummy como pivote para no perder foco de la app
+        // Esto evita que Windows le de foco al Explorador o Chrome al hacer blur()
+        ipcMain.handle('window:refreshFocus', async () => {
+            if (mainWindow && dummyWindow) {
+                // 1. Mostrar y enfocar la dummy (ocurre dentro de la misma app Electron)
+                dummyWindow.show();
+                dummyWindow.focus();
+
+                // 2. Inmediatamente regresar el foco a la principal
+                setImmediate(() => {
+                    if (mainWindow) {
+                        mainWindow.focus();
+                        if (mainWindow.webContents) {
+                            mainWindow.webContents.focus();
+                        }
+                        // Ocultar dummy nuevamente
+                        dummyWindow.hide();
+                    }
+                });
+                return { success: true };
+            }
+            return { success: false, error: 'No windows' };
+        });
 
         // Verificar variables de entorno críticas
         if (!process.env.DATABASE_URL && !process.env.DB_HOST) {

@@ -3,7 +3,7 @@
 // ========================================
 
 // Inicializar AOS (Animate On Scroll)
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     if (typeof AOS !== 'undefined') {
         AOS.init({
             duration: 800,
@@ -12,19 +12,19 @@ document.addEventListener('DOMContentLoaded', function() {
             offset: 100
         });
     }
-    
+
     // Inicializar tabs
     initializeTabs();
-    
+
     // Inicializar botones brutalist de navegación
     initializeBrutalistNavButtons();
-    
+
     // Inicializar animaciones
     initializeAnimations();
-    
+
     // Inicializar temporizador de filtros
     initializeFiltroTimer();
-    
+
     // Cargar datos iniciales
     loadInitialData();
 });
@@ -35,29 +35,29 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeTabs() {
     const tabLinks = document.querySelectorAll('.link[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     tabLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
+        link.addEventListener('click', function (e) {
             e.preventDefault();
-            
+
             const targetTab = this.getAttribute('data-tab');
-            
+
             // Remover active de todos los links
             tabLinks.forEach(l => l.classList.remove('active'));
-            
+
             // Agregar active al link clickeado
             this.classList.add('active');
-            
+
             // Ocultar todos los tabs
             tabContents.forEach(content => {
                 content.classList.remove('active');
             });
-            
+
             // Mostrar el tab seleccionado
             const targetContent = document.getElementById(`tab-${targetTab}`);
             if (targetContent) {
                 targetContent.classList.add('active');
-                
+
                 // Refrescar AOS en el nuevo tab
                 if (typeof AOS !== 'undefined') {
                     AOS.refresh();
@@ -73,29 +73,29 @@ function initializeTabs() {
 function initializeBrutalistNavButtons() {
     const navButtons = document.querySelectorAll('.brutalist-nav-button[data-tab]');
     const tabContents = document.querySelectorAll('.tab-content');
-    
+
     navButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
+        button.addEventListener('click', function (e) {
             e.preventDefault();
-            
+
             const targetTab = this.getAttribute('data-tab');
-            
+
             // Remover active de todos los botones
             navButtons.forEach(btn => btn.classList.remove('active'));
-            
+
             // Agregar active al botón clickeado
             this.classList.add('active');
-            
+
             // Ocultar todos los tabs
             tabContents.forEach(content => {
                 content.classList.remove('active');
             });
-            
+
             // Mostrar el tab correspondiente
             const activeTab = document.getElementById(`tab-${targetTab}`);
             if (activeTab) {
                 activeTab.classList.add('active');
-                
+
                 // Refresh AOS animations
                 if (typeof AOS !== 'undefined') {
                     AOS.refresh();
@@ -110,7 +110,7 @@ function initializeBrutalistNavButtons() {
 // ========================================
 function initializeAnimations() {
     if (typeof anime === 'undefined') return;
-    
+
     // Animación para las cards al cargar
     // NOTA: Excluir cards de habitaciones y espacios comunes (ya que tienen carga dinámica)
     anime({
@@ -121,18 +121,18 @@ function initializeAnimations() {
         duration: 800,
         easing: 'easeOutExpo'
     });
-    
+
     // Animación para los botones al hover (se activa con eventos)
     setupButtonAnimations();
 }
 
 function setupButtonAnimations() {
     const buttons = document.querySelectorAll('.brutalist-card__button, .container-btn-file, .Documents-btn');
-    
+
     buttons.forEach(button => {
-        button.addEventListener('mouseenter', function() {
+        button.addEventListener('mouseenter', function () {
             if (typeof anime === 'undefined') return;
-            
+
             anime({
                 targets: this,
                 scale: 1.05,
@@ -140,10 +140,10 @@ function setupButtonAnimations() {
                 easing: 'easeOutQuad'
             });
         });
-        
-        button.addEventListener('mouseleave', function() {
+
+        button.addEventListener('mouseleave', function () {
             if (typeof anime === 'undefined') return;
-            
+
             anime({
                 targets: this,
                 scale: 1,
@@ -160,21 +160,21 @@ function setupButtonAnimations() {
 function initializeFiltroTimer() {
     const timerElement = document.getElementById('filtroTimer');
     if (!timerElement) return;
-    
+
     // Fecha de inicio del periodo actual (ejemplo: 1 de enero 2025)
     const fechaInicio = new Date('2025-01-01');
     const fechaProximoCambio = new Date('2025-07-01');
-    
+
     function actualizarTimer() {
         const ahora = new Date();
         const diferencia = fechaProximoCambio - ahora;
-        
+
         if (diferencia > 0) {
             const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
             const horas = Math.floor((diferencia % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-            
+
             timerElement.textContent = `${dias} días ${horas} hrs`;
-            
+
             // Cambiar color según tiempo restante
             if (dias < 30) {
                 timerElement.style.color = 'var(--prioridad-alta)';
@@ -188,7 +188,7 @@ function initializeFiltroTimer() {
             timerElement.style.color = 'var(--prioridad-alta)';
         }
     }
-    
+
     // Actualizar cada hora
     actualizarTimer();
     setInterval(actualizarTimer, 3600000);
@@ -199,17 +199,17 @@ function initializeFiltroTimer() {
 // ========================================
 function exportarBitacora(event) {
     if (event) event.preventDefault();
-    
+
     // Mostrar spinner de descarga
     const spinner = document.getElementById('downloadSpinner');
     if (spinner) {
         spinner.style.display = 'flex';
-        
+
         // Simular descarga (aquí se conectaría con el backend)
         setTimeout(() => {
             // Aquí iría la lógica real de descarga del backend
             console.log('Exportando bitácora...');
-            
+
             // Ocultar spinner después de 2 segundos
             setTimeout(() => {
                 spinner.style.display = 'none';
@@ -226,10 +226,10 @@ function exportarFiltrosExcel() {
     const spinner = document.getElementById('downloadSpinner');
     if (spinner) {
         spinner.style.display = 'flex';
-        
+
         setTimeout(() => {
             console.log('Exportando filtros a Excel...');
-            
+
             setTimeout(() => {
                 spinner.style.display = 'none';
                 if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Excel generado exitosamente', 'success');
@@ -245,7 +245,7 @@ function exportarFiltrosExcel() {
 // está en sabana-functions.js conectada a la base de datos
 /*
 function archivarPeriodo() {
-    if (confirm('¿Está seguro de archivar el periodo anterior? Esta acción moverá los registros al historial.')) {
+    if (window.electronSafeConfirm('¿Está seguro de archivar el periodo anterior? Esta acción moverá los registros al historial.')) {
         const spinner = document.getElementById('downloadSpinner');
         if (spinner) {
             const downloadText = spinner.querySelector('.download-text');
@@ -291,7 +291,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
         <i class="fas fa-${getIconoNotificacion(tipo)}"></i>
         <span>${mensaje}</span>
     `;
-    
+
     // Estilos inline para la notificación
     notif.style.cssText = `
         position: fixed;
@@ -309,7 +309,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
         font-weight: 600;
         animation: slideInRight 0.3s ease-out;
     `;
-    
+
     // Color según tipo
     const colores = {
         'success': 'var(--prioridad-baja)',
@@ -317,12 +317,12 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
         'warning': 'var(--prioridad-media)',
         'info': 'var(--gris-oscuro)'
     };
-    
+
     notif.querySelector('i').style.color = colores[tipo] || colores.info;
-    
+
     // Agregar al DOM
     document.body.appendChild(notif);
-    
+
     // Animar con anime.js si está disponible
     if (typeof anime !== 'undefined') {
         anime({
@@ -333,7 +333,7 @@ function mostrarNotificacion(mensaje, tipo = 'info') {
             easing: 'easeOutQuad'
         });
     }
-    
+
     // Remover después de 3 segundos
     setTimeout(() => {
         if (typeof anime !== 'undefined') {
@@ -384,13 +384,13 @@ function aplicarPrioridad(elemento, tipo) {
 // ========================================
 function animarNuevaTarjeta(elemento) {
     if (typeof anime === 'undefined') return;
-    
+
     // NO animar cards de habitaciones o espacios comunes (carga dinámica)
     // Esto evita la sensación de carga lenta
     if (elemento.closest('#listaCuartos') || elemento.closest('#listaEspacios')) {
         return; // Salir sin animar
     }
-    
+
     anime({
         targets: elemento,
         scale: [0.8, 1],
@@ -406,7 +406,7 @@ function animarNuevaTarjeta(elemento) {
 // ========================================
 function initializeThreeBackground() {
     if (typeof THREE === 'undefined') return;
-    
+
     // Crear escena sutil de partículas en el fondo (opcional)
     // Este es un efecto premium pero sutil para no distraer
     const container = document.createElement('div');
@@ -422,19 +422,19 @@ function initializeThreeBackground() {
         pointer-events: none;
     `;
     document.body.prepend(container);
-    
+
     // Configuración básica de THREE.js
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     const renderer = new THREE.WebGLRenderer({ alpha: true });
-    
+
     renderer.setSize(window.innerWidth, window.innerHeight);
     container.appendChild(renderer.domElement);
-    
+
     // Crear partículas
     const geometry = new THREE.BufferGeometry();
     const vertices = [];
-    
+
     for (let i = 0; i < 1000; i++) {
         vertices.push(
             Math.random() * 2000 - 1000,
@@ -442,15 +442,15 @@ function initializeThreeBackground() {
             Math.random() * 2000 - 1000
         );
     }
-    
+
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    
+
     const material = new THREE.PointsMaterial({ color: 0x4C544C, size: 2 });
     const points = new THREE.Points(geometry, material);
-    
+
     scene.add(points);
     camera.position.z = 500;
-    
+
     // Animación
     function animate() {
         requestAnimationFrame(animate);
@@ -458,9 +458,9 @@ function initializeThreeBackground() {
         points.rotation.y += 0.0001;
         renderer.render(scene, camera);
     }
-    
+
     animate();
-    
+
     // Responsive
     window.addEventListener('resize', () => {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -510,19 +510,19 @@ setTimeout(() => {
     if (typeof window.generarMantenimientosHTMLSimple !== 'undefined') {
         console.log('⚠️ Sobrescribiendo generarMantenimientosHTMLSimple con nuevo estilo...');
     }
-    
+
     window.generarMantenimientosHTMLSimpleOriginal = window.generarMantenimientosHTMLSimple;
-    
-    window.generarMantenimientosHTMLSimple = function(mantenimientos) {
+
+    window.generarMantenimientosHTMLSimple = function (mantenimientos) {
         if (!mantenimientos || mantenimientos.length === 0) {
             return '<li class="mensaje-no-mantenimientos" style="padding: 1rem; text-align: center; color: var(--gris-grafito);"><i class="fas fa-check-circle"></i> Sin servicios pendientes</li>';
         }
-        
+
         return mantenimientos.map(mant => {
             const esAlerta = mant.tipo === 'rutina';
             const iconoTipo = esAlerta ? 'fa-bell' : 'fa-wrench';
             const clasePrioridad = esAlerta ? 'prioridad-media' : 'prioridad-baja';
-            
+
             return `
             <li class="mantenimiento ${clasePrioridad}" 
                 id="mantenimiento-${mant.id}"
@@ -570,12 +570,12 @@ setTimeout(() => {
 function handleTipoSwitchChange(switchElement) {
     const tipoHidden = document.getElementById('tipoHiddenLateral');
     const alertaFieldsContainer = document.getElementById('alertaFieldsContainer');
-    
+
     if (!alertaFieldsContainer) {
         console.error('❌ No se encontró el contenedor de campos de alerta');
         return;
     }
-    
+
     if (switchElement.checked) {
         // Modo ALERTA activado
         console.log('✅ Modo ALERTA activado - Mostrando campos');
@@ -608,18 +608,18 @@ function mostrarFormularioAccion(formId) {
     todosLosFormularios.forEach(form => {
         form.style.display = 'none';
     });
-    
+
     // Mostrar el formulario seleccionado
     const formularioSeleccionado = document.getElementById(formId);
     if (formularioSeleccionado) {
         formularioSeleccionado.style.display = 'block';
-        
+
         // Scroll suave hacia el formulario
-        formularioSeleccionado.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'start' 
+        formularioSeleccionado.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
         });
-        
+
         // Inicializar canvas de firma si es el formulario de firma
         if (formId === 'formFirma') {
             inicializarCanvasFirma();
@@ -644,22 +644,22 @@ function cerrarFormularioAccion(formId) {
 function inicializarCanvasFirma() {
     const canvas = document.getElementById('canvasFirma');
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     let dibujando = false;
     let posX = 0;
     let posY = 0;
-    
+
     // Ajustar tamaño del canvas
     canvas.width = canvas.offsetWidth;
     canvas.height = 200;
-    
+
     // Configurar estilo de dibujo
     ctx.strokeStyle = '#1E1E1E';
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    
+
     // Eventos de mouse
     canvas.addEventListener('mousedown', (e) => {
         dibujando = true;
@@ -667,31 +667,31 @@ function inicializarCanvasFirma() {
         posX = e.clientX - rect.left;
         posY = e.clientY - rect.top;
     });
-    
+
     canvas.addEventListener('mousemove', (e) => {
         if (!dibujando) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const newX = e.clientX - rect.left;
         const newY = e.clientY - rect.top;
-        
+
         ctx.beginPath();
         ctx.moveTo(posX, posY);
         ctx.lineTo(newX, newY);
         ctx.stroke();
-        
+
         posX = newX;
         posY = newY;
     });
-    
+
     canvas.addEventListener('mouseup', () => {
         dibujando = false;
     });
-    
+
     canvas.addEventListener('mouseleave', () => {
         dibujando = false;
     });
-    
+
     // Eventos táctiles para dispositivos móviles
     canvas.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -701,25 +701,25 @@ function inicializarCanvasFirma() {
         posX = touch.clientX - rect.left;
         posY = touch.clientY - rect.top;
     });
-    
+
     canvas.addEventListener('touchmove', (e) => {
         e.preventDefault();
         if (!dibujando) return;
-        
+
         const rect = canvas.getBoundingClientRect();
         const touch = e.touches[0];
         const newX = touch.clientX - rect.left;
         const newY = touch.clientY - rect.top;
-        
+
         ctx.beginPath();
         ctx.moveTo(posX, posY);
         ctx.lineTo(newX, newY);
         ctx.stroke();
-        
+
         posX = newX;
         posY = newY;
     });
-    
+
     canvas.addEventListener('touchend', () => {
         dibujando = false;
     });
@@ -731,7 +731,7 @@ function inicializarCanvasFirma() {
 function limpiarFirma() {
     const canvas = document.getElementById('canvasFirma');
     if (!canvas) return;
-    
+
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
