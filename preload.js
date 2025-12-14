@@ -28,7 +28,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     // Método para refrescar el foco de la ventana (soluciona bug de diálogos nativos)
-    refreshWindowFocus: () => ipcRenderer.invoke('window:refreshFocus')
+    refreshWindowFocus: () => ipcRenderer.invoke('window:refreshFocus'),
+
+    // Listener para evento de cierre de la app
+    onBeforeQuit: (callback) => ipcRenderer.on('app:before-quit', callback)
 });
 
 // Indicar que la app se ejecuta en Electron (para detección en el frontend)

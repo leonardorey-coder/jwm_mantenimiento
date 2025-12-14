@@ -25,6 +25,18 @@ function initLoginPage() {
     setupForgotPasswordModal();
     setupForcePasswordModal();
     initializeAuth();
+
+    // Configurar listener para cierre limpio de IndexedDB en Electron
+    if (window.electronAPI && window.electronAPI.onBeforeQuit) {
+        window.electronAPI.onBeforeQuit(async () => {
+            console.log('🛑 [LOGIN-JWT] Recibido evento app:before-quit, cerrando IndexedDB...');
+            if (window.dbManager && typeof window.dbManager.close === 'function') {
+                await window.dbManager.close();
+                console.log('✅ [LOGIN-JWT] IndexedDB cerrado correctamente');
+            }
+        });
+        console.log('✅ [LOGIN-JWT] Listener de cierre limpio configurado');
+    }
 }
 
 if (document.readyState === 'loading') {

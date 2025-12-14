@@ -258,6 +258,18 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, 300);
     }
+
+    // Configurar listener para cierre limpio de IndexedDB en Electron
+    if (window.electronAPI && window.electronAPI.onBeforeQuit) {
+        window.electronAPI.onBeforeQuit(async () => {
+            console.log('🛑 [APP.JS] Recibido evento app:before-quit, cerrando IndexedDB...');
+            if (window.dbManager && typeof window.dbManager.close === 'function') {
+                await window.dbManager.close();
+                console.log('✅ [APP.JS] IndexedDB cerrado correctamente');
+            }
+        });
+        console.log('✅ [APP.JS] Listener de cierre limpio configurado');
+    }
 });
 
 // ========================================

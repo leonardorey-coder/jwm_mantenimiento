@@ -20,6 +20,7 @@ const isDev = process.env.NODE_ENV === 'development';
 let mainWindow;
 let server;
 let serverPort;
+let isQuitting = false;
 
 /**
  * Gestión de almacenamiento persistente para Auth (Tokens)
@@ -122,6 +123,47 @@ async function startServer() {
 let dummyWindow = null;
 
 /**
+ * Cierra todas las conexiones y recursos de forma limpia
+ */
+function cleanupAndQuit() {
+    if (isQuitting) return;
+    isQuitting = true;
+
+    console.log('🛑 Iniciando cierre limpio de la aplicación...');
+
+    // Cerrar ventana dummy
+    if (dummyWindow) {
+        dummyWindow.destroy();
+        dummyWindow = null;
+        console.log('✅ Ventana dummy cerrada');
+    }
+
+    // Cerrar ventana principal
+    if (mainWindow) {
+        mainWindow.destroy();
+        mainWindow = null;
+        console.log('✅ Ventana principal cerrada');
+    }
+
+    // Cerrar servidor Express
+    if (server) {
+        console.log('🛑 Cerrando servidor Express...');
+        server.close(() => {
+            console.log('✅ Servidor Express cerrado');
+            app.quit();
+        });
+
+        // Fallback: si el servidor no cierra en 3 segundos, forzar quit
+        setTimeout(() => {
+            console.log('⚠️ Forzando cierre después de timeout...');
+            app.quit();
+        }, 3000);
+    } else {
+        app.quit();
+    }
+}
+
+/**
  * Crea la ventana principal de la aplicación
  */
 function createWindow() {
@@ -195,6 +237,21 @@ function createWindow() {
         }
         shell.openExternal(url);
         return { action: 'deny' };
+    });
+
+    // Cuando se cierra la ventana principal, limpiar y cerrar todo
+    mainWindow.on('close', (event) => {
+        if (!isQuitting) {
+            event.preventDefault();
+            // Notificar al renderer para que cierre IndexedDB
+            if (mainWindow && mainWindow.webContents) {
+                mainWindow.webContents.send('app:before-quit');
+            }
+            // Dar tiempo para que IndexedDB cierre, luego cleanup
+            setTimeout(() => {
+                cleanupAndQuit();
+            }, 500);
+        }
     });
 
     mainWindow.on('closed', () => {
@@ -304,19 +361,9 @@ app.whenReady().then(async () => {
     }
 });
 
-// Cerrar servidor cuando la app se cierre
-app.on('before-quit', () => {
-    if (server) {
-        console.log('🛑 Cerrando servidor Express...');
-        server.close();
-    }
-});
-
 // Manejar todas las ventanas cerradas
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit();
-    }
+    // No hacer nada aquí, cleanupAndQuit() se encarga de todo
 });
 
 // Reactivar en macOS

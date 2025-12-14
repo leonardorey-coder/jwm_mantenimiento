@@ -223,20 +223,20 @@ class IndexedDBManager {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([storeName], 'readwrite');
             const store = transaction.objectStore(storeName);
-            
+
             let completed = 0;
             const errors = [];
 
             dataArray.forEach((data, index) => {
                 const request = store.put(data);
-                
+
                 request.onsuccess = () => {
                     completed++;
                     if (completed === dataArray.length) {
                         resolve({ success: completed, errors });
                     }
                 };
-                
+
                 request.onerror = () => {
                     errors.push({ index, error: request.error });
                     completed++;
@@ -514,7 +514,7 @@ class IndexedDBManager {
      */
     async migrateFromLocalStorage() {
         console.log('🔄 [IndexedDB] Iniciando migración desde localStorage...');
-        
+
         try {
             // Migrar tokens de autenticación
             const authKeys = [
@@ -530,7 +530,7 @@ class IndexedDBManager {
             for (const key of authKeys) {
                 const localValue = localStorage.getItem(key);
                 const sessionValue = sessionStorage.getItem(key);
-                
+
                 if (localValue) {
                     let value = localValue;
                     try {
@@ -570,7 +570,7 @@ class IndexedDBManager {
                     } catch (e) {
                         // No es JSON, usar como string
                     }
-                    
+
                     // Guardar en las stores correspondientes
                     if (key === 'ultimosCuartos' && Array.isArray(parsedValue)) {
                         await this.setCuartos(parsedValue);
@@ -604,7 +604,7 @@ class IndexedDBManager {
      */
     async clearLocalStorageAfterMigration() {
         console.log('🧹 [IndexedDB] Limpiando localStorage después de migración...');
-        
+
         const keysToRemove = [
             'ultimosCuartos',
             'ultimosEdificios',
@@ -621,6 +621,27 @@ class IndexedDBManager {
     }
 
     // ========================================
+    // CIERRE Y LIMPIEZA
+    // ========================================
+
+    /**
+     * Cierra la conexión a la base de datos de forma limpia
+     */
+    close() {
+        return new Promise((resolve) => {
+            if (this.db) {
+                console.log('🛑 [IndexedDB] Cerrando conexión a la base de datos...');
+                this.db.close();
+                this.db = null;
+                this.isReady = false;
+                this.initPromise = null;
+                console.log('✅ [IndexedDB] Conexión cerrada correctamente');
+            }
+            resolve();
+        });
+    }
+
+    // ========================================
     // UTILIDADES
     // ========================================
 
@@ -629,7 +650,7 @@ class IndexedDBManager {
      */
     async getStats() {
         await this.ensureReady();
-        
+
         const stores = ['auth', 'usuarios', 'edificios', 'cuartos', 'mantenimientos', 'cache', 'sync_queue'];
         const stats = {};
 
@@ -646,7 +667,7 @@ class IndexedDBManager {
      */
     async exportData() {
         await this.ensureReady();
-        
+
         const stores = ['auth', 'usuarios', 'edificios', 'cuartos', 'mantenimientos', 'cache', 'sync_queue'];
         const exportData = {
             version: DB_VERSION,
@@ -666,9 +687,9 @@ class IndexedDBManager {
      */
     async clearAll() {
         await this.ensureReady();
-        
+
         const stores = ['auth', 'usuarios', 'edificios', 'cuartos', 'mantenimientos', 'cache', 'sync_queue'];
-        
+
         for (const storeName of stores) {
             await this.clear(storeName);
         }
