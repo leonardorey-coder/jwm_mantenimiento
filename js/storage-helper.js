@@ -16,6 +16,7 @@ class StorageHelper {
         this.dbManager = dbManager;
         this.ready = false;
         this.initPromise = null;
+        this.indexedDBAvailable = true; // Flag para indicar si IndexedDB está disponible
     }
 
     /**
@@ -27,14 +28,22 @@ class StorageHelper {
         }
 
         this.initPromise = (async () => {
-            await this.dbManager.init();
+            try {
+                await this.dbManager.init();
 
-            // Realizar migración automática si es necesario
-            const migrated = localStorage.getItem('__indexeddb_migrated__');
-            if (migrated !== 'true') {
-                await this.dbManager.migrateFromLocalStorage();
-                localStorage.setItem('__indexeddb_migrated__', 'true');
-                console.log('✅ [StorageHelper] Migración automática completada');
+                // Realizar migración automática si es necesario
+                const migrated = localStorage.getItem('__indexeddb_migrated__');
+                if (migrated !== 'true') {
+                    await this.dbManager.migrateFromLocalStorage();
+                    localStorage.setItem('__indexeddb_migrated__', 'true');
+                    console.log('✅ [StorageHelper] Migración automática completada');
+                }
+
+                this.indexedDBAvailable = true;
+                console.log('✅ [StorageHelper] Helper inicializado con IndexedDB');
+            } catch (error) {
+                console.warn('⚠️ [StorageHelper] IndexedDB no disponible, usando fallbacks:', error.message);
+                this.indexedDBAvailable = false;
             }
 
             this.ready = true;
@@ -54,17 +63,26 @@ class StorageHelper {
     async saveAuthTokens(tokens, persistent = true) {
         await this.init();
 
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Auth] IndexedDB no disponible, tokens no guardados en IDB');
+            return;
+        }
+
         const { accessToken, refreshToken, tokenType = 'Bearer', expiresIn, sesionId } = tokens;
 
-        await Promise.all([
-            this.dbManager.setAuth('accessToken', accessToken, 'token', persistent),
-            this.dbManager.setAuth('refreshToken', refreshToken, 'token', persistent),
-            this.dbManager.setAuth('tokenType', tokenType, 'token', persistent),
-            this.dbManager.setAuth('tokenExpiration', expiresIn, 'token', persistent),
-            sesionId && this.dbManager.setAuth('sesionId', sesionId, 'token', persistent)
-        ].filter(Boolean));
+        try {
+            await Promise.all([
+                this.dbManager.setAuth('accessToken', accessToken, 'token', persistent),
+                this.dbManager.setAuth('refreshToken', refreshToken, 'token', persistent),
+                this.dbManager.setAuth('tokenType', tokenType, 'token', persistent),
+                this.dbManager.setAuth('tokenExpiration', expiresIn, 'token', persistent),
+                sesionId && this.dbManager.setAuth('sesionId', sesionId, 'token', persistent)
+            ].filter(Boolean));
 
-        console.log('✅ [Auth] Tokens guardados en IndexedDB');
+            console.log('✅ [Auth] Tokens guardados en IndexedDB');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error guardando tokens:', error.message);
+        }
     }
 
     /**
@@ -72,7 +90,13 @@ class StorageHelper {
      */
     async getAccessToken() {
         await this.init();
-        return await this.dbManager.getAuth('accessToken');
+        if (!this.indexedDBAvailable) return null;
+        try {
+            return await this.dbManager.getAuth('accessToken');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error obteniendo token:', error.message);
+            return null;
+        }
     }
 
     /**
@@ -80,7 +104,13 @@ class StorageHelper {
      */
     async getRefreshToken() {
         await this.init();
-        return await this.dbManager.getAuth('refreshToken');
+        if (!this.indexedDBAvailable) return null;
+        try {
+            return await this.dbManager.getAuth('refreshToken');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error obteniendo refresh token:', error.message);
+            return null;
+        }
     }
 
     /**
@@ -88,8 +118,14 @@ class StorageHelper {
      */
     async getTokenType() {
         await this.init();
-        const type = await this.dbManager.getAuth('tokenType');
-        return type || 'Bearer';
+        if (!this.indexedDBAvailable) return 'Bearer';
+        try {
+            const type = await this.dbManager.getAuth('tokenType');
+            return type || 'Bearer';
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error obteniendo tipo de token:', error.message);
+            return 'Bearer';
+        }
     }
 
     /**
@@ -97,13 +133,21 @@ class StorageHelper {
      */
     async saveCurrentUser(user, persistent = true) {
         await this.init();
-        await this.dbManager.setAuth('currentUser', user, 'user', persistent);
-
-        if (user.id) {
-            await this.dbManager.setAuth('usuarioActualId', user.id, 'user', persistent);
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Auth] IndexedDB no disponible, usuario no guardado en IDB');
+            return;
         }
+        try {
+            await this.dbManager.setAuth('currentUser', user, 'user', persistent);
 
-        console.log('✅ [Auth] Usuario actual guardado:', user.username);
+            if (user.id) {
+                await this.dbManager.setAuth('usuarioActualId', user.id, 'user', persistent);
+            }
+
+            console.log('✅ [Auth] Usuario actual guardado:', user.username);
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error guardando usuario:', error.message);
+        }
     }
 
     /**
@@ -111,7 +155,13 @@ class StorageHelper {
      */
     async getCurrentUser() {
         await this.init();
-        return await this.dbManager.getAuth('currentUser');
+        if (!this.indexedDBAvailable) return null;
+        try {
+            return await this.dbManager.getAuth('currentUser');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error obteniendo usuario actual:', error.message);
+            return null;
+        }
     }
 
     /**
@@ -119,7 +169,13 @@ class StorageHelper {
      */
     async getCurrentUserId() {
         await this.init();
-        return await this.dbManager.getAuth('usuarioActualId');
+        if (!this.indexedDBAvailable) return null;
+        try {
+            return await this.dbManager.getAuth('usuarioActualId');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error obteniendo ID de usuario:', error.message);
+            return null;
+        }
     }
 
     /**
@@ -127,22 +183,30 @@ class StorageHelper {
      */
     async clearAuth(persistent = true) {
         await this.init();
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Auth] IndexedDB no disponible, limpieza omitida');
+            return;
+        }
 
-        const authKeys = [
-            'accessToken',
-            'refreshToken',
-            'tokenType',
-            'tokenExpiration',
-            'sesionId',
-            'currentUser',
-            'usuarioActualId'
-        ];
+        try {
+            const authKeys = [
+                'accessToken',
+                'refreshToken',
+                'tokenType',
+                'tokenExpiration',
+                'sesionId',
+                'currentUser',
+                'usuarioActualId'
+            ];
 
-        await Promise.all(
-            authKeys.map(key => this.dbManager.deleteAuth(key))
-        );
+            await Promise.all(
+                authKeys.map(key => this.dbManager.deleteAuth(key))
+            );
 
-        console.log('✅ [Auth] Datos de autenticación limpiados');
+            console.log('✅ [Auth] Datos de autenticación limpiados');
+        } catch (error) {
+            console.warn('⚠️ [Auth] Error limpiando auth:', error.message);
+        }
     }
 
     /**
@@ -169,13 +233,23 @@ class StorageHelper {
             return;
         }
 
-        const result = await this.dbManager.setCuartos(cuartos);
-        console.log(`✅ [Data] ${result.success} cuartos guardados en IndexedDB`);
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Data] IndexedDB no disponible, cuartos no guardados en IDB');
+            return { success: 0, errors: [] };
+        }
 
-        // También guardar en cache para acceso rápido
-        await this.dbManager.setCache('ultimosCuartos', cuartos, 60);
+        try {
+            const result = await this.dbManager.setCuartos(cuartos);
+            console.log(`✅ [Data] ${result.success} cuartos guardados en IndexedDB`);
 
-        return result;
+            // También guardar en cache para acceso rápido
+            await this.dbManager.setCache('ultimosCuartos', cuartos, 60);
+
+            return result;
+        } catch (error) {
+            console.warn('⚠️ [Data] Error guardando cuartos:', error.message);
+            return { success: 0, errors: [error] };
+        }
     }
 
     /**
@@ -183,7 +257,13 @@ class StorageHelper {
      */
     async getCuartos() {
         await this.init();
-        return await this.dbManager.getAll('cuartos');
+        if (!this.indexedDBAvailable) return [];
+        try {
+            return await this.dbManager.getAll('cuartos');
+        } catch (error) {
+            console.warn('⚠️ [Data] Error obteniendo cuartos:', error.message);
+            return [];
+        }
     }
 
     /**
@@ -197,12 +277,22 @@ class StorageHelper {
             return;
         }
 
-        const result = await this.dbManager.setEdificios(edificios);
-        console.log(`✅ [Data] ${result.success} edificios guardados en IndexedDB`);
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Data] IndexedDB no disponible, edificios no guardados en IDB');
+            return { success: 0, errors: [] };
+        }
 
-        await this.dbManager.setCache('ultimosEdificios', edificios, 60);
+        try {
+            const result = await this.dbManager.setEdificios(edificios);
+            console.log(`✅ [Data] ${result.success} edificios guardados en IndexedDB`);
 
-        return result;
+            await this.dbManager.setCache('ultimosEdificios', edificios, 60);
+
+            return result;
+        } catch (error) {
+            console.warn('⚠️ [Data] Error guardando edificios:', error.message);
+            return { success: 0, errors: [error] };
+        }
     }
 
     /**
@@ -210,7 +300,13 @@ class StorageHelper {
      */
     async getEdificios() {
         await this.init();
-        return await this.dbManager.getAll('edificios');
+        if (!this.indexedDBAvailable) return [];
+        try {
+            return await this.dbManager.getAll('edificios');
+        } catch (error) {
+            console.warn('⚠️ [Data] Error obteniendo edificios:', error.message);
+            return [];
+        }
     }
 
     /**
@@ -224,12 +320,22 @@ class StorageHelper {
             return;
         }
 
-        const result = await this.dbManager.setMantenimientos(mantenimientos);
-        console.log(`✅ [Data] ${result.success} mantenimientos guardados en IndexedDB`);
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Data] IndexedDB no disponible, mantenimientos no guardados en IDB');
+            return { success: 0, errors: [] };
+        }
 
-        await this.dbManager.setCache('ultimosMantenimientos', mantenimientos, 60);
+        try {
+            const result = await this.dbManager.setMantenimientos(mantenimientos);
+            console.log(`✅ [Data] ${result.success} mantenimientos guardados en IndexedDB`);
 
-        return result;
+            await this.dbManager.setCache('ultimosMantenimientos', mantenimientos, 60);
+
+            return result;
+        } catch (error) {
+            console.warn('⚠️ [Data] Error guardando mantenimientos:', error.message);
+            return { success: 0, errors: [error] };
+        }
     }
 
     /**
@@ -237,7 +343,13 @@ class StorageHelper {
      */
     async getMantenimientos() {
         await this.init();
-        return await this.dbManager.getAll('mantenimientos');
+        if (!this.indexedDBAvailable) return [];
+        try {
+            return await this.dbManager.getAll('mantenimientos');
+        } catch (error) {
+            console.warn('⚠️ [Data] Error obteniendo mantenimientos:', error.message);
+            return [];
+        }
     }
 
     /**
@@ -251,12 +363,22 @@ class StorageHelper {
             return;
         }
 
-        const result = await this.dbManager.setUsuarios(usuarios);
-        console.log(`✅ [Data] ${result.success} usuarios guardados en IndexedDB`);
+        if (!this.indexedDBAvailable) {
+            console.warn('⚠️ [Data] IndexedDB no disponible, usuarios no guardados en IDB');
+            return { success: 0, errors: [] };
+        }
 
-        await this.dbManager.setCache('ultimosUsuarios', usuarios, 60);
+        try {
+            const result = await this.dbManager.setUsuarios(usuarios);
+            console.log(`✅ [Data] ${result.success} usuarios guardados en IndexedDB`);
 
-        return result;
+            await this.dbManager.setCache('ultimosUsuarios', usuarios, 60);
+
+            return result;
+        } catch (error) {
+            console.warn('⚠️ [Data] Error guardando usuarios:', error.message);
+            return { success: 0, errors: [error] };
+        }
     }
 
     /**
@@ -264,7 +386,13 @@ class StorageHelper {
      */
     async getUsuarios() {
         await this.init();
-        return await this.dbManager.getAll('usuarios');
+        if (!this.indexedDBAvailable) return [];
+        try {
+            return await this.dbManager.getAll('usuarios');
+        } catch (error) {
+            console.warn('⚠️ [Data] Error obteniendo usuarios:', error.message);
+            return [];
+        }
     }
 
     /**

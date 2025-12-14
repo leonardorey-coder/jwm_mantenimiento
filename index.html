@@ -60,7 +60,15 @@
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
 </head>
 
-<body>
+<body class="app-loading">
+    <!-- Loading Overlay - Mostrado durante auto-login/carga inicial -->
+    <div id="appLoadingOverlay" class="app-loading-overlay">
+        <div class="app-loading-content">
+            <img src="logo_low.png" alt="JW Marriott" class="app-loading-logo">
+            <p class="app-loading-text">Iniciando sesión...</p>
+        </div>
+    </div>
+
     <!-- Header Premium -->
     <header class="premium-header">
         <div class="header-content">
@@ -68,8 +76,8 @@
             <div class="header-left">
                 <div class="user-info">
                     <div>
-                        <span class="user-name" id="userName">Usuario</span>
-                        <span class="user-role" id="userRole">Rol</span>
+                        <span class="user-name skeleton-text" id="userName">Cargando...</span>
+                        <span class="user-role skeleton-text" id="userRole">...</span>
                     </div>
                 </div>
             </div>

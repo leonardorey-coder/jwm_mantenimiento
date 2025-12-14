@@ -124,7 +124,7 @@ let dummyWindow = null;
 /**
  * Crea la ventana principal de la aplicación
  */
-function createWindow() {
+async function createWindow() {
     mainWindow = new BrowserWindow({
         width: 400,
         height: 700,
@@ -166,14 +166,50 @@ function createWindow() {
         }
     });
 
-    // Cargar la página de login primero
-    const startUrl = `http://localhost:${serverPort}/login.html`;
+    // Verificar si hay sesión guardada con "remember me" para auto-login inmediato
+    let startUrl = `http://localhost:${serverPort}/login.html`;
+
+    try {
+        const authData = await getAuthData();
+        if (authData && authData.accessToken && authData.currentUser) {
+            // Verificar si el token no está expirado
+            const tokenExpiration = authData.tokenExpiration;
+            const isExpired = tokenExpiration && new Date(tokenExpiration) <= new Date();
+
+            if (!isExpired) {
+                // Token válido, cargar directamente el dashboard
+                console.log('🔐 Sesión "Recordarme" encontrada, cargando dashboard directamente...');
+                startUrl = `http://localhost:${serverPort}/index.html`;
+
+                // Configurar ventana para dashboard
+                mainWindow.setSize(1400, 900);
+                mainWindow.setMinimumSize(1024, 768);
+                mainWindow.setTitleBarOverlay({
+                    color: '#00000000',
+                    symbolColor: '#FFFFFF',
+                    height: 32
+                });
+            } else {
+                console.log('🔐 Token expirado, mostrando login...');
+            }
+        }
+    } catch (err) {
+        console.log('🔐 No hay sesión guardada, mostrando login...');
+    }
+
     console.log(`🌐 Cargando: ${startUrl}`);
     mainWindow.loadURL(startUrl);
 
     // Mostrar cuando esté listo para evitar flash blanco
     mainWindow.once('ready-to-show', () => {
         mainWindow.show();
+
+        // Si cargamos el dashboard, maximizar
+        if (startUrl.includes('index.html')) {
+            mainWindow.center();
+            mainWindow.maximize();
+        }
+
         if (isDev) {
             mainWindow.webContents.openDevTools();
         }

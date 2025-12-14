@@ -117,97 +117,11 @@
     let paginaActualEspacios = 1;
     let totalPaginasEspacios = 1;
 
-    // Datos mock para modo offline
-    const datosOffline = {
-        edificios: [
-            { id: 1, nombre: 'Torre A', descripcion: 'Edificio principal' },
-            { id: 2, nombre: 'Torre B', descripcion: 'Edificio secundario' }
-        ],
-        cuartos: [
-            { id: 1, numero: '101', nombre: '101', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'ocupado' },
-            { id: 2, numero: '102', nombre: '102', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'vacio' },
-            { id: 3, numero: '201', nombre: '201', edificio_id: 2, edificio_nombre: 'Torre B', estado: 'mantenimiento' },
-            { id: 4, numero: '202', nombre: '202', edificio_id: 2, edificio_nombre: 'Torre B', estado: 'vacio' },
-            { id: 5, numero: '301', nombre: '301', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'fuera_servicio' }
-        ],
-        usuarios: [
-            { id: 1, nombre: 'Juan Pérez', rol_id: 1, departamento: 'Mantenimiento', rol_nombre: 'Administrador' },
-            { id: 2, nombre: 'María García', rol_id: 2, departamento: 'Limpieza', rol_nombre: 'Técnico' },
-            { id: 3, nombre: 'Carlos López', rol_id: 2, departamento: 'Mantenimiento', rol_nombre: 'Técnico' },
-            { id: 4, nombre: 'Ana Martínez', rol_id: 3, departamento: 'Recepción', rol_nombre: 'Usuario' }
-        ],
-        mantenimientos: [
-            {
-                id: 1,
-                cuarto_id: 1,
-                tipo: 'normal',
-                descripcion: 'Reparación de aire acondicionado',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 2,
-                cuarto_id: 1,
-                tipo: 'rutina',
-                descripcion: 'Cambio de filtros programado',
-                hora: '14:00:00',
-                dia_alerta: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'media',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 3,
-                cuarto_id: 1,
-                tipo: 'rutina',
-                descripcion: 'Inspección de seguridad',
-                hora: '10:00:00',
-                dia_alerta: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'alta',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 4,
-                cuarto_id: 1,
-                tipo: 'normal',
-                descripcion: 'Revisión de plomería en baño',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 5,
-                cuarto_id: 2,
-                tipo: 'normal',
-                descripcion: 'Limpieza profunda',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '102',
-                cuarto_nombre: '102'
-            },
-            {
-                id: 6,
-                cuarto_id: 3,
-                tipo: 'rutina',
-                descripcion: 'Mantenimiento preventivo',
-                hora: '09:00:00',
-                dia_alerta: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'baja',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '201',
-                cuarto_nombre: '201'
-            }
-        ]
-    };
+    // NOTA: Los datos mock (datosOffline) han sido eliminados.
+    // La app ahora depende de:
+    // 1. Datos en vivo desde la API
+    // 2. Datos cacheados en IndexedDB (si disponible)
+    // 3. Datos cacheados en localStorage (como último recurso)
 
     // Caché de plantillas para evitar recrearlas
     const SKELETON_TEMPLATE = `
@@ -241,6 +155,31 @@
         console.log('📍 URL actual:', window.location.href);
         console.log('📄 User Agent:', navigator.userAgent);
         console.log('📋 Document readyState:', document.readyState);
+
+        // RECUPERACIÓN DE SESIÓN DESDE ELECTRON STORAGE (para auto-login desktop)
+        if (window.electronAPI && window.electronAPI.auth) {
+            try {
+                console.log('🔐 [APP-LOADER] Intentando recuperar sesión de Electron Storage...');
+                const electronAuth = await window.electronAPI.auth.get();
+
+                if (electronAuth && electronAuth.accessToken) {
+                    console.log('✅ [APP-LOADER] Sesión recuperada de Electron Storage');
+
+                    // Restaurar en localStorage para que el resto de la app funcione
+                    localStorage.setItem('accessToken', electronAuth.accessToken);
+                    if (electronAuth.refreshToken) localStorage.setItem('refreshToken', electronAuth.refreshToken);
+                    if (electronAuth.tokenExpiration) localStorage.setItem('tokenExpiration', electronAuth.tokenExpiration);
+                    if (electronAuth.tokenType) localStorage.setItem('tokenType', electronAuth.tokenType);
+                    if (electronAuth.sesionId) localStorage.setItem('sesionId', electronAuth.sesionId);
+
+                    if (electronAuth.currentUser) {
+                        localStorage.setItem('currentUser', JSON.stringify(electronAuth.currentUser));
+                    }
+                }
+            } catch (err) {
+                console.warn('⚠️ [APP-LOADER] Error recuperando sesión de Electron:', err);
+            }
+        }
 
         // Preparar audio para primera interacción del usuario
         habilitarAudioConInteraccion();
@@ -362,35 +301,43 @@
             console.log('🌐 Conectividad a API:', API_BASE_URL);
 
             // Probar conectividad básica
+            let apiConectada = false;
             try {
                 console.log('🧪 Probando conectividad básica...');
                 const response = await fetch(API_BASE_URL + '/api/cuartos');
                 console.log('📡 Response status:', response.status);
                 console.log('📊 Response ok:', response.ok);
+                apiConectada = response.ok;
             } catch (fetchError) {
-                console.error('🚫 Error de conectividad crítico:', fetchError);
+                console.error('🚫 Error de conectividad:', fetchError);
                 console.error('🔍 Fetch error details:', fetchError.message);
-                throw fetchError; // Re-lanzar el error para manejarlo arriba
             }
 
-            // Si llegamos aquí, hubo un error de aplicación, no de red
-            console.log('� Error de aplicación, re-intentando...');
+            // Si la API responde OK, el error fue interno (no de red)
+            if (apiConectada) {
+                console.log('⚠️ Error de aplicación interno, la API está disponible');
+                // Intentar cargar datos de la API directamente
+                try {
+                    await cargarDatos();
+                    window.appLoaderState.datosHabitacionesCargados = true;
+                    renderHabitacionesUI('retry');
+                    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Datos cargados correctamente tras reintento', 'success');
+                    return;
+                } catch (retryError) {
+                    console.error('❌ Reintento de carga falló:', retryError);
+                }
+            }
 
-
-            // Si llegamos aquí, usar datos offline como último recurso
-            console.log('🆘 Usando datos offline como último recurso...');
-            try {
-                cuartos = datosOffline.cuartos;
-                edificios = datosOffline.edificios;
-                mantenimientos = datosOffline.mantenimientos;
-
+            // Si no hay datos cargados, mostrar error al usuario
+            if (cuartos.length === 0 && edificios.length === 0) {
+                console.error('❌ No hay datos disponibles para mostrar');
+                mostrarError('No se pudieron cargar los datos. Verifica tu conexión y recarga la página.');
+            } else {
+                // Si hay algunos datos cargados previamente en cargarDatos, mostrarlos
+                console.log('📦 Mostrando datos parciales disponibles...');
                 window.appLoaderState.datosHabitacionesCargados = true;
-                renderHabitacionesUI('offline');
-
-                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline', 'warning');
-            } catch (offlineError) {
-                console.error('Error cargando datos offline:', offlineError);
-                mostrarError('Error crítico al cargar la aplicación.');
+                renderHabitacionesUI('partial');
+                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Mostrando datos en caché (algunos datos pueden estar desactualizados)', 'warning');
             }
         }
     }
@@ -596,32 +543,9 @@
                 console.error('💥 Error al cargar desde localStorage:', localStorageError);
             }
 
-            console.log('🆘 Usando datos offline como último recurso...');
-
-            // Usar datos offline
-            try {
-                cuartos = datosOffline.cuartos;
-                edificios = datosOffline.edificios;
-                mantenimientos = datosOffline.mantenimientos;
-                usuarios = datosOffline.usuarios || [];
-
-                console.log('Datos offline cargados:', {
-                    cuartos: cuartos.length,
-                    edificios: edificios.length,
-                    mantenimientos: mantenimientos.length,
-                    usuarios: usuarios.length
-                });
-
-                // Mostrar mensaje informativo al usuario
-                setTimeout(() => {
-                    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline con datos de ejemplo', 'info');
-                }, 2000);
-
-                return true;
-            } catch (offlineError) {
-                console.error('Error cargando datos offline:', offlineError);
-                throw new Error('No se pueden cargar datos ni desde API ni desde cache offline');
-            }
+            // Sin datos disponibles - lanzar error
+            console.error('❌ No hay datos disponibles ni de API, IndexedDB, ni localStorage');
+            throw new Error('No se pueden cargar datos. Verifica tu conexión a internet o contacta soporte.');
         }
     }
 

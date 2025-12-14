@@ -46,6 +46,36 @@ window.electronSafeConfirm = electronSafeConfirm;
 window.electronSafeAlert = electronSafeAlert;
 window.refreshElectronFocus = refreshElectronFocus;
 
+/**
+ * Ocultar el overlay de carga de la app (usado durante auto-login)
+ */
+function hideAppLoadingOverlay() {
+    console.log('✅ [APP.JS] Ocultando loading overlay...');
+
+    // Ocultar el overlay con animación
+    const overlay = document.getElementById('appLoadingOverlay');
+    if (overlay) {
+        overlay.classList.add('hidden');
+        // Remover del DOM después de la animación
+        setTimeout(() => {
+            overlay.remove();
+        }, 500);
+    }
+
+    // Remover clase de loading del body
+    document.body.classList.remove('app-loading');
+
+    // Remover skeleton classes de los elementos
+    document.querySelectorAll('.skeleton-text').forEach(el => {
+        el.classList.remove('skeleton-text');
+    });
+
+    console.log('✅ [APP.JS] App lista!');
+}
+
+// Exponer globalmente
+window.hideAppLoadingOverlay = hideAppLoadingOverlay;
+
 // Estado global de la aplicación
 const AppState = {
     currentUser: null,
@@ -258,6 +288,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }, 300);
     }
+
+    // OCULTAR LOADING OVERLAY después de que la app esté lista
+    hideAppLoadingOverlay();
 });
 
 // ========================================
@@ -266,6 +299,32 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function checkAuthentication() {
     console.log('🔐 [APP.JS] checkAuthentication() - Verificando autenticación...');
+
+    // RECUPERACIÓN DE SESIÓN DESDE ELECTRON STORAGE (para auto-login desktop)
+    if (window.electronAPI && window.electronAPI.auth) {
+        try {
+            console.log('🔐 [APP.JS] Intentando recuperar sesión de Electron Storage...');
+            const electronAuth = await window.electronAPI.auth.get();
+
+            if (electronAuth && electronAuth.accessToken) {
+                console.log('✅ [APP.JS] Sesión recuperada de Electron Storage');
+
+                // Restaurar en localStorage para que el resto de la app funcione
+                localStorage.setItem('accessToken', electronAuth.accessToken);
+                if (electronAuth.refreshToken) localStorage.setItem('refreshToken', electronAuth.refreshToken);
+                if (electronAuth.tokenExpiration) localStorage.setItem('tokenExpiration', electronAuth.tokenExpiration);
+                if (electronAuth.tokenType) localStorage.setItem('tokenType', electronAuth.tokenType);
+                if (electronAuth.sesionId) localStorage.setItem('sesionId', electronAuth.sesionId);
+
+                if (electronAuth.currentUser) {
+                    localStorage.setItem('currentUser', JSON.stringify(electronAuth.currentUser));
+                }
+            }
+        } catch (err) {
+            console.warn('⚠️ [APP.JS] Error recuperando sesión de Electron:', err);
+        }
+    }
+
     // Verificar token JWT (en localStorage o sessionStorage)
     const accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
