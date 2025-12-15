@@ -81,22 +81,30 @@ psql -U postgres -d jwmantto -f db/schema-postgres-completo.sql
 # Frontend Next.js con estilos centralizados (puerto 3000)
 npm run dev
 
-# Backend JS vanilla existente (puerto 3001)
+# Backend Express vanilla (puerto 3001, opcional en paralelo)
 npm run backend
 
-# Entorno serverless Vercel (opcional)
+# Producción frontend Next.js
+npm run build
+npm start
+
+# Producción backend Express
+npm run backend:prod
+
+# Entorno serverless Vercel (opcional, simula producción)
 npm run vercel:dev
 ```
 
-Accede en `http://localhost:3000` para la nueva UI Next.js. El backend Express continúa disponible en `http://localhost:3001` y puede ser consumido desde el frontend.
+Accede en `http://localhost:3000` para la UI Next.js. El backend Express continúa disponible en `http://localhost:3001` y puede ser consumido desde el frontend Next.js.
 
 ## 🧱 Arquitectura
 
-- **Frontend (Next.js + React)**: directorio `app/` con layout y página principal, componentes en `components/` y utilidades de estilo unificadas en `styles/jwm-mantto-tailwind.css` (tailwind-like sin dependencia externa). La UI se construye con renderización híbrida (SSR/CSR) y puede integrarse con el backend vía fetch.
+- **Frontend (Next.js + React)**: directorio `app/` con layout y página principal, componentes en `components/` y utilidades de estilo unificadas en `styles/jwm-mantto-tailwind.css` (tailwind-like sin dependencia externa). La UI se construye con renderización híbrida (SSR/CSR). Rutas API de Next.js en `app/api/` (ej: `/api/rooms`).
 - **Frontend legacy (PWA)**: `index.html`, `css/style.css`, `js/app.js`, `manifest.json`, `sw.js`, módulos en `views/` (tareas, checklist, usuarios). Cache de recursos, estado global y consumo de API vía `fetchWithAuth`. Persistencia local con IndexedDB (cola de cambios y datos esenciales).
 - **Backend (API REST)**:
-  - Serverless Vercel: `api/index.js` (Express exportado como función) + `api/auth*.js` (JWT, roles).
-  - Express local: `js/server.js` (usa el mismo `PostgresManager` que Vercel).
+  - Next.js API Routes: `app/api/` con handlers modernos (ej: `app/api/rooms/route.js`).
+  - Express legacy (Vercel serverless): `api/index.js` (Express exportado como función) disponible en `/api/legacy/...` en producción.
+  - Express local: `js/server.js` (puerto 3001, usa el mismo `PostgresManager` que Vercel).
   - Conexión a PostgreSQL vía `pg`, migraciones automáticas en `db/postgres-manager.js`.
 - **Base de datos**:
   - Central: PostgreSQL (producción/nube) con esquema completo (`db/schema-postgres-completo.sql`) y migraciones.
@@ -128,21 +136,31 @@ Accede en `http://localhost:3000` para la nueva UI Next.js. El backend Express c
 
 ```
 jwm_mant_cuartos/
-├── api/                         # Funciones serverless (Vercel): index.js, auth.js, auth-routes.js
+├── app/                         # Next.js App Router
+│   ├── api/                     # Rutas API de Next.js (ej: rooms/route.js)
+│   ├── layout.jsx               # Layout principal Next.js
+│   ├── page.jsx                 # Página principal
+│   └── globals.css              # Estilos globales Next.js
+├── components/                  # Componentes React reutilizables
+├── styles/
+│   └── jwm-mantto-tailwind.css  # Utilidades tailwind-like centralizadas
+├── api/                         # Funciones serverless Express legacy (Vercel): index.js, auth.js
 ├── js/
-│   ├── app.js                   # Lógica principal PWA (tabs, auth, estados)
-│   ├── server.js                # Servidor Express local
+│   ├── app.js                   # Lógica principal PWA legacy (tabs, auth, estados)
+│   ├── server.js                # Servidor Express local (puerto 3001)
 │   └── sw.js                    # Service Worker (cache PWA)
-├── views/                       # Módulos UI (tareas, checklist, usuarios, etc.)
+├── views/                       # Módulos UI legacy (tareas, checklist, usuarios, etc.)
 ├── db/
 │   ├── postgres-manager.js      # Gestor PostgreSQL (pool, migraciones automáticas)
 │   ├── schema-postgres-completo.sql  # Esquema completo recomendado
 │   ├── migration_*.sql          # Migraciones y seeds (tareas, checklist, dia_alerta, etc.)
 │   └── config.js                # Configuración de conexión
 ├── docs/                        # Documentación técnica y manuales de módulos
-├── css/style.css                # Estilos generales
-├── index.html                   # Interfaz principal (tabs PWA)
+├── css/style.css                # Estilos generales legacy
+├── index.html                   # Interfaz principal PWA legacy (tabs)
 ├── manifest.json                # Manifiesto PWA
+├── next.config.js               # Configuración Next.js
+├── vercel.json                  # Configuración Vercel (rewrites, headers)
 ├── package.json                 # Scripts y dependencias
 └── sounds/, icons/              # Recursos estáticos
 ```
@@ -168,7 +186,11 @@ jwm_mant_cuartos/
 
 ## 📡 API REST
 
-Endpoints principales (base `/api`):
+### Rutas API Next.js (modernas, base `/api`)
+
+- **Rooms**: `GET /api/rooms` (ejemplo con fallback a mock si backend no disponible).
+
+### Rutas API Express legacy (base `/api/legacy` en Vercel, `/api` en local)
 
 - **Auth**: `POST /auth/login`, `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`, `POST /auth/solicitar-acceso`, `POST /auth/cambiar-password-obligatorio`.
 - **Usuarios/Roles (ADMIN)**: `GET /auth/usuarios`, `GET /usuarios/roles`, `POST /usuarios`, `PUT /usuarios/:id`, `POST /usuarios/:id/desactivar|activar|desbloquear`.
@@ -179,6 +201,8 @@ Endpoints principales (base `/api`):
 - **Espacios comunes**: endpoints planificados en `docs/README_ESPACIOS_COMUNES.md` (mismos estados y mantenimientos específicos).
 - **Sábanas**: diseñados en `docs/README_SABANAS.md` (esquema `schema_sabanas.sql`).
 - **Health**: `GET /health` (estado del servicio y DB).
+
+> En desarrollo local, el backend Express corre en puerto 3001 con base `/api`. En producción Vercel, las rutas Express legacy están en `/api/legacy/...` para evitar conflictos con las rutas API de Next.js.
 
 ## 💾 Base de Datos
 

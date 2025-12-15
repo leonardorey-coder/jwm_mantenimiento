@@ -19,6 +19,8 @@
 # Directorios de build
 /dist
 /out
+/.next
+/.vercel/output
 
 # Archivos de prueba
 test-*.html

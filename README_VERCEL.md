@@ -3,7 +3,7 @@ Esta guía explica cómo trabajar con la aplicación JW Mantto usando Vercel, ta
 
 ## 📋 Requisitos Previos
 
-1. **Node.js** (versión 16 o superior)
+1. **Node.js** (versión 18.18 o superior, requerido por Next.js 15)
 2. **Cuenta de Vercel** (gratuita): [vercel.com](https://vercel.com)
 3. **Vercel CLI** instalado globalmente:
    ```bash
@@ -36,29 +36,33 @@ Edita `.env.local` con tus credenciales de base de datos.
 
 ## 🏃 Desarrollo Local con Vercel
 
-### Opción 1: Usar Vercel CLI (Recomendado)
+### Opción 1: Frontend Next.js (Recomendado)
 
-Ejecuta el servidor de desarrollo de Vercel que simula el entorno de producción:
-
-```bash
-npm run vercel:dev
-# o simplemente
-npm run vercel
-```
-
-Esto iniciará un servidor local en `http://localhost:3000` que funciona exactamente como en Vercel.
-
-### Opción 2: Servidor Express tradicional
-
-Para desarrollo rápido sin Vercel:
+Ejecuta el servidor de desarrollo de Next.js:
 
 ```bash
-npm start
-# o
 npm run dev
 ```
 
-Esto iniciará el servidor Express en `http://localhost:3001`.
+Esto iniciará Next.js en `http://localhost:3000` con hot-reload y todas las funcionalidades del App Router.
+
+### Opción 2: Backend Express vanilla
+
+Para ejecutar el backend API en paralelo:
+
+```bash
+npm run backend
+```
+
+Esto iniciará el servidor Express en `http://localhost:3001` con las rutas API legacy.
+
+### Opción 3: Entorno Vercel local
+
+Para simular exactamente el entorno de producción de Vercel:
+
+```bash
+npm run vercel:dev
+```
 
 ## 🌐 Despliegue en Vercel
 
@@ -110,17 +114,26 @@ jwm_mant_cuartos/
 
 ## 🔄 Diferencias entre Entornos
 
-### Desarrollo Local (Express)
+### Frontend Next.js (Desarrollo)
+
+- **URL:** `http://localhost:3000`
+- **Servidor:** Next.js dev server
+- **Comando:** `npm run dev`
+- **Rutas API Next:** `/api/rooms` y futuras rutas en `app/api/`
+
+### Backend Express vanilla (Desarrollo)
 
 - **URL API:** `http://localhost:3001/api/...`
 - **Servidor:** Express tradicional
-- **Archivo:** `server.js`
+- **Comando:** `npm run backend`
+- **Archivo:** `js/server.js`
+- **Rutas legacy:** Disponibles en `/api/legacy/...` en producción Vercel
 
 ### Vercel (Producción/Preview)
 
-- **URL API:** `/api/...` (relativa)
-- **Servidor:** Funciones serverless
-- **Archivo:** `api/index.js`
+- **Frontend:** Next.js SSR/CSR con App Router
+- **API Next.js:** `/api/rooms` y otras rutas en `app/api/`
+- **API Express legacy:** `/api/legacy/...` (funciones serverless desde `api/index.js`)
 
 La aplicación detecta automáticamente el entorno y ajusta las URLs de la API.
 
@@ -145,7 +158,23 @@ La aplicación detecta automáticamente el entorno y ajusta las URLs de la API.
 
 ## 🧪 Probar Localmente
 
-### 1. Con Vercel CLI
+### 1. Frontend Next.js
+
+```bash
+npm run dev
+```
+
+Abre `http://localhost:3000` en tu navegador.
+
+### 2. Backend Express vanilla (opcional, en paralelo)
+
+```bash
+npm run backend
+```
+
+El backend estará disponible en `http://localhost:3001`.
+
+### 3. Con Vercel CLI (simula producción)
 
 ```bash
 npm run vercel:dev
@@ -153,23 +182,24 @@ npm run vercel:dev
 
 Abre `http://localhost:3000` en tu navegador.
 
-### 2. Con Express tradicional
-
-```bash
-npm start
-```
-
-Abre `http://localhost:3001` en tu navegador.
-
 ## 📝 Scripts Disponibles
 
 ```bash
-# Desarrollo local con Vercel (simula producción)
-npm run vercel:dev
-
-# Desarrollo local con Express
-npm start
+# Desarrollo frontend Next.js (puerto 3000)
 npm run dev
+
+# Desarrollo backend Express vanilla (puerto 3001)
+npm run backend
+
+# Producción frontend Next.js
+npm run build
+npm start
+
+# Producción backend Express
+npm run backend:prod
+
+# Desarrollo local con Vercel CLI (simula producción)
+npm run vercel:dev
 
 # Build para Vercel
 npm run vercel:build
@@ -225,6 +255,10 @@ npm install
 
 Verifica que `app-loader.js` esté usando la detección automática de entorno. La URL de la API se ajusta automáticamente.
 
+### Rutas API no funcionan en Vercel
+
+Si las rutas API de Next.js (`/api/rooms`, etc.) no responden en Vercel, verifica que `vercel.json` no tenga rewrites que las capturen. Las rutas legacy de Express están ahora en `/api/legacy/...`.
+
 ## 📚 Recursos Adicionales
 
 - [Documentación de Vercel](https://vercel.com/docs)
@@ -242,5 +276,5 @@ Verifica que `app-loader.js` esté usando la detección automática de entorno. 
 
 ---
 
-**Nota:** Esta aplicación funciona tanto en desarrollo local (Express) como en Vercel (serverless) sin cambios en el código, gracias a la detección automática de entorno.
+**Nota:** Esta aplicación ahora usa Next.js como frontend principal (puerto 3000) con rutas API en `app/api/`. El backend Express vanilla (puerto 3001) sigue disponible para desarrollo local y se expone en Vercel bajo `/api/legacy/...` para compatibilidad con código legacy.
 

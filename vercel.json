@@ -7,11 +7,11 @@
   },
   "rewrites": [
     {
-      "source": "/api",
+      "source": "/api/legacy",
       "destination": "/api/index.js"
     },
     {
-      "source": "/api/(.*)",
+      "source": "/api/legacy/(.*)",
       "destination": "/api/index.js"
     }
   ],
