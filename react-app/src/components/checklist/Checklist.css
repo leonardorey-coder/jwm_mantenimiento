@@ -1,0 +1,230 @@
+.checklist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.checklist-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.checklist-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.checklist-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checklist-card {
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+  transition: var(--transicion-rapida);
+}
+
+.checklist-card:hover {
+  box-shadow: var(--sombra-suave);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+}
+
+.card-header:hover {
+  background: var(--gris-claro);
+}
+
+.cuarto-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.cuarto-info h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cuarto-info .edificio {
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.resumen-estados {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.estado-count {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: var(--radio-full);
+}
+
+.estado-count.success {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--estado-bueno);
+}
+
+.estado-count.warning {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--estado-regular);
+}
+
+.estado-count.danger {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--estado-malo);
+}
+
+.card-content {
+  border-top: 1px solid var(--border-color);
+  padding: 1rem 1.25rem;
+}
+
+.categoria-section {
+  margin-bottom: 1.25rem;
+}
+
+.categoria-section:last-child {
+  margin-bottom: 0;
+}
+
+.categoria-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.375rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-md);
+  flex-wrap: wrap;
+}
+
+.item-nombre {
+  flex: 1;
+  font-size: 0.8125rem;
+  min-width: 150px;
+}
+
+.estado-buttons {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.estado-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radio-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: var(--bg-principal);
+  color: var(--texto-secundario);
+  transition: var(--transicion-rapida);
+}
+
+.estado-btn:hover {
+  border-color: var(--texto-secundario);
+}
+
+.estado-btn.success {
+  border-color: var(--estado-bueno);
+  color: var(--estado-bueno);
+}
+
+.estado-btn.success.active {
+  background: var(--estado-bueno);
+  color: white;
+}
+
+.estado-btn.warning {
+  border-color: var(--estado-regular);
+  color: var(--estado-regular);
+}
+
+.estado-btn.warning.active {
+  background: var(--estado-regular);
+  color: white;
+}
+
+.estado-btn.danger {
+  border-color: var(--estado-malo);
+  color: var(--estado-malo);
+}
+
+.estado-btn.danger.active {
+  background: var(--estado-malo);
+  color: white;
+}
+
+.estado-btn.default.active {
+  background: var(--texto-secundario);
+  color: white;
+}
+
+.item-observacion {
+  width: 100%;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  font-style: italic;
+  padding-top: 0.375rem;
+}
+
+.item-editor {
+  width: 100%;
+  font-size: 0.6875rem;
+  color: var(--texto-secundario);
+}
+
+@media (max-width: 640px) {
+  .checklist-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .estado-buttons {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .estado-btn {
+    flex: 1;
+  }
+}

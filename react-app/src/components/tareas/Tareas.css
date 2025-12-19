@@ -1,0 +1,189 @@
+.tareas-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tareas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tareas-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.tareas-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tarea-group {
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.tarea-group.vencidas {
+  border-color: var(--color-peligro);
+}
+
+.tarea-group.vencidas .group-header {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-peligro);
+}
+
+.tarea-group.hoy .group-header {
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-advertencia);
+}
+
+.tarea-group.completadas {
+  opacity: 0.7;
+}
+
+.group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  width: 100%;
+  background: var(--gris-claro);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+}
+
+.group-header:hover {
+  filter: brightness(0.95);
+}
+
+.group-header h3 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.group-header .count {
+  padding: 0.125rem 0.5rem;
+  background: var(--bg-principal);
+  border-radius: var(--radio-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tareas-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.tarea-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  transition: var(--transicion-rapida);
+}
+
+.tarea-card:last-child {
+  border-bottom: none;
+}
+
+.tarea-card:hover {
+  background: var(--gris-claro);
+}
+
+.tarea-checkbox {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radio-full);
+  transition: var(--transicion-rapida);
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.tarea-checkbox:hover {
+  background: var(--gris-claro);
+}
+
+.tarea-checkbox .success {
+  color: var(--color-exito);
+}
+
+.tarea-checkbox .info {
+  color: var(--color-info);
+}
+
+.tarea-checkbox .danger {
+  color: var(--color-peligro);
+}
+
+.tarea-checkbox .default {
+  color: var(--texto-secundario);
+}
+
+.tarea-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.tarea-content h4 {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.tarea-content h4.completada {
+  text-decoration: line-through;
+  color: var(--texto-secundario);
+}
+
+.tarea-descripcion {
+  font-size: 0.8125rem;
+  color: var(--texto-secundario);
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+}
+
+.tarea-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.tarea-actions {
+  display: flex;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.tarea-actions .btn-action {
+  width: 32px;
+  height: 32px;
+}
+
+@media (max-width: 640px) {
+  .tarea-card {
+    flex-wrap: wrap;
+  }
+  
+  .tarea-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+}
