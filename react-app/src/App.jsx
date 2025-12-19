@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './components/ui/Toast';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
 import MainLayout from './components/layout/MainLayout';
@@ -28,8 +29,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
+          <ToastProvider>
+            <BrowserRouter>
+              <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
                 <ProtectedRoute>
@@ -49,8 +51,9 @@ function App() {
                 } />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </BrowserRouter>
+              </Routes>
+            </BrowserRouter>
+          </ToastProvider>
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>

@@ -154,3 +154,36 @@
     font-size: 0.8125rem;
   }
 }
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-peligro);
+  color: white;
+  border-radius: var(--radio-md);
+  font-weight: 500;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-description {
+  margin-bottom: 1rem;
+  color: var(--texto-secundario);
+}
+
+.modal-description strong {
+  color: var(--texto-principal);
+}
+
+.modal-small {
+  max-width: 400px;
+}

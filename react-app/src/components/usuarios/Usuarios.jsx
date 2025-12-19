@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usuariosService } from '../../services/api';
-import { Search, Plus, RefreshCw, Edit, UserX, UserCheck, Unlock, X, Save, User, Mail, Shield, Building, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '../ui/Toast';
+import { ConfirmDialog } from '../ui';
+import { Search, Plus, RefreshCw, Edit, UserX, UserCheck, Unlock, X, Save, User, Mail, Shield, Building, Eye, EyeOff, Key } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -13,8 +15,13 @@ export default function Usuarios() {
   const [showInactivos, setShowInactivos] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [selectedUsuario, setSelectedUsuario] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [motivoDesactivar, setMotivoDesactivar] = useState('');
+  const [showMotivoModal, setShowMotivoModal] = useState(false);
+  const [usuarioDesactivar, setUsuarioDesactivar] = useState(null);
 
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: usuarios = [], isLoading, refetch } = useQuery({
     queryKey: ['usuarios-admin', showInactivos],
@@ -38,6 +45,10 @@ export default function Usuarios() {
       queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
       setShowModal(false);
       setSelectedUsuario(null);
+      toast.success('Usuario creado correctamente');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Error al crear usuario');
     },
   });
 
@@ -47,28 +58,43 @@ export default function Usuarios() {
       queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
       setShowModal(false);
       setSelectedUsuario(null);
+      toast.success('Usuario actualizado');
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || 'Error al actualizar usuario');
     },
   });
 
   const desactivarUsuario = useMutation({
-    mutationFn: ({ id, motivo }) => usuariosService.desactivar(id, motivo),
+    mutationFn: ({ id, motivo }) => usuariosService.deactivate(id, motivo),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+      setShowMotivoModal(false);
+      setUsuarioDesactivar(null);
+      setMotivoDesactivar('');
+      toast.success('Usuario desactivado');
     },
+    onError: () => toast.error('Error al desactivar usuario'),
   });
 
   const activarUsuario = useMutation({
-    mutationFn: (id) => usuariosService.activar(id),
+    mutationFn: (id) => usuariosService.activate(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+      setConfirmAction(null);
+      toast.success('Usuario activado');
     },
+    onError: () => toast.error('Error al activar usuario'),
   });
 
   const desbloquearUsuario = useMutation({
-    mutationFn: (id) => usuariosService.desbloquear(id),
+    mutationFn: (id) => usuariosService.unlock(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['usuarios-admin'] });
+      setConfirmAction(null);
+      toast.success('Usuario desbloqueado');
     },
+    onError: () => toast.error('Error al desbloquear usuario'),
   });
 
   const usuariosFiltrados = useMemo(() => {
@@ -104,21 +130,24 @@ export default function Usuarios() {
   };
 
   const handleDesactivar = (usuario) => {
-    const motivo = prompt('Motivo de desactivacion:');
-    if (motivo !== null) {
-      desactivarUsuario.mutate({ id: usuario.id, motivo });
-    }
+    setUsuarioDesactivar(usuario);
+    setShowMotivoModal(true);
   };
 
   const handleActivar = (usuario) => {
-    if (confirm(`Activar usuario ${usuario.nombre}?`)) {
-      activarUsuario.mutate(usuario.id);
-    }
+    setConfirmAction({ type: 'activate', usuario });
   };
 
   const handleDesbloquear = (usuario) => {
-    if (confirm(`Desbloquear usuario ${usuario.nombre}?`)) {
-      desbloquearUsuario.mutate(usuario.id);
+    setConfirmAction({ type: 'unlock', usuario });
+  };
+
+  const executeConfirmAction = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'activate') {
+      activarUsuario.mutate(confirmAction.usuario.id);
+    } else if (confirmAction.type === 'unlock') {
+      desbloquearUsuario.mutate(confirmAction.usuario.id);
     }
   };
 
@@ -284,6 +313,81 @@ export default function Usuarios() {
           isLoading={createUsuario.isPending || updateUsuario.isPending}
         />
       )}
+
+      {showMotivoModal && usuarioDesactivar && (
+        <MotivoDesactivarModal
+          usuario={usuarioDesactivar}
+          motivo={motivoDesactivar}
+          setMotivo={setMotivoDesactivar}
+          onConfirm={() => desactivarUsuario.mutate({ id: usuarioDesactivar.id, motivo: motivoDesactivar })}
+          onClose={() => {
+            setShowMotivoModal(false);
+            setUsuarioDesactivar(null);
+            setMotivoDesactivar('');
+          }}
+          isLoading={desactivarUsuario.isPending}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={executeConfirmAction}
+        title={confirmAction?.type === 'activate' ? 'Activar usuario' : 'Desbloquear usuario'}
+        message={`${confirmAction?.type === 'activate' ? 'Activar' : 'Desbloquear'} a ${confirmAction?.usuario?.nombre}?`}
+        confirmText={confirmAction?.type === 'activate' ? 'Activar' : 'Desbloquear'}
+        variant="warning"
+        isLoading={activarUsuario.isPending || desbloquearUsuario.isPending}
+      />
+    </div>
+  );
+}
+
+function MotivoDesactivarModal({ usuario, motivo, setMotivo, onConfirm, onClose, isLoading }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-small" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Desactivar Usuario</h2>
+          <button className="btn-close" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-form">
+          <p className="modal-description">
+            Vas a desactivar a <strong>{usuario.nombre}</strong>. Por favor ingresa el motivo.
+          </p>
+          <div className="form-group">
+            <label>Motivo de desactivacion</label>
+            <textarea
+              value={motivo}
+              onChange={(e) => setMotivo(e.target.value)}
+              placeholder="Escribe el motivo..."
+              rows={3}
+            />
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn-cancel" onClick={onClose}>
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              className="btn-danger" 
+              onClick={onConfirm}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="loading-spinner-small"></span>
+              ) : (
+                <>
+                  <UserX size={18} />
+                  Desactivar
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tareasService, usuariosService } from '../../services/api';
-import { Search, Filter, Plus, RefreshCw, Edit, Trash2, Paperclip, X, Save, Calendar, User, Tag, MapPin, Clock, CheckCircle, AlertCircle, Circle } from 'lucide-react';
+import { useToast } from '../ui/Toast';
+import { ConfirmDialog } from '../ui';
+import TareaDetalle from './TareaDetalle';
+import { Search, Filter, Plus, RefreshCw, Edit, Trash2, Paperclip, X, Save, Calendar, User, Tag, MapPin, Clock, CheckCircle, AlertCircle, Circle, Eye } from 'lucide-react';
 import { format, parseISO, isAfter, isBefore, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import clsx from 'clsx';
@@ -27,9 +30,12 @@ export default function Tareas() {
   const [filtroPrioridad, setFiltroPrioridad] = useState('');
   const [busqueda, setBusqueda] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showDetalle, setShowDetalle] = useState(false);
   const [selectedTarea, setSelectedTarea] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const { data: tareas = [], isLoading, refetch } = useQuery({
     queryKey: ['tareas', { estado: filtroEstado, prioridad: filtroPrioridad }],
@@ -56,7 +62,9 @@ export default function Tareas() {
       queryClient.invalidateQueries({ queryKey: ['tareas'] });
       setShowModal(false);
       setSelectedTarea(null);
+      toast.success('Tarea creada correctamente');
     },
+    onError: () => toast.error('Error al crear la tarea'),
   });
 
   const updateTarea = useMutation({
@@ -65,14 +73,19 @@ export default function Tareas() {
       queryClient.invalidateQueries({ queryKey: ['tareas'] });
       setShowModal(false);
       setSelectedTarea(null);
+      toast.success('Tarea actualizada');
     },
+    onError: () => toast.error('Error al actualizar la tarea'),
   });
 
   const deleteTarea = useMutation({
     mutationFn: (id) => tareasService.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tareas'] });
+      setConfirmDelete(null);
+      toast.success('Tarea eliminada');
     },
+    onError: () => toast.error('Error al eliminar la tarea'),
   });
 
   const tareasFiltradas = useMemo(() => {
@@ -132,6 +145,13 @@ export default function Tareas() {
   const handleOpenModal = (tarea = null) => {
     setSelectedTarea(tarea);
     setShowModal(true);
+    setShowDetalle(false);
+  };
+
+  const handleOpenDetalle = (tarea) => {
+    setSelectedTarea(tarea);
+    setShowDetalle(true);
+    setShowModal(false);
   };
 
   const handleSaveTarea = (formData) => {
@@ -142,10 +162,8 @@ export default function Tareas() {
     }
   };
 
-  const handleDeleteTarea = (id) => {
-    if (confirm('Estas seguro de eliminar esta tarea?')) {
-      deleteTarea.mutate(id);
-    }
+  const handleDeleteTarea = (tarea) => {
+    setConfirmDelete(tarea);
   };
 
   const handleToggleEstado = (tarea) => {
@@ -219,6 +237,7 @@ export default function Tareas() {
               onEdit={handleOpenModal}
               onDelete={handleDeleteTarea}
               onToggle={handleToggleEstado}
+              onView={handleOpenDetalle}
               formatFecha={formatFecha}
             />
           )}
@@ -231,6 +250,7 @@ export default function Tareas() {
               onEdit={handleOpenModal}
               onDelete={handleDeleteTarea}
               onToggle={handleToggleEstado}
+              onView={handleOpenDetalle}
               formatFecha={formatFecha}
             />
           )}
@@ -243,6 +263,7 @@ export default function Tareas() {
               onEdit={handleOpenModal}
               onDelete={handleDeleteTarea}
               onToggle={handleToggleEstado}
+              onView={handleOpenDetalle}
               formatFecha={formatFecha}
             />
           )}
@@ -255,6 +276,7 @@ export default function Tareas() {
               onEdit={handleOpenModal}
               onDelete={handleDeleteTarea}
               onToggle={handleToggleEstado}
+              onView={handleOpenDetalle}
               formatFecha={formatFecha}
             />
           )}
@@ -267,6 +289,7 @@ export default function Tareas() {
               onEdit={handleOpenModal}
               onDelete={handleDeleteTarea}
               onToggle={handleToggleEstado}
+              onView={handleOpenDetalle}
               formatFecha={formatFecha}
               collapsed
             />
@@ -294,11 +317,33 @@ export default function Tareas() {
           isLoading={createTarea.isPending || updateTarea.isPending}
         />
       )}
+
+      {showDetalle && selectedTarea && (
+        <TareaDetalle
+          tarea={selectedTarea}
+          isOpen={showDetalle}
+          onClose={() => {
+            setShowDetalle(false);
+            setSelectedTarea(null);
+          }}
+          onUpdate={handleOpenModal}
+        />
+      )}
+
+      <ConfirmDialog
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => deleteTarea.mutate(confirmDelete.id)}
+        title="Eliminar tarea"
+        message={`Eliminar "${confirmDelete?.titulo}"?`}
+        confirmText="Eliminar"
+        isLoading={deleteTarea.isPending}
+      />
     </div>
   );
 }
 
-function TareaGroup({ title, tareas, className, onEdit, onDelete, onToggle, formatFecha, collapsed = false }) {
+function TareaGroup({ title, tareas, className, onEdit, onDelete, onToggle, onView, formatFecha, collapsed = false }) {
   const [isCollapsed, setIsCollapsed] = useState(collapsed);
 
   return (
@@ -357,10 +402,13 @@ function TareaGroup({ title, tareas, className, onEdit, onDelete, onToggle, form
                 </div>
 
                 <div className="tarea-actions">
-                  <button className="btn-action" onClick={() => onEdit(tarea)}>
+                  <button className="btn-action" onClick={() => onView(tarea)} title="Ver detalles">
+                    <Eye size={16} />
+                  </button>
+                  <button className="btn-action" onClick={() => onEdit(tarea)} title="Editar">
                     <Edit size={16} />
                   </button>
-                  <button className="btn-action delete" onClick={() => onDelete(tarea.id)}>
+                  <button className="btn-action delete" onClick={() => onDelete(tarea)} title="Eliminar">
                     <Trash2 size={16} />
                   </button>
                 </div>

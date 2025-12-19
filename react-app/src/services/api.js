@@ -96,11 +96,15 @@ export const alertasService = {
 };
 
 export const espaciosComunesService = {
-  getAll: () => api.get('/api/espacios-comunes'),
+  getAll: (params = {}) => api.get('/api/espacios-comunes', { params }),
   getById: (id) => api.get(`/api/espacios-comunes/${id}`),
+  create: (data) => api.post('/api/espacios-comunes', data),
   update: (id, data) => api.put(`/api/espacios-comunes/${id}`, data),
+  delete: (id) => api.delete(`/api/espacios-comunes/${id}`),
   getMantenimientos: (espacioId) => api.get('/api/mantenimientos/espacios', { params: espacioId ? { espacio_comun_id: espacioId } : {} }),
   createMantenimiento: (data) => api.post('/api/mantenimientos/espacios', data),
+  updateMantenimiento: (id, data) => api.put(`/api/mantenimientos/espacios/${id}`, data),
+  deleteMantenimiento: (id) => api.delete(`/api/mantenimientos/espacios/${id}`),
 };
 
 export const tareasService = {
@@ -117,25 +121,31 @@ export const tareasService = {
 };
 
 export const sabanasService = {
-  getAll: (includeArchivadas) => api.get('/api/sabanas', { params: { includeArchivadas } }),
+  getAll: (params = {}) => api.get('/api/sabanas', { params }),
   getById: (id) => api.get(`/api/sabanas/${id}`),
   create: (data) => api.post('/api/sabanas', data),
-  updateItem: (itemId, data) => api.patch(`/api/sabanas/items/${itemId}`, data),
+  update: (id, data) => api.put(`/api/sabanas/${id}`, data),
+  delete: (id) => api.delete(`/api/sabanas/${id}`),
+  updateItem: (sabanaId, itemId, data) => api.patch(`/api/sabanas/${sabanaId}/items/${itemId}`, data),
   archivar: (id) => api.post(`/api/sabanas/${id}/archivar`),
   getArchivadas: () => api.get('/api/sabanas/archivadas'),
-  getByServicio: (servicioId, includeArchivadas) => api.get(`/api/sabanas/servicio/${servicioId}`, { params: { includeArchivadas } }),
+  getByServicio: (servicioId, params = {}) => api.get(`/api/sabanas/servicio/${servicioId}`, { params }),
 };
 
 export const checklistService = {
+  getAll: (params = {}) => api.get('/api/checklist', { params }),
   getCategorias: () => api.get('/api/checklist/categorias'),
   createCategoria: (data) => api.post('/api/checklist/categorias', data),
+  updateCategoria: (id, data) => api.put(`/api/checklist/categorias/${id}`, data),
   deleteCategoria: (id) => api.delete(`/api/checklist/categorias/${id}`),
   getItems: (categoriaId) => api.get('/api/checklist/items', { params: categoriaId ? { categoria_id: categoriaId } : {} }),
   createItem: (data) => api.post('/api/checklist/items', data),
+  updateItem: (id, data) => api.put(`/api/checklist/items/${id}`, data),
   deleteItem: (id) => api.delete(`/api/checklist/items/${id}`),
+  getByCuarto: (cuartoId) => api.get(`/api/checklist/cuartos/${cuartoId}`),
   getCuartos: (filters) => api.get('/api/checklist/cuartos', { params: filters }),
   getCuartoById: (id) => api.get(`/api/checklist/cuartos/${id}`),
-  updateItem: (cuartoId, itemId, data) => api.put(`/api/checklist/cuartos/${cuartoId}/items/${itemId}`, data),
+  updateCuartoItem: (cuartoId, itemId, data) => api.put(`/api/checklist/cuartos/${cuartoId}/items/${itemId}`, data),
   updateItemsBulk: (cuartoId, items) => api.put(`/api/checklist/cuartos/${cuartoId}/items`, { items }),
   getResumen: (cuartoId) => api.get(`/api/checklist/cuartos/${cuartoId}/resumen`),
   getResumenGeneral: () => api.get('/api/checklist/resumen'),
@@ -148,13 +158,16 @@ export const checklistService = {
 };
 
 export const usuariosService = {
-  getAll: (includeInactive) => api.get('/api/auth/usuarios', { params: { includeInactive } }),
+  getAll: (params = {}) => api.get('/api/auth/usuarios', { params }),
+  getById: (id) => api.get(`/api/usuarios/${id}`),
   getRoles: () => api.get('/api/usuarios/roles'),
   create: (data) => api.post('/api/usuarios', data),
   update: (id, data) => api.put(`/api/usuarios/${id}`, data),
-  desactivar: (id, motivo) => api.post(`/api/usuarios/${id}/desactivar`, { motivo }),
-  activar: (id) => api.post(`/api/usuarios/${id}/activar`),
-  desbloquear: (id) => api.post(`/api/usuarios/${id}/desbloquear`),
+  delete: (id) => api.delete(`/api/usuarios/${id}`),
+  deactivate: (id, motivo) => api.post(`/api/usuarios/${id}/desactivar`, { motivo }),
+  activate: (id) => api.post(`/api/usuarios/${id}/activar`),
+  unlock: (id) => api.post(`/api/usuarios/${id}/desbloquear`),
+  resetPassword: (id, password) => api.post(`/api/usuarios/${id}/reset-password`, { password }),
   getActivos: () => api.get('/api/usuarios'),
 };
 
