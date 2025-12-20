@@ -1011,6 +1011,69 @@ async function archivarPeriodo() {
     }
 }
 
+async function eliminarSabana() {
+    if (AppState.currentUser?.role !== 'admin') {
+        electronSafeAlert('Solo los administradores pueden eliminar sábanas');
+        return;
+    }
+
+    if (!currentSabanaId) {
+        electronSafeAlert('Selecciona una sábana para eliminar');
+        return;
+    }
+
+    const selectServicio = document.getElementById('filtroServicioActual');
+    const nombreSabana = selectServicio?.options[selectServicio.selectedIndex]?.text || 'esta sábana';
+
+    if (!window.electronSafeConfirm(`¿Estás seguro de eliminar "${nombreSabana}"?\n\nEsta acción es PERMANENTE y eliminará todos los datos asociados.`)) {
+        return;
+    }
+
+    if (!window.electronSafeConfirm('¿REALMENTE deseas eliminar esta sábana? Esta acción NO se puede deshacer.')) {
+        return;
+    }
+
+    try {
+        console.log('🗑️ Iniciando eliminación de sábana ID:', currentSabanaId);
+
+        const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas/${currentSabanaId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('❌ Error del servidor:', errorData);
+            throw new Error(errorData.error || 'Error al eliminar sábana');
+        }
+
+        const resultado = await response.json();
+        console.log('✅ Respuesta del servidor:', resultado);
+        console.log('✅ Sábana eliminada de BD');
+
+        currentSabanaId = null;
+        currentSabanaArchivada = false;
+        currentSabanaItems = [];
+
+        await cargarListaSabanas();
+
+        const tbody = document.getElementById('sabanaTableBody');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Selecciona una sábana.</td></tr>';
+        }
+
+        const tituloEl = document.getElementById('tituloServicioActual');
+        if (tituloEl) {
+            tituloEl.innerHTML = '<span style="color: white;">Selecciona una sábana</span>';
+        }
+
+        mostrarMensajeSabana(`Sábana "${nombreSabana}" eliminada exitosamente`, 'success');
+
+    } catch (error) {
+        console.error('❌ Error eliminando sábana:', error);
+        electronSafeAlert('Error al eliminar la sábana: ' + error.message);
+    }
+}
+
 async function exportarSabanaExcel() {
     console.log('🟢🟢🟢 FUNCIÓN EXPORTAR LLAMADA 🟢🟢🟢');
 
@@ -1355,6 +1418,7 @@ window.verHistorialServicios = verHistorialServicios;
 window.cerrarModalHistorial = cerrarModalHistorial;
 window.cargarSabanaDesdeHistorial = cargarSabanaDesdeHistorial;
 window.archivarPeriodo = archivarPeriodo;
+window.eliminarSabana = eliminarSabana;
 window.exportarSabanaExcel = exportarSabanaExcel;
 window.crearNuevaSabana = crearNuevaSabana;
 window.crearNuevaSabanaPersonalizada = crearNuevaSabanaPersonalizada;
@@ -1375,6 +1439,8 @@ console.log('📋 Funciones disponibles:', {
     exportarSabanaExcel: typeof window.exportarSabanaExcel,
     confirmarNuevaSabana: typeof window.confirmarNuevaSabana,
     crearNuevaSabana: typeof window.crearNuevaSabana,
-    crearNuevaSabanaPersonalizada: typeof window.crearNuevaSabanaPersonalizada
+    crearNuevaSabanaPersonalizada: typeof window.crearNuevaSabanaPersonalizada,
+    archivarPeriodo: typeof window.archivarPeriodo,
+    eliminarSabana: typeof window.eliminarSabana
 });
 

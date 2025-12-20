@@ -3966,6 +3966,19 @@ body.admin .tab-content.admin-only.active {
   color: #1565c0;
 }
 
+.filtros-action-button.delete {
+  background: linear-gradient(135deg, #ffebee 0%, #fce4ec 100%);
+}
+
+.filtros-action-button.delete i {
+  background: rgba(244, 67, 54, 0.15);
+  color: #c62828;
+}
+
+.filtros-action-button.delete:hover {
+  background: linear-gradient(135deg, #ffcdd2 0%, #f8bbd0 100%);
+}
+
 /* ========================================
    TAB DE INSPECCIONES
    ======================================== */
