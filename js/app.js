@@ -1246,7 +1246,7 @@ async function loadSabanaData() {
 
     // Solo mostrar mensaje si no hay sábana seleccionada
     if (!selectServicio || !selectServicio.value) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Selecciona o crea una sábana para comenzar.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="sabana-placeholder">Selecciona o crea una sábana para comenzar.</td></tr>';
 
         const tituloEl = document.getElementById('tituloServicioActual');
         if (tituloEl) {
@@ -1267,7 +1267,7 @@ function renderSabanaTable_OLD(data) {
     tbody.innerHTML = '';
 
     if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No hay registros para este servicio. Usa el botón "+ Nueva" para crear la sábana.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="sabana-placeholder">No hay registros para este servicio. Usa el botón "+ Nueva" para crear la sábana.</td></tr>';
         return;
     }
 
@@ -2623,7 +2623,7 @@ function openChecklistDetailsModal(cuartoId) {
                 ${(AppState.currentUser?.role === 'admin' || AppState.currentUser?.role === 'supervisor') ? `
                 <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}">
                     <i class="fas fa-file-excel"></i>
-                    <div><div style="font-weight:700;">Exportar Excel</div><div style="font-size:0.8rem;opacity:0.8;">Descargar checklist</div></div>
+                    <div><div class="filtros-action-button-title">Exportar Excel</div><div class="filtros-action-button-subtitle">Descargar checklist</div></div>
                 </button>
                 ` : ''}
             </div>
