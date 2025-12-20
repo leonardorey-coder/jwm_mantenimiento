@@ -4,6 +4,7 @@
 
 let currentSabanaId = null;
 let currentSabanaArchivada = false;
+let currentSabanaNombre = null;
 let currentSabanaItems = []; // Guardar los items actuales para filtrado
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
 let cerrarModalNuevaSabanaEscHandler = null;
@@ -48,6 +49,13 @@ function toggleAvisoArchivarActual() {
     if (alertaArchivar) {
         const debeMostrar = !!switchArchivar?.checked;
         alertaArchivar.style.display = debeMostrar ? 'flex' : 'none';
+        
+        if (debeMostrar && currentSabanaNombre) {
+            const spanTexto = alertaArchivar.querySelector('span');
+            if (spanTexto) {
+                spanTexto.textContent = `La sábana actual "${currentSabanaNombre}" se moverá al historial en automático.`;
+            }
+        }
     }
 }
 
@@ -94,7 +102,7 @@ async function cambiarServicioActual(sabanaId) {
 
         if (!sabanaId) {
             document.getElementById('sabanaTableBody').innerHTML =
-                '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Selecciona una sábana.</td></tr>';
+                '<tr><td colspan="7" class="sabana-placeholder">Selecciona una sábana.</td></tr>';
             return;
         }
 
@@ -110,6 +118,7 @@ async function cambiarServicioActual(sabanaId) {
 
         currentSabanaId = sabana.id;
         currentSabanaArchivada = sabana.archivada;
+        currentSabanaNombre = sabana.nombre;
         currentSabanaItems = sabana.items || []; // Guardar los items
 
         console.log('💾 currentSabanaItems guardados:', currentSabanaItems.length);
@@ -132,14 +141,14 @@ async function cambiarServicioActual(sabanaId) {
         if (tituloEl) {
             if (sabana.archivada) {
                 tituloEl.innerHTML = `
-                    <span style="color: white;">Sábana de ${sabana.nombre}</span>
+                    <span class="sabana-placeholder-title">Sábana de ${sabana.nombre}</span>
                     <span class="sabana-archivada-badge">
                         <i class="fas fa-lock"></i>
                         Archivada · Solo lectura
                     </span>
                 `;
             } else {
-                tituloEl.innerHTML = `<span style="color: white;"> Sábana de ${sabana.nombre}</span>`;
+                tituloEl.innerHTML = `<span class="sabana-placeholder-title"> Sábana de ${sabana.nombre}</span>`;
             }
         }
 
@@ -184,7 +193,7 @@ function renderSabanaTable(items, archivada = false) {
     tbody.innerHTML = '';
 
     if (!items || items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No hay registros en esta sábana.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="sabana-placeholder">No hay registros en esta sábana.</td></tr>';
         console.log('⚠️ No hay items para mostrar');
         return;
     }
@@ -730,12 +739,39 @@ async function confirmarNuevaSabana() {
     const btnConfirmarNuevaSabana = document.getElementById('btn-confirmar-nueva-sabana');
     const originalText = btnConfirmarNuevaSabana?.textContent || 'Confirmar';
 
-    // Desactivar botón y mostrar spinner
+    // Verificar qué tipo de servicio está seleccionado ANTES de cambiar el botón
+    const tipoServicioRadio = document.querySelector('input[name="tipoServicio"]:checked');
+    const tipoServicio = tipoServicioRadio?.value || 'nuevo';
+
+    console.log('🔍 Tipo de servicio seleccionado:', tipoServicio);
+
+    // Si es servicio existente, usar la función correspondiente
+    if (tipoServicio === 'existente') {
+        const selectServicio = document.getElementById('selectServicioNuevaSabana');
+        const servicioSeleccionado = selectServicio?.value;
+
+        if (!servicioSeleccionado) {
+            electronSafeAlert('Selecciona un servicio de la lista');
+            estoyCreandoSabana = false;
+            selectServicio?.focus();
+            return;
+        }
+
+        console.log('📋 Servicio existente seleccionado:', servicioSeleccionado);
+        // Resetear el flag antes de delegar a la otra función
+        estoyCreandoSabana = false;
+        // Llamar a la función para crear sábana personalizada (ella manejará el botón)
+        await crearNuevaSabanaPersonalizada(servicioSeleccionado);
+        return;
+    }
+
+    // Si es nuevo servicio, cambiar el botón y continuar con el flujo normal
     if (btnConfirmarNuevaSabana) {
         btnConfirmarNuevaSabana.disabled = true;
         btnConfirmarNuevaSabana.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Creando...`;
     }
 
+    // Si es nuevo servicio, continuar con el flujo normal
     const inputNombre = document.getElementById('inputNombreServicio');
     let nombreServicio = inputNombre?.value.trim();
     const switchArchivar = document.getElementById('switchArchivarActual');
@@ -1058,12 +1094,27 @@ async function eliminarSabana() {
 
         const tbody = document.getElementById('sabanaTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">Selecciona una sábana.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" class="sabana-placeholder">Selecciona una sábana.</td></tr>';
         }
 
         const tituloEl = document.getElementById('tituloServicioActual');
         if (tituloEl) {
-            tituloEl.innerHTML = '<span style="color: white;">Selecciona una sábana</span>';
+            tituloEl.innerHTML = '<span class="sabana-placeholder-title">Selecciona una sábana</span>';
+        }
+
+        const periodoEl = document.getElementById('periodoActual');
+        if (periodoEl) {
+            periodoEl.textContent = 'Periodo Actual';
+        }
+
+        const completadosEl = document.getElementById('serviciosCompletados');
+        if (completadosEl) {
+            completadosEl.textContent = '0';
+        }
+
+        const totalesEl = document.getElementById('serviciosTotales');
+        if (totalesEl) {
+            totalesEl.textContent = '0';
         }
 
         mostrarMensajeSabana(`Sábana "${nombreSabana}" eliminada exitosamente`, 'success');
