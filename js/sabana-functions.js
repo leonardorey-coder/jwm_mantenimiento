@@ -9,6 +9,8 @@ let currentSabanaItems = []; // Guardar los items actuales para filtrado
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
 let cerrarModalNuevaSabanaEscHandler = null;
 let cerrarModalHistorialEscHandler = null;
+let cerrarModalConfirmarEliminarEscHandler = null;
+let cerrarModalValidarEliminarEscHandler = null;
 
 function lockBodyScroll() {
     document.body.classList.add('modal-open');
@@ -1079,6 +1081,19 @@ function abrirModalConfirmarEliminar(nombreSabana) {
         nombreEl1.textContent = nombreLimpio;
     }
     
+    // Permitir cerrar con Escape
+    if (!cerrarModalConfirmarEliminarEscHandler) {
+        cerrarModalConfirmarEliminarEscHandler = function (e) {
+            if (e.key === 'Escape') {
+                const modalVisible = document.getElementById('modalConfirmarEliminar');
+                if (modalVisible && modalVisible.style.display === 'flex') {
+                    cerrarModalConfirmarEliminar();
+                }
+            }
+        };
+        document.addEventListener('keydown', cerrarModalConfirmarEliminarEscHandler);
+    }
+    
     if (modal) {
         modal.style.display = 'flex';
         lockBodyScroll();
@@ -1090,6 +1105,11 @@ function cerrarModalConfirmarEliminar() {
     if (modal) {
         modal.style.display = 'none';
         unlockBodyScroll();
+    }
+    
+    if (cerrarModalConfirmarEliminarEscHandler) {
+        document.removeEventListener('keydown', cerrarModalConfirmarEliminarEscHandler);
+        cerrarModalConfirmarEliminarEscHandler = null;
     }
 }
 
@@ -1139,6 +1159,19 @@ function abrirModalValidarEliminar() {
         placeholderNombre.textContent = nombreSabana;
         placeholderNombre.style.left = '12px';
         placeholderNombre.style.color = '';
+    }
+    
+    // Permitir cerrar con Escape
+    if (!cerrarModalValidarEliminarEscHandler) {
+        cerrarModalValidarEliminarEscHandler = function (e) {
+            if (e.key === 'Escape') {
+                const modalVisible = document.getElementById('modalValidarEliminar');
+                if (modalVisible && modalVisible.style.display === 'flex') {
+                    cerrarModalValidarEliminar();
+                }
+            }
+        };
+        document.addEventListener('keydown', cerrarModalValidarEliminarEscHandler);
     }
     
     if (modal) {
@@ -1204,6 +1237,11 @@ function cerrarModalValidarEliminar() {
     if (modal) {
         modal.style.display = 'none';
         unlockBodyScroll();
+    }
+    
+    if (cerrarModalValidarEliminarEscHandler) {
+        document.removeEventListener('keydown', cerrarModalValidarEliminarEscHandler);
+        cerrarModalValidarEliminarEscHandler = null;
     }
 }
 
