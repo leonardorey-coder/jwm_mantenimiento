@@ -1404,7 +1404,7 @@ app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (re
         });
     } catch (error) {
         console.error('❌ Error al eliminar sábana:', error);
-        res.status(500).json({ error: 'Error al eliminar sábana', details: error.message });
+        res.status(500).json({ error: 'Error interno del servidor al eliminar la sábana' });
     }
 });
 
