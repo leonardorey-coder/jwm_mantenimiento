@@ -6359,6 +6359,7 @@ body.admin a.admin-only {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  margin-top: 0.5rem;
 }
 
 .form-group-modal label {
@@ -6662,6 +6663,199 @@ body.admin a.admin-only {
 
 /* ========================================
    FIN MODAL HISTORIAL
+   ======================================== */
+
+/* ========================================
+   MODALES DE ELIMINACIÓN
+   ======================================== */
+.modal-eliminar-contenido {
+  max-width: 550px;
+}
+
+.modal-eliminar-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--gris-separador);
+  background: var(--gris-claro);
+}
+
+.btn-modal-danger {
+  background: linear-gradient(135deg, #F44336 0%, #d32f2f 100%);
+  color: var(--blanco);
+  border-radius: var(--radio-pequeno);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.75rem 1.5rem;
+  border: 2px solid var(--negro-carbon);
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  transition: var(--transicion-rapida);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-modal-danger:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+  background: linear-gradient(135deg, #d32f2f 0%, #c62828 100%);
+}
+
+.btn-modal-danger:active {
+  transform: translate(0, 0);
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+}
+
+.btn-modal-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+}
+
+.btn-modal-danger:disabled:hover {
+  transform: none;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+}
+
+.modal-eliminar-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: linear-gradient(135deg, rgba(244, 67, 54, 0.08) 0%, rgba(244, 67, 54, 0.04) 100%);
+  border: 2px solid rgba(244, 67, 54, 0.3);
+  border-left: 4px solid #F44336;
+  padding: 1.25rem;
+  border-radius: var(--radio-medio);
+}
+
+.modal-eliminar-warning > i {
+  font-size: 2rem;
+  color: #F44336;
+  flex-shrink: 0;
+  margin-top: 0.15rem;
+}
+
+.modal-eliminar-texto {
+  font-size: 1rem;
+  color: var(--negro-carbon);
+  margin: 0 0 0.5rem 0;
+  line-height: 1.5;
+}
+
+.modal-eliminar-texto strong {
+  color: #F44336;
+  font-weight: 700;
+}
+
+.modal-eliminar-alerta {
+  font-size: 0.9rem;
+  color: var(--texto-secundario);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.modal-eliminar-alerta strong {
+  color: #F44336;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.input-hint {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--texto-secundario);
+  font-style: italic;
+}
+
+.input-hint strong {
+  color: var(--negro-carbon);
+  font-weight: 600;
+}
+
+/* Inputs de eliminación con placeholder persistente */
+.input-eliminar-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.input-eliminar {
+  position: relative;
+  z-index: 2;
+  background: transparent !important;
+}
+
+.input-eliminar:focus {
+  transform: none !important;
+  outline: none;
+  border-color: #F44336;
+  box-shadow: 0 0 0 3px rgba(244, 67, 54, 0.1);
+}
+
+.input-eliminar-placeholder {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: rgba(76, 84, 76, 0.4);
+  font-size: 1rem;
+  font-family: inherit;
+  font-weight: normal;
+  white-space: nowrap;
+  z-index: 1;
+  line-height: 1.5;
+  letter-spacing: 0;
+  transition: color 0.2s ease;
+}
+
+.input-eliminar:focus + .input-eliminar-placeholder {
+  color: rgba(244, 67, 54, 0.4);
+}
+
+/* Responsive para modales de eliminación */
+@media (max-width: 768px) {
+  .modal-eliminar-contenido {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .modal-eliminar-actions {
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .btn-modal-cancel,
+  .btn-modal-danger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .modal-eliminar-warning {
+    padding: 1rem;
+    gap: 0.75rem;
+  }
+
+  .modal-eliminar-warning > i {
+    font-size: 1.5rem;
+  }
+
+  .modal-eliminar-texto {
+    font-size: 0.95rem;
+  }
+
+  .modal-eliminar-alerta {
+    font-size: 0.85rem;
+  }
+}
+
+/* ========================================
+   FIN MODALES DE ELIMINACIÓN
    ======================================== */
 
 .detalle-item {

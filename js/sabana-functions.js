@@ -1059,14 +1059,204 @@ async function eliminarSabana() {
     }
 
     const selectServicio = document.getElementById('filtroServicioActual');
-    const nombreSabana = selectServicio?.options[selectServicio.selectedIndex]?.text || 'esta sábana';
+    const nombreSabanaOriginal = selectServicio?.options[selectServicio.selectedIndex]?.text || 'esta sábana';
+    
+    // Limpiar el nombre de la sábana (quitar "(archivada)" y espacios extra)
+    const nombreSabana = nombreSabanaOriginal.replace(/\s*\(archivada\)\s*/gi, '').trim();
 
-    if (!window.electronSafeConfirm(`¿Estás seguro de eliminar "${nombreSabana}"?\n\nEsta acción es PERMANENTE y eliminará todos los datos asociados.`)) {
-        return;
+    // Abrir el primer modal de confirmación
+    abrirModalConfirmarEliminar(nombreSabana);
+}
+
+function abrirModalConfirmarEliminar(nombreSabana) {
+    const modal = document.getElementById('modalConfirmarEliminar');
+    const nombreEl1 = document.getElementById('nombreSabanaEliminar1');
+    
+    // Limpiar el nombre de la sábana (quitar "(archivada)" y espacios extra)
+    const nombreLimpio = nombreSabana.replace(/\s*\(archivada\)\s*/gi, '').trim();
+    
+    if (nombreEl1) {
+        nombreEl1.textContent = nombreLimpio;
     }
+    
+    if (modal) {
+        modal.style.display = 'flex';
+        lockBodyScroll();
+    }
+}
 
-    if (!window.electronSafeConfirm('¿REALMENTE deseas eliminar esta sábana? Esta acción NO se puede deshacer.')) {
-        return;
+function cerrarModalConfirmarEliminar() {
+    const modal = document.getElementById('modalConfirmarEliminar');
+    if (modal) {
+        modal.style.display = 'none';
+        unlockBodyScroll();
+    }
+}
+
+function abrirModalValidarEliminar() {
+    // Cerrar el primer modal
+    cerrarModalConfirmarEliminar();
+    
+    const modal = document.getElementById('modalValidarEliminar');
+    const nombreEl2 = document.getElementById('nombreSabanaEliminar2');
+    const inputConfirmar = document.getElementById('inputConfirmarEliminar');
+    const inputNombre = document.getElementById('inputNombreSabanaEliminar');
+    const placeholderConfirmar = document.getElementById('placeholderConfirmarEliminar');
+    const placeholderNombre = document.getElementById('placeholderNombreSabana');
+    const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+    
+    const selectServicio = document.getElementById('filtroServicioActual');
+    const nombreSabanaOriginal = selectServicio?.options[selectServicio.selectedIndex]?.text || 'esta sábana';
+    
+    // Limpiar el nombre de la sábana (quitar "(archivada)" y espacios extra)
+    const nombreSabana = nombreSabanaOriginal.replace(/\s*\(archivada\)\s*/gi, '').trim();
+    
+    if (nombreEl2) {
+        nombreEl2.textContent = nombreSabana;
+    }
+    
+    // Limpiar inputs
+    if (inputConfirmar) {
+        inputConfirmar.value = '';
+        inputConfirmar.setAttribute('data-target', 'eliminar');
+    }
+    if (inputNombre) {
+        inputNombre.value = '';
+        inputNombre.setAttribute('data-target', nombreSabana);
+    }
+    if (btnConfirmar) {
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar permanentemente';
+    }
+    
+    // Establecer placeholders iniciales (sin espacios al inicio)
+    if (placeholderConfirmar) {
+        placeholderConfirmar.textContent = 'eliminar';
+        placeholderConfirmar.style.left = '12px';
+        placeholderConfirmar.style.color = '';
+    }
+    if (placeholderNombre) {
+        placeholderNombre.textContent = nombreSabana;
+        placeholderNombre.style.left = '12px';
+        placeholderNombre.style.color = '';
+    }
+    
+    if (modal) {
+        modal.style.display = 'flex';
+        lockBodyScroll();
+        
+        // Focus en el primer input
+        setTimeout(() => {
+            if (inputConfirmar) inputConfirmar.focus();
+        }, 100);
+    }
+}
+
+function actualizarPlaceholderPersistente(inputId, placeholderId, targetText) {
+    const input = document.getElementById(inputId);
+    const placeholder = document.getElementById(placeholderId);
+    
+    if (!input || !placeholder) return;
+    
+    // Si targetText está vacío, obtenerlo del atributo data-target
+    if (!targetText) {
+        targetText = input.getAttribute('data-target') || '';
+    }
+    
+    const inputValue = input.value;
+    const inputLength = inputValue.length;
+    
+    // Verificar si lo escrito coincide con el inicio del texto objetivo
+    if (targetText.startsWith(inputValue) && inputValue.length > 0) {
+        // Mostrar solo lo que falta
+        const remaining = targetText.substring(inputLength);
+        placeholder.textContent = remaining;
+        
+        // Ajustar la posición del placeholder según el texto escrito
+        const textWidth = getTextWidth(inputValue, input);
+        placeholder.style.left = `${12 + textWidth}px`;
+        placeholder.style.color = '';  // Restaurar color normal
+    } else if (inputValue.length === 0) {
+        // Si está vacío, mostrar el texto completo desde el inicio
+        placeholder.textContent = targetText;
+        placeholder.style.left = '12px';
+        placeholder.style.color = '';  // Color normal
+    } else {
+        // Si no coincide, mostrar el texto completo con color de error
+        placeholder.textContent = targetText;
+        placeholder.style.left = '12px';
+        placeholder.style.color = 'rgba(244, 67, 54, 0.3)';
+    }
+}
+
+function getTextWidth(text, inputElement) {
+    // Crear un elemento temporal para medir el ancho del texto
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const computedStyle = window.getComputedStyle(inputElement);
+    context.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+    const metrics = context.measureText(text);
+    return metrics.width;
+}
+
+function cerrarModalValidarEliminar() {
+    const modal = document.getElementById('modalValidarEliminar');
+    if (modal) {
+        modal.style.display = 'none';
+        unlockBodyScroll();
+    }
+}
+
+function validarCamposEliminar() {
+    const inputConfirmar = document.getElementById('inputConfirmarEliminar');
+    const inputNombre = document.getElementById('inputNombreSabanaEliminar');
+    const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+    const hintNombre = document.getElementById('hintNombreSabana');
+    
+    const selectServicio = document.getElementById('filtroServicioActual');
+    const nombreSabanaOriginal = selectServicio?.options[selectServicio.selectedIndex]?.text || '';
+    
+    // Limpiar el nombre de la sábana (quitar "(archivada)" y espacios extra)
+    const nombreSabanaReal = nombreSabanaOriginal.replace(/\s*\(archivada\)\s*/gi, '').trim();
+    
+    const valorConfirmar = inputConfirmar?.value || '';
+    const valorNombre = inputNombre?.value || '';
+    
+    // Validar que diga exactamente "eliminar"
+    const confirmarValido = valorConfirmar === 'eliminar';
+    
+    // Validar que el nombre coincida exactamente
+    const nombreValido = valorNombre === nombreSabanaReal;
+    
+    // Actualizar hint del nombre
+    if (hintNombre) {
+        if (valorNombre && !nombreValido) {
+            hintNombre.textContent = 'El nombre no coincide';
+            hintNombre.style.color = '#F44336';
+        } else {
+            hintNombre.textContent = 'Debe coincidir exactamente';
+            hintNombre.style.color = '';
+        }
+    }
+    
+    // Habilitar/deshabilitar botón
+    if (btnConfirmar) {
+        btnConfirmar.disabled = !(confirmarValido && nombreValido);
+    }
+}
+
+async function confirmarEliminarSabana() {
+    const btnConfirmar = document.getElementById('btnConfirmarEliminar');
+    
+    const selectServicio = document.getElementById('filtroServicioActual');
+    const nombreSabanaOriginal = selectServicio?.options[selectServicio.selectedIndex]?.text || 'esta sábana';
+    
+    // Limpiar el nombre de la sábana (quitar "(archivada)" y espacios extra)
+    const nombreSabana = nombreSabanaOriginal.replace(/\s*\(archivada\)\s*/gi, '').trim();
+    
+    if (btnConfirmar) {
+        btnConfirmar.disabled = true;
+        btnConfirmar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
     }
 
     try {
@@ -1088,6 +1278,7 @@ async function eliminarSabana() {
 
         currentSabanaId = null;
         currentSabanaArchivada = false;
+        currentSabanaNombre = null;
         currentSabanaItems = [];
 
         await cargarListaSabanas();
@@ -1117,10 +1308,26 @@ async function eliminarSabana() {
             totalesEl.textContent = '0';
         }
 
+        // Cerrar modal y restaurar botón
+        cerrarModalValidarEliminar();
+        
+        // Restaurar botón
+        if (btnConfirmar) {
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar permanentemente';
+        }
+
         mostrarMensajeSabana(`Sábana "${nombreSabana}" eliminada exitosamente`, 'success');
 
     } catch (error) {
         console.error('❌ Error eliminando sábana:', error);
+        
+        // Restaurar botón
+        if (btnConfirmar) {
+            btnConfirmar.disabled = false;
+            btnConfirmar.innerHTML = '<i class="fas fa-trash-alt"></i> Eliminar permanentemente';
+        }
+        
         electronSafeAlert('Error al eliminar la sábana: ' + error.message);
     }
 }
@@ -1470,6 +1677,13 @@ window.cerrarModalHistorial = cerrarModalHistorial;
 window.cargarSabanaDesdeHistorial = cargarSabanaDesdeHistorial;
 window.archivarPeriodo = archivarPeriodo;
 window.eliminarSabana = eliminarSabana;
+window.abrirModalConfirmarEliminar = abrirModalConfirmarEliminar;
+window.cerrarModalConfirmarEliminar = cerrarModalConfirmarEliminar;
+window.abrirModalValidarEliminar = abrirModalValidarEliminar;
+window.cerrarModalValidarEliminar = cerrarModalValidarEliminar;
+window.validarCamposEliminar = validarCamposEliminar;
+window.confirmarEliminarSabana = confirmarEliminarSabana;
+window.actualizarPlaceholderPersistente = actualizarPlaceholderPersistente;
 window.exportarSabanaExcel = exportarSabanaExcel;
 window.crearNuevaSabana = crearNuevaSabana;
 window.crearNuevaSabanaPersonalizada = crearNuevaSabanaPersonalizada;

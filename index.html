@@ -1372,6 +1372,107 @@
         </div>
     </div>
 
+    <!-- Modal: Confirmar Eliminación (Paso 1) -->
+    <div id="modalConfirmarEliminar" class="modal-detalles modal-eliminar" style="display: none;">
+        <div class="modal-detalles-overlay" onclick="cerrarModalConfirmarEliminar()"></div>
+        <div class="modal-detalles-contenido modal-eliminar-contenido">
+            <div class="modal-detalles-header">
+                <h3><i class="fas fa-exclamation-triangle"></i> Confirmar eliminación</h3>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalConfirmarEliminar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body">
+                <div class="modal-eliminar-warning">
+                    <i class="fas fa-trash-alt"></i>
+                    <div>
+                        <p class="modal-eliminar-texto">
+                            ¿Estás seguro de eliminar <strong id="nombreSabanaEliminar1"></strong>?
+                        </p>
+                        <p class="modal-eliminar-alerta">
+                            Esta acción es <strong>PERMANENTE</strong> y eliminará todos los datos asociados.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-eliminar-actions">
+                <button class="btn-modal-cancel" type="button" onclick="cerrarModalConfirmarEliminar()">Cancelar</button>
+                <button class="btn-modal-danger" type="button" onclick="abrirModalValidarEliminar()">
+                    <i class="fas fa-arrow-right"></i> Continuar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Validar Eliminación (Paso 2) -->
+    <div id="modalValidarEliminar" class="modal-detalles modal-eliminar" style="display: none;">
+        <div class="modal-detalles-overlay" onclick="cerrarModalValidarEliminar()"></div>
+        <div class="modal-detalles-contenido modal-eliminar-contenido">
+            <div class="modal-detalles-header">
+                <h3><i class="fas fa-shield-alt"></i> Validar eliminación</h3>
+                <button class="modal-detalles-cerrar" onclick="cerrarModalValidarEliminar()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body">
+                <div class="modal-eliminar-warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <div>
+                        <p class="modal-eliminar-texto">
+                            Para confirmar la eliminación de <strong id="nombreSabanaEliminar2"></strong>, 
+                            completa los siguientes campos:
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group-modal">
+                    <label for="inputConfirmarEliminar">
+                        <i class="fas fa-keyboard"></i> Escribe <strong>"eliminar"</strong> para confirmar
+                    </label>
+                    <div class="input-eliminar-wrapper">
+                        <input 
+                            type="text" 
+                            id="inputConfirmarEliminar" 
+                            class="brutalist-input input-eliminar" 
+                            placeholder=""
+                            autocomplete="off"
+                            spellcheck="false"
+                            data-target="eliminar"
+                            oninput="actualizarPlaceholderPersistente('inputConfirmarEliminar', 'placeholderConfirmarEliminar', 'eliminar'); validarCamposEliminar()">
+                        <span class="input-eliminar-placeholder" id="placeholderConfirmarEliminar">eliminar</span>
+                    </div>
+                    <small class="input-hint">Escribe exactamente: eliminar</small>
+                </div>
+
+                <div class="form-group-modal">
+                    <label for="inputNombreSabanaEliminar">
+                        <i class="fas fa-file-alt"></i> Escribe el nombre de la sábana
+                    </label>
+                    <div class="input-eliminar-wrapper">
+                        <input 
+                            type="text" 
+                            id="inputNombreSabanaEliminar" 
+                            class="brutalist-input input-eliminar" 
+                            placeholder=""
+                            autocomplete="off"
+                            spellcheck="false"
+                            data-target=""
+                            oninput="actualizarPlaceholderPersistente('inputNombreSabanaEliminar', 'placeholderNombreSabana', ''); validarCamposEliminar()">
+                        <span class="input-eliminar-placeholder" id="placeholderNombreSabana"></span>
+                    </div>
+                    <small class="input-hint" id="hintNombreSabana">Debe coincidir exactamente</small>
+                </div>
+            </div>
+            <div class="modal-eliminar-actions">
+                <button class="btn-modal-cancel" type="button" onclick="cerrarModalValidarEliminar()">Cancelar</button>
+                <button class="btn-modal-danger" type="button" id="btnConfirmarEliminar" 
+                        onclick="confirmarEliminarSabana()" disabled>
+                    <i class="fas fa-trash-alt"></i> Eliminar permanentemente
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts principales -->
     <script src="js/sabana-functions.js"></script>
     <script src="js/app.js"></script>
