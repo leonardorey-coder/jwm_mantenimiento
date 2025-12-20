@@ -215,6 +215,29 @@ class PostgresManager {
             const rolesExistentes = new Set(rolesCheck.rows.map(r => r.nombre.toUpperCase()));
             const rolesFaltantes = ['ADMIN', 'SUPERVISOR', 'TECNICO'].filter(r => !rolesExistentes.has(r));
 
+            // Migrar fecha_programada de DATE a TIMESTAMPTZ en sabanas_items
+            // Esto permite guardar el timestamp completo con timezone
+            // y que el frontend lo convierta a la zona horaria local del usuario
+            const fechaProgramadaCheck = await this.pool.query(`
+                SELECT data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'sabanas_items' 
+                AND column_name = 'fecha_programada'
+            `);
+
+            if (fechaProgramadaCheck.rows.length > 0 && fechaProgramadaCheck.rows[0].data_type === 'date') {
+                console.log('🔄 Migrando fecha_programada de DATE a TIMESTAMPTZ...');
+                
+                // Convertir DATE a TIMESTAMPTZ (asumiendo medianoche UTC para fechas existentes)
+                await this.pool.query(`
+                    ALTER TABLE sabanas_items 
+                    ALTER COLUMN fecha_programada TYPE TIMESTAMPTZ 
+                    USING (fecha_programada::timestamp AT TIME ZONE 'UTC')
+                `);
+                
+                console.log('✅ Migración de fecha_programada completada (DATE → TIMESTAMPTZ)');
+            }
+
             if (rolesFaltantes.length > 0) {
                 console.log('🔄 Insertando roles faltantes:', rolesFaltantes.join(', '));
 
@@ -1281,7 +1304,7 @@ class PostgresManager {
                         cuarto.habitacion,
                         cuarto.edificio,
                         cuarto.edificio_id || null,
-                        cuarto.fecha_programada || new Date(),
+                        cuarto.fecha_programada || new Date().toISOString(), // Timestamp ISO para TIMESTAMPTZ
                         cuarto.fecha_realizado || null,
                         cuarto.responsable || null,
                         cuarto.usuario_responsable_id || null,

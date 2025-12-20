@@ -1176,12 +1176,16 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
 
         const cuartosResult = await postgresManager.getCuartos();
 
+        // Guardar timestamp completo con timezone (TIMESTAMPTZ)
+        // El frontend convertirá a la zona horaria local del usuario con toLocaleDateString()
+        const fechaProgramadaTimestamp = new Date().toISOString();
+        
         const cuartosParaSabana = cuartosResult.map(cuarto => ({
             cuarto_id: cuarto.id,
             habitacion: cuarto.numero,
             edificio: cuarto.edificio_nombre || 'Sin edificio',
             edificio_id: cuarto.edificio_id,
-            fecha_programada: new Date().toISOString().split('T')[0],
+            fecha_programada: fechaProgramadaTimestamp,
             fecha_realizado: null,
             responsable: null,
             usuario_responsable_id: null,
