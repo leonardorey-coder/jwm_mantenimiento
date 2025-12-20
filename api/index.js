@@ -1366,6 +1366,48 @@ app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req,
     }
 });
 
+app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (req, res) => {
+    try {
+        console.log('🗑️ DELETE /api/sabanas/:id', req.params.id);
+
+        if (!postgresManager) {
+            return res.status(500).json({ error: 'Base de datos no disponible' });
+        }
+
+        const sabanaId = parseInt(req.params.id);
+
+        if (isNaN(sabanaId)) {
+            return res.status(400).json({ error: 'ID de sábana inválido' });
+        }
+
+        const sabana = await postgresManager.getSabanaById(sabanaId);
+        if (!sabana) {
+            return res.status(404).json({ error: 'Sábana no encontrada' });
+        }
+
+        console.log('🗑️ Eliminando sábana ID:', sabanaId, 'Nombre:', sabana.nombre);
+        
+        const query = 'DELETE FROM sabanas WHERE id = $1 RETURNING id, nombre';
+        const result = await postgresManager.pool.query(query, [sabanaId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sábana no encontrada' });
+        }
+
+        const sabanaEliminada = result.rows[0];
+        console.log('✅ Sábana eliminada exitosamente:', sabanaEliminada);
+
+        res.json({ 
+            success: true, 
+            message: 'Sábana eliminada correctamente',
+            sabana: sabanaEliminada 
+        });
+    } catch (error) {
+        console.error('❌ Error al eliminar sábana:', error);
+        res.status(500).json({ error: 'Error al eliminar sábana', details: error.message });
+    }
+});
+
 // ====================================
 // RUTAS DE TAREAS
 // ====================================
