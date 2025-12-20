@@ -1,51 +1,87 @@
+// Cargar primero .env (configuración de producción/por defecto)
 require('dotenv').config();
 
+// Detectar NODE_ENV después de cargar .env
+// Si es 'development', cargar .env.local para sobrescribir con valores de desarrollo
+const fs = require('fs');
+const path = require('path');
+const envLocalPath = path.join(__dirname, '..', '.env.local');
+
+const nodeEnvFromEnv = process.env.NODE_ENV;
+
+if (nodeEnvFromEnv === 'development' && fs.existsSync(envLocalPath)) {
+    require('dotenv').config({ path: envLocalPath, override: true });
+    console.log('📁 Variables de .env.local cargadas para desarrollo (sobrescribiendo .env)');
+} else if (nodeEnvFromEnv === 'production') {
+    console.log('☁️ Usando configuración de .env para producción');
+}
+
+// Debug: mostrar NODE_ENV final
+console.log(`🔍 NODE_ENV detectado: "${process.env.NODE_ENV}"`);
+
 let isLocal = process.env.NODE_ENV === 'development';
-/**
- * Configuración de conexión a PostgreSQL
- * Soporta tanto entorno local como en la nube (Neon, Azure, AWS, etc.)
- */
-let dbConfig = {
-    // Configuración desde variables de entorno (requeridas para Neon cloud)
-    host: isLocal ? 'localhost' : process.env.DB_HOST,
-    port: parseInt(process.env.DB_PORT || '5432'),
-    database: isLocal ? 'jwmantto' : process.env.DB_NAME,
-    user: isLocal ? 'leonardocruz' : process.env.DB_USER,
-    password: isLocal ? '' : process.env.DB_PASSWORD,
+let dbConfig = {};
 
-    // Configuración del pool de conexiones
-    max: parseInt(process.env.DB_POOL_MAX || '20'), // Máximo de conexiones en el pool
-    min: parseInt(process.env.DB_POOL_MIN || '2'),  // Mínimo de conexiones en el pool
-    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'), // 30 segundos
-    connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'), // 2 segundos
+// Construir configuración desde variables de entorno (funciona para ambos entornos)
+if (isLocal) {
+    // En desarrollo, usar variables de .env.local (POSTGRES_* o DB_*)
+    dbConfig = {
+        host: process.env.POSTGRES_HOST || process.env.PGHOST || process.env.DB_HOST || 'localhost',
+        port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT || '5432'),
+        database: process.env.POSTGRES_DATABASE || process.env.PGDATABASE || process.env.DB_NAME || 'jwmantto',
+        user: process.env.POSTGRES_USER || process.env.PGUSER || process.env.DB_USER || 'leonardocruz',
+        password: process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || process.env.DB_PASSWORD || '',
+        max: parseInt(process.env.DB_POOL_MAX || '20'),
+        min: parseInt(process.env.DB_POOL_MIN || '2'),
+        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+        connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+        ssl: false
+    };
+    console.log('🏠 Usando configuración local para desarrollo');
+} else {
+    // En producción, usar DATABASE_URL si está disponible
+    if (process.env.DATABASE_URL) {
+        try {
+            const { parse } = require('pg-connection-string');
+            const parsed = parse(process.env.DATABASE_URL);
 
-    // SSL para conexiones en la nube (Azure, AWS, Neon, etc.)
-    ssl: process.env.DB_SSL === 'true' ? {
-        rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
-    } : false
-};
+            dbConfig = {
+                host: parsed.host,
+                port: parseInt(parsed.port || '5432'),
+                database: parsed.database,
+                user: parsed.user,
+                password: parsed.password,
+                ssl: parsed.ssl === 'true' || parsed.sslmode === 'require' ? {
+                    rejectUnauthorized: false
+                } : false,
+                max: parseInt(process.env.DB_POOL_MAX || '20'),
+                min: parseInt(process.env.DB_POOL_MIN || '2'),
+                idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+                connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000')
+            };
 
-// Si existe DATABASE_URL (Neon, Heroku, Railway, etc.), usarla
-if (process.env.DATABASE_URL) {
-    try {
-        const { parse } = require('pg-connection-string');
-        const parsed = parse(process.env.DATABASE_URL);
+            console.log('🔗 Usando DATABASE_URL para conexión');
+        } catch (error) {
+            console.warn('⚠️ Error parseando DATABASE_URL, usando configuración individual:', error.message);
+        }
+    }
 
+    // Si no hay DATABASE_URL en producción, usar variables individuales
+    if (!dbConfig.host || !dbConfig.database) {
         dbConfig = {
-            ...dbConfig,
-            host: parsed.host,
-            port: parseInt(parsed.port || '5432'),
-            database: parsed.database,
-            user: parsed.user,
-            password: parsed.password,
-            ssl: parsed.ssl === 'true' || parsed.sslmode === 'require' ? {
-                rejectUnauthorized: false
+            host: process.env.DB_HOST,
+            port: parseInt(process.env.DB_PORT || '5432'),
+            database: process.env.DB_NAME,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            max: parseInt(process.env.DB_POOL_MAX || '20'),
+            min: parseInt(process.env.DB_POOL_MIN || '2'),
+            idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+            connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
+            ssl: process.env.DB_SSL === 'true' ? {
+                rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
             } : false
         };
-
-        console.log('🔗 Usando DATABASE_URL para conexión');
-    } catch (error) {
-        console.warn('⚠️ Error parseando DATABASE_URL, usando configuración individual:', error.message);
     }
 }
 
