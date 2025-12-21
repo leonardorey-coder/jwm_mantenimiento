@@ -1,0 +1,189 @@
+.usuarios-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.usuarios-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.usuarios-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.usuarios-table-container {
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.usuarios-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.usuarios-table th,
+.usuarios-table td {
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.usuarios-table th {
+  background: var(--gris-claro);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--texto-secundario);
+}
+
+.usuarios-table tr:last-child td {
+  border-bottom: none;
+}
+
+.usuarios-table tr:hover td {
+  background: var(--gris-claro);
+}
+
+.usuarios-table tr.inactivo td {
+  opacity: 0.6;
+}
+
+.usuarios-table tr.bloqueado td {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.usuario-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gris-claro);
+  border-radius: var(--radio-full);
+  color: var(--texto-secundario);
+}
+
+.rol-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: var(--radio-full);
+  text-transform: uppercase;
+}
+
+.rol-badge.admin {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-peligro);
+}
+
+.rol-badge.supervisor {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--color-info);
+}
+
+.rol-badge.tecnico {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--color-exito);
+}
+
+.acciones {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.acciones .btn-action {
+  width: 32px;
+  height: 32px;
+}
+
+.acciones .btn-action.unlock {
+  color: var(--color-advertencia);
+}
+
+.acciones .btn-action.unlock:hover {
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.acciones .btn-action.deactivate {
+  color: var(--color-peligro);
+}
+
+.acciones .btn-action.deactivate:hover {
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.acciones .btn-action.activate {
+  color: var(--color-exito);
+}
+
+.acciones .btn-action.activate:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+@media (max-width: 1024px) {
+  .usuarios-table-container {
+    overflow-x: auto;
+  }
+  
+  .usuarios-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 640px) {
+  .usuarios-table th,
+  .usuarios-table td {
+    padding: 0.625rem;
+    font-size: 0.8125rem;
+  }
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: var(--color-peligro);
+  color: white;
+  border-radius: var(--radio-md);
+  font-weight: 500;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.btn-danger:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modal-description {
+  margin-bottom: 1rem;
+  color: var(--texto-secundario);
+}
+
+.modal-description strong {
+  color: var(--texto-principal);
+}
+
+.modal-small {
+  max-width: 400px;
+}
