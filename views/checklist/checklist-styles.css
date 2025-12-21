@@ -1357,6 +1357,42 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   gap: 0.35rem;
   box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.08);
   justify-content: center;
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+}
+
+.checklist-card-stat:hover {
+  transform: translateY(-2px);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.12);
+  background: var(--gris-claro);
+}
+
+.checklist-card-stat:active {
+  transform: translateY(0);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.08);
+}
+
+.checklist-card-stat.active {
+  border-width: 3px;
+  transform: translateY(-2px);
+}
+
+.checklist-card-stat.bueno.active {
+  border-color: var(--color-exito);
+  background: rgba(16, 185, 129, 0.1);
+  box-shadow: 4px 4px 0 rgba(16, 185, 129, 0.3);
+}
+
+.checklist-card-stat.regular.active {
+  border-color: var(--color-advertencia);
+  background: rgba(245, 158, 11, 0.1);
+  box-shadow: 4px 4px 0 rgba(245, 158, 11, 0.3);
+}
+
+.checklist-card-stat.malo.active {
+  border-color: var(--color-peligro);
+  background: rgba(239, 68, 68, 0.1);
+  box-shadow: 4px 4px 0 rgba(239, 68, 68, 0.3);
 }
 
 .checklist-card-stat-label {

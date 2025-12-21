@@ -1997,21 +1997,61 @@ function renderChecklistGrid(data) {
         const clearBtn = card.querySelector('.checklist-search-clear');
         const itemsContainer = card.querySelector('.checklist-items');
 
-        searchInput.addEventListener('input', (e) => {
-            const searchTerm = e.target.value.toLowerCase().trim();
+        // Función para aplicar filtros combinados (búsqueda + estado)
+        const aplicarFiltrosCard = () => {
+            const searchTerm = searchInput.value.toLowerCase().trim();
             const items = itemsContainer.querySelectorAll('.checklist-item');
-            clearBtn.style.display = searchTerm ? 'flex' : 'none';
+            const estadoActivo = card.querySelector('.checklist-card-stat.active');
+            const estadoFiltro = estadoActivo ? estadoActivo.getAttribute('data-estado') : null;
+
             items.forEach(item => {
                 const itemName = item.getAttribute('data-item') || '';
-                item.style.display = itemName.includes(searchTerm) ? '' : 'none';
+                const matchesSearch = !searchTerm || itemName.includes(searchTerm);
+                
+                let matchesEstado = true;
+                if (estadoFiltro) {
+                    const checkedRadio = item.querySelector('.estado-radio:checked');
+                    const estadoItem = checkedRadio ? checkedRadio.value : null;
+                    matchesEstado = estadoItem === estadoFiltro;
+                }
+                
+                item.style.display = (matchesSearch && matchesEstado) ? '' : 'none';
             });
+        };
+
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase().trim();
+            clearBtn.style.display = searchTerm ? 'flex' : 'none';
+            aplicarFiltrosCard();
         });
 
         clearBtn.addEventListener('click', () => {
             searchInput.value = '';
             clearBtn.style.display = 'none';
-            itemsContainer.querySelectorAll('.checklist-item').forEach(item => item.style.display = '');
+            aplicarFiltrosCard();
             searchInput.focus();
+        });
+
+        // Event listeners para filtrado por estado en stats
+        const statButtons = card.querySelectorAll('.checklist-card-stat');
+        statButtons.forEach(statBtn => {
+            statBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                
+                // Si el botón ya está activo, lo desactivamos
+                const isActive = statBtn.classList.contains('active');
+                
+                // Remover clase active de todos los botones de esta card
+                statButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Si no estaba activo, activar el botón clickeado
+                if (!isActive) {
+                    statBtn.classList.add('active');
+                }
+                
+                // Aplicar filtros combinados (búsqueda + estado)
+                aplicarFiltrosCard();
+            });
         });
 
         // Event listener para botón de detalles
