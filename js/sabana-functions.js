@@ -963,8 +963,8 @@ async function verHistorialServicios() {
             listaContainer.innerHTML = historial.map(entry => {
                 const fecha = new Date(entry.fecha_archivado || entry.fecha_creacion);
                 const porcentaje = parseFloat(entry.progreso_porcentaje) || 0;
-                const creadorInfo = entry.creador_nombre ? `<span class="historial-creador"><i class="fas fa-user"></i> ${entry.creador_nombre}</span>` : '';
-                const notasInfo = entry.notas ? `<div class="historial-notas"><i class="fas fa-sticky-note"></i> ${entry.notas.substring(0, 60)}${entry.notas.length > 60 ? '...' : ''}</div>` : '';
+                const creadorInfo = entry.creador_nombre ? `<span class="historial-creador"><i class="fas fa-user"></i> ${Object.assign(document.createElement('div'), { textContent: entry.creador_nombre }).innerHTML}</span>` : '';
+                const notasInfo = entry.notas ? `<div class="historial-notas"><i class="fas fa-sticky-note"></i> ${Object.assign(document.createElement('div'), { textContent: entry.notas.substring(0, 60) + (entry.notas.length > 60 ? '...' : '') }).innerHTML}</div>` : '';
 
                 return `
                     <div class="historial-item" onclick="cargarSabanaDesdeHistorial(${entry.id})">
