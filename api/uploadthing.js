@@ -44,7 +44,6 @@ const uploadRouter = {
         .middleware(async ({ req }) => {
             // Aquí se puede agregar verificación de autenticación si es necesario
             // Por ahora, la autenticación se maneja en el endpoint que guarda metadatos
-            console.log("📤 UploadThing middleware - archivo recibido");
 
             // Retornar metadata que estará disponible en onUploadComplete
             return {
@@ -52,7 +51,6 @@ const uploadRouter = {
             };
         })
         .onUploadComplete(async ({ metadata, file }) => {
-            console.log("✅ UploadThing - Archivo subido:", file.name);
             console.log("   URL:", file.url);
             console.log("   Key:", file.key);
             console.log("   Size:", file.size);
