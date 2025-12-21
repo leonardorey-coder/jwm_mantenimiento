@@ -105,6 +105,11 @@ async function cambiarServicioActual(sabanaId) {
         if (!sabanaId) {
             document.getElementById('sabanaTableBody').innerHTML =
                 '<tr><td colspan="7" class="sabana-placeholder">Selecciona una sábana.</td></tr>';
+            // Ocultar notas y creador
+            const notasContainer = document.getElementById('sabanaNotasContainer');
+            if (notasContainer) notasContainer.style.display = 'none';
+            const creadorContainer = document.getElementById('sabanaCreadorInfo');
+            if (creadorContainer) creadorContainer.style.display = 'none';
             return;
         }
 
@@ -162,6 +167,30 @@ async function cambiarServicioActual(sabanaId) {
                 month: 'long',
                 day: 'numeric'
             })}`;
+        }
+
+        // Mostrar usuario creador
+        const creadorContainer = document.getElementById('sabanaCreadorInfo');
+        const creadorNombre = document.getElementById('sabanaCreadorNombre');
+        if (creadorContainer && creadorNombre) {
+            if (sabana.creador_nombre) {
+                creadorNombre.textContent = sabana.creador_nombre;
+                creadorContainer.style.display = 'block';
+            } else {
+                creadorContainer.style.display = 'none';
+            }
+        }
+
+        // Mostrar notas de la sábana
+        const notasContainer = document.getElementById('sabanaNotasContainer');
+        const notasTexto = document.getElementById('sabanaNotasTexto');
+        if (notasContainer && notasTexto) {
+            if (sabana.notas && sabana.notas.trim()) {
+                notasTexto.textContent = sabana.notas;
+                notasContainer.style.display = 'flex';
+            } else {
+                notasContainer.style.display = 'none';
+            }
         }
 
         renderSabanaTable(currentSabanaItems, sabana.archivada);
@@ -559,6 +588,12 @@ async function abrirModalNuevaSabana() {
         return;
     }
 
+    // Limpiar campo de notas
+    const inputNotas = document.getElementById('inputNotasSabana');
+    if (inputNotas) {
+        inputNotas.value = '';
+    }
+
     // Limpiar y configurar input de nombre para nuevo servicio
     const inputNombre = document.getElementById('inputNombreServicio');
     if (inputNombre) {
@@ -776,6 +811,8 @@ async function confirmarNuevaSabana() {
     // Si es nuevo servicio, continuar con el flujo normal
     const inputNombre = document.getElementById('inputNombreServicio');
     let nombreServicio = inputNombre?.value.trim();
+    const inputNotas = document.getElementById('inputNotasSabana');
+    const notas = inputNotas?.value.trim() || null;
     const switchArchivar = document.getElementById('switchArchivarActual');
     const debeArchivarActual = switchArchivar?.checked || false;
 
@@ -851,7 +888,7 @@ async function confirmarNuevaSabana() {
                 nombre: nombreServicio,
                 servicio_id: servicioId,
                 servicio_nombre: nombreServicio,
-                notas: null
+                notas: notas
             })
         });
 
@@ -925,8 +962,9 @@ async function verHistorialServicios() {
         } else {
             listaContainer.innerHTML = historial.map(entry => {
                 const fecha = new Date(entry.fecha_archivado || entry.fecha_creacion);
-                // Asegurar que porcentaje sea un número
                 const porcentaje = parseFloat(entry.progreso_porcentaje) || 0;
+                const creadorInfo = entry.creador_nombre ? `<span class="historial-creador"><i class="fas fa-user"></i> ${entry.creador_nombre}</span>` : '';
+                const notasInfo = entry.notas ? `<div class="historial-notas"><i class="fas fa-sticky-note"></i> ${entry.notas.substring(0, 60)}${entry.notas.length > 60 ? '...' : ''}</div>` : '';
 
                 return `
                     <div class="historial-item" onclick="cargarSabanaDesdeHistorial(${entry.id})">
@@ -934,6 +972,8 @@ async function verHistorialServicios() {
                             <h3>${entry.nombre}</h3>
                             <span class="historial-fecha">${fecha.toLocaleDateString('es-MX')}</span>
                         </div>
+                        ${creadorInfo}
+                        ${notasInfo}
                         <div class="historial-stats">
                             <span class="stat">
                                 <i class="fas fa-check-circle"></i> ${entry.items_completados || 0}/${entry.total_items || 0} completados
@@ -1346,6 +1386,12 @@ async function confirmarEliminarSabana() {
             totalesEl.textContent = '0';
         }
 
+        // Ocultar notas y creador
+        const notasContainer = document.getElementById('sabanaNotasContainer');
+        if (notasContainer) notasContainer.style.display = 'none';
+        const creadorContainer = document.getElementById('sabanaCreadorInfo');
+        if (creadorContainer) creadorContainer.style.display = 'none';
+
         // Cerrar modal y restaurar botón
         cerrarModalValidarEliminar();
         
@@ -1641,6 +1687,9 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
         }
 
         // 2. Crear nueva sábana
+        const inputNotas = document.getElementById('inputNotasSabana');
+        const notas = inputNotas?.value.trim() || null;
+
         const servicioId = 'servicio_' + nombreServicio.toLowerCase()
             .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
             .replace(/[^a-z0-9]+/g, '_')
@@ -1652,7 +1701,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
                 nombre: nombreServicio,
                 servicio_id: servicioId,
                 servicio_nombre: nombreServicio,
-                notas: null
+                notas: notas
             })
         });
 
