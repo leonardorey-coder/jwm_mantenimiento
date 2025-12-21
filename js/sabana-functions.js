@@ -969,7 +969,7 @@ async function verHistorialServicios() {
                 return `
                     <div class="historial-item" onclick="cargarSabanaDesdeHistorial(${entry.id})">
                         <div class="historial-item-header">
-                            <h3>${entry.nombre}</h3>
+                             <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
                             <span class="historial-fecha">${fecha.toLocaleDateString('es-MX')}</span>
                         </div>
                         ${creadorInfo}
