@@ -303,17 +303,71 @@ function mostrarEspaciosComunes() {
 }
 
 /**
+ * Obtener icono según tipo y nombre del espacio
+ */
+function obtenerIconoEspacio(espacio) {
+    const nombreLower = espacio.nombre.toLowerCase();
+    const tipo = espacio.tipo ? espacio.tipo.toLowerCase() : '';
+
+    // Mapeo de iconos por nombre específico
+    const iconosPorNombre = {
+        'restaurante': 'fa-utensils',
+        'bar': 'fa-cocktail',
+        'gimnasio': 'fa-dumbbell',
+        'piscina': 'fa-swimming-pool',
+        'spa': 'fa-spa',
+        'lobby': 'fa-building',
+        'lavandería': 'fa-tshirt',
+        'lavanderia': 'fa-tshirt',
+        'estacionamiento': 'fa-car',
+        'parking': 'fa-car',
+        'jardín': 'fa-tree',
+        'jardin': 'fa-tree',
+        'terraza': 'fa-umbrella-beach',
+        'salón': 'fa-users',
+        'salon': 'fa-users',
+        'business center': 'fa-laptop',
+        'centro de negocios': 'fa-laptop',
+        'tienda': 'fa-shopping-bag',
+        'gift shop': 'fa-shopping-bag',
+        'biblioteca': 'fa-book',
+        'playground': 'fa-child',
+        'área de juegos': 'fa-child',
+        'area de juegos': 'fa-child'
+    };
+
+    // Buscar por nombre exacto o parcial
+    for (const [key, icono] of Object.entries(iconosPorNombre)) {
+        if (nombreLower.includes(key)) {
+            return icono;
+        }
+    }
+
+    // Mapeo por tipo si no se encontró por nombre
+    const iconosPorTipo = {
+        'restaurante': 'fa-utensils',
+        'recreativo': 'fa-dumbbell',
+        'servicio': 'fa-concierge-bell',
+        'exterior': 'fa-tree',
+        'comun': 'fa-building'
+    };
+
+    return iconosPorTipo[tipo] || 'fa-building';
+}
+
+/**
  * Cargar contenido de un espacio (llamado por IntersectionObserver)
  */
 function cargarContenidoEspacio(li, espacio) {
     const mantenimientosEspacio = window.mantenimientosPorEspacio.get(espacio.id) || [];
     const { estadoBadgeClass, estadoIcon, estadoText } = getEstadoBadgeInfoEspacio(espacio.estado);
+    const iconoEspacio = obtenerIconoEspacio(espacio);
 
     li.className = 'habitacion-card';
     li.innerHTML = `
         <div class="habitacion-header">
             <div class="habitacion-titulo">
-                    <i class="habitacion-icon fas ${espacio.nombre.toLowerCase() === 'restaurante' ? 'fa-utensils' : 'fa-building'}"></i>
+                    <i class="habitacion-icon fas ${iconoEspacio}"></i>
                 <div>
                     <div class="habitacion-nombre">${window.escapeHtml ? window.escapeHtml(espacio.nombre) : espacio.nombre}</div>
                     <div class="habitacion-edificio">
@@ -399,27 +453,41 @@ function renderizarPaginacionEspacios(totalEspacios) {
     const totalPaginasCalculadas = Math.max(1, Math.ceil(totalEspacios / ESPACIOS_POR_PAGINA));
     totalPaginasEspacios = totalPaginasCalculadas;
 
+    if (paginaActualEspacios > totalPaginasEspacios) {
+        paginaActualEspacios = totalPaginasEspacios;
+    }
+
+    const opciones = Array.from({ length: totalPaginasCalculadas }, (_, idx) => {
+        const pagina = idx + 1;
+        const seleccionado = pagina === paginaActualEspacios ? ' selected' : '';
+        return `<option value="${pagina}"${seleccionado}>${pagina}</option>`;
+    }).join('');
+
+    const totalLabel = totalEspacios === 1 ? '1 espacio' : `${totalEspacios} espacios`;
+
     contenedorPaginacion.style.display = 'flex';
     contenedorPaginacion.innerHTML = `
-        <button class="pagination-btn" id="espaciosPrevBtn" ${paginaActualEspacios === 1 ? 'disabled' : ''}>
-            <i class="fas fa-chevron-left"></i> Anterior
-        </button>
-        <span class="pagination-info">
-            Página <strong>${paginaActualEspacios}</strong> de <strong>${totalPaginasEspacios}</strong>
-        </span>
-        <select class="pagination-selector" id="espaciosPageSelector">
-            ${Array.from({ length: totalPaginasEspacios }, (_, i) => i + 1).map(num =>
-        `<option value="${num}" ${num === paginaActualEspacios ? 'selected' : ''}>Página ${num}</option>`
-    ).join('')}
+    <button class="pagination-btn" data-action="prev" ${paginaActualEspacios === 1 ? 'disabled' : ''} aria-label="Página anterior de espacios">
+        <i class="fas fa-chevron-left"></i>
+        <span>Anterior</span>
+    </button>
+    <div class="pagination-info">
+        <span>Página</span>
+        <select class="pagination-select" id="espaciosPaginationSelect" aria-label="Seleccionar página de espacios">
+            ${opciones}
         </select>
-        <button class="pagination-btn" id="espaciosNextBtn" ${paginaActualEspacios === totalPaginasEspacios ? 'disabled' : ''}>
-            Siguiente <i class="fas fa-chevron-right"></i>
-        </button>
-    `;
+        <span>de ${totalPaginasCalculadas}</span>
+    </div>
+    <button class="pagination-btn" data-action="next" ${paginaActualEspacios === totalPaginasEspacios ? 'disabled' : ''} aria-label="Página siguiente de espacios">
+        <span>Siguiente</span>
+        <i class="fas fa-chevron-right"></i>
+    </button>
+    <span class="pagination-total">${totalLabel}</span>
+`;
 
-    const prevBtn = document.getElementById('espaciosPrevBtn');
-    const nextBtn = document.getElementById('espaciosNextBtn');
-    const selectorPaginas = document.getElementById('espaciosPageSelector');
+    const prevBtn = contenedorPaginacion.querySelector('[data-action="prev"]');
+    const nextBtn = contenedorPaginacion.querySelector('[data-action="next"]');
+    const selectorPaginas = contenedorPaginacion.querySelector('#espaciosPaginationSelect');
 
     if (prevBtn) {
         prevBtn.addEventListener('click', () => {
