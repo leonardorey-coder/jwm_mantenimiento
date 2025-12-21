@@ -961,7 +961,22 @@ app.get('/api/espacios-comunes', async (req, res) => {
             const mockEspacios = [
                 { id: 1, nombre: 'Lobby Principal', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'comun', estado: 'disponible' },
                 { id: 2, nombre: 'Gimnasio', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'recreativo', estado: 'disponible' },
-                { id: 3, nombre: 'Piscina', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'recreativo', estado: 'mantenimiento' }
+                { id: 3, nombre: 'Piscina Principal', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'recreativo', estado: 'disponible' },
+                { id: 4, nombre: 'Restaurante Principal', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'restaurante', estado: 'ocupado' },
+                { id: 5, nombre: 'Spa y Wellness', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'recreativo', estado: 'disponible' },
+                { id: 6, nombre: 'Bar Lounge', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'restaurante', estado: 'disponible' },
+                { id: 7, nombre: 'Salón de Eventos', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'comun', estado: 'ocupado' },
+                { id: 8, nombre: 'Business Center', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'servicio', estado: 'disponible' },
+                { id: 9, nombre: 'Lavandería', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'servicio', estado: 'disponible' },
+                { id: 10, nombre: 'Estacionamiento', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'exterior', estado: 'disponible' },
+                { id: 11, nombre: 'Terraza', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'exterior', estado: 'disponible' },
+                { id: 12, nombre: 'Jardín Principal', edificio_id: 1, edificio_nombre: 'Torre A', tipo: 'exterior', estado: 'disponible' },
+                { id: 13, nombre: 'Piscina Infantil', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'recreativo', estado: 'disponible' },
+                { id: 14, nombre: 'Restaurante Terraza', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'restaurante', estado: 'disponible' },
+                { id: 15, nombre: 'Gift Shop', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'servicio', estado: 'disponible' },
+                { id: 16, nombre: 'Biblioteca', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'comun', estado: 'disponible' },
+                { id: 17, nombre: 'Área de Juegos', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'recreativo', estado: 'mantenimiento' },
+                { id: 18, nombre: 'Lobby Torre B', edificio_id: 2, edificio_nombre: 'Torre B', tipo: 'comun', estado: 'disponible' }
             ];
             res.json(mockEspacios);
         }
