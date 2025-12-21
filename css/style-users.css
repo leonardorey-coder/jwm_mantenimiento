@@ -923,14 +923,12 @@
 }
 
 .switch-slider {
-    position: absolute;
     cursor: pointer;
     background-color: var(--gris-medio);
     border: 3px solid var(--negro-carbon);
     transition: 0.3s;
     border-radius: 28px;
     box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.15);
-    margin-left: 1.5rem;
 }
 
 .switch-slider::before {
