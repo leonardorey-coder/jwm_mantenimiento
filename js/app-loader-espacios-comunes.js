@@ -422,9 +422,9 @@ function cargarContenidoEspacio(li, espacio) {
 function getEstadoBadgeInfoEspacio(estado) {
     const estadoMap = {
         'disponible': { class: 'estado-disponible', icon: 'fa-check-circle', text: 'Disponible' },
-        'ocupado': { class: 'estado-ocupado', icon: 'fa-users', text: 'Ocupado' },
+        'ocupado': { class: 'estado-ocupado', icon: 'fa-user', text: 'Ocupado' },
         'mantenimiento': { class: 'estado-mantenimiento', icon: 'fa-tools', text: 'Mantenimiento' },
-        'fuera_servicio': { class: 'estado-fuera-servicio', icon: 'fa-times-circle', text: 'Fuera de Servicio' }
+        'fuera_servicio': { class: 'estado-fuera-servicio', icon: 'fa-ban', text: 'Fuera de Servicio' }
     };
 
     const info = estadoMap[estado] || estadoMap['disponible'];
@@ -1075,6 +1075,28 @@ Object.defineProperty(window, 'espaciosComunesCargados', {
     set: (value) => { espaciosComunesCargados = value; }
 });
 
+/**
+ * Setter para espacios comunes filtrados (usado por app.js filters)
+ */
+function setEspaciosComunesFiltrados(filtrados) {
+    espaciosComunesFiltradosActual = Array.isArray(filtrados) ? [...filtrados] : [];
+    paginaActualEspacios = 1; // Reset to page 1 when filtering
+    totalPaginasEspacios = espaciosComunesFiltradosActual.length > 0
+        ? Math.ceil(espaciosComunesFiltradosActual.length / ESPACIOS_POR_PAGINA)
+        : 1;
+}
+
+/**
+ * Getter para espacios comunes filtrados
+ */
+function getEspaciosComunesFiltrados() {
+    return espaciosComunesFiltradosActual;
+}
+
+// Export setter/getter to window for external filter access
+window.setEspaciosComunesFiltrados = setEspaciosComunesFiltrados;
+window.getEspaciosComunesFiltrados = getEspaciosComunesFiltrados;
+
 console.log('✅ [APP-LOADER-ESPACIOS] Funciones exportadas a window');
 
 // Exportar funciones para uso modular
@@ -1093,5 +1115,7 @@ export {
     seleccionarEstadoEspacioInline,
     cambiarEstadoEspacio,
     renderizarServiciosEspacio,
-    recargarMantenimientosEspacios
+    recargarMantenimientosEspacios,
+    setEspaciosComunesFiltrados,
+    getEspaciosComunesFiltrados
 };

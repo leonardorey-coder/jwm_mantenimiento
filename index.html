@@ -394,17 +394,19 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
-                    <div class="select-container premium-select">
-                        <select id="filtroPrioridadEspacio">
+                    <div class="select-container premium-select" data-semaforo-wrapper="prioridad">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroPrioridadEspacio" data-semaforo-select="prioridad">
                             <option value="">Todas las prioridades</option>
-                            <option value="baja">🟢 Baja</option>
-                            <option value="media">🟡 Media</option>
-                            <option value="alta">🔴 Alta</option>
+                            <option value="baja">Baja</option>
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
-                    <div class="select-container premium-select">
-                        <select id="filtroEstadoEspacio">
+                    <div class="select-container premium-select" data-semaforo-wrapper="estado">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroEstadoEspacio" data-semaforo-select="estado">
                             <option value="">Todos los estados</option>
                             <option value="disponible">Disponible</option>
                             <option value="mantenimiento">En mantenimiento</option>
@@ -434,11 +436,11 @@
                     <ul class="lista-cuartos brutalist-grid" id="listaEspaciosComunes" data-aos="fade-up">
                         <!-- Los espacios se cargarán dinámicamente -->
                     </ul>
-                    <div class="habitaciones-pagination" id="espaciosPagination" aria-live="polite"></div>
                     <div id="mensajeNoEspacios" class="mensaje-no-cuartos" style="display:none">
                         <i class="fas fa-search"></i>
                         <p>No se encontraron espacios con los criterios seleccionados</p>
                     </div>
+                    <div class="habitaciones-pagination" id="espaciosPagination" aria-live="polite"></div>
                 </div>
 
                 <!-- Columna lateral -->
@@ -1048,7 +1050,8 @@
                                     <i class="fas fa-chart-bar"></i> Completados: <span
                                         id="serviciosCompletados">0</span> / <span id="serviciosTotales">0</span>
                                 </div>
-                                <div id="sabanaCreadorInfo" style="font-size: 0.75rem; margin-top: 0.3rem; opacity: 0.8; display: none;">
+                                <div id="sabanaCreadorInfo"
+                                    style="font-size: 0.75rem; margin-top: 0.3rem; opacity: 0.8; display: none;">
                                     <i class="fas fa-user"></i> Creado por: <span id="sabanaCreadorNombre">-</span>
                                 </div>
                             </div>
@@ -1074,7 +1077,7 @@
                                     <th><i class="fas fa-calendar"></i> Fecha Programada</th>
                                     <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
                                     <th><i class="fas fa-user"></i> Responsable</th>
-                                    <th style="text-align: center;" ><i class="fas fa-comment"></i> Observaciones</th>
+                                    <th style="text-align: center;"><i class="fas fa-comment"></i> Observaciones</th>
                                     <th><i class="fas fa-check-circle"></i> Realizado</th>
                                 </tr>
                             </thead>
@@ -1335,7 +1338,8 @@
                         <i class="fas fa-sticky-note"></i> Notas (opcional)
                     </label>
                     <textarea id="inputNotasSabana" class="brutalist-input" rows="2"
-                        placeholder="Ej: Priorizar edificio Alfa..." maxlength="500" style="resize: vertical; min-height: 60px;"></textarea>
+                        placeholder="Ej: Priorizar edificio Alfa..." maxlength="500"
+                        style="resize: vertical; min-height: 60px;"></textarea>
                 </div>
 
                 <!-- Switch para archivar sábana actual -->
@@ -1413,7 +1417,8 @@
                 </div>
             </div>
             <div class="modal-eliminar-actions">
-                <button class="btn-modal-cancel" type="button" onclick="cerrarModalConfirmarEliminar()">Cancelar</button>
+                <button class="btn-modal-cancel" type="button"
+                    onclick="cerrarModalConfirmarEliminar()">Cancelar</button>
                 <button class="btn-modal-danger" type="button" onclick="abrirModalValidarEliminar()">
                     <i class="fas fa-arrow-right"></i> Continuar
                 </button>
@@ -1436,7 +1441,7 @@
                     <i class="fas fa-exclamation-circle"></i>
                     <div>
                         <p class="modal-eliminar-texto">
-                            Para confirmar la eliminación de <strong id="nombreSabanaEliminar2"></strong>, 
+                            Para confirmar la eliminación de <strong id="nombreSabanaEliminar2"></strong>,
                             completa los siguientes campos:
                         </p>
                     </div>
@@ -1447,14 +1452,8 @@
                         <i class="fas fa-keyboard"></i> Escribe <strong>"eliminar"</strong> para confirmar
                     </label>
                     <div class="input-eliminar-wrapper">
-                        <input 
-                            type="text" 
-                            id="inputConfirmarEliminar" 
-                            class="brutalist-input input-eliminar" 
-                            placeholder=""
-                            autocomplete="off"
-                            spellcheck="false"
-                            data-target="eliminar"
+                        <input type="text" id="inputConfirmarEliminar" class="brutalist-input input-eliminar"
+                            placeholder="" autocomplete="off" spellcheck="false" data-target="eliminar"
                             oninput="actualizarPlaceholderPersistente('inputConfirmarEliminar', 'placeholderConfirmarEliminar', 'eliminar'); validarCamposEliminar()">
                         <span class="input-eliminar-placeholder" id="placeholderConfirmarEliminar">eliminar</span>
                     </div>
@@ -1466,14 +1465,8 @@
                         <i class="fas fa-file-alt"></i> Escribe el nombre de la sábana
                     </label>
                     <div class="input-eliminar-wrapper">
-                        <input 
-                            type="text" 
-                            id="inputNombreSabanaEliminar" 
-                            class="brutalist-input input-eliminar" 
-                            placeholder=""
-                            autocomplete="off"
-                            spellcheck="false"
-                            data-target=""
+                        <input type="text" id="inputNombreSabanaEliminar" class="brutalist-input input-eliminar"
+                            placeholder="" autocomplete="off" spellcheck="false" data-target=""
                             oninput="actualizarPlaceholderPersistente('inputNombreSabanaEliminar', 'placeholderNombreSabana', ''); validarCamposEliminar()">
                         <span class="input-eliminar-placeholder" id="placeholderNombreSabana"></span>
                     </div>
@@ -1482,8 +1475,8 @@
             </div>
             <div class="modal-eliminar-actions">
                 <button class="btn-modal-cancel" type="button" onclick="cerrarModalValidarEliminar()">Cancelar</button>
-                <button class="btn-modal-danger" type="button" id="btnConfirmarEliminar" 
-                        onclick="confirmarEliminarSabana()" disabled>
+                <button class="btn-modal-danger" type="button" id="btnConfirmarEliminar"
+                    onclick="confirmarEliminarSabana()" disabled>
                     <i class="fas fa-trash-alt"></i> Eliminar permanentemente
                 </button>
             </div>

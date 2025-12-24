@@ -170,20 +170,25 @@ body::-webkit-scrollbar {
 }
 
 body {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE/Edge */
 }
 
 /* Custom titlebar spacing for Electron frameless window */
 .electron-app .premium-header {
-  padding-top: 32px; /* Height of titlebar overlay */
-  -webkit-app-region: drag; /* Make header draggable */
+  padding-top: 32px;
+  /* Height of titlebar overlay */
+  -webkit-app-region: drag;
+  /* Make header draggable */
 }
 
 .electron-app .premium-header button,
 .electron-app .premium-header a,
 .electron-app .premium-header .link {
-  -webkit-app-region: no-drag; /* Buttons should be clickable */
+  -webkit-app-region: no-drag;
+  /* Buttons should be clickable */
 }
 
 /* Bloquear scroll de la página cuando hay un modal activo */
@@ -3551,7 +3556,7 @@ body.admin .tab-content.admin-only.active {
   margin-right: 0.4rem;
 }
 
-.filtros-bitacora-periodo > i {
+.filtros-bitacora-periodo>i {
   grid-column: 1;
   grid-row: 1;
   align-self: center;
@@ -3567,7 +3572,7 @@ body.admin .tab-content.admin-only.active {
   color: rgba(255, 255, 255, 0.92);
 }
 
-.filtros-bitacora-periodo > div {
+.filtros-bitacora-periodo>div {
   grid-column: 1 / -1;
   display: flex;
   align-items: center;
@@ -6802,7 +6807,7 @@ body.admin a.admin-only {
   border-radius: var(--radio-medio);
 }
 
-.modal-eliminar-warning > i {
+.modal-eliminar-warning>i {
   font-size: 2rem;
   color: #F44336;
   flex-shrink: 0;
@@ -6882,7 +6887,7 @@ body.admin a.admin-only {
   transition: color 0.2s ease;
 }
 
-.input-eliminar:focus + .input-eliminar-placeholder {
+.input-eliminar:focus+.input-eliminar-placeholder {
   color: rgba(244, 67, 54, 0.4);
 }
 
@@ -6904,7 +6909,7 @@ body.admin a.admin-only {
     gap: 0.75rem;
   }
 
-  .modal-eliminar-warning > i {
+  .modal-eliminar-warning>i {
     font-size: 1.5rem;
   }
 
@@ -7565,6 +7570,11 @@ body.dark-mode .skeleton-card {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: 2px solid var(--negro-carbon);
+}
+
+.estado-disponible {
+  background: var(--prioridad-baja);
+  color: var(--blanco);
 }
 
 .estado-ocupado {

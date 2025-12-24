@@ -831,14 +831,58 @@ function setupSearchListeners() {
     const buscarEspacioInput = document.getElementById('buscarEspacio');
     const buscarServicioInput = document.getElementById('buscarServicioEspacio');
     const filtroTipoSelect = document.getElementById('filtroTipoEspacio');
-    const filtroPrioridadSelect = document.getElementById('filtroPrioridadEspacio');
-    const filtroEstadoSelect = document.getElementById('filtroEstadoEspacio');
+    const filtroPrioridadEspacioSelect = document.getElementById('filtroPrioridadEspacio');
+    const filtroEstadoEspacioSelect = document.getElementById('filtroEstadoEspacio');
 
     if (buscarEspacioInput) buscarEspacioInput.addEventListener('input', filterEspaciosComunes);
     if (buscarServicioInput) buscarServicioInput.addEventListener('input', filterEspaciosComunes);
     if (filtroTipoSelect) filtroTipoSelect.addEventListener('change', filterEspaciosComunes);
-    if (filtroPrioridadSelect) filtroPrioridadSelect.addEventListener('change', filterEspaciosComunes);
-    if (filtroEstadoSelect) filtroEstadoSelect.addEventListener('change', filterEspaciosComunes);
+
+    // Configurar semáforo visual para filtro de prioridad de espacios
+    if (filtroPrioridadEspacioSelect) {
+        const semaforoWrapperPrioridad = filtroPrioridadEspacioSelect.closest('[data-semaforo-wrapper]');
+        const semaforoIndicatorPrioridad = semaforoWrapperPrioridad ? semaforoWrapperPrioridad.querySelector('.semaforo-indicator') : null;
+
+        filtroPrioridadEspacioSelect.addEventListener('change', function () {
+            // Actualizar semáforo visual
+            if (semaforoIndicatorPrioridad) {
+                semaforoIndicatorPrioridad.classList.remove('prioridad-baja', 'prioridad-media', 'prioridad-alta');
+                if (filtroPrioridadEspacioSelect.value) {
+                    semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridadEspacioSelect.value}`);
+                }
+            }
+            // Ejecutar filtro
+            filterEspaciosComunes();
+        });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicatorPrioridad && filtroPrioridadEspacioSelect.value) {
+            semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridadEspacioSelect.value}`);
+        }
+    }
+
+    // Configurar semáforo visual para filtro de estado de espacios
+    if (filtroEstadoEspacioSelect) {
+        const semaforoWrapperEstado = filtroEstadoEspacioSelect.closest('[data-semaforo-wrapper]');
+        const semaforoIndicatorEstado = semaforoWrapperEstado ? semaforoWrapperEstado.querySelector('.semaforo-indicator') : null;
+
+        filtroEstadoEspacioSelect.addEventListener('change', function () {
+            // Actualizar semáforo visual
+            if (semaforoIndicatorEstado) {
+                semaforoIndicatorEstado.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera_servicio');
+                if (filtroEstadoEspacioSelect.value) {
+                    semaforoIndicatorEstado.classList.add(`estado-${filtroEstadoEspacioSelect.value}`);
+                }
+            }
+            // Ejecutar filtro
+            filterEspaciosComunes();
+        });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicatorEstado && filtroEstadoEspacioSelect.value) {
+            semaforoIndicatorEstado.classList.add(`estado-${filtroEstadoEspacioSelect.value}`);
+        }
+    }
 }
 
 function filterEspaciosComunes() {
@@ -875,22 +919,24 @@ function filterEspaciosComunes() {
     if (espaciosFiltrados.length === 0) {
         if (mensajeNoResultados) mensajeNoResultados.style.display = 'block';
         if (lista) lista.style.display = 'none';
+        // Also hide pagination when no results
+        const paginacion = document.getElementById('espaciosPagination');
+        if (paginacion) paginacion.style.display = 'none';
     } else {
         if (mensajeNoResultados) mensajeNoResultados.style.display = 'none';
         if (lista) lista.style.display = 'grid';
 
-        // Actualizar espacios filtrados y mostrar usando nueva función
-        if (window.mostrarEspaciosComunes) {
-            // Guardar espacios originales
+        // Update filtered spaces via the module's setter if available
+        if (typeof window.setEspaciosComunesFiltrados === 'function') {
+            window.setEspaciosComunesFiltrados(espaciosFiltrados);
+            if (window.mostrarEspaciosComunes) {
+                window.mostrarEspaciosComunes();
+            }
+        } else if (window.mostrarEspaciosComunes) {
+            // Fallback: Temporarily replace AppState espacios
             const espaciosOriginales = AppState.espaciosComunes;
-
-            // Temporalmente reemplazar con filtrados
             AppState.espaciosComunes = espaciosFiltrados;
-
-            // Llamar a la nueva función de renderizado
             window.mostrarEspaciosComunes();
-
-            // Restaurar espacios originales
             AppState.espaciosComunes = espaciosOriginales;
         }
     }
@@ -2007,14 +2053,14 @@ function renderChecklistGrid(data) {
             items.forEach(item => {
                 const itemName = item.getAttribute('data-item') || '';
                 const matchesSearch = !searchTerm || itemName.includes(searchTerm);
-                
+
                 let matchesEstado = true;
                 if (estadoFiltro) {
                     const checkedRadio = item.querySelector('.estado-radio:checked');
                     const estadoItem = checkedRadio ? checkedRadio.value : null;
                     matchesEstado = estadoItem === estadoFiltro;
                 }
-                
+
                 item.style.display = (matchesSearch && matchesEstado) ? '' : 'none';
             });
         };
@@ -2037,18 +2083,18 @@ function renderChecklistGrid(data) {
         statButtons.forEach(statBtn => {
             statBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                
+
                 // Si el botón ya está activo, lo desactivamos
                 const isActive = statBtn.classList.contains('active');
-                
+
                 // Remover clase active de todos los botones de esta card
                 statButtons.forEach(btn => btn.classList.remove('active'));
-                
+
                 // Si no estaba activo, activar el botón clickeado
                 if (!isActive) {
                     statBtn.classList.add('active');
                 }
-                
+
                 // Aplicar filtros combinados (búsqueda + estado)
                 aplicarFiltrosCard();
             });
