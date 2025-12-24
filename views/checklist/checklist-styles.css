@@ -1151,6 +1151,20 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   transform: translateY(-2px);
 }
 
+/* Botón de exportar filtrado */
+.btn-excel-filtrado {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.btn-excel-filtrado:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  box-shadow: var(--sombra-suave);
+  transform: translateY(-2px);
+}
+
 .btn-pdf {
   background: var(--estado-malo);
   color: white;
@@ -1251,10 +1265,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 
   .checklist-stats-grid {
     grid-template-columns: 1fr;
-  }
-
-  .checklist-modal-footer {
-    flex-direction: column;
   }
 
   .history-item {

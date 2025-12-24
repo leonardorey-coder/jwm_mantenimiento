@@ -3918,7 +3918,6 @@ body.admin .tab-content.admin-only.active {
 }
 
 .filtros-action-button {
-  padding: 1.25rem 1.5rem;
   background: white;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
@@ -9009,8 +9008,7 @@ tr[data-lazy="true"] {
   }
 
   .filtros-action-button {
-    min-width: 100%;
-    padding: 1rem 1.1rem;
+    padding: 0.5rem 1rem;
     font-size: 0.88rem;
   }
 
@@ -9021,11 +9019,11 @@ tr[data-lazy="true"] {
   }
 
   .filtros-action-button-title {
-    font-size: 0.88rem;
+    font-size: 0.70rem;
   }
 
   .filtros-action-button-subtitle {
-    font-size: 0.75rem;
+    font-size: 0.6rem;
   }
 }
 
@@ -11455,14 +11453,12 @@ tr[data-lazy="true"] {
 /* Clases para botones de acción de filtros */
 .filtros-action-button-title {
   font-weight: 600;
-  font-size: 0.95rem;
   color: var(--negro-carbon);
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
 
 .filtros-action-button-subtitle {
-  font-size: 0.8rem;
   font-weight: 400;
   color: rgba(0, 0, 0, 0.55);
   letter-spacing: -0.005em;

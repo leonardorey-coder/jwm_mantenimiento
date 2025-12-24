@@ -2720,11 +2720,15 @@ function openChecklistDetailsModal(cuartoId) {
                     <div class="checklist-history-list">${buildHistorialHTML()}</div>
                 </div>
             </div>
-            <div class="checklist-modal-footer" style="display:flex;gap:1rem;flex-wrap:wrap;justify-content:flex-end;align-items:center;">
+            <div class="checklist-modal-footer">
                 ${(AppState.currentUser?.role === 'admin' || AppState.currentUser?.role === 'supervisor') ? `
-                <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}">
+                <button class="filtros-action-button excel btn-export btn-excel-filtrado" data-cuarto-id="${cuartoId}" title="Exportar según filtros aplicados">
+                    <i class="fas fa-filter"></i>
+                    <div><div class="filtros-action-button-title">Exportar Filtrado</div><div class="filtros-action-button-subtitle">Según filtros activos</div></div>
+                </button>
+                <button class="filtros-action-button excel btn-export btn-excel" data-cuarto-id="${cuartoId}" title="Exportar todos los items">
                     <i class="fas fa-file-excel"></i>
-                    <div><div class="filtros-action-button-title">Exportar Excel</div><div class="filtros-action-button-subtitle">Descargar checklist</div></div>
+                    <div><div class="filtros-action-button-title">Exportar Todo</div><div class="filtros-action-button-subtitle">Checklist completo</div></div>
                 </button>
                 ` : ''}
             </div>
@@ -2740,6 +2744,7 @@ function openChecklistDetailsModal(cuartoId) {
         const overlay = modal.querySelector('.modal-detalles-overlay');
         const closeBtn = modal.querySelector('.modal-detalles-cerrar');
         const excelBtn = modal.querySelector('.btn-excel');
+        const excelFiltradoBtn = modal.querySelector('.btn-excel-filtrado');
 
         const closeModal = () => {
             modal.style.display = 'none';
@@ -2749,9 +2754,10 @@ function openChecklistDetailsModal(cuartoId) {
         if (overlay) overlay.addEventListener('click', closeModal);
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
 
+        // Exportar TODO - sin filtros
         if (excelBtn) {
             excelBtn.addEventListener('click', () => {
-                // Exportar solo esta habitación a Excel/CSV
+                // Exportar todos los items de esta habitación a Excel/CSV
                 let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
                 habitacion.items.forEach(item => {
                     csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${item.estado}\n`;
@@ -2764,15 +2770,76 @@ function openChecklistDetailsModal(cuartoId) {
                 // Usar fecha local en lugar de UTC
                 const fechaLocal = new Date();
                 const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
-                a.download = `checklist_${habitacion.numero}_${fechaStr}.csv`;
+                a.download = `checklist_${habitacion.numero}_completo_${fechaStr}.csv`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
                 // Notificación de éxito
                 if (window.mostrarAlertaBlur) {
-                    window.mostrarAlertaBlur('✅ Checklist exportado exitosamente', 'success');
+                    window.mostrarAlertaBlur('✅ Checklist completo exportado exitosamente', 'success');
                 } else {
-                    console.log('✅ Checklist exportado exitosamente');
+                    console.log('✅ Checklist completo exportado exitosamente');
+                }
+            });
+        }
+
+        // Exportar FILTRADO - según filtros aplicados
+        if (excelFiltradoBtn) {
+            excelFiltradoBtn.addEventListener('click', () => {
+                // Obtener el filtro de estado - primero buscar en la card, luego en el filtro global
+                let filtroEstado = '';
+
+                // Buscar si hay un filtro activo en la card de esta habitación
+                const cardElement = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
+                if (cardElement) {
+                    const estadoActivo = cardElement.querySelector('.checklist-card-stat.active');
+                    if (estadoActivo) {
+                        filtroEstado = estadoActivo.getAttribute('data-estado') || '';
+                    }
+                }
+
+                // Si no hay filtro en la card, usar el filtro global del panel
+                if (!filtroEstado) {
+                    filtroEstado = AppState.checklistFilters?.estado || '';
+                }
+
+                // Filtrar items según el estado seleccionado
+                let itemsFiltrados = habitacion.items;
+                if (filtroEstado) {
+                    itemsFiltrados = habitacion.items.filter(item => item.estado === filtroEstado);
+                }
+
+                if (itemsFiltrados.length === 0) {
+                    if (window.mostrarAlertaBlur) {
+                        window.mostrarAlertaBlur('⚠️ No hay items que coincidan con el filtro actual', 'warning');
+                    }
+                    return;
+                }
+
+                // Exportar solo los items filtrados a Excel/CSV
+                let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
+                itemsFiltrados.forEach(item => {
+                    csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${item.estado}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // Usar fecha local en lugar de UTC
+                const fechaLocal = new Date();
+                const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
+                const filtroLabel = filtroEstado ? `_${filtroEstado}` : '_todos_los_estados';
+                a.download = `checklist_${habitacion.numero}${filtroLabel}_${fechaStr}.csv`;
+                a.click();
+                window.URL.revokeObjectURL(url);
+
+                // Notificación de éxito
+                const mensajeFiltro = filtroEstado ? `(estado: ${filtroEstado})` : '';
+                if (window.mostrarAlertaBlur) {
+                    window.mostrarAlertaBlur(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFiltro}`, 'success');
+                } else {
+                    console.log(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFiltro}`);
                 }
             });
         }
