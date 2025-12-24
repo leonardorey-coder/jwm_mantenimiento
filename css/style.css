@@ -1449,6 +1449,18 @@ body.admin .tab-content.admin-only.active {
   margin-bottom: 1.5rem;
 }
 
+/* Contenedor de botones de acciones del panel */
+.panel-acciones-btns {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.panel-acciones-btns .brutalist-card__button {
+  flex: 1;
+  min-width: 140px;
+}
+
 /* Estilos especiales para el panel de Alertas del Día */
 .panel-alertas-emitidas h2 {
   margin-bottom: 0.75rem;

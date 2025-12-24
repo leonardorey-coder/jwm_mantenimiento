@@ -978,8 +978,14 @@
                     <div class="panel panel-vista-rutinas gradient-card" id="panelAccionesChecklist"
                         style="display: none;">
                         <h2><i class="fas fa-file-export"></i> Acciones</h2>
-                        <button class="brutalist-card__button brutalist-card__button--read" id="btnExportarChecklist"><i
-                                class="fas fa-file-excel"></i> Exportar Checklist</button>
+                        <div class="panel-acciones-btns">
+                            <button class="brutalist-card__button brutalist-card__button--mark"
+                                id="btnExportarChecklistFiltrado" title="Exportar según filtros activos"><i
+                                    class="fas fa-filter"></i> Exportar Filtrado</button>
+                            <button class="brutalist-card__button brutalist-card__button--read"
+                                id="btnExportarChecklist" title="Exportar todo el checklist"><i
+                                    class="fas fa-file-excel"></i> Exportar Todo</button>
+                        </div>
                     </div>
                 </div>
             </div>

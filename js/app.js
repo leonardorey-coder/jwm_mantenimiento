@@ -2914,12 +2914,188 @@ function exportarChecklistExcel() {
         // Usar fecha local en lugar de UTC
         const fechaLocal = new Date();
         const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
-        a.download = `checklist_inspecciones_${fechaStr}.csv`;
+        a.download = `checklist_completo_${fechaStr}.csv`;
         a.click();
 
         if (spinner) spinner.style.display = 'none';
-        electronSafeAlert('Checklist exportado exitosamente');
+        electronSafeAlert('Checklist completo exportado exitosamente');
     }, 1000);
+}
+
+/**
+ * Exporta el checklist de TODAS las habitaciones respetando todos los filtros activos
+ * Filtros soportados: categoría, estado global, edificio, búsqueda habitación, búsqueda item, editor, estados individuales de cada card
+ */
+function exportarChecklistFiltrado() {
+    const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
+    if (userRole !== 'admin' && userRole !== 'supervisor') {
+        electronSafeAlert('Solo administradores y supervisores pueden exportar datos');
+        return;
+    }
+
+    const spinner = document.getElementById('downloadSpinner');
+    if (spinner) spinner.style.display = 'flex';
+
+    setTimeout(() => {
+        // Obtener TODOS los datos del checklist desde localStorage
+        const checklistData = JSON.parse(localStorage.getItem('checklistData')) || [];
+
+        if (checklistData.length === 0) {
+            if (spinner) spinner.style.display = 'none';
+            electronSafeAlert('No hay datos de checklist disponibles');
+            return;
+        }
+
+        // Obtener filtros activos del panel global
+        const filtroCategoria = document.querySelector('.categoria-btn.active')?.getAttribute('data-categoria') || '';
+        const filtroEstadoGlobal = AppState.checklistFilters?.estado || '';
+        const filtroEdificio = AppState.checklistFilters?.edificio || '';
+        const filtroBusquedaHabitacion = document.getElementById('buscarHabitacionChecklist')?.value?.toLowerCase().trim() || '';
+        const filtroBusquedaItem = AppState.checklistFilters?.busqueda || '';
+        const filtroEditor = AppState.checklistFilters?.editor || '';
+
+        let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
+        let totalItems = 0;
+        let habitacionesExportadas = 0;
+        let habitacionesConFiltroIndividual = 0;
+
+        checklistData.forEach(habitacion => {
+            // Filtrar por edificio
+            if (filtroEdificio && habitacion.edificio !== filtroEdificio) {
+                return;
+            }
+
+            // Filtrar por búsqueda de habitación
+            if (filtroBusquedaHabitacion) {
+                const numHabitacion = (habitacion.numero || '').toLowerCase();
+                if (!numHabitacion.includes(filtroBusquedaHabitacion)) {
+                    return;
+                }
+            }
+
+            // Filtrar por editor (último editor que modificó la habitación)
+            if (filtroEditor) {
+                const ultimoEditor = habitacion.ultimo_editor || habitacion.editor || '';
+                if (ultimoEditor !== filtroEditor) {
+                    return;
+                }
+            }
+
+            // Obtener el filtro de estado individual de esta habitación desde la card visible (si existe)
+            // Buscar por ID o por número de habitación
+            let cardElement = document.querySelector(`.checklist-card[data-cuarto-id="${habitacion.id}"]`);
+            if (!cardElement) {
+                cardElement = document.querySelector(`.checklist-card[data-habitacion="${habitacion.numero}"]`);
+            }
+
+            // Buscar el botón de estado activo en la card
+            const estadoActivoCard = cardElement?.querySelector('.checklist-card-stat.active');
+            const filtroEstadoCard = estadoActivoCard ? estadoActivoCard.getAttribute('data-estado') : null;
+
+            // Contar habitaciones con filtro individual
+            if (filtroEstadoCard) {
+                habitacionesConFiltroIndividual++;
+            }
+
+            // Determinar el filtro de estado a usar (prioridad: card > global)
+            const filtroEstadoFinal = filtroEstadoCard || filtroEstadoGlobal;
+
+            let itemsExportadosHabitacion = 0;
+
+            habitacion.items.forEach(item => {
+                // Filtrar por búsqueda de item
+                if (filtroBusquedaItem) {
+                    const nombreItem = (item.nombre || '').toLowerCase();
+                    if (!nombreItem.includes(filtroBusquedaItem.toLowerCase())) {
+                        return;
+                    }
+                }
+
+                // Filtrar por categoría
+                if (filtroCategoria) {
+                    const catItem = (item.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+                    const catOriginal = (item.categoria || '').toLowerCase();
+                    if (catItem !== filtroCategoria && catOriginal !== filtroCategoria) {
+                        return;
+                    }
+                }
+
+                // Obtener el estado actual del item (preferir DOM si la card está visible)
+                let itemEstado = item.estado;
+                if (cardElement) {
+                    // Buscar el item en el DOM para obtener su estado actual
+                    const itemElement = cardElement.querySelector(`.checklist-item[data-item-id="${item.id}"]`);
+                    if (itemElement) {
+                        const checkedRadio = itemElement.querySelector('.estado-radio:checked');
+                        if (checkedRadio) {
+                            itemEstado = checkedRadio.value;
+                        }
+                    }
+                }
+
+                // Filtrar por estado
+                if (filtroEstadoFinal && itemEstado !== filtroEstadoFinal) {
+                    return;
+                }
+
+                csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${itemEstado}\n`;
+                totalItems++;
+                itemsExportadosHabitacion++;
+            });
+
+            if (itemsExportadosHabitacion > 0) {
+                habitacionesExportadas++;
+            }
+        });
+
+        if (totalItems === 0) {
+            if (spinner) spinner.style.display = 'none';
+            if (window.mostrarAlertaBlur) {
+                window.mostrarAlertaBlur('⚠️ No hay items que coincidan con los filtros actuales', 'warning');
+            } else {
+                electronSafeAlert('No hay items que coincidan con los filtros actuales');
+            }
+            return;
+        }
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        // Generar nombre de archivo con "completo" + filtros
+        const fechaLocal = new Date();
+        const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
+
+        const catLabel = filtroCategoria ? `_${filtroCategoria}` : '';
+        const estadoLabel = filtroEstadoGlobal ? `_${filtroEstadoGlobal}` : '';
+        const edificioLabel = filtroEdificio ? `_${filtroEdificio.replace(/\s+/g, '-')}` : '';
+        const filtrosIndividualesLabel = habitacionesConFiltroIndividual > 0 ? '_con_filtros_individuales' : '';
+        const filtrosLabel = `${catLabel}${estadoLabel}${edificioLabel}${filtrosIndividualesLabel}`;
+
+        a.download = `checklist_completo${filtrosLabel}_${fechaStr}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+
+        if (spinner) spinner.style.display = 'none';
+
+        // Mensaje de éxito con detalles
+        const filtrosActivos = [];
+        if (filtroCategoria) filtrosActivos.push(`categoría: ${filtroCategoria}`);
+        if (filtroEstadoGlobal) filtrosActivos.push(`estado: ${filtroEstadoGlobal}`);
+        if (filtroEdificio) filtrosActivos.push(`edificio: ${filtroEdificio}`);
+        if (filtroBusquedaHabitacion) filtrosActivos.push(`habitación: "${filtroBusquedaHabitacion}"`);
+        if (filtroBusquedaItem) filtrosActivos.push(`item: "${filtroBusquedaItem}"`);
+        if (filtroEditor) filtrosActivos.push(`editor: ${filtroEditor}`);
+
+        const mensajeFiltros = filtrosActivos.length > 0 ? ` (${filtrosActivos.join(', ')})` : '';
+
+        if (window.mostrarAlertaBlur) {
+            window.mostrarAlertaBlur(`✅ Exportado ${totalItems} items de ${habitacionesExportadas} habitaciones${mensajeFiltros}`, 'success');
+        } else {
+            electronSafeAlert(`Checklist filtrado exportado: ${totalItems} items de ${habitacionesExportadas} habitaciones`);
+        }
+    }, 500);
 }
 
 function initChecklistEventListeners() {
@@ -3006,11 +3182,15 @@ function initChecklistEventListeners() {
     const userRole = AppState.currentUser?.role || window.AppState?.currentUser?.role;
     const panelAcciones = document.getElementById('panelAccionesChecklist');
     const btnExportar = document.getElementById('btnExportarChecklist');
+    const btnExportarFiltrado = document.getElementById('btnExportarChecklistFiltrado');
 
     if (userRole === 'admin' || userRole === 'supervisor') {
         if (panelAcciones) panelAcciones.style.display = 'block';
         if (btnExportar) {
             btnExportar.addEventListener('click', exportarChecklistExcel);
+        }
+        if (btnExportarFiltrado) {
+            btnExportarFiltrado.addEventListener('click', exportarChecklistFiltrado);
         }
     } else {
         if (panelAcciones) panelAcciones.style.display = 'none';
@@ -4599,6 +4779,7 @@ async function eliminarFotoChecklist(fotoId, cuartoId) {
 window.toggleServicioRealizado = toggleServicioRealizado;
 window.updateChecklistEstado = updateChecklistEstado;
 window.exportarChecklistExcel = exportarChecklistExcel;
+window.exportarChecklistFiltrado = exportarChecklistFiltrado;
 window.mostrarModalNuevoUsuario = mostrarModalNuevoUsuario;
 window.editarUsuario = editarUsuario;
 window.abrirModalUsuario = abrirModalUsuario;
