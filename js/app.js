@@ -2757,22 +2757,25 @@ function openChecklistDetailsModal(cuartoId) {
         // Exportar TODO - sin filtros
         if (excelBtn) {
             excelBtn.addEventListener('click', () => {
-                // Exportar todos los items de esta habitación a Excel/CSV
-                let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
-                habitacion.items.forEach(item => {
-                    csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${item.estado}\n`;
-                });
+                const headers = getChecklistExportHeaders();
+                const rows = habitacion.items.map(item => [
+                    habitacion.numero,
+                    habitacion.edificio || '',
+                    item.nombre,
+                    item.categoria || '',
+                    item.estado
+                ]);
 
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
                 // Usar fecha local en lugar de UTC
                 const fechaLocal = new Date();
                 const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
-                a.download = `checklist_${habitacion.numero}_completo_${fechaStr}.csv`;
-                a.click();
-                window.URL.revokeObjectURL(url);
+                const filename = `checklist_${habitacion.numero}_completo_${fechaStr}.xls`;
+                downloadChecklistExcelFile({
+                    filename,
+                    headers,
+                    rows,
+                    sheetName: `Checklist ${habitacion.numero}`
+                });
 
                 // Notificación de éxito
                 if (window.mostrarAlertaBlur) {
@@ -2834,16 +2837,14 @@ function openChecklistDetailsModal(cuartoId) {
                     return;
                 }
 
-                // Exportar solo los items filtrados a Excel/CSV
-                let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
-                itemsFiltrados.forEach(item => {
-                    csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${item.estado}\n`;
-                });
-
-                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
+                const headers = getChecklistExportHeaders();
+                const rows = itemsFiltrados.map(item => [
+                    habitacion.numero,
+                    habitacion.edificio || '',
+                    item.nombre,
+                    item.categoria || '',
+                    item.estado
+                ]);
                 // Usar fecha local en lugar de UTC
                 const fechaLocal = new Date();
                 const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
@@ -2852,9 +2853,13 @@ function openChecklistDetailsModal(cuartoId) {
                 const catLabel = filtroCategoria ? `_${filtroCategoria}` : '';
                 const estadoLabel = filtroEstado ? `_${filtroEstado}` : '';
                 const filtroLabel = (catLabel || estadoLabel) ? `${catLabel}${estadoLabel}` : '_sin_filtros';
-                a.download = `checklist_${habitacion.numero}${filtroLabel}_${fechaStr}.csv`;
-                a.click();
-                window.URL.revokeObjectURL(url);
+                const filename = `checklist_${habitacion.numero}${filtroLabel}_${fechaStr}.xls`;
+                downloadChecklistExcelFile({
+                    filename,
+                    headers,
+                    rows,
+                    sheetName: `Checklist ${habitacion.numero}`
+                });
 
                 // Notificación de éxito
                 const mensajeCat = filtroCategoria ? `categoría: ${filtroCategoria}` : '';
@@ -2873,6 +2878,85 @@ function openChecklistDetailsModal(cuartoId) {
         // Cargar fotos del cuarto
         cargarFotosChecklist(cuartoId);
     }, 0);
+}
+
+function getChecklistExportHeaders() {
+    return ['Habitación', 'Edificio', 'Item', 'Categoría', 'Estado'];
+}
+
+function escapeExcelXml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
+// Genera SpreadsheetML con AutoFilter para que Excel muestre filtros en los encabezados.
+function buildChecklistExcelXml(headers, rows, sheetName) {
+    const baseName = (sheetName || 'Checklist').replace(/[\\/*?:\[\]]/g, '').trim();
+    const safeSheetName = baseName.slice(0, 31) || 'Checklist';
+    const rowCount = rows.length + 1;
+    const colCount = headers.length;
+    const tableRows = [];
+
+    tableRows.push('<Row ss:StyleID="Header">');
+    headers.forEach(header => {
+        tableRows.push(`<Cell><Data ss:Type="String">${escapeExcelXml(header)}</Data></Cell>`);
+    });
+    tableRows.push('</Row>');
+
+    rows.forEach(row => {
+        tableRows.push('<Row>');
+        row.forEach(value => {
+            tableRows.push(`<Cell><Data ss:Type="String">${escapeExcelXml(value)}</Data></Cell>`);
+        });
+        tableRows.push('</Row>');
+    });
+
+    const tableRowsXml = tableRows.map(line => `   ${line}`).join('\n');
+
+    return [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        '<?mso-application progid="Excel.Sheet"?>',
+        '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"',
+        ' xmlns:o="urn:schemas-microsoft-com:office:office"',
+        ' xmlns:x="urn:schemas-microsoft-com:office:excel"',
+        ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"',
+        ' xmlns:html="http://www.w3.org/TR/REC-html40">',
+        ' <Styles>',
+        '  <Style ss:ID="Default" ss:Name="Normal">',
+        '   <Alignment ss:Vertical="Bottom"/>',
+        '   <Font ss:FontName="Calibri" ss:Size="11"/>',
+        '  </Style>',
+        '  <Style ss:ID="Header">',
+        '   <Font ss:Bold="1"/>',
+        '   <Interior ss:Color="#D9E1F2" ss:Pattern="Solid"/>',
+        '   <Borders>',
+        '    <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>',
+        '   </Borders>',
+        '  </Style>',
+        ' </Styles>',
+        ` <Worksheet ss:Name="${escapeExcelXml(safeSheetName)}">`,
+        `  <Table ss:ExpandedColumnCount="${colCount}" ss:ExpandedRowCount="${rowCount}" x:FullColumns="1" x:FullRows="1">`,
+        tableRowsXml,
+        '  </Table>',
+        `  <AutoFilter x:Range="R1C1:R${rowCount}C${colCount}" xmlns="urn:schemas-microsoft-com:office:excel"/>`,
+        ' </Worksheet>',
+        '</Workbook>'
+    ].join('\n');
+}
+
+function downloadChecklistExcelFile({ filename, headers, rows, sheetName }) {
+    const xml = buildChecklistExcelXml(headers, rows, sheetName);
+    const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
 }
 
 function filterChecklist(searchTerm) {
@@ -2900,22 +2984,30 @@ function exportarChecklistExcel() {
     setTimeout(() => {
         const checklistData = JSON.parse(localStorage.getItem('checklistData'));
 
-        let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
+        const headers = getChecklistExportHeaders();
+        const rows = [];
         checklistData.forEach(habitacion => {
             habitacion.items.forEach(item => {
-                csv += `${habitacion.numero},${habitacion.edificio},${item.nombre},${item.categoria || ''},${item.estado}\n`;
+                rows.push([
+                    habitacion.numero,
+                    habitacion.edificio,
+                    item.nombre,
+                    item.categoria || '',
+                    item.estado
+                ]);
             });
         });
 
-        const blob = new Blob([csv], { type: 'text/csv' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
         // Usar fecha local en lugar de UTC
         const fechaLocal = new Date();
         const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
-        a.download = `checklist_completo_${fechaStr}.csv`;
-        a.click();
+        const filename = `checklist_completo_${fechaStr}.xls`;
+        downloadChecklistExcelFile({
+            filename,
+            headers,
+            rows,
+            sheetName: 'Checklist completo'
+        });
 
         if (spinner) spinner.style.display = 'none';
         electronSafeAlert('Checklist completo exportado exitosamente');
@@ -2954,7 +3046,8 @@ function exportarChecklistFiltrado() {
         const filtroBusquedaItem = AppState.checklistFilters?.busqueda || '';
         const filtroEditor = AppState.checklistFilters?.editor || '';
 
-        let csv = 'Habitación,Edificio,Item,Categoría,Estado\n';
+        const headers = getChecklistExportHeaders();
+        const rows = [];
         let totalItems = 0;
         let habitacionesExportadas = 0;
         let habitacionesConFiltroIndividual = 0;
@@ -3038,7 +3131,13 @@ function exportarChecklistFiltrado() {
                     return;
                 }
 
-                csv += `${habitacion.numero},${habitacion.edificio || ''},${item.nombre},${item.categoria || ''},${itemEstado}\n`;
+                rows.push([
+                    habitacion.numero,
+                    habitacion.edificio || '',
+                    item.nombre,
+                    item.categoria || '',
+                    itemEstado
+                ]);
                 totalItems++;
                 itemsExportadosHabitacion++;
             });
@@ -3058,11 +3157,6 @@ function exportarChecklistFiltrado() {
             return;
         }
 
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-
         // Generar nombre de archivo con "completo" + filtros
         const fechaLocal = new Date();
         const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
@@ -3073,9 +3167,13 @@ function exportarChecklistFiltrado() {
         const filtrosIndividualesLabel = habitacionesConFiltroIndividual > 0 ? '_con_filtros_individuales' : '';
         const filtrosLabel = `${catLabel}${estadoLabel}${edificioLabel}${filtrosIndividualesLabel}`;
 
-        a.download = `checklist_completo${filtrosLabel}_${fechaStr}.csv`;
-        a.click();
-        window.URL.revokeObjectURL(url);
+        const filename = `checklist_completo${filtrosLabel}_${fechaStr}.xls`;
+        downloadChecklistExcelFile({
+            filename,
+            headers,
+            rows,
+            sheetName: 'Checklist filtrado'
+        });
 
         if (spinner) spinner.style.display = 'none';
 
@@ -4810,4 +4908,3 @@ window.cerrarModalFotoCompleta = cerrarModalFotoCompleta;
 window.eliminarFotoChecklist = eliminarFotoChecklist;
 
 console.log('✅ App.js cargado completamente');
-
