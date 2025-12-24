@@ -822,9 +822,24 @@ function setupSearchListeners() {
     // Filtro de estado de checklist
     const filtroEstadoChecklist = document.getElementById('filtroEstadoChecklist');
     if (filtroEstadoChecklist) {
+        const semaforoWrapperChecklist = filtroEstadoChecklist.closest('[data-semaforo-wrapper]');
+        const semaforoIndicatorChecklist = semaforoWrapperChecklist ? semaforoWrapperChecklist.querySelector('.semaforo-indicator') : null;
+
         filtroEstadoChecklist.addEventListener('change', (e) => {
+            // Actualizar semáforo visual
+            if (semaforoIndicatorChecklist) {
+                semaforoIndicatorChecklist.classList.remove('estado-bueno', 'estado-regular', 'estado-malo');
+                if (filtroEstadoChecklist.value) {
+                    semaforoIndicatorChecklist.classList.add(`estado-${filtroEstadoChecklist.value}`);
+                }
+            }
             filterChecklistByEstado(e.target.value);
         });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicatorChecklist && filtroEstadoChecklist.value) {
+            semaforoIndicatorChecklist.classList.add(`estado-${filtroEstadoChecklist.value}`);
+        }
     }
 
     // Filtros de espacios comunes
