@@ -9450,6 +9450,27 @@ tr[data-lazy="true"] {
   box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
 }
 
+/* Estilos de semáforo para estados de tareas */
+.semaforo-indicator.estado-pendiente {
+  background: var(--estado-regular);
+  box-shadow: 0 0 4px rgba(255, 186, 0, 0.5);
+}
+
+.semaforo-indicator.estado-en_proceso {
+  background: #3b82f6;
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+.semaforo-indicator.estado-completada {
+  background: #10b981;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.5);
+}
+
+.semaforo-indicator.estado-cancelada {
+  background: #ef4444;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+}
+
 .tarea-card-title {
   font-size: 1.1rem;
   font-weight: 700;
@@ -10071,6 +10092,63 @@ tr[data-lazy="true"] {
 
 .tarea-edit-section .section-header-title {
   flex: 1;
+}
+
+/* Controles del header (toggle y búsqueda) */
+.tarea-edit-section .section-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Toggle filtro responsable */
+.toggle-filtro-responsable {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.8rem;
+  color: var(--texto-secundario);
+}
+
+.toggle-filtro-responsable input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-filtro-responsable .toggle-slider {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: var(--gris-grafito);
+  border-radius: 20px;
+  transition: var(--transicion-rapida);
+  flex-shrink: 0;
+}
+
+.toggle-filtro-responsable .toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: var(--transicion-rapida);
+}
+
+.toggle-filtro-responsable input[type="checkbox"]:checked+.toggle-slider {
+  background: var(--verde-oliva);
+}
+
+.toggle-filtro-responsable input[type="checkbox"]:checked+.toggle-slider::before {
+  transform: translateX(16px);
+}
+
+.toggle-filtro-responsable .toggle-label-text {
+  white-space: nowrap;
 }
 
 .tarea-edit-section .section-header input[type="search"] {

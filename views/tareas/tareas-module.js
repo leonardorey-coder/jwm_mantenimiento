@@ -303,6 +303,26 @@ async function cargarServiciosParaSeleccion() {
             selectResponsable.addEventListener('change', handleResponsableChange);
         }
 
+        // Configurar toggle para activar/desactivar filtro por responsable
+        const toggleFiltroResponsable = document.getElementById('toggleFiltroResponsable');
+        if (toggleFiltroResponsable) {
+            // Resetear el toggle al abrir el modal (activado por defecto)
+            toggleFiltroResponsable.checked = true;
+
+            // Remover listener anterior si existe
+            if (toggleFiltroResponsable._toggleHandler) {
+                toggleFiltroResponsable.removeEventListener('change', toggleFiltroResponsable._toggleHandler);
+            }
+
+            const handleToggleChange = () => {
+                console.log('🔄 Toggle filtro responsable:', toggleFiltroResponsable.checked ? 'activado' : 'desactivado');
+                aplicarFiltrosServicios();
+            };
+
+            toggleFiltroResponsable._toggleHandler = handleToggleChange;
+            toggleFiltroResponsable.addEventListener('change', handleToggleChange);
+        }
+
     } catch (error) {
         console.error('Error al cargar servicios para selección:', error);
         container.innerHTML = '<p class="mensaje-vacio error">Error al cargar servicios.</p>';
@@ -320,10 +340,14 @@ function aplicarFiltrosServicios() {
     const terminoLower = (filtroBusquedaActual || '').toLowerCase().trim();
     const responsableLower = (filtroResponsableActual || '').toLowerCase().trim();
 
+    // Verificar si el toggle de filtrado por responsable está activado
+    const toggleFiltroResponsable = document.getElementById('toggleFiltroResponsable');
+    const filtrarPorResponsable = toggleFiltroResponsable ? toggleFiltroResponsable.checked : true;
+
     // Aplicar filtros combinados
     serviciosFiltrados = todosLosServicios.filter(servicio => {
-        // Filtro por responsable - solo mostrar servicios asignados a esa persona
-        if (responsableLower) {
+        // Filtro por responsable - solo aplicar si el toggle está activado
+        if (filtrarPorResponsable && responsableLower) {
             const usuarioAsignado = (servicio.usuario_asignado_nombre || '').toLowerCase().trim();
             // Si no hay usuario asignado o no coincide con el responsable, excluir
             if (!usuarioAsignado || usuarioAsignado !== responsableLower) {
@@ -352,7 +376,7 @@ function aplicarFiltrosServicios() {
     container.innerHTML = '';
 
     if (serviciosFiltrados.length === 0) {
-        const mensajeFiltro = responsableLower
+        const mensajeFiltro = (filtrarPorResponsable && responsableLower)
             ? `No se encontraron servicios asignados a "${filtroResponsableActual}"${terminoLower ? ` con búsqueda "${filtroBusquedaActual}"` : ''}`
             : 'No se encontraron servicios que coincidan.';
         container.innerHTML = `<p class="mensaje-vacio">${mensajeFiltro}</p>`;
@@ -2608,7 +2632,7 @@ async function cargarServiciosAsignados(tareaId) {
             return;
         }
 
-        // Renderizar servicios
+        // Renderizar servicios con selector de estado
         container.innerHTML = serviciosAsignados.map(servicio => {
             const estadoMap = {
                 'cancelado': { label: 'Cancelado', class: 'estado-cancelado' },
@@ -2629,7 +2653,7 @@ async function cargarServiciosAsignados(tareaId) {
             const personalAsignado = servicio.usuario_asignado_nombre || 'Sin asignar';
 
             return `
-                <div class="servicio-asignado-item">
+                <div class="servicio-asignado-item" data-servicio-id="${servicio.id}">
                     <div class="servicio-asignado-info">
                         <div class="servicio-asignado-titulo">
                             ${servicio.descripcion || 'Servicio sin descripción'}
@@ -2649,9 +2673,17 @@ async function cargarServiciosAsignados(tareaId) {
                             </span>
                         </div>
                     </div>
-                    <span class="servicio-asignado-badge ${estadoInfo.class}">
-                        ${estadoInfo.label}
-                    </span>
+                    <div class="servicio-asignado-estado">
+                        <select class="servicio-estado-select ${estadoInfo.class}" 
+                                data-servicio-id="${servicio.id}"
+                                data-tarea-id="${tareaId}"
+                                onchange="cambiarEstadoServicioDesdeDetalle(this)">
+                            <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="en_proceso" ${servicio.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                            <option value="completado" ${servicio.estado === 'completado' ? 'selected' : ''}>Completado</option>
+                            <option value="cancelado" ${servicio.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                        </select>
+                    </div>
                 </div>
             `;
         }).join('');
@@ -2664,6 +2696,64 @@ async function cargarServiciosAsignados(tareaId) {
                 <p>Error al cargar los servicios</p>
             </div>
         `;
+    }
+}
+
+/**
+ * Cambia el estado de un servicio desde el modal de detalle de tarea
+ * @param {HTMLSelectElement} selectElement - El select que disparó el evento
+ */
+async function cambiarEstadoServicioDesdeDetalle(selectElement) {
+    const servicioId = selectElement.dataset.servicioId;
+    const tareaId = selectElement.dataset.tareaId;
+    const nuevoEstado = selectElement.value;
+
+    console.log(`🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`);
+
+    // Guardar estado anterior por si hay error
+    const estadoAnterior = selectElement.dataset.estadoAnterior || 'pendiente';
+    selectElement.dataset.estadoAnterior = nuevoEstado;
+
+    // Actualizar clase visual inmediatamente
+    selectElement.className = 'servicio-estado-select estado-' + nuevoEstado;
+
+    try {
+        const headers = window.obtenerHeadersConAuth
+            ? await window.obtenerHeadersConAuth()
+            : { 'Content-Type': 'application/json' };
+
+        const response = await fetch(`${API_URL}/mantenimientos/${servicioId}`, {
+            method: 'PUT',
+            headers: { ...headers, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al actualizar estado del servicio');
+        }
+
+        console.log(`✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`);
+
+        // Mostrar notificación de éxito
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion('Estado del servicio actualizado', 'success');
+        }
+
+        // Actualizar la tarjeta de la tarea en el fondo si existe
+        if (typeof actualizarTarjetaTarea === 'function' && tareaId) {
+            actualizarTarjetaTarea(tareaId);
+        }
+
+    } catch (error) {
+        console.error('Error al cambiar estado del servicio:', error);
+
+        // Revertir al estado anterior
+        selectElement.value = estadoAnterior;
+        selectElement.className = 'servicio-estado-select estado-' + estadoAnterior;
+
+        if (typeof mostrarNotificacion === 'function') {
+            mostrarNotificacion('Error al actualizar el estado', 'error');
+        }
     }
 }
 
@@ -2923,11 +3013,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const selectEstadoTarea = document.getElementById('filtroEstadoTarea');
     if (selectEstadoTarea) {
+        const semaforoWrapperEstado = selectEstadoTarea.closest('[data-semaforo-wrapper]');
+        const semaforoIndicatorEstado = semaforoWrapperEstado ? semaforoWrapperEstado.querySelector('.semaforo-indicator') : null;
+
         selectEstadoTarea.addEventListener('change', () => {
+            // Actualizar semáforo visual
+            if (semaforoIndicatorEstado) {
+                semaforoIndicatorEstado.classList.remove('estado-pendiente', 'estado-en_proceso', 'estado-completada', 'estado-cancelada');
+                if (selectEstadoTarea.value) {
+                    semaforoIndicatorEstado.classList.add(`estado-${selectEstadoTarea.value}`);
+                }
+            }
+
             if (todasLasTareas.length > 0) {
                 aplicarFiltrosTareas();
             }
         });
+
+        // Actualizar semáforo inicial
+        if (semaforoIndicatorEstado && selectEstadoTarea.value) {
+            semaforoIndicatorEstado.classList.add(`estado-${selectEstadoTarea.value}`);
+        }
     }
 
     const selectPrioridadTarea = document.getElementById('filtroPrioridadTarea');
@@ -3206,6 +3312,7 @@ window.verDetalleTarea = verDetalleTarea;
 window.cerrarModalDetalleTarea = cerrarModalDetalleTarea;
 window.cerrarModalAdvertenciaEdicion = cerrarModalAdvertenciaEdicion;
 window.removerArchivoPreview = removerArchivoPreview;
+window.cambiarEstadoServicioDesdeDetalle = cambiarEstadoServicioDesdeDetalle;
 
 // Exportar el flag de carga como getter/setter
 Object.defineProperty(window, 'tareasCargadas', {

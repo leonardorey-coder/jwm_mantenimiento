@@ -563,8 +563,9 @@
                         </select>
                         <i class="fas fa-chevron-down icono-select"></i>
                     </div>
-                    <div class="select-container premium-select">
-                        <select id="filtroEstadoTarea">
+                    <div class="select-container premium-select" data-semaforo-wrapper="estado-tarea">
+                        <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                        <select id="filtroEstadoTarea" data-semaforo-select="estado-tarea">
                             <option value="">Todos los estados</option>
                             <option value="pendiente">Pendiente</option>
                             <option value="en_proceso">En proceso</option>
@@ -1840,7 +1841,15 @@
                             <h4>Agregar servicios</h4>
                             <p>Asigna esta tarea a servicios existentes.</p>
                         </div>
-                        <input type="search" id="buscarServiciosTarea" placeholder="Buscar...">
+                        <div class="section-header-controls">
+                            <label class="toggle-filtro-responsable"
+                                title="Mostrar solo servicios del responsable seleccionado">
+                                <input type="checkbox" id="toggleFiltroResponsable" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label-text">Filtrar por responsable</span>
+                            </label>
+                            <input type="search" id="buscarServiciosTarea" placeholder="Buscar...">
+                        </div>
                     </div>
                     <div id="listaServiciosCrear" class="lista-servicios-seleccion">
                         <p class="mensaje-vacio">Cargando servicios...</p>
