@@ -1127,11 +1127,8 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
     try {
         console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
 
-        const response = await fetch(`${window.API_BASE_URL}/api/cuartos/${cuartoId}`, {
+        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/cuartos/${cuartoId}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
             body: JSON.stringify({ estado: nuevoEstado })
         });
 
@@ -1301,13 +1298,9 @@ async function guardarServicioInline(event, cuartoId) {
     try {
         console.log('🌐 Enviando request a:', `${window.API_BASE_URL}/api/mantenimientos`);
 
-        // Obtener headers con autenticación (await porque es async)
-        const headers = window.obtenerHeadersConAuth ? await window.obtenerHeadersConAuth() : { 'Content-Type': 'application/json' };
-        console.log('🔑 Headers con auth:', headers);
-
-        const response = await fetch(`${window.API_BASE_URL}/api/mantenimientos`, {
+        // Usar fetchWithAuth para manejo automático de refresh de token
+        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/mantenimientos`, {
             method: 'POST',
-            headers: headers,
             body: JSON.stringify(datos)
         });
 
@@ -1419,7 +1412,8 @@ async function eliminarMantenimientoInline(mantenimientoId, cuartoId) {
     try {
         console.log('🌐 Enviando DELETE a:', `${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
 
-        const response = await fetch(`${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
+        // Usar fetchWithAuth para manejo automático de refresh de token
+        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
             method: 'DELETE'
         });
 

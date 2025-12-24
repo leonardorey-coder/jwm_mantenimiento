@@ -915,12 +915,10 @@ async function guardarServicioEspacioInline(event, espacioId) {
 
     try {
         const baseUrl = window.API_BASE_URL || '';
-        // Usar window.obtenerHeadersConAuth para autenticación
-        const headers = window.obtenerHeadersConAuth ? await window.obtenerHeadersConAuth() : { 'Content-Type': 'application/json' };
 
-        const response = await fetch(`${baseUrl}/api/mantenimientos/espacios`, { // Endpoint específico para mantenimientos de espacios
+        // Usar fetchWithAuth para manejo automático de refresh de token
+        const response = await window.fetchWithAuth(`${baseUrl}/api/mantenimientos/espacios`, {
             method: 'POST',
-            headers: headers,
             body: JSON.stringify(data)
         });
 
@@ -959,9 +957,9 @@ async function guardarServicioEspacioInline(event, espacioId) {
 async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
     try {
         const baseUrl = window.API_BASE_URL || '';
-        const response = await fetch(`${baseUrl}/api/espacios-comunes/${espacioId}`, {
+        // Usar fetchWithAuth para manejo automático de refresh de token
+        const response = await window.fetchWithAuth(`${baseUrl}/api/espacios-comunes/${espacioId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ estado: nuevoEstado })
         });
 
@@ -1036,11 +1034,10 @@ async function cambiarEstadoEspacio(espacioId) {
 
     try {
         const baseUrl = window.API_BASE_URL || '';
-        const headers = window.obtenerHeadersConAuth ? await window.obtenerHeadersConAuth() : { 'Content-Type': 'application/json' };
 
-        const response = await fetch(`${baseUrl}/api/espacios-comunes/${espacioId}`, {
+        // Usar fetchWithAuth para manejo automático de refresh de token
+        const response = await window.fetchWithAuth(`${baseUrl}/api/espacios-comunes/${espacioId}`, {
             method: 'PUT',
-            headers: headers,
             body: JSON.stringify({ estado })
         });
 
