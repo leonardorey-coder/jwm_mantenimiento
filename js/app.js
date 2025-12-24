@@ -2788,6 +2788,7 @@ function openChecklistDetailsModal(cuartoId) {
             excelFiltradoBtn.addEventListener('click', () => {
                 // Obtener el filtro de estado - primero buscar en la card, luego en el filtro global
                 let filtroEstado = '';
+                let filtroCategoria = '';
 
                 // Buscar si hay un filtro activo en la card de esta habitación
                 const cardElement = document.querySelector(`.checklist-card[data-cuarto-id="${cuartoId}"]`);
@@ -2803,15 +2804,32 @@ function openChecklistDetailsModal(cuartoId) {
                     filtroEstado = AppState.checklistFilters?.estado || '';
                 }
 
-                // Filtrar items según el estado seleccionado
+                // Obtener el filtro de categoría activo
+                const categoriaActiva = document.querySelector('.categoria-btn.active');
+                if (categoriaActiva) {
+                    filtroCategoria = categoriaActiva.getAttribute('data-categoria') || '';
+                }
+
+                // Filtrar items según estado y categoría seleccionados
                 let itemsFiltrados = habitacion.items;
+
+                // Filtrar por estado
                 if (filtroEstado) {
-                    itemsFiltrados = habitacion.items.filter(item => item.estado === filtroEstado);
+                    itemsFiltrados = itemsFiltrados.filter(item => item.estado === filtroEstado);
+                }
+
+                // Filtrar por categoría
+                if (filtroCategoria) {
+                    itemsFiltrados = itemsFiltrados.filter(item => {
+                        // Normalizar la categoría del item para comparar
+                        const catItem = (item.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-');
+                        return catItem === filtroCategoria || item.categoria?.toLowerCase() === filtroCategoria;
+                    });
                 }
 
                 if (itemsFiltrados.length === 0) {
                     if (window.mostrarAlertaBlur) {
-                        window.mostrarAlertaBlur('⚠️ No hay items que coincidan con el filtro actual', 'warning');
+                        window.mostrarAlertaBlur('⚠️ No hay items que coincidan con los filtros actuales', 'warning');
                     }
                     return;
                 }
@@ -2829,17 +2847,25 @@ function openChecklistDetailsModal(cuartoId) {
                 // Usar fecha local en lugar de UTC
                 const fechaLocal = new Date();
                 const fechaStr = `${fechaLocal.getFullYear()}-${String(fechaLocal.getMonth() + 1).padStart(2, '0')}-${String(fechaLocal.getDate()).padStart(2, '0')}`;
-                const filtroLabel = filtroEstado ? `_${filtroEstado}` : '_todos_los_estados';
+
+                // Nombre del archivo incluye categoría y estado
+                const catLabel = filtroCategoria ? `_${filtroCategoria}` : '';
+                const estadoLabel = filtroEstado ? `_${filtroEstado}` : '';
+                const filtroLabel = (catLabel || estadoLabel) ? `${catLabel}${estadoLabel}` : '_sin_filtros';
                 a.download = `checklist_${habitacion.numero}${filtroLabel}_${fechaStr}.csv`;
                 a.click();
                 window.URL.revokeObjectURL(url);
 
                 // Notificación de éxito
-                const mensajeFiltro = filtroEstado ? `(estado: ${filtroEstado})` : '';
+                const mensajeCat = filtroCategoria ? `categoría: ${filtroCategoria}` : '';
+                const mensajeEstado = filtroEstado ? `estado: ${filtroEstado}` : '';
+                const mensajeFiltros = [mensajeCat, mensajeEstado].filter(m => m).join(', ');
+                const mensajeFinal = mensajeFiltros ? `(${mensajeFiltros})` : '';
+
                 if (window.mostrarAlertaBlur) {
-                    window.mostrarAlertaBlur(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFiltro}`, 'success');
+                    window.mostrarAlertaBlur(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFinal}`, 'success');
                 } else {
-                    console.log(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFiltro}`);
+                    console.log(`✅ Exportado ${itemsFiltrados.length} items ${mensajeFinal}`);
                 }
             });
         }
