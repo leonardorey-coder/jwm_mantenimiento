@@ -6005,6 +6005,37 @@ body.dark-mode .checklist-meta-divider {
     height: 42px;
     border-radius: 9px;
   }
+
+  /* Estilos para centrar placeholders y mensajes de carga en móvil */
+  .responsive-table td.sabana-placeholder,
+  .responsive-table td.mensaje-cargando,
+  td.sabana-placeholder,
+  td.mensaje-cargando,
+  .sabana-placeholder,
+  .mensaje-cargando {
+    text-align: center !important;
+    justify-content: center !important;
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+  }
+
+  /* Ocultar el pseudo-elemento ::before para celdas de placeholder */
+  .responsive-table td.sabana-placeholder:before,
+  .responsive-table td.mensaje-cargando:before,
+  td.sabana-placeholder:before,
+  td.mensaje-cargando:before {
+    display: none !important;
+  }
+
+  /* Filas que solo contienen placeholder deben verse como bloque normal */
+  .responsive-table tbody tr:has(td.sabana-placeholder),
+  .responsive-table tbody tr:has(td.mensaje-cargando) {
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    margin-bottom: 0 !important;
+  }
 }
 
 /* ========================================
@@ -11480,12 +11511,26 @@ tr[data-lazy="true"] {
 
 /* Clases para placeholders de sábanas */
 .sabana-placeholder {
-  text-align: center;
+  text-align: center !important;
   padding: 2rem;
+  width: 100%;
 }
 
 .sabana-placeholder-title {
   color: white;
+  text-align: center !important;
+  display: block;
+  width: 100%;
+}
+
+/* Asegurar centrado en móviles */
+@media (max-width: 768px) {
+
+  .sabana-placeholder,
+  .sabana-placeholder-title,
+  td.sabana-placeholder {
+    text-align: center !important;
+  }
 }
 
 .sabana-notas-container {
