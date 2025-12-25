@@ -794,11 +794,27 @@ function setupSearchListeners() {
         });
     }
 
+    // Filtro de estado de servicio en Sábana con indicador visual
     const filtroEstadoServicio = document.getElementById('filtroEstadoServicio');
     if (filtroEstadoServicio) {
+        const semaforoWrapperServicio = filtroEstadoServicio.closest('[data-semaforo-wrapper]');
+        const semaforoIndicatorServicio = semaforoWrapperServicio ? semaforoWrapperServicio.querySelector('.semaforo-indicator') : null;
+
         filtroEstadoServicio.addEventListener('change', () => {
+            // Actualizar semáforo visual
+            if (semaforoIndicatorServicio) {
+                semaforoIndicatorServicio.classList.remove('estado-realizado', 'estado-pendiente');
+                if (filtroEstadoServicio.value) {
+                    semaforoIndicatorServicio.classList.add(`estado-${filtroEstadoServicio.value}`);
+                }
+            }
             filterSabana();
         });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicatorServicio && filtroEstadoServicio.value) {
+            semaforoIndicatorServicio.classList.add(`estado-${filtroEstadoServicio.value}`);
+        }
     }
 
     // Buscador de Checklist

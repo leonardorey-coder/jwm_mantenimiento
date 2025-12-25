@@ -1027,8 +1027,10 @@
                             </select>
                             <i class="fas fa-chevron-down icono-select"></i>
                         </div>
-                        <div class="select-container premium-select">
-                            <select id="filtroEstadoServicio" name="estadoServicio" onchange="filterSabana()">
+                        <div class="select-container premium-select" data-semaforo-wrapper="estadoServicio">
+                            <span class="semaforo-indicator semaforo-select-indicator" aria-hidden="true"></span>
+                            <select id="filtroEstadoServicio" name="estadoServicio"
+                                data-semaforo-select="estadoServicio" onchange="filterSabana()">
                                 <option value="">Todos los estados</option>
                                 <option value="realizado">Realizado</option>
                                 <option value="pendiente">Pendiente</option>
