@@ -7,11 +7,13 @@
 ## 🔧 CAMBIOS IMPLEMENTADOS
 
 ### 1. **Arquitectura Offline Completamente Nueva**
+
 - ✅ **Eliminada dependencia de servidor Express/HTTP**
 - ✅ **Implementado sistema IPC (Inter-Process Communication) de Electron**
 - ✅ **Base de datos SQLite local integrada directamente**
 
 ### 2. **Archivos Nuevos Creados**
+
 ```
 📁 Archivos principales offline:
 ├── electron-database.js      # Gestión de SQLite local
@@ -22,6 +24,7 @@
 ```
 
 ### 3. **Archivos Modificados**
+
 ```
 📝 Archivos actualizados:
 ├── electron-main.js          # Inicialización de BD e IPC
@@ -30,6 +33,7 @@
 ```
 
 ### 4. **Base de Datos Automática**
+
 - 📍 **Ubicación**: `~/Library/Application Support/jw-mantto/finest_mant_cuartos.db`
 - 🏗️ **Estructura**: 3 tablas (edificios, cuartos, mantenimientos)
 - 📊 **Datos iniciales**: 65 cuartos, 3 edificios, ejemplos de mantenimiento
@@ -38,12 +42,14 @@
 ## 🚀 CÓMO USAR LA APLICACIÓN
 
 ### Comando Principal
+
 ```bash
 cd /Applications/XAMPP/xamppfiles/htdocs/jwm_mant_cuartos
 npm run electron
 ```
 
 ### Lo Que Verás al Iniciar
+
 ```
 🎯 Manejadores IPC registrados para modo offline
 💾 Inicializando base de datos offline...
@@ -54,6 +60,7 @@ npm run electron
 ## 📊 FUNCIONALIDADES 100% OFFLINE
 
 ### ✅ Gestión Completa de Mantenimientos
+
 1. **Ver todos los cuartos** con datos cargados desde SQLite local
 2. **Agregar nuevos mantenimientos** que se guardan inmediatamente en BD
 3. **Filtrar y buscar** cuartos y averías (todo local)
@@ -61,11 +68,13 @@ npm run electron
 5. **Panel de alertas** mostrando todas las rutinas programadas
 
 ### ✅ Persistencia de Datos
+
 - **Todos los cambios se guardan inmediatamente** en la base de datos local
 - **No se pierde información** al cerrar y abrir la aplicación
 - **Datos disponibles al instante** sin necesidad de cargar desde servidor
 
 ### ✅ Sistema de Notificaciones
+
 - **Alertas automáticas** basadas en hora y fecha programadas
 - **Sonido de alerta** cuando se activa una notificación
 - **Notificaciones del navegador** para alertas visuales
@@ -74,12 +83,14 @@ npm run electron
 ## 🔍 VERIFICACIÓN TÉCNICA
 
 ### Estado del Sistema
+
 ```bash
 ./verify-offline.sh
 # Resultado: ✅ Verificación completada. ¡La aplicación está lista!
 ```
 
 ### Logs de Funcionamiento
+
 ```
 ✅ Aplicación principal offline cargada exitosamente
 ✅ Base de datos offline lista
@@ -90,12 +101,14 @@ npm run electron
 ## 🎯 RESOLUCIÓN DEL PROBLEMA ORIGINAL
 
 ### ❌ Problema Inicial
+
 - App cargaba datos de prueba inconsistentemente
 - Dependía de servidor HTTP/Express
 - Error "base de datos no disponible" al registrar mantenimientos
 - Requería conexión a internet y servidor web
 
 ### ✅ Solución Implementada
+
 - **App 100% offline** sin dependencias externas
 - **Base de datos SQLite local** para todos los datos
 - **IPC directo** en lugar de HTTP requests
@@ -104,12 +117,14 @@ npm run electron
 ## 📱 EXPERIENCIA DE USUARIO
 
 ### Antes (Problemático)
+
 1. Necesitaba iniciar XAMPP/Apache
 2. Dependía de conexión a internet
 3. Datos inconsistentes (mock vs reales)
 4. Errores al guardar mantenimientos
 
-### Ahora (Perfecto) 
+### Ahora (Perfecto)
+
 1. **Un solo comando**: `npm run electron`
 2. **Sin dependencias externas**
 3. **Datos reales y consistentes** siempre
@@ -131,7 +146,7 @@ npm run electron
 
 - 🚫 **NO requiere internet**
 - 🚫 **NO requiere servidor web**
-- 🚫 **NO requiere XAMPP/Apache** 
+- 🚫 **NO requiere XAMPP/Apache**
 - 🚫 **NO tiene dependencias externas**
 
 - ✅ **Funciona 100% offline**
@@ -141,6 +156,7 @@ npm run electron
 - ✅ **Listo para producción**
 
 ### Para usar la aplicación:
+
 ```bash
 npm run electron
 ```

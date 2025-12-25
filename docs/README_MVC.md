@@ -41,6 +41,7 @@ jwm_mant_cuartos/
 ## Componentes del MVC
 
 ### 1. Models (Modelos)
+
 Los modelos manejan la lógica de datos y la interacción con la base de datos:
 
 - **`Edificio.php`**: Gestiona operaciones CRUD de edificios
@@ -48,18 +49,21 @@ Los modelos manejan la lógica de datos y la interacción con la base de datos:
 - **`Mantenimiento.php`**: Gestiona operaciones CRUD de mantenimientos y alertas
 
 ### 2. Views (Vistas)
+
 Las vistas manejan la presentación y el HTML:
 
 - **`layout.php`**: Layout base para todas las páginas
 - **`home/index.php`**: Vista principal del sistema
 
 ### 3. Controllers (Controladores)
+
 Los controladores manejan la lógica de negocio y coordinan modelos y vistas:
 
 - **`HomeController.php`**: Controlador principal del sistema
 - **`MantenimientoController.php`**: Controlador para operaciones de mantenimiento
 
 ### 4. Core (Núcleo)
+
 Clases base que proporcionan funcionalidad común:
 
 - **`Database.php`**: Manejo de conexiones y operaciones de base de datos
@@ -69,10 +73,12 @@ Clases base que proporcionan funcionalidad común:
 ## Rutas Disponibles
 
 ### Páginas principales
+
 - `GET /` - Página principal
 - `GET /home` - Página principal (alternativa)
 
 ### Mantenimientos
+
 - `POST /mantenimiento/create` - Crear mantenimiento
 - `POST /mantenimiento/update` - Actualizar mantenimiento
 - `POST /mantenimiento/delete` - Eliminar mantenimiento
@@ -82,23 +88,27 @@ Clases base que proporcionan funcionalidad común:
 - `GET /mantenimiento/recientes` - Obtener mantenimientos recientes
 
 ### Compatibilidad
+
 - `POST /procesar.php` - Compatibilidad con el sistema anterior
 
 ## Características Implementadas
 
 ### Base de Datos
+
 - Patrón Singleton para conexiones
 - Uso de PDO para mayor seguridad
 - Prepared statements para prevenir SQL injection
 - Manejo de transacciones
 
 ### Seguridad
+
 - Sanitización automática de datos
 - Validación de entrada
 - Escape de HTML en vistas
 - Protección CSRF (puede implementarse)
 
 ### Funcionalidades
+
 - Sistema de notificaciones y alertas
 - Búsqueda y filtrado de cuartos
 - Gestión completa de mantenimientos
@@ -108,7 +118,9 @@ Clases base que proporcionan funcionalidad común:
 ## Configuración
 
 ### 1. Base de Datos
+
 Editar `config/database.php`:
+
 ```php
 return [
     'host' => 'localhost',
@@ -120,20 +132,24 @@ return [
 ```
 
 ### 2. Aplicación
+
 Editar `config/app.php` para configuraciones generales.
 
 ## Migración desde el Sistema Anterior
 
 ### Archivos Principales
+
 - ✅ `index.php` - Convertido a punto de entrada MVC
 - ✅ `procesar.php` - Lógica migrada a controladores
 - ✅ `db/config.php` - Migrado a `config/database.php`
 
 ### Archivos de Vista
+
 - ✅ HTML principal migrado a `app/Views/home/index.php`
 - ✅ Layout común extraído a `app/Views/layout.php`
 
 ### JavaScript y CSS
+
 - ⚠️ `script_index.js` - Mantiene compatibilidad
 - ⚠️ `style.css` - Sin cambios
 - ⚠️ Archivos estáticos - Sin migrar a carpeta `public/`
@@ -141,6 +157,7 @@ Editar `config/app.php` para configuraciones generales.
 ## Próximos Pasos
 
 ### 1. Migración Completa de Assets
+
 ```
 public/
 ├── css/
@@ -154,17 +171,20 @@ public/
 ```
 
 ### 2. Controladores Adicionales
+
 - `EdificioController.php` - Gestión de edificios
 - `CuartoController.php` - Gestión de cuartos
 - `ApiController.php` - API REST
 
 ### 3. Middleware
+
 - Autenticación
 - Autorización
 - Rate limiting
 - CORS
 
 ### 4. Servicios
+
 - `NotificationService.php` - Servicio de notificaciones
 - `ReportService.php` - Generación de reportes
 - `BackupService.php` - Respaldos automáticos
@@ -172,21 +192,25 @@ public/
 ## Ventajas de la Arquitectura MVC
 
 ### Mantenibilidad
+
 - Separación clara de responsabilidades
 - Código más organizado y legible
 - Fácil localización de bugs
 
 ### Escalabilidad
+
 - Estructura modular
 - Fácil agregar nuevas funcionalidades
 - Reutilización de código
 
 ### Testabilidad
+
 - Componentes aislados
 - Fácil crear pruebas unitarias
 - Mock de dependencias
 
 ### Colaboración
+
 - Diferentes desarrolladores pueden trabajar en diferentes capas
 - Estándares de código claros
 - Documentación estructurada
@@ -194,6 +218,7 @@ public/
 ## Comandos Útiles
 
 ### Desarrollo
+
 ```bash
 # Verificar errores de sintaxis
 php -l bootstrap.php
@@ -206,6 +231,7 @@ tail -f storage/logs/app.log
 ```
 
 ### Base de Datos
+
 ```bash
 # Importar esquema
 mysql -u root -p finest_mant_cuartos < db/schema.sql
@@ -222,4 +248,4 @@ Para dudas sobre la nueva arquitectura o migración de funcionalidades, consulta
 
 **Versión**: 2.0.0 (MVC)  
 **Fecha**: 2024  
-**Autor**: Sistema de Desarrollo JWM 
+**Autor**: Sistema de Desarrollo JWM

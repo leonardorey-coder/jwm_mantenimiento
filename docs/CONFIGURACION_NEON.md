@@ -120,6 +120,7 @@ npm run dev
 ```
 
 Deberías ver en la consola:
+
 ```
 ✅ Conexión a PostgreSQL establecida: [fecha/hora]
 ✅ Base de datos PostgreSQL inicializada correctamente
@@ -169,7 +170,8 @@ DB_SSL_REJECT_UNAUTHORIZED=false
 
 ### Error: "Connection timeout"
 
-**Solución**: 
+**Solución**:
+
 - Verifica que la string de conexión sea correcta
 - Verifica que tu IP esté permitida en Neon (si aplica)
 - Aumenta el timeout:
@@ -180,13 +182,15 @@ DB_CONNECTION_TIMEOUT=5000
 
 ### Error: "password authentication failed"
 
-**Solución**: 
+**Solución**:
+
 - Verifica que la contraseña en DATABASE_URL sea correcta
 - Asegúrate de que no haya caracteres especiales sin codificar en la URL
 
 ### Error: "database does not exist"
 
-**Solución**: 
+**Solución**:
+
 - Verifica el nombre de la base de datos en tu string de conexión
 - En Neon, el nombre de la base de datos suele ser `neondb` por defecto
 
@@ -206,4 +210,3 @@ DB_CONNECTION_TIMEOUT=5000
 - [ ] Aplicación conecta correctamente
 - [ ] Variables configuradas en Vercel (producción)
 - [ ] Despliegue en Vercel funciona correctamente
-

@@ -18,9 +18,11 @@ Se ha implementado una migración completa del sistema de almacenamiento de **lo
 ### Módulos Creados
 
 #### 1. `indexeddb-manager.js`
+
 **Responsabilidad**: Gestión de bajo nivel de IndexedDB
 
 **Stores creadas**:
+
 - `auth` - Tokens de autenticación y datos de sesión
 - `usuarios` - Usuarios del sistema
 - `edificios` - Edificios
@@ -30,184 +32,192 @@ Se ha implementado una migración completa del sistema de almacenamiento de **lo
 - `sync_queue` - Cola de sincronización offline
 
 **Índices implementados**:
+
 ```javascript
 // Store: auth
-- key (primary)
-- type
-- timestamp
-
-// Store: usuarios
-- id (primary)
-- username
-- email
-- rol_id
-- activo
-
-// Store: cuartos
-- id (primary)
-- numero
-- edificio_id
-- estado
-
-// Store: mantenimientos
-- id (primary)
-- cuarto_id
-- tipo
-- estado
-- fecha_registro
-- dia_alerta
-
-// Store: cache
-- key (primary)
-- timestamp
-- expiresAt
+-key(primary) -
+  type -
+  timestamp -
+  // Store: usuarios
+  id(primary) -
+  username -
+  email -
+  rol_id -
+  activo -
+  // Store: cuartos
+  id(primary) -
+  numero -
+  edificio_id -
+  estado -
+  // Store: mantenimientos
+  id(primary) -
+  cuarto_id -
+  tipo -
+  estado -
+  fecha_registro -
+  dia_alerta -
+  // Store: cache
+  key(primary) -
+  timestamp -
+  expiresAt;
 ```
 
 **Métodos principales**:
+
 ```javascript
 // Operaciones genéricas
-await dbManager.set(storeName, data)
-await dbManager.get(storeName, key)
-await dbManager.getAll(storeName)
-await dbManager.delete(storeName, key)
-await dbManager.clear(storeName)
-await dbManager.getByIndex(storeName, indexName, value)
-await dbManager.setMultiple(storeName, dataArray)
+await dbManager.set(storeName, data);
+await dbManager.get(storeName, key);
+await dbManager.getAll(storeName);
+await dbManager.delete(storeName, key);
+await dbManager.clear(storeName);
+await dbManager.getByIndex(storeName, indexName, value);
+await dbManager.setMultiple(storeName, dataArray);
 
 // Operaciones de autenticación
-await dbManager.setAuth(key, value, type, persistent)
-await dbManager.getAuth(key)
-await dbManager.deleteAuth(key)
+await dbManager.setAuth(key, value, type, persistent);
+await dbManager.getAuth(key);
+await dbManager.deleteAuth(key);
 
 // Operaciones de cache
-await dbManager.setCache(key, value, ttlMinutes)
-await dbManager.getCache(key)
-await dbManager.cleanExpiredCache()
+await dbManager.setCache(key, value, ttlMinutes);
+await dbManager.getCache(key);
+await dbManager.cleanExpiredCache();
 
 // Cola de sincronización
-await dbManager.addToSyncQueue(operation)
-await dbManager.getPendingSyncOperations()
-await dbManager.markSyncOperationComplete(id)
+await dbManager.addToSyncQueue(operation);
+await dbManager.getPendingSyncOperations();
+await dbManager.markSyncOperationComplete(id);
 ```
 
 #### 2. `storage-helper.js`
+
 **Responsabilidad**: API de alto nivel para operaciones comunes
 
 **Métodos principales**:
+
 ```javascript
 // Autenticación
-await storageHelper.saveAuthTokens(tokens, persistent)
-await storageHelper.getAccessToken()
-await storageHelper.getRefreshToken()
-await storageHelper.saveCurrentUser(user, persistent)
-await storageHelper.getCurrentUser()
-await storageHelper.clearAuth()
-await storageHelper.hasActiveSession()
+await storageHelper.saveAuthTokens(tokens, persistent);
+await storageHelper.getAccessToken();
+await storageHelper.getRefreshToken();
+await storageHelper.saveCurrentUser(user, persistent);
+await storageHelper.getCurrentUser();
+await storageHelper.clearAuth();
+await storageHelper.hasActiveSession();
 
 // Datos de la aplicación
-await storageHelper.saveCuartos(cuartos)
-await storageHelper.getCuartos()
-await storageHelper.saveEdificios(edificios)
-await storageHelper.getEdificios()
-await storageHelper.saveMantenimientos(mantenimientos)
-await storageHelper.getMantenimientos()
-await storageHelper.saveUsuarios(usuarios)
-await storageHelper.getUsuarios()
-await storageHelper.saveAllData({ cuartos, edificios, mantenimientos, usuarios })
-await storageHelper.getAllData()
-await storageHelper.loadOfflineData()
+await storageHelper.saveCuartos(cuartos);
+await storageHelper.getCuartos();
+await storageHelper.saveEdificios(edificios);
+await storageHelper.getEdificios();
+await storageHelper.saveMantenimientos(mantenimientos);
+await storageHelper.getMantenimientos();
+await storageHelper.saveUsuarios(usuarios);
+await storageHelper.getUsuarios();
+await storageHelper.saveAllData({
+  cuartos,
+  edificios,
+  mantenimientos,
+  usuarios,
+});
+await storageHelper.getAllData();
+await storageHelper.loadOfflineData();
 
 // Preferencias
-await storageHelper.saveTheme(theme)
-await storageHelper.getTheme()
-await storageHelper.savePreference(key, value)
-await storageHelper.getPreference(key)
+await storageHelper.saveTheme(theme);
+await storageHelper.getTheme();
+await storageHelper.savePreference(key, value);
+await storageHelper.getPreference(key);
 
 // Sincronización
-await storageHelper.addToSyncQueue(type, endpoint, method, data)
-await storageHelper.processSyncQueue(apiBaseUrl)
+await storageHelper.addToSyncQueue(type, endpoint, method, data);
+await storageHelper.processSyncQueue(apiBaseUrl);
 
 // Mantenimiento
-await storageHelper.cleanExpiredData()
-await storageHelper.getStorageStats()
-await storageHelper.exportBackup()
-await storageHelper.clearAllData()
+await storageHelper.cleanExpiredData();
+await storageHelper.getStorageStats();
+await storageHelper.exportBackup();
+await storageHelper.clearAllData();
 ```
 
 #### 3. `storage-wrapper.js`
+
 **Responsabilidad**: Wrapper de compatibilidad con localStorage API (opcional)
 
 Permite usar la API de localStorage pero con IndexedDB por debajo:
+
 ```javascript
 // API compatible con localStorage
-storageManager.localStorage.setItem(key, value)
-storageManager.localStorage.getItem(key)
-storageManager.localStorage.removeItem(key)
-storageManager.localStorage.clear()
+storageManager.localStorage.setItem(key, value);
+storageManager.localStorage.getItem(key);
+storageManager.localStorage.removeItem(key);
+storageManager.localStorage.clear();
 
 // Versión asíncrona (recomendada)
-await storageManager.localStorage.getItemAsync(key)
+await storageManager.localStorage.getItemAsync(key);
 ```
 
 ## 📝 Cambios en el Código Existente
 
 ### 1. `index.html`
+
 ```html
 <!-- Antes -->
 <script>
-    const script = document.createElement('script');
-    script.src = 'js/app-loader.js';
-    document.head.appendChild(script);
+  const script = document.createElement('script');
+  script.src = 'js/app-loader.js';
+  document.head.appendChild(script);
 </script>
 
 <!-- Después -->
 <script type="module">
-    import dbManager from './js/indexeddb-manager.js';
-    import storageHelper from './js/storage-helper.js';
-    
-    window.dbManager = dbManager;
-    window.storageHelper = storageHelper;
-    
-    Promise.all([
-        dbManager.init(),
-        storageHelper.init()
-    ]).then(() => {
-        const script = document.createElement('script');
-        script.src = 'js/app-loader.js';
-        document.head.appendChild(script);
-    });
+  import dbManager from './js/indexeddb-manager.js';
+  import storageHelper from './js/storage-helper.js';
+
+  window.dbManager = dbManager;
+  window.storageHelper = storageHelper;
+
+  Promise.all([dbManager.init(), storageHelper.init()]).then(() => {
+    const script = document.createElement('script');
+    script.src = 'js/app-loader.js';
+    document.head.appendChild(script);
+  });
 </script>
 ```
 
 ### 2. `login.html`
+
 Similar a `index.html`, inicializa IndexedDB antes de cargar `login-jwt.js`.
 
 ### 3. `app-loader.js`
 
 **Función de autenticación**:
+
 ```javascript
 // Antes
 function obtenerHeadersConAuth() {
-    const accessToken = localStorage.getItem('accessToken');
-    // ...
+  const accessToken = localStorage.getItem('accessToken');
+  // ...
 }
 
 // Después
 async function obtenerHeadersConAuth() {
-    let accessToken = null;
-    
-    if (window.storageHelper) {
-        accessToken = await window.storageHelper.getAccessToken();
-    }
-    
-    if (!accessToken) {
-        accessToken = localStorage.getItem('accessToken');
-    }
-    // ...
+  let accessToken = null;
+
+  if (window.storageHelper) {
+    accessToken = await window.storageHelper.getAccessToken();
+  }
+
+  if (!accessToken) {
+    accessToken = localStorage.getItem('accessToken');
+  }
+  // ...
 }
 ```
 
 **Guardado de datos**:
+
 ```javascript
 // Antes
 localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
@@ -215,18 +225,19 @@ localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
 
 // Después
 if (window.storageHelper) {
-    await window.storageHelper.saveAllData({
-        cuartos,
-        edificios,
-        mantenimientos,
-        usuarios
-    });
+  await window.storageHelper.saveAllData({
+    cuartos,
+    edificios,
+    mantenimientos,
+    usuarios,
+  });
 }
 // Mantener localStorage como fallback
 localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
 ```
 
 **Carga offline**:
+
 ```javascript
 // Antes
 const cuartosGuardados = localStorage.getItem('ultimosCuartos');
@@ -234,11 +245,11 @@ cuartos = cuartosGuardados ? JSON.parse(cuartosGuardados) : [];
 
 // Después
 if (window.storageHelper) {
-    const offlineData = await window.storageHelper.loadOfflineData();
-    if (offlineData.hasData) {
-        cuartos = offlineData.data.cuartos;
-        // ...
-    }
+  const offlineData = await window.storageHelper.loadOfflineData();
+  if (offlineData.hasData) {
+    cuartos = offlineData.data.cuartos;
+    // ...
+  }
 }
 // Fallback a localStorage si falla IndexedDB
 ```
@@ -246,6 +257,7 @@ if (window.storageHelper) {
 ### 4. `login-jwt.js`
 
 **Guardado de tokens**:
+
 ```javascript
 // Antes
 localStorage.setItem('accessToken', data.tokens.accessToken);
@@ -253,13 +265,16 @@ localStorage.setItem('refreshToken', data.tokens.refreshToken);
 
 // Después
 if (window.storageHelper) {
-    await window.storageHelper.saveAuthTokens({
-        accessToken: data.tokens.accessToken,
-        refreshToken: data.tokens.refreshToken,
-        tokenType: data.tokens.tokenType,
-        expiresIn: data.tokens.expiresIn,
-        sesionId: data.sesion_id
-    }, rememberMe);
+  await window.storageHelper.saveAuthTokens(
+    {
+      accessToken: data.tokens.accessToken,
+      refreshToken: data.tokens.refreshToken,
+      tokenType: data.tokens.tokenType,
+      expiresIn: data.tokens.expiresIn,
+      sesionId: data.sesion_id,
+    },
+    rememberMe
+  );
 }
 // Mantener localStorage como fallback
 localStorage.setItem('accessToken', data.tokens.accessToken);
@@ -289,10 +304,12 @@ async init() {
 ## 🎨 Ventajas de IndexedDB
 
 ### 1. Mayor Capacidad
+
 - **localStorage**: ~5-10 MB
 - **IndexedDB**: 50 MB+ (varía por navegador)
 
 ### 2. Rendimiento
+
 ```javascript
 // localStorage - Síncrono (bloquea el hilo)
 const data = localStorage.getItem('data'); // Bloquea
@@ -302,6 +319,7 @@ const data = await dbManager.get('store', 'key'); // No bloquea
 ```
 
 ### 3. Estructura de Datos
+
 ```javascript
 // localStorage - Solo strings
 localStorage.setItem('user', JSON.stringify(user)); // Serialización manual
@@ -311,16 +329,18 @@ await dbManager.set('usuarios', user); // Objetos directamente
 ```
 
 ### 4. Búsquedas Eficientes
+
 ```javascript
 // localStorage - Iterar todo
 const users = JSON.parse(localStorage.getItem('users'));
-const activeUsers = users.filter(u => u.activo); // O(n)
+const activeUsers = users.filter((u) => u.activo); // O(n)
 
 // IndexedDB - Índices
 const activeUsers = await dbManager.getByIndex('usuarios', 'activo', true); // O(log n)
 ```
 
 ### 5. Transacciones
+
 ```javascript
 // IndexedDB permite transacciones ACID
 await dbManager.setMultiple('cuartos', [cuarto1, cuarto2, cuarto3]);
@@ -330,12 +350,14 @@ await dbManager.setMultiple('cuartos', [cuarto1, cuarto2, cuarto3]);
 ## 🔧 Configuración y Uso
 
 ### Inicialización
+
 ```javascript
 // Automática en index.html y login.html
 // Los módulos se cargan antes de la aplicación principal
 ```
 
 ### Uso en Código Nuevo
+
 ```javascript
 // Usar storageHelper (recomendado)
 await window.storageHelper.saveCurrentUser(user);
@@ -347,6 +369,7 @@ const user = await window.dbManager.get('usuarios', userId);
 ```
 
 ### Verificar Estado
+
 ```javascript
 // Ver estadísticas
 const stats = await window.storageHelper.getStorageStats();
@@ -360,6 +383,7 @@ await window.storageHelper.showStorageInfo();
 ## 🧪 Testing
 
 ### Verificar Migración
+
 ```javascript
 // En la consola del navegador
 await window.dbManager.getStats();
@@ -370,6 +394,7 @@ await window.storageHelper.getAllData();
 ```
 
 ### Modo Offline
+
 ```javascript
 // Desconectar red y recargar
 // La app debería cargar datos desde IndexedDB
@@ -378,6 +403,7 @@ console.log('Datos offline disponibles:', offlineData.hasData);
 ```
 
 ### Backup Manual
+
 ```javascript
 // Exportar datos (crea archivo JSON)
 await window.storageHelper.exportBackup();
@@ -394,31 +420,31 @@ La implementación incluye múltiples niveles de fallback:
 ```javascript
 // Ejemplo de la estrategia
 try {
-    // Intentar IndexedDB
-    data = await storageHelper.getCuartos();
+  // Intentar IndexedDB
+  data = await storageHelper.getCuartos();
 } catch (error) {
-    try {
-        // Fallback a localStorage
-        data = JSON.parse(localStorage.getItem('ultimosCuartos'));
-    } catch (error2) {
-        // Usar datos offline
-        data = datosOffline.cuartos;
-    }
+  try {
+    // Fallback a localStorage
+    data = JSON.parse(localStorage.getItem('ultimosCuartos'));
+  } catch (error2) {
+    // Usar datos offline
+    data = datosOffline.cuartos;
+  }
 }
 ```
 
 ## 📊 Comparación Antes/Después
 
-| Aspecto | localStorage | IndexedDB |
-|---------|-------------|-----------|
-| Capacidad | ~5-10 MB | 50+ MB |
-| Tipo de operación | Síncrono | Asíncrono |
-| Tipos de datos | Solo strings | Objetos nativos |
-| Índices | No | Sí |
-| Transacciones | No | Sí |
-| Búsquedas | O(n) | O(log n) |
-| Expiración | Manual | Automática |
-| Sincronización | Manual | Cola integrada |
+| Aspecto           | localStorage | IndexedDB       |
+| ----------------- | ------------ | --------------- |
+| Capacidad         | ~5-10 MB     | 50+ MB          |
+| Tipo de operación | Síncrono     | Asíncrono       |
+| Tipos de datos    | Solo strings | Objetos nativos |
+| Índices           | No           | Sí              |
+| Transacciones     | No           | Sí              |
+| Búsquedas         | O(n)         | O(log n)        |
+| Expiración        | Manual       | Automática      |
+| Sincronización    | Manual       | Cola integrada  |
 
 ## 🔐 Seguridad
 
@@ -430,6 +456,7 @@ try {
 ## 📱 Compatibilidad PWA
 
 IndexedDB es **fundamental** para PWAs porque:
+
 - ✅ Funciona offline
 - ✅ Mayor capacidad que localStorage
 - ✅ Recomendado por estándares PWA
@@ -442,22 +469,23 @@ Nueva funcionalidad para manejar operaciones offline:
 ```javascript
 // Agregar operación cuando offline
 await storageHelper.addToSyncQueue(
-    'crear_mantenimiento',
-    '/api/mantenimientos',
-    'POST',
-    { cuarto_id: 101, descripcion: 'Revisar AC' }
+  'crear_mantenimiento',
+  '/api/mantenimientos',
+  'POST',
+  { cuarto_id: 101, descripcion: 'Revisar AC' }
 );
 
 // Procesar cola cuando vuelve online
 window.addEventListener('online', async () => {
-    const result = await storageHelper.processSyncQueue(API_BASE_URL);
-    console.log(`Sincronizadas ${result.success} operaciones`);
+  const result = await storageHelper.processSyncQueue(API_BASE_URL);
+  console.log(`Sincronizadas ${result.success} operaciones`);
 });
 ```
 
 ## 🧹 Mantenimiento
 
 ### Limpieza Automática
+
 ```javascript
 // Se ejecuta periódicamente
 await storageHelper.cleanExpiredData();
@@ -465,6 +493,7 @@ await storageHelper.cleanExpiredData();
 ```
 
 ### Limpieza Manual
+
 ```javascript
 // Limpiar todo (requiere confirmación)
 await storageHelper.clearAllData();
@@ -481,12 +510,15 @@ await storageHelper.clearAllData();
 ## 🐛 Debugging
 
 ### Ver contenido de IndexedDB
+
 En Chrome DevTools:
+
 1. Application → Storage → IndexedDB
 2. Expandir `jwm_mant_cuartos_db`
 3. Ver cada store y sus registros
 
 ### Logs útiles
+
 ```javascript
 // Activar logs detallados
 localStorage.setItem('debug_indexeddb', 'true');

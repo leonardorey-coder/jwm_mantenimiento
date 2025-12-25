@@ -19,66 +19,66 @@ Tabla principal de usuarios del sistema con campos adicionales:
 
 #### Campos Nuevos:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `fecha_registro` | TIMESTAMP | Fecha de registro (sign-in) del empleado |
-| `fecha_baja` | TIMESTAMP | Fecha de baja (sign-out) del empleado |
-| `motivo_baja` | TEXT | Razón de la baja del empleado |
-| `usuario_baja_id` | INTEGER | Admin que dio de baja al usuario |
-| `telefono` | VARCHAR(20) | Teléfono del empleado |
-| `departamento` | VARCHAR(100) | Departamento del empleado |
-| `numero_empleado` | VARCHAR(50) | Número único de empleado |
-| `foto_perfil_url` | TEXT | URL de la foto del empleado |
-| `ultimo_cambio_password` | TIMESTAMP | Última modificación de contraseña |
-| `requiere_cambio_password` | BOOLEAN | Si debe cambiar password en próximo login |
-| `intentos_fallidos` | INTEGER | Contador de intentos fallidos de login |
-| `bloqueado_hasta` | TIMESTAMP | Fecha hasta la cual está bloqueado |
-| `notas_admin` | TEXT | Notas administrativas internas |
+| Campo                      | Tipo         | Descripción                               |
+| -------------------------- | ------------ | ----------------------------------------- |
+| `fecha_registro`           | TIMESTAMP    | Fecha de registro (sign-in) del empleado  |
+| `fecha_baja`               | TIMESTAMP    | Fecha de baja (sign-out) del empleado     |
+| `motivo_baja`              | TEXT         | Razón de la baja del empleado             |
+| `usuario_baja_id`          | INTEGER      | Admin que dio de baja al usuario          |
+| `telefono`                 | VARCHAR(20)  | Teléfono del empleado                     |
+| `departamento`             | VARCHAR(100) | Departamento del empleado                 |
+| `numero_empleado`          | VARCHAR(50)  | Número único de empleado                  |
+| `foto_perfil_url`          | TEXT         | URL de la foto del empleado               |
+| `ultimo_cambio_password`   | TIMESTAMP    | Última modificación de contraseña         |
+| `requiere_cambio_password` | BOOLEAN      | Si debe cambiar password en próximo login |
+| `intentos_fallidos`        | INTEGER      | Contador de intentos fallidos de login    |
+| `bloqueado_hasta`          | TIMESTAMP    | Fecha hasta la cual está bloqueado        |
+| `notas_admin`              | TEXT         | Notas administrativas internas            |
 
 #### Campos Existentes Actualizados:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `activo` | BOOLEAN | Estado del usuario (activo/inactivo) |
-| `ultimo_acceso` | TIMESTAMP | Última vez que hizo login exitoso |
+| Campo           | Tipo      | Descripción                          |
+| --------------- | --------- | ------------------------------------ |
+| `activo`        | BOOLEAN   | Estado del usuario (activo/inactivo) |
+| `ultimo_acceso` | TIMESTAMP | Última vez que hizo login exitoso    |
 
 ### 2. Tabla `sesiones_usuarios` (Nueva)
 
 Registra todas las sesiones de login/logout de los usuarios.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | SERIAL | ID único de la sesión |
-| `usuario_id` | INTEGER | Usuario de la sesión |
-| `token_sesion` | VARCHAR(255) | Token único de sesión |
-| `fecha_login` | TIMESTAMP | Momento del login |
-| `fecha_logout` | TIMESTAMP | Momento del logout |
-| `ip_address` | VARCHAR(45) | Dirección IP del usuario |
-| `user_agent` | TEXT | User agent del navegador |
-| `dispositivo` | VARCHAR(200) | Tipo de dispositivo |
-| `sistema_operativo` | VARCHAR(100) | SO del dispositivo |
-| `navegador` | VARCHAR(100) | Navegador utilizado |
-| `ubicacion_geografica` | VARCHAR(255) | Ubicación geográfica (opcional) |
-| `duracion_minutos` | INTEGER | Duración total de la sesión |
-| `activa` | BOOLEAN | Si la sesión sigue activa |
-| `cerrada_por` | VARCHAR(20) | Cómo se cerró (usuario/sistema/admin/timeout/expiracion) |
-| `notas` | TEXT | Notas adicionales |
+| Campo                  | Tipo         | Descripción                                              |
+| ---------------------- | ------------ | -------------------------------------------------------- |
+| `id`                   | SERIAL       | ID único de la sesión                                    |
+| `usuario_id`           | INTEGER      | Usuario de la sesión                                     |
+| `token_sesion`         | VARCHAR(255) | Token único de sesión                                    |
+| `fecha_login`          | TIMESTAMP    | Momento del login                                        |
+| `fecha_logout`         | TIMESTAMP    | Momento del logout                                       |
+| `ip_address`           | VARCHAR(45)  | Dirección IP del usuario                                 |
+| `user_agent`           | TEXT         | User agent del navegador                                 |
+| `dispositivo`          | VARCHAR(200) | Tipo de dispositivo                                      |
+| `sistema_operativo`    | VARCHAR(100) | SO del dispositivo                                       |
+| `navegador`            | VARCHAR(100) | Navegador utilizado                                      |
+| `ubicacion_geografica` | VARCHAR(255) | Ubicación geográfica (opcional)                          |
+| `duracion_minutos`     | INTEGER      | Duración total de la sesión                              |
+| `activa`               | BOOLEAN      | Si la sesión sigue activa                                |
+| `cerrada_por`          | VARCHAR(20)  | Cómo se cerró (usuario/sistema/admin/timeout/expiracion) |
+| `notas`                | TEXT         | Notas adicionales                                        |
 
 ### 3. Tabla `auditoria_usuarios` (Nueva)
 
 Registro completo de auditoría de todas las acciones sobre usuarios.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | SERIAL | ID único del registro |
-| `usuario_id` | INTEGER | Usuario afectado |
-| `accion` | VARCHAR(50) | Tipo de acción realizada |
-| `descripcion` | TEXT | Descripción de la acción |
-| `datos_anteriores` | JSONB | Estado anterior (JSON) |
-| `datos_nuevos` | JSONB | Estado nuevo (JSON) |
-| `usuario_ejecutor_id` | INTEGER | Usuario que ejecutó la acción |
-| `ip_address` | VARCHAR(45) | IP desde donde se ejecutó |
-| `fecha_hora` | TIMESTAMP | Momento de la acción |
+| Campo                 | Tipo        | Descripción                   |
+| --------------------- | ----------- | ----------------------------- |
+| `id`                  | SERIAL      | ID único del registro         |
+| `usuario_id`          | INTEGER     | Usuario afectado              |
+| `accion`              | VARCHAR(50) | Tipo de acción realizada      |
+| `descripcion`         | TEXT        | Descripción de la acción      |
+| `datos_anteriores`    | JSONB       | Estado anterior (JSON)        |
+| `datos_nuevos`        | JSONB       | Estado nuevo (JSON)           |
+| `usuario_ejecutor_id` | INTEGER     | Usuario que ejecutó la acción |
+| `ip_address`          | VARCHAR(45) | IP desde donde se ejecutó     |
+| `fecha_hora`          | TIMESTAMP   | Momento de la acción          |
 
 #### Tipos de Acciones Auditadas:
 
@@ -97,15 +97,15 @@ Registro completo de auditoría de todas las acciones sobre usuarios.
 
 Historial de contraseñas para prevenir reutilización.
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `id` | SERIAL | ID único |
-| `usuario_id` | INTEGER | Usuario |
-| `password_hash` | VARCHAR(255) | Hash de la contraseña |
-| `fecha_cambio` | TIMESTAMP | Fecha del cambio |
-| `cambiado_por_admin` | BOOLEAN | Si fue forzado por admin |
-| `admin_id` | INTEGER | Admin que forzó el cambio |
-| `motivo` | TEXT | Motivo del cambio |
+| Campo                | Tipo         | Descripción               |
+| -------------------- | ------------ | ------------------------- |
+| `id`                 | SERIAL       | ID único                  |
+| `usuario_id`         | INTEGER      | Usuario                   |
+| `password_hash`      | VARCHAR(255) | Hash de la contraseña     |
+| `fecha_cambio`       | TIMESTAMP    | Fecha del cambio          |
+| `cambiado_por_admin` | BOOLEAN      | Si fue forzado por admin  |
+| `admin_id`           | INTEGER      | Admin que forzó el cambio |
+| `motivo`             | TEXT         | Motivo del cambio         |
 
 ## 📊 Vistas Útiles
 
@@ -118,6 +118,7 @@ SELECT * FROM vista_usuarios_activos;
 ```
 
 **Columnas:**
+
 - Información básica del usuario
 - Total de sesiones
 - Última sesión login/logout
@@ -132,6 +133,7 @@ SELECT * FROM vista_usuarios_inactivos;
 ```
 
 **Columnas:**
+
 - Información del usuario
 - Fecha y motivo de baja
 - Usuario que realizó la baja
@@ -145,6 +147,7 @@ SELECT * FROM vista_sesiones_activas;
 ```
 
 **Columnas:**
+
 - Usuario y rol
 - Fecha de login
 - Información del dispositivo
@@ -169,6 +172,7 @@ SELECT * FROM obtener_estadisticas_usuarios();
 ```
 
 **Retorna:**
+
 - Total de usuarios
 - Usuarios activos/inactivos
 - Usuarios bloqueados
@@ -185,6 +189,7 @@ SELECT dar_baja_usuario(5, 'Renuncia voluntaria', 1);
 ```
 
 **Acciones:**
+
 - Marca usuario como inactivo
 - Registra fecha y motivo de baja
 - Cierra todas sus sesiones activas
@@ -199,6 +204,7 @@ SELECT reactivar_usuario(5, 1);
 ```
 
 **Acciones:**
+
 - Marca usuario como activo
 - Limpia fecha y motivo de baja
 - Resetea intentos fallidos
@@ -225,11 +231,11 @@ Actualiza el campo `ultimo_acceso` cuando se crea una nueva sesión (login).
 ```sql
 -- 1. Crear nuevo usuario
 INSERT INTO usuarios (
-    nombre, email, password_hash, rol_id, 
+    nombre, email, password_hash, rol_id,
     numero_empleado, departamento, telefono
 ) VALUES (
-    'Juan Pérez', 'juan.perez@jwmarriott.com', 
-    '$2b$10$...', 3, 
+    'Juan Pérez', 'juan.perez@jwmarriott.com',
+    '$2b$10$...', 3,
     'EMP-001', 'Mantenimiento', '555-1234'
 );
 
@@ -244,7 +250,7 @@ INSERT INTO usuarios (
 ```sql
 -- 1. Crear sesión
 INSERT INTO sesiones_usuarios (
-    usuario_id, token_sesion, ip_address, 
+    usuario_id, token_sesion, ip_address,
     dispositivo, navegador, sistema_operativo
 ) VALUES (
     5, 'unique-token-123', '192.168.1.100',
@@ -261,8 +267,8 @@ INSERT INTO sesiones_usuarios (
 
 ```sql
 -- 1. Cerrar sesión
-UPDATE sesiones_usuarios 
-SET 
+UPDATE sesiones_usuarios
+SET
     fecha_logout = CURRENT_TIMESTAMP,
     cerrada_por = 'usuario'
 WHERE token_sesion = 'unique-token-123';
@@ -313,12 +319,12 @@ El sistema puede bloquear usuarios automáticamente después de varios intentos 
 
 ```sql
 -- Incrementar intentos fallidos
-UPDATE usuarios 
+UPDATE usuarios
 SET intentos_fallidos = intentos_fallidos + 1
 WHERE id = 5;
 
 -- Bloquear si excede límite (ej. 5 intentos)
-UPDATE usuarios 
+UPDATE usuarios
 SET bloqueado_hasta = CURRENT_TIMESTAMP + INTERVAL '30 minutes'
 WHERE id = 5 AND intentos_fallidos >= 5;
 ```
@@ -350,7 +356,7 @@ INSERT INTO historial_passwords (
 ```sql
 SELECT u.nombre, u.email, COUNT(s.id) as sesiones_hoy
 FROM usuarios u
-LEFT JOIN sesiones_usuarios s ON u.id = s.usuario_id 
+LEFT JOIN sesiones_usuarios s ON u.id = s.usuario_id
     AND DATE(s.fecha_login) = CURRENT_DATE
 WHERE u.activo = TRUE
 GROUP BY u.id, u.nombre, u.email
@@ -360,7 +366,7 @@ ORDER BY sesiones_hoy DESC;
 ### Sesiones Más Largas
 
 ```sql
-SELECT 
+SELECT
     u.nombre,
     s.fecha_login,
     s.fecha_logout,
@@ -375,9 +381,9 @@ LIMIT 10;
 ### Usuarios Bloqueados
 
 ```sql
-SELECT 
-    nombre, email, intentos_fallidos, 
-    bloqueado_hasta, 
+SELECT
+    nombre, email, intentos_fallidos,
+    bloqueado_hasta,
     bloqueado_hasta - CURRENT_TIMESTAMP as tiempo_restante
 FROM usuarios
 WHERE bloqueado_hasta > CURRENT_TIMESTAMP;
@@ -386,8 +392,8 @@ WHERE bloqueado_hasta > CURRENT_TIMESTAMP;
 ### Auditoría de un Usuario
 
 ```sql
-SELECT 
-    fecha_hora, accion, descripcion, 
+SELECT
+    fecha_hora, accion, descripcion,
     ejecutor_nombre, ip_address
 FROM vista_actividad_reciente
 WHERE usuario_id = 5
@@ -420,12 +426,12 @@ Si ya tienes usuarios en el sistema, actualiza sus datos:
 
 ```sql
 -- Establecer fecha_registro para usuarios existentes
-UPDATE usuarios 
-SET fecha_registro = created_at 
+UPDATE usuarios
+SET fecha_registro = created_at
 WHERE fecha_registro IS NULL;
 
 -- Asignar números de empleado si no tienen
-UPDATE usuarios 
+UPDATE usuarios
 SET numero_empleado = 'EMP-' || LPAD(id::TEXT, 4, '0')
 WHERE numero_empleado IS NULL;
 ```

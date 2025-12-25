@@ -97,20 +97,20 @@ SELECT * FROM configuracion_estados;
 
 ### Tablas Principales
 
-| Tabla | Descripción | Registros Iniciales |
-|-------|-------------|---------------------|
-| `configuracion_estados` | Estados con colores | 4 estados |
-| `roles` | Roles del sistema | 3 roles |
-| `usuarios` | Usuarios del sistema | 1 admin |
-| `edificios` | Edificios del hotel | 4 edificios |
-| `cuartos` | Habitaciones | 5 ejemplos |
-| `espacios_comunes` | Áreas comunes | 5 ejemplos |
-| `mantenimientos` | Registros de mantenimiento | 0 |
-| `inspecciones` | Inspecciones realizadas | 0 |
-| `checklists` | Listas de verificación | 0 |
-| `checklist_items` | Items de checklists | 0 |
-| `evidencias` | Evidencias multimedia | 0 |
-| `firmas_digitales` | Firmas digitales | 0 |
+| Tabla                   | Descripción                | Registros Iniciales |
+| ----------------------- | -------------------------- | ------------------- |
+| `configuracion_estados` | Estados con colores        | 4 estados           |
+| `roles`                 | Roles del sistema          | 3 roles             |
+| `usuarios`              | Usuarios del sistema       | 1 admin             |
+| `edificios`             | Edificios del hotel        | 4 edificios         |
+| `cuartos`               | Habitaciones               | 5 ejemplos          |
+| `espacios_comunes`      | Áreas comunes              | 5 ejemplos          |
+| `mantenimientos`        | Registros de mantenimiento | 0                   |
+| `inspecciones`          | Inspecciones realizadas    | 0                   |
+| `checklists`            | Listas de verificación     | 0                   |
+| `checklist_items`       | Items de checklists        | 0                   |
+| `evidencias`            | Evidencias multimedia      | 0                   |
+| `firmas_digitales`      | Firmas digitales           | 0                   |
 
 ### Vistas Disponibles
 
@@ -154,20 +154,20 @@ El esquema completo incluye datos de ejemplo:
 
 ### Usuarios por Defecto
 
-| Email | Rol | Contraseña |
-|-------|-----|------------|
+| Email              | Rol   | Contraseña          |
+| ------------------ | ----- | ------------------- |
 | admin@jwmantto.com | ADMIN | (debe configurarse) |
 
 **IMPORTANTE:** Cambiar la contraseña del admin después de la instalación.
 
 ### Estados Predefinidos
 
-| Estado | Color | Icono | Descripción |
-|--------|-------|-------|-------------|
-| disponible | 🟢 Verde | `#4CAF50` | Listo para ocupar |
-| ocupado | 🔵 Azul | `#2196F3` | Huésped hospedado |
-| mantenimiento | 🟠 Naranja | `#FF9800` | En limpieza/reparación |
-| fuera_servicio | ⚫ Gris | `#616161` | No disponible |
+| Estado         | Color      | Icono     | Descripción            |
+| -------------- | ---------- | --------- | ---------------------- |
+| disponible     | 🟢 Verde   | `#4CAF50` | Listo para ocupar      |
+| ocupado        | 🔵 Azul    | `#2196F3` | Huésped hospedado      |
+| mantenimiento  | 🟠 Naranja | `#FF9800` | En limpieza/reparación |
+| fuera_servicio | ⚫ Gris    | `#616161` | No disponible          |
 
 ### Edificios de Ejemplo
 
@@ -290,12 +290,12 @@ psql -U postgres -d jwmantto -f migracion_esquema_completo_2025-11-11.sql
 
 ```sql
 -- Verificar claves foráneas
-SELECT 
-    tc.table_name, 
+SELECT
+    tc.table_name,
     kcu.column_name,
     ccu.table_name AS foreign_table_name,
-    ccu.column_name AS foreign_column_name 
-FROM information_schema.table_constraints AS tc 
+    ccu.column_name AS foreign_column_name
+FROM information_schema.table_constraints AS tc
 JOIN information_schema.key_column_usage AS kcu
     ON tc.constraint_name = kcu.constraint_name
 JOIN information_schema.constraint_column_usage AS ccu
@@ -304,7 +304,7 @@ WHERE tc.constraint_type = 'FOREIGN KEY'
 ORDER BY tc.table_name;
 
 -- Verificar índices
-SELECT 
+SELECT
     schemaname,
     tablename,
     indexname,
@@ -327,4 +327,3 @@ Si encuentras problemas:
 
 **Última actualización:** 2025-11-11  
 **Versión del esquema:** 2.0.0
-

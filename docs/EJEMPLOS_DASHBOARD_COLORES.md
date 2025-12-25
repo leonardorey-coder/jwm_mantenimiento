@@ -155,19 +155,21 @@ GET /api/cuartos/dashboard/estados
  * Cargar y renderizar dashboard con colores dinámicos
  */
 async function renderizarDashboardConColores() {
-    try {
-        // Obtener dashboard completo
-        const response = await fetch('http://localhost:3001/api/cuartos/dashboard/estados');
-        const data = await response.json();
-        
-        const dashboard = data.dashboard;
-        const container = document.getElementById('dashboard-estados');
-        
-        // Generar HTML para cada estado
-        let html = '<div class="dashboard-grid">';
-        
-        Object.values(dashboard.estados).forEach(estado => {
-            html += `
+  try {
+    // Obtener dashboard completo
+    const response = await fetch(
+      'http://localhost:3001/api/cuartos/dashboard/estados'
+    );
+    const data = await response.json();
+
+    const dashboard = data.dashboard;
+    const container = document.getElementById('dashboard-estados');
+
+    // Generar HTML para cada estado
+    let html = '<div class="dashboard-grid">';
+
+    Object.values(dashboard.estados).forEach((estado) => {
+      html += `
                 <div class="card-estado" 
                      style="border-left: 5px solid ${estado.color}; 
                             background: ${estado.colorSecundario}">
@@ -184,30 +186,30 @@ async function renderizarDashboardConColores() {
                     <div class="estado-descripcion">
                         ${estado.descripcion}
                     </div>
-                    ${estado.disponibleParaReserva ? 
-                        '<div class="badge-disponible">✓ Reservable</div>' : 
-                        '<div class="badge-no-disponible">✗ No reservable</div>'
+                    ${
+                      estado.disponibleParaReserva
+                        ? '<div class="badge-disponible">✓ Reservable</div>'
+                        : '<div class="badge-no-disponible">✗ No reservable</div>'
                     }
                 </div>
             `;
-        });
-        
-        html += '</div>';
-        
-        // Agregar total
-        html += `
+    });
+
+    html += '</div>';
+
+    // Agregar total
+    html += `
             <div class="dashboard-total">
                 <strong>Total de cuartos:</strong> ${dashboard.total}
             </div>
         `;
-        
-        container.innerHTML = html;
-        
-        console.log('✅ Dashboard renderizado correctamente');
-        
-    } catch (error) {
-        console.error('❌ Error:', error);
-    }
+
+    container.innerHTML = html;
+
+    console.log('✅ Dashboard renderizado correctamente');
+  } catch (error) {
+    console.error('❌ Error:', error);
+  }
 }
 
 // Ejecutar al cargar la página
@@ -222,84 +224,86 @@ setInterval(renderizarDashboardConColores, 30000);
 ```css
 /* Estilos para el dashboard de estados */
 .dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-    margin: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 20px 0;
 }
 
 .card-estado {
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
 .card-estado:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+  transform: translateY(-5px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
 .estado-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
 }
 
 .estado-header .icono {
-    font-size: 24px;
+  font-size: 24px;
 }
 
 .estado-header .label {
-    font-weight: bold;
-    font-size: 18px;
-    color: #333;
+  font-weight: bold;
+  font-size: 18px;
+  color: #333;
 }
 
 .estado-numero {
-    font-size: 48px;
-    font-weight: bold;
-    margin: 10px 0;
+  font-size: 48px;
+  font-weight: bold;
+  margin: 10px 0;
 }
 
 .estado-porcentaje {
-    font-size: 14px;
-    color: #666;
-    margin-bottom: 10px;
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 10px;
 }
 
 .estado-descripcion {
-    font-size: 13px;
-    color: #888;
-    margin-bottom: 15px;
+  font-size: 13px;
+  color: #888;
+  margin-bottom: 15px;
 }
 
 .badge-disponible {
-    display: inline-block;
-    padding: 5px 10px;
-    background: #4CAF50;
-    color: white;
-    border-radius: 5px;
-    font-size: 12px;
+  display: inline-block;
+  padding: 5px 10px;
+  background: #4caf50;
+  color: white;
+  border-radius: 5px;
+  font-size: 12px;
 }
 
 .badge-no-disponible {
-    display: inline-block;
-    padding: 5px 10px;
-    background: #999;
-    color: white;
-    border-radius: 5px;
-    font-size: 12px;
+  display: inline-block;
+  padding: 5px 10px;
+  background: #999;
+  color: white;
+  border-radius: 5px;
+  font-size: 12px;
 }
 
 .dashboard-total {
-    margin-top: 20px;
-    padding: 15px;
-    background: #f5f5f5;
-    border-radius: 5px;
-    text-align: center;
-    font-size: 18px;
+  margin-top: 20px;
+  padding: 15px;
+  background: #f5f5f5;
+  border-radius: 5px;
+  text-align: center;
+  font-size: 18px;
 }
 ```
 
@@ -307,7 +311,7 @@ setInterval(renderizarDashboardConColores, 30000);
 
 ```html
 <div id="dashboard-estados">
-    <div class="loading">Cargando dashboard...</div>
+  <div class="loading">Cargando dashboard...</div>
 </div>
 ```
 
@@ -320,13 +324,15 @@ setInterval(renderizarDashboardConColores, 30000);
  * Renderizar cuarto con color dinámico según su estado
  */
 async function renderizarCuartoConColor(cuarto) {
-    // Obtener configuración de colores
-    const response = await fetch('http://localhost:3001/api/cuartos/configuracion/estados');
-    const config = await response.json();
-    
-    const estadoConfig = config.estados[cuarto.estado];
-    
-    return `
+  // Obtener configuración de colores
+  const response = await fetch(
+    'http://localhost:3001/api/cuartos/configuracion/estados'
+  );
+  const config = await response.json();
+
+  const estadoConfig = config.estados[cuarto.estado];
+
+  return `
         <div class="cuarto-card" 
              style="border-left: 5px solid ${estadoConfig.color};
                     background: ${estadoConfig.colorSecundario}">
@@ -353,11 +359,11 @@ async function renderizarCuartoConColor(cuarto) {
  * Renderizar botones de cambio de estado con colores
  */
 function renderizarBotonesEstado(cuartoId, estadoActual, configuracion) {
-    let html = '<div class="botones-estado">';
-    
-    Object.values(configuracion).forEach(estado => {
-        const esActivo = estado.valor === estadoActual;
-        html += `
+  let html = '<div class="botones-estado">';
+
+  Object.values(configuracion).forEach((estado) => {
+    const esActivo = estado.valor === estadoActual;
+    html += `
             <button 
                 class="btn-estado ${esActivo ? 'activo' : ''}"
                 onclick="cambiarEstado(${cuartoId}, '${estado.valor}')"
@@ -370,10 +376,10 @@ function renderizarBotonesEstado(cuartoId, estadoActual, configuracion) {
                 ${estado.icono} ${estado.label}
             </button>
         `;
-    });
-    
-    html += '</div>';
-    return html;
+  });
+
+  html += '</div>';
+  return html;
 }
 ```
 
@@ -386,18 +392,20 @@ function renderizarBotonesEstado(cuartoId, estadoActual, configuracion) {
  * Renderizar gráfica de barras horizontal con colores
  */
 async function renderizarGraficaBarras() {
-    const response = await fetch('http://localhost:3001/api/cuartos/dashboard/estados');
-    const data = await response.json();
-    
-    const dashboard = data.dashboard;
-    const container = document.getElementById('grafica-estados');
-    
-    let html = '<div class="grafica-container">';
-    
-    Object.values(dashboard.estados)
-        .sort((a, b) => b.cantidad - a.cantidad)
-        .forEach(estado => {
-            html += `
+  const response = await fetch(
+    'http://localhost:3001/api/cuartos/dashboard/estados'
+  );
+  const data = await response.json();
+
+  const dashboard = data.dashboard;
+  const container = document.getElementById('grafica-estados');
+
+  let html = '<div class="grafica-container">';
+
+  Object.values(dashboard.estados)
+    .sort((a, b) => b.cantidad - a.cantidad)
+    .forEach((estado) => {
+      html += `
                 <div class="barra-item">
                     <div class="barra-label">
                         ${estado.icono} ${estado.label}
@@ -416,10 +424,10 @@ async function renderizarGraficaBarras() {
                     </div>
                 </div>
             `;
-        });
-    
-    html += '</div>';
-    container.innerHTML = html;
+    });
+
+  html += '</div>';
+  container.innerHTML = html;
 }
 ```
 
@@ -427,40 +435,40 @@ async function renderizarGraficaBarras() {
 
 ```css
 .grafica-container {
-    padding: 20px;
+  padding: 20px;
 }
 
 .barra-item {
-    margin-bottom: 15px;
+  margin-bottom: 15px;
 }
 
 .barra-label {
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-size: 14px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 14px;
 }
 
 .barra-wrapper {
-    background: #f0f0f0;
-    border-radius: 10px;
-    height: 40px;
-    overflow: hidden;
-    position: relative;
+  background: #f0f0f0;
+  border-radius: 10px;
+  height: 40px;
+  overflow: hidden;
+  position: relative;
 }
 
 .barra-progreso {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    padding: 0 15px;
-    transition: width 0.5s ease;
-    border-radius: 10px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 15px;
+  transition: width 0.5s ease;
+  border-radius: 10px;
 }
 
 .barra-texto {
-    font-weight: bold;
-    font-size: 14px;
-    white-space: nowrap;
+  font-weight: bold;
+  font-size: 14px;
+  white-space: nowrap;
 }
 ```
 
@@ -473,12 +481,14 @@ async function renderizarGraficaBarras() {
  * Crear badge de estado con color dinámico
  */
 async function crearBadgeEstado(estado) {
-    const response = await fetch('http://localhost:3001/api/cuartos/configuracion/estados');
-    const config = await response.json();
-    
-    const estadoConfig = config.estados[estado];
-    
-    return `
+  const response = await fetch(
+    'http://localhost:3001/api/cuartos/configuracion/estados'
+  );
+  const config = await response.json();
+
+  const estadoConfig = config.estados[estado];
+
+  return `
         <span class="badge-estado-inline" 
               style="
                 background: ${estadoConfig.color};
@@ -498,8 +508,8 @@ async function crearBadgeEstado(estado) {
 }
 
 // Uso
-document.getElementById('estado-cuarto').innerHTML = 
-    await crearBadgeEstado('mantenimiento');
+document.getElementById('estado-cuarto').innerHTML =
+  await crearBadgeEstado('mantenimiento');
 ```
 
 ---
@@ -509,10 +519,14 @@ document.getElementById('estado-cuarto').innerHTML =
 ```html
 <!-- HTML -->
 <div class="filtros-estado">
-    <button class="filtro-btn" data-estado="todos" onclick="filtrarPorEstado('todos')">
-        Todos
-    </button>
-    <!-- Los demás botones se generan dinámicamente -->
+  <button
+    class="filtro-btn"
+    data-estado="todos"
+    onclick="filtrarPorEstado('todos')"
+  >
+    Todos
+  </button>
+  <!-- Los demás botones se generan dinámicamente -->
 </div>
 
 <div id="lista-cuartos"></div>
@@ -523,23 +537,25 @@ document.getElementById('estado-cuarto').innerHTML =
  * Inicializar filtros con colores
  */
 async function inicializarFiltros() {
-    const response = await fetch('http://localhost:3001/api/cuartos/configuracion/estados');
-    const config = await response.json();
-    
-    const container = document.querySelector('.filtros-estado');
-    
-    // Botón "Todos"
-    let html = `
+  const response = await fetch(
+    'http://localhost:3001/api/cuartos/configuracion/estados'
+  );
+  const config = await response.json();
+
+  const container = document.querySelector('.filtros-estado');
+
+  // Botón "Todos"
+  let html = `
         <button class="filtro-btn activo" 
                 data-estado="todos" 
                 onclick="filtrarPorEstado('todos')">
             Todos
         </button>
     `;
-    
-    // Botones por estado
-    Object.values(config.estados).forEach(estado => {
-        html += `
+
+  // Botones por estado
+  Object.values(config.estados).forEach((estado) => {
+    html += `
             <button class="filtro-btn" 
                     data-estado="${estado.valor}" 
                     onclick="filtrarPorEstado('${estado.valor}')"
@@ -550,33 +566,33 @@ async function inicializarFiltros() {
                 ${estado.icono} ${estado.label}
             </button>
         `;
-    });
-    
-    container.innerHTML = html;
+  });
+
+  container.innerHTML = html;
 }
 
 /**
  * Filtrar cuartos por estado
  */
 async function filtrarPorEstado(estado) {
-    // Actualizar botones activos
-    document.querySelectorAll('.filtro-btn').forEach(btn => {
-        btn.classList.remove('activo');
-    });
-    document.querySelector(`[data-estado="${estado}"]`).classList.add('activo');
-    
-    // Obtener cuartos
-    let url = 'http://localhost:3001/api/cuartos';
-    if (estado !== 'todos') {
-        url = `http://localhost:3001/api/cuartos/estado/${estado}`;
-    }
-    
-    const response = await fetch(url);
-    const data = await response.json();
-    const cuartos = estado === 'todos' ? data : data.cuartos;
-    
-    // Renderizar cuartos
-    renderizarListaCuartos(cuartos);
+  // Actualizar botones activos
+  document.querySelectorAll('.filtro-btn').forEach((btn) => {
+    btn.classList.remove('activo');
+  });
+  document.querySelector(`[data-estado="${estado}"]`).classList.add('activo');
+
+  // Obtener cuartos
+  let url = 'http://localhost:3001/api/cuartos';
+  if (estado !== 'todos') {
+    url = `http://localhost:3001/api/cuartos/estado/${estado}`;
+  }
+
+  const response = await fetch(url);
+  const data = await response.json();
+  const cuartos = estado === 'todos' ? data : data.cuartos;
+
+  // Renderizar cuartos
+  renderizarListaCuartos(cuartos);
 }
 ```
 
@@ -589,14 +605,16 @@ async function filtrarPorEstado(estado) {
  * Mostrar notificación cuando cambia el estado
  */
 async function notificarCambioEstado(cuartoId, nuevoEstado) {
-    const response = await fetch('http://localhost:3001/api/cuartos/configuracion/estados');
-    const config = await response.json();
-    
-    const estadoConfig = config.estados[nuevoEstado];
-    
-    const notificacion = document.createElement('div');
-    notificacion.className = 'notificacion';
-    notificacion.style.cssText = `
+  const response = await fetch(
+    'http://localhost:3001/api/cuartos/configuracion/estados'
+  );
+  const config = await response.json();
+
+  const estadoConfig = config.estados[nuevoEstado];
+
+  const notificacion = document.createElement('div');
+  notificacion.className = 'notificacion';
+  notificacion.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -608,19 +626,19 @@ async function notificarCambioEstado(cuartoId, nuevoEstado) {
         z-index: 1000;
         animation: slideIn 0.3s ease;
     `;
-    
-    notificacion.innerHTML = `
+
+  notificacion.innerHTML = `
         <strong>${estadoConfig.icono} Estado Actualizado</strong><br>
         Cuarto #${cuartoId}: ${estadoConfig.label}
     `;
-    
-    document.body.appendChild(notificacion);
-    
-    // Eliminar después de 3 segundos
-    setTimeout(() => {
-        notificacion.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => notificacion.remove(), 300);
-    }, 3000);
+
+  document.body.appendChild(notificacion);
+
+  // Eliminar después de 3 segundos
+  setTimeout(() => {
+    notificacion.style.animation = 'slideOut 0.3s ease';
+    setTimeout(() => notificacion.remove(), 300);
+  }, 3000);
 }
 
 // Animaciones CSS
@@ -644,26 +662,26 @@ document.head.appendChild(style);
 
 ```javascript
 const PALETA_ESTADOS = {
-    disponible: {
-        principal: '#4CAF50',      // Verde
-        secundario: '#E8F5E9',     // Verde claro
-        texto: '#FFFFFF'
-    },
-    ocupado: {
-        principal: '#2196F3',      // Azul
-        secundario: '#E3F2FD',     // Azul claro
-        texto: '#FFFFFF'
-    },
-    mantenimiento: {
-        principal: '#FF9800',      // Naranja
-        secundario: '#FFF3E0',     // Naranja claro
-        texto: '#FFFFFF'
-    },
-    fuera_servicio: {
-        principal: '#616161',      // Gris oscuro
-        secundario: '#F5F5F5',     // Gris claro
-        texto: '#FFFFFF'
-    }
+  disponible: {
+    principal: '#4CAF50', // Verde
+    secundario: '#E8F5E9', // Verde claro
+    texto: '#FFFFFF',
+  },
+  ocupado: {
+    principal: '#2196F3', // Azul
+    secundario: '#E3F2FD', // Azul claro
+    texto: '#FFFFFF',
+  },
+  mantenimiento: {
+    principal: '#FF9800', // Naranja
+    secundario: '#FFF3E0', // Naranja claro
+    texto: '#FFFFFF',
+  },
+  fuera_servicio: {
+    principal: '#616161', // Gris oscuro
+    secundario: '#F5F5F5', // Gris claro
+    texto: '#FFFFFF',
+  },
 };
 ```
 
@@ -672,4 +690,3 @@ const PALETA_ESTADOS = {
 **Fecha:** 10 de noviembre de 2025  
 **Proyecto:** JW Mantto - Sistema de Mantenimiento Hotelero  
 **Versión:** 1.1.0
-

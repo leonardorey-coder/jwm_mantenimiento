@@ -1,1 +1,11 @@
-{"cuartos":[{"id":1743835207789,"nombre":"ALFA","edificio":"A101","descripcion":"","mantenimientos":[]}]}
+{
+  "cuartos": [
+    {
+      "id": 1743835207789,
+      "nombre": "ALFA",
+      "edificio": "A101",
+      "descripcion": "",
+      "mantenimientos": []
+    }
+  ]
+}

@@ -1,4 +1,5 @@
 # Diagrama de Base de Datos Completo - JW Mantto
+
 **Fecha:** 2025-11-11  
 **Versión:** 2.0.0
 
@@ -159,21 +160,26 @@
 ## 📊 Resumen de Tablas
 
 ### Tablas de Configuración (2)
+
 - `configuracion_estados` - Estados con colores (4 registros)
 - `roles` - Roles del sistema (3 registros)
 
 ### Tablas de Usuarios (1)
+
 - `usuarios` - Usuarios del sistema
 
 ### Tablas de Estructura (3)
+
 - `edificios` - Edificios del hotel
 - `cuartos` - Habitaciones
 - `espacios_comunes` - Áreas comunes (gimnasio, piscina, etc.)
 
 ### Tablas de Mantenimiento (1)
+
 - `mantenimientos` - Registros de mantenimiento
 
 ### Tablas de Inspecciones (5)
+
 - `inspecciones` - Inspecciones realizadas
 - `checklists` - Listas de verificación
 - `checklist_items` - Items de checklists
@@ -250,6 +256,7 @@ configuracion_estados (1) ──< (N) espacios_comunes
 ## 📈 Cardinalidades Detalladas
 
 ### Edificios → Cuartos
+
 - Un edificio **debe tener** al menos 1 cuarto
 - Un edificio **puede tener** muchos cuartos
 - Un cuarto **pertenece a** exactamente 1 edificio
@@ -259,6 +266,7 @@ edificios (1,1) ──────< (1,N) cuartos
 ```
 
 ### Edificios → Espacios Comunes
+
 - Un edificio **puede tener** 0 o más espacios comunes
 - Un espacio común **pertenece a** exactamente 1 edificio
 
@@ -267,6 +275,7 @@ edificios (1,1) ──────< (0,N) espacios_comunes
 ```
 
 ### Cuartos/Espacios → Mantenimientos
+
 - Un cuarto **puede tener** 0 o más mantenimientos
 - Un espacio común **puede tener** 0 o más mantenimientos
 - Un mantenimiento **es para** 1 cuarto O 1 espacio común (XOR)
@@ -277,6 +286,7 @@ espacios_comunes (1,1) ──< (0,N) mantenimientos
 ```
 
 ### Mantenimientos → Inspecciones
+
 - Un mantenimiento **puede tener** 0 o más inspecciones
 - Una inspección **es de** exactamente 1 mantenimiento
 
@@ -285,6 +295,7 @@ mantenimientos (1,1) ──< (0,N) inspecciones
 ```
 
 ### Inspecciones → Checklists
+
 - Una inspección **puede tener** 0 o más checklists
 - Un checklist **pertenece a** exactamente 1 inspección
 
@@ -293,6 +304,7 @@ inspecciones (1,1) ──< (0,N) checklists
 ```
 
 ### Checklists → Items
+
 - Un checklist **debe tener** al menos 1 item
 - Un item **pertenece a** exactamente 1 checklist
 
@@ -301,6 +313,7 @@ checklists (1,1) ──< (1,N) checklist_items
 ```
 
 ### Inspecciones → Evidencias
+
 - Una inspección **puede tener** 0 o más evidencias
 - Una evidencia **pertenece a** exactamente 1 inspección
 
@@ -309,6 +322,7 @@ inspecciones (1,1) ──< (0,N) evidencias
 ```
 
 ### Inspecciones → Firmas
+
 - Una inspección **puede tener** 0 o 1 firma
 - Una firma **pertenece a** exactamente 1 inspección
 
@@ -319,29 +333,30 @@ inspecciones (1,1) ──── (0,1) firmas_digitales
 ## 🔑 Claves e Índices
 
 ### Claves Primarias (PK)
+
 Todas las tablas tienen un `id` SERIAL como clave primaria.
 
 ### Claves Foráneas (FK)
 
-| Tabla | Campo FK | Referencia | Acción ON DELETE |
-|-------|----------|------------|------------------|
-| usuarios | rol_id | roles(id) | RESTRICT |
-| cuartos | edificio_id | edificios(id) | CASCADE |
-| cuartos | estado | configuracion_estados(valor) | RESTRICT |
-| espacios_comunes | edificio_id | edificios(id) | CASCADE |
-| espacios_comunes | estado | configuracion_estados(valor) | RESTRICT |
-| mantenimientos | cuarto_id | cuartos(id) | CASCADE |
-| mantenimientos | espacio_comun_id | espacios_comunes(id) | CASCADE |
-| mantenimientos | usuario_creador_id | usuarios(id) | SET NULL |
-| mantenimientos | usuario_asignado_id | usuarios(id) | SET NULL |
-| inspecciones | mantenimiento_id | mantenimientos(id) | CASCADE |
-| inspecciones | tecnico_id | usuarios(id) | RESTRICT |
-| checklists | inspeccion_id | inspecciones(id) | CASCADE |
-| checklist_items | checklist_id | checklists(id) | CASCADE |
-| checklist_items | usuario_completo_id | usuarios(id) | SET NULL |
-| evidencias | inspeccion_id | inspecciones(id) | CASCADE |
-| evidencias | usuario_subida_id | usuarios(id) | SET NULL |
-| firmas_digitales | inspeccion_id | inspecciones(id) | CASCADE |
+| Tabla            | Campo FK            | Referencia                   | Acción ON DELETE |
+| ---------------- | ------------------- | ---------------------------- | ---------------- |
+| usuarios         | rol_id              | roles(id)                    | RESTRICT         |
+| cuartos          | edificio_id         | edificios(id)                | CASCADE          |
+| cuartos          | estado              | configuracion_estados(valor) | RESTRICT         |
+| espacios_comunes | edificio_id         | edificios(id)                | CASCADE          |
+| espacios_comunes | estado              | configuracion_estados(valor) | RESTRICT         |
+| mantenimientos   | cuarto_id           | cuartos(id)                  | CASCADE          |
+| mantenimientos   | espacio_comun_id    | espacios_comunes(id)         | CASCADE          |
+| mantenimientos   | usuario_creador_id  | usuarios(id)                 | SET NULL         |
+| mantenimientos   | usuario_asignado_id | usuarios(id)                 | SET NULL         |
+| inspecciones     | mantenimiento_id    | mantenimientos(id)           | CASCADE          |
+| inspecciones     | tecnico_id          | usuarios(id)                 | RESTRICT         |
+| checklists       | inspeccion_id       | inspecciones(id)             | CASCADE          |
+| checklist_items  | checklist_id        | checklists(id)               | CASCADE          |
+| checklist_items  | usuario_completo_id | usuarios(id)                 | SET NULL         |
+| evidencias       | inspeccion_id       | inspecciones(id)             | CASCADE          |
+| evidencias       | usuario_subida_id   | usuarios(id)                 | SET NULL         |
+| firmas_digitales | inspeccion_id       | inspecciones(id)             | CASCADE          |
 
 ### Claves Únicas (UNIQUE)
 
@@ -357,6 +372,7 @@ Todas las tablas tienen un `id` SERIAL como clave primaria.
 **Total de índices:** 35+
 
 Principales índices por tabla:
+
 - `cuartos`: 5 índices (edificio, estado, numero, piso, activo)
 - `espacios_comunes`: 4 índices (edificio, estado, tipo, activo)
 - `mantenimientos`: 8 índices (cuarto, espacio, tipo, estado, prioridad, fechas, usuario)
@@ -366,9 +382,11 @@ Principales índices por tabla:
 ## 🔄 Triggers Automáticos
 
 ### 1. Actualización de `updated_at`
+
 Actualiza automáticamente el timestamp cuando se modifica un registro.
 
 **Tablas afectadas:**
+
 - edificios
 - cuartos
 - espacios_comunes
@@ -376,17 +394,21 @@ Actualiza automáticamente el timestamp cuando se modifica un registro.
 - checklists
 
 ### 2. Actualización de Progreso de Checklist
+
 Recalcula automáticamente el porcentaje de progreso cuando se completa un item.
 
 **Tabla afectada:**
+
 - checklist_items → checklists
 
 ## 📊 Vistas Disponibles
 
 ### 1. `vista_cuartos_completa`
+
 Cuartos con información del edificio y configuración de colores.
 
 **Campos adicionales:**
+
 - edificio_nombre
 - estado_label
 - estado_color
@@ -394,9 +416,11 @@ Cuartos con información del edificio y configuración de colores.
 - estado_icono
 
 ### 2. `vista_espacios_comunes_completa`
+
 Espacios comunes con información del edificio y colores.
 
 **Campos adicionales:**
+
 - edificio_nombre
 - estado_label
 - estado_color
@@ -404,9 +428,11 @@ Espacios comunes con información del edificio y colores.
 - estado_icono
 
 ### 3. `vista_mantenimientos_completa`
+
 Mantenimientos con toda la información relacionada.
 
 **Campos adicionales:**
+
 - cuarto_numero
 - cuarto_estado
 - espacio_comun_nombre
@@ -416,9 +442,11 @@ Mantenimientos con toda la información relacionada.
 - usuario_asignado_nombre
 
 ### 4. `vista_inspecciones_completa`
+
 Inspecciones con información del técnico y contadores.
 
 **Campos adicionales:**
+
 - tecnico_nombre
 - tecnico_email
 - mantenimiento_descripcion
@@ -431,24 +459,30 @@ Inspecciones con información del técnico y contadores.
 ## 🎯 Funciones SQL
 
 ### 1. `calcular_progreso_checklist(checklist_id)`
+
 Calcula el porcentaje de progreso de un checklist.
 
-**Parámetros:** 
+**Parámetros:**
+
 - `checklist_id` (INTEGER)
 
-**Retorna:** 
+**Retorna:**
+
 - DECIMAL(5,2) - Porcentaje de 0.00 a 100.00
 
 **Ejemplo:**
+
 ```sql
 SELECT calcular_progreso_checklist(1);
 -- Resultado: 75.00
 ```
 
 ### 2. `obtener_estadisticas_cuartos()`
+
 Obtiene estadísticas de estados de cuartos con colores.
 
 **Retorna tabla con:**
+
 - estado (VARCHAR)
 - cantidad (BIGINT)
 - porcentaje (DECIMAL)
@@ -456,14 +490,17 @@ Obtiene estadísticas de estados de cuartos con colores.
 - label (VARCHAR)
 
 **Ejemplo:**
+
 ```sql
 SELECT * FROM obtener_estadisticas_cuartos();
 ```
 
 ### 3. `obtener_estadisticas_espacios_comunes()`
+
 Obtiene estadísticas de estados de espacios comunes.
 
 **Retorna tabla con:**
+
 - estado (VARCHAR)
 - cantidad (BIGINT)
 - porcentaje (DECIMAL)
@@ -471,6 +508,7 @@ Obtiene estadísticas de estados de espacios comunes.
 - label (VARCHAR)
 
 **Ejemplo:**
+
 ```sql
 SELECT * FROM obtener_estadisticas_espacios_comunes();
 ```
@@ -478,10 +516,12 @@ SELECT * FROM obtener_estadisticas_espacios_comunes();
 ## 📝 Restricciones CHECK
 
 ### Estados
+
 - `cuartos.estado` → Debe existir en `configuracion_estados`
 - `espacios_comunes.estado` → Debe existir en `configuracion_estados`
 
 ### Mantenimientos
+
 - `tipo` → 'normal', 'rutina', 'preventivo', 'correctivo', 'emergencia'
 - `estado` → 'pendiente', 'en_proceso', 'completado', 'cancelado'
 - `prioridad` → 'baja', 'media', 'alta', 'urgente'
@@ -489,9 +529,11 @@ SELECT * FROM obtener_estadisticas_espacios_comunes();
 - Debe tener `cuarto_id` O `espacio_comun_id` (no ambos, no ninguno)
 
 ### Inspecciones
+
 - `resultado` → 'aprobado', 'rechazado', 'requiere_seguimiento'
 
 ### Evidencias
+
 - `tipo` → 'foto', 'video', 'archivo', 'audio'
 
 ## 🔐 Consideraciones de Seguridad
@@ -507,4 +549,3 @@ SELECT * FROM obtener_estadisticas_espacios_comunes();
 **Última actualización:** 2025-11-11  
 **Versión:** 2.0.0  
 **Base de datos:** PostgreSQL 12+
-
