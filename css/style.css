@@ -8509,12 +8509,6 @@ body.dark-mode .skeleton-card {
   white-space: nowrap;
 }
 
-@media (max-width: 500px) {
-  .estado-pills-inline {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 /* ========================================
    GESTIÓN DE USUARIOS (Admin Only)
    ======================================== */
