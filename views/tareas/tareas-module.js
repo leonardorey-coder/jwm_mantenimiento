@@ -22,31 +22,32 @@ let todosLosServiciosCache = []; // Cache de servicios para calcular progreso de
  * @param {string} tipo - Tipo: 'success', 'error', 'warning', 'info'
  */
 function notificar(mensaje, tipo = 'info') {
-    if (typeof window.mostrarAlertaBlur === 'function') {
-        window.mostrarAlertaBlur(mensaje, tipo);
-    } else {
-        console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
-    }
+  if (typeof window.mostrarAlertaBlur === 'function') {
+    window.mostrarAlertaBlur(mensaje, tipo);
+  } else {
+    console.log(`[${tipo.toUpperCase()}] ${mensaje}`);
+  }
 }
 
 // Headers para peticiones autenticadas
 const obtenerHeadersConAuth = () => {
-    // Intentar obtener el token de diferentes fuentes
-    const token = localStorage.getItem('accessToken') ||
-        localStorage.getItem('token') ||
-        sessionStorage.getItem('accessToken');
+  // Intentar obtener el token de diferentes fuentes
+  const token =
+    localStorage.getItem('accessToken') ||
+    localStorage.getItem('token') ||
+    sessionStorage.getItem('accessToken');
 
-    const headers = {
-        'Content-Type': 'application/json'
-    };
+  const headers = {
+    'Content-Type': 'application/json',
+  };
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    } else {
-        console.warn('⚠️ No se encontró token de autenticación');
-    }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    console.warn('⚠️ No se encontró token de autenticación');
+  }
 
-    return headers;
+  return headers;
 };
 
 /**
@@ -58,41 +59,41 @@ const obtenerHeadersConAuth = () => {
  * @returns {Date} Fecha local correcta
  */
 function parsearFechaLocal(fecha) {
-    if (!fecha) return new Date();
+  if (!fecha) return new Date();
 
-    // Si ya es Date, verificar si necesita ajuste
-    if (fecha instanceof Date) {
-        return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
-    }
+  // Si ya es Date, verificar si necesita ajuste
+  if (fecha instanceof Date) {
+    return new Date(fecha.getFullYear(), fecha.getMonth(), fecha.getDate());
+  }
 
-    const fechaStr = String(fecha);
-    let year, month, day;
+  const fechaStr = String(fecha);
+  let year, month, day;
 
-    // Formato ISO con timestamp (2025-12-03T00:00:00.000Z)
-    if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
-        const fechaPart = fechaStr.split('T')[0];
-        [year, month, day] = fechaPart.split('-').map(Number);
+  // Formato ISO con timestamp (2025-12-03T00:00:00.000Z)
+  if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+    const fechaPart = fechaStr.split('T')[0];
+    [year, month, day] = fechaPart.split('-').map(Number);
+  }
+  // Formato YYYY-MM-DD
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+    [year, month, day] = fechaStr.split('-').map(Number);
+  }
+  // Otros formatos - fallback
+  else {
+    const fechaObj = new Date(fechaStr);
+    if (!isNaN(fechaObj.getTime())) {
+      // Usar UTC para extraer componentes
+      year = fechaObj.getUTCFullYear();
+      month = fechaObj.getUTCMonth() + 1;
+      day = fechaObj.getUTCDate();
+    } else {
+      console.warn('⚠️ parsearFechaLocal - formato no reconocido:', fecha);
+      return new Date();
     }
-    // Formato YYYY-MM-DD
-    else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-        [year, month, day] = fechaStr.split('-').map(Number);
-    }
-    // Otros formatos - fallback
-    else {
-        const fechaObj = new Date(fechaStr);
-        if (!isNaN(fechaObj.getTime())) {
-            // Usar UTC para extraer componentes
-            year = fechaObj.getUTCFullYear();
-            month = fechaObj.getUTCMonth() + 1;
-            day = fechaObj.getUTCDate();
-        } else {
-            console.warn('⚠️ parsearFechaLocal - formato no reconocido:', fecha);
-            return new Date();
-        }
-    }
+  }
 
-    // Crear fecha local (month es 0-indexed en JavaScript)
-    return new Date(year, month - 1, day);
+  // Crear fecha local (month es 0-indexed en JavaScript)
+  return new Date(year, month - 1, day);
 }
 
 /**
@@ -100,61 +101,70 @@ function parsearFechaLocal(fecha) {
  * @returns {string|null} El rol del usuario en formato normalizado (admin, supervisor, tecnico) o null
  */
 function obtenerRolUsuarioActual() {
-    let userRole = null;
+  let userRole = null;
 
-    // Intentar obtener desde AppState
-    if (window.AppState && window.AppState.currentUser) {
-        userRole = window.AppState.currentUser.role || window.AppState.currentUser.rol;
+  // Intentar obtener desde AppState
+  if (window.AppState && window.AppState.currentUser) {
+    userRole =
+      window.AppState.currentUser.role || window.AppState.currentUser.rol;
+  }
+
+  // Si no está en AppState, intentar desde localStorage/sessionStorage
+  if (!userRole) {
+    try {
+      const storedUser = JSON.parse(
+        localStorage.getItem('currentUser') ||
+          sessionStorage.getItem('currentUser') ||
+          'null'
+      );
+      if (storedUser) {
+        userRole = storedUser.role || storedUser.rol;
+      }
+    } catch (e) {
+      console.warn('Error obteniendo usuario de storage:', e);
     }
+  }
 
-    // Si no está en AppState, intentar desde localStorage/sessionStorage
-    if (!userRole) {
-        try {
-            const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-            if (storedUser) {
-                userRole = storedUser.role || storedUser.rol;
-            }
-        } catch (e) {
-            console.warn('Error obteniendo usuario de storage:', e);
-        }
-    }
+  if (userRole) {
+    // Normalizar el rol a minúsculas
+    const roleMap = {
+      admin: 'admin',
+      supervisor: 'supervisor',
+      tecnico: 'tecnico',
+      administrador: 'admin',
+      Administrador: 'admin',
+      Supervisor: 'supervisor',
+      Técnico: 'tecnico',
+      TECNICO: 'tecnico',
+      ADMIN: 'admin',
+      SUPERVISOR: 'supervisor',
+    };
+    return (
+      roleMap[userRole] ||
+      roleMap[userRole.toLowerCase()] ||
+      userRole.toLowerCase()
+    );
+  }
 
-    if (userRole) {
-        // Normalizar el rol a minúsculas
-        const roleMap = {
-            'admin': 'admin',
-            'supervisor': 'supervisor',
-            'tecnico': 'tecnico',
-            'administrador': 'admin',
-            'Administrador': 'admin',
-            'Supervisor': 'supervisor',
-            'Técnico': 'tecnico',
-            'TECNICO': 'tecnico',
-            'ADMIN': 'admin',
-            'SUPERVISOR': 'supervisor'
-        };
-        return roleMap[userRole] || roleMap[userRole.toLowerCase()] || userRole.toLowerCase();
-    }
-
-    return null;
+  return null;
 }
-
 
 // ------------------------------
 // CONTROL DE MODALES
 // ------------------------------
 
 function lockBodyScroll() {
-    document.body.classList.add('modal-open');
+  document.body.classList.add('modal-open');
 }
 
 function unlockBodyScrollIfNoModal() {
-    const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
-        .some(modal => window.getComputedStyle(modal).display !== 'none');
+  const modalVisible = Array.from(
+    document.querySelectorAll('.modal-detalles')
+  ).some((modal) => window.getComputedStyle(modal).display !== 'none');
 
-    if (!modalVisible) {
-        document.body.classList.remove('modal-open');
-    }
+  if (!modalVisible) {
+    document.body.classList.remove('modal-open');
+  }
 }
 
 /**
@@ -162,52 +172,59 @@ function unlockBodyScrollIfNoModal() {
  * @param {number} cuartoId - El ID del cuarto al que se asociará la tarea.
  */
 function abrirModalCrearTarea(cuartoId) {
-    console.log('Abriendo modal para crear tarea en cuarto ID:', cuartoId);
-    cuartoIdActual = cuartoId;
-    tareaIdActual = null;
+  console.log('Abriendo modal para crear tarea en cuarto ID:', cuartoId);
+  cuartoIdActual = cuartoId;
+  tareaIdActual = null;
 
-    const modal = document.getElementById('modalCrearTarea');
-    if (!modal) {
-        console.error('El modal de creación de tareas no se encuentra en el DOM.');
-        return;
-    }
+  const modal = document.getElementById('modalCrearTarea');
+  if (!modal) {
+    console.error('El modal de creación de tareas no se encuentra en el DOM.');
+    return;
+  }
 
-    // Limpiar formulario y mostrar
-    limpiarFormulario('formCrearTarea');
-    cargarUsuariosEnSelect('crearTareaResponsable');
+  // Limpiar formulario y mostrar
+  limpiarFormulario('formCrearTarea');
+  cargarUsuariosEnSelect('crearTareaResponsable');
 
-    // Cargar servicios para selección múltiple (todos los servicios)
-    cargarServiciosParaSeleccion();
+  // Cargar servicios para selección múltiple (todos los servicios)
+  cargarServiciosParaSeleccion();
 
-    // Establecer fecha mínima como hoy
-    const inputFecha = document.getElementById('crearTareaFecha');
-    if (inputFecha) {
-        const hoy = new Date().toISOString().split('T')[0];
-        inputFecha.min = hoy;
-        // Establecer fecha por defecto como mañana
-        const mañana = new Date();
-        mañana.setDate(mañana.getDate() + 1);
-        inputFecha.value = mañana.toISOString().split('T')[0];
-    }
+  // Establecer fecha mínima como hoy
+  const inputFecha = document.getElementById('crearTareaFecha');
+  if (inputFecha) {
+    const hoy = new Date().toISOString().split('T')[0];
+    inputFecha.min = hoy;
+    // Establecer fecha por defecto como mañana
+    const mañana = new Date();
+    mañana.setDate(mañana.getDate() + 1);
+    inputFecha.value = mañana.toISOString().split('T')[0];
+  }
 
-    // Inicializar semáforo con valor por defecto (media)
-    setTimeout(() => actualizarSemaforoPrioridad('crearTareaPrioridad', 'semaforoPrioridadCrear'), 100);
+  // Inicializar semáforo con valor por defecto (media)
+  setTimeout(
+    () =>
+      actualizarSemaforoPrioridad(
+        'crearTareaPrioridad',
+        'semaforoPrioridadCrear'
+      ),
+    100
+  );
 
-    // Guardar el cuarto ID en el campo hidden
-    const inputCuartoId = document.getElementById('tareaCrearCuartoId');
-    if (inputCuartoId) {
-        inputCuartoId.value = cuartoId;
-    }
+  // Guardar el cuarto ID en el campo hidden
+  const inputCuartoId = document.getElementById('tareaCrearCuartoId');
+  if (inputCuartoId) {
+    inputCuartoId.value = cuartoId;
+  }
 
-    modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
-    lockBodyScroll();
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  lockBodyScroll();
 
-    // Foco en el primer campo
-    setTimeout(() => {
-        const primerInput = document.getElementById('crearTareaNombre');
-        if (primerInput) primerInput.focus();
-    }, 100);
+  // Foco en el primer campo
+  setTimeout(() => {
+    const primerInput = document.getElementById('crearTareaNombre');
+    if (primerInput) primerInput.focus();
+  }, 100);
 }
 
 // Variables para lazy loading de servicios
@@ -223,110 +240,134 @@ let filtroBusquedaActual = ''; // Almacena el término de búsqueda para filtrar
  * Carga TODOS los servicios para mostrarlos con lazy loading en el modal.
  */
 async function cargarServiciosParaSeleccion() {
-    const container = document.getElementById('listaServiciosCrear');
-    const inputBusqueda = document.getElementById('buscarServiciosTarea');
+  const container = document.getElementById('listaServiciosCrear');
+  const inputBusqueda = document.getElementById('buscarServiciosTarea');
 
-    if (!container) return;
+  if (!container) return;
 
-    container.innerHTML = '<p class="mensaje-vacio"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</p>';
+  container.innerHTML =
+    '<p class="mensaje-vacio"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</p>';
 
-    try {
-        // Fetch sin cuarto_id para obtener todos
-        const response = await fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) throw new Error('Error al cargar servicios');
+  try {
+    // Fetch sin cuarto_id para obtener todos
+    const response = await fetch(`${API_URL}/mantenimientos`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok) throw new Error('Error al cargar servicios');
 
-        todosLosServicios = await response.json();
-        serviciosFiltrados = [...todosLosServicios]; // Inicialmente todos
-        serviciosRenderizados = 0;
+    todosLosServicios = await response.json();
+    serviciosFiltrados = [...todosLosServicios]; // Inicialmente todos
+    serviciosRenderizados = 0;
 
-        if (todosLosServicios.length === 0) {
-            container.innerHTML = '<p class="mensaje-vacio">No hay servicios registrados en el sistema.</p>';
-            return;
-        }
-
-        container.innerHTML = '';
-
-        // Renderizar primer lote
-        renderizarLoteServicios(container);
-
-        // Configurar IntersectionObserver para lazy loading
-        if (observerServicios) observerServicios.disconnect();
-
-        observerServicios = new IntersectionObserver((entries) => {
-            if (entries[0].isIntersecting) {
-                renderizarLoteServicios(container);
-            }
-        }, { root: container, threshold: 0.1 });
-
-        // Crear elemento centinela
-        const sentinel = document.createElement('div');
-        sentinel.id = 'sentinel-servicios';
-        sentinel.style.height = '10px';
-        container.appendChild(sentinel);
-        observerServicios.observe(sentinel);
-
-        // Configurar evento de búsqueda
-        if (inputBusqueda) {
-            inputBusqueda.value = ''; // Limpiar búsqueda al abrir
-            filtroBusquedaActual = ''; // Resetear filtro de búsqueda
-            // Remover listeners anteriores para evitar duplicados (clonando el nodo)
-            const nuevoInput = inputBusqueda.cloneNode(true);
-            inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
-
-            nuevoInput.addEventListener('input', (e) => {
-                filtroBusquedaActual = e.target.value;
-                aplicarFiltrosServicios();
-            });
-        }
-
-        // Configurar evento del selector de responsable para filtrar servicios
-        const selectResponsable = document.getElementById('crearTareaResponsable');
-        if (selectResponsable) {
-            filtroResponsableActual = ''; // Resetear filtro de responsable
-
-            // Definir el handler para poder removerlo después
-            const handleResponsableChange = (e) => {
-                // Obtener el texto del option seleccionado (nombre del responsable)
-                const selectedOption = e.target.options[e.target.selectedIndex];
-                filtroResponsableActual = selectedOption && selectedOption.value ? selectedOption.text.trim() : '';
-                console.log('📋 Filtrando servicios por responsable:', filtroResponsableActual || 'todos');
-                aplicarFiltrosServicios();
-            };
-
-            // Remover listener anterior si existe (guardado en el elemento)
-            if (selectResponsable._filtroHandler) {
-                selectResponsable.removeEventListener('change', selectResponsable._filtroHandler);
-            }
-
-            // Guardar referencia al handler y agregar el listener
-            selectResponsable._filtroHandler = handleResponsableChange;
-            selectResponsable.addEventListener('change', handleResponsableChange);
-        }
-
-        // Configurar toggle para activar/desactivar filtro por responsable
-        const toggleFiltroResponsable = document.getElementById('toggleFiltroResponsable');
-        if (toggleFiltroResponsable) {
-            // Resetear el toggle al abrir el modal (activado por defecto)
-            toggleFiltroResponsable.checked = true;
-
-            // Remover listener anterior si existe
-            if (toggleFiltroResponsable._toggleHandler) {
-                toggleFiltroResponsable.removeEventListener('change', toggleFiltroResponsable._toggleHandler);
-            }
-
-            const handleToggleChange = () => {
-                console.log('🔄 Toggle filtro responsable:', toggleFiltroResponsable.checked ? 'activado' : 'desactivado');
-                aplicarFiltrosServicios();
-            };
-
-            toggleFiltroResponsable._toggleHandler = handleToggleChange;
-            toggleFiltroResponsable.addEventListener('change', handleToggleChange);
-        }
-
-    } catch (error) {
-        console.error('Error al cargar servicios para selección:', error);
-        container.innerHTML = '<p class="mensaje-vacio error">Error al cargar servicios.</p>';
+    if (todosLosServicios.length === 0) {
+      container.innerHTML =
+        '<p class="mensaje-vacio">No hay servicios registrados en el sistema.</p>';
+      return;
     }
+
+    container.innerHTML = '';
+
+    // Renderizar primer lote
+    renderizarLoteServicios(container);
+
+    // Configurar IntersectionObserver para lazy loading
+    if (observerServicios) observerServicios.disconnect();
+
+    observerServicios = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          renderizarLoteServicios(container);
+        }
+      },
+      { root: container, threshold: 0.1 }
+    );
+
+    // Crear elemento centinela
+    const sentinel = document.createElement('div');
+    sentinel.id = 'sentinel-servicios';
+    sentinel.style.height = '10px';
+    container.appendChild(sentinel);
+    observerServicios.observe(sentinel);
+
+    // Configurar evento de búsqueda
+    if (inputBusqueda) {
+      inputBusqueda.value = ''; // Limpiar búsqueda al abrir
+      filtroBusquedaActual = ''; // Resetear filtro de búsqueda
+      // Remover listeners anteriores para evitar duplicados (clonando el nodo)
+      const nuevoInput = inputBusqueda.cloneNode(true);
+      inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
+
+      nuevoInput.addEventListener('input', (e) => {
+        filtroBusquedaActual = e.target.value;
+        aplicarFiltrosServicios();
+      });
+    }
+
+    // Configurar evento del selector de responsable para filtrar servicios
+    const selectResponsable = document.getElementById('crearTareaResponsable');
+    if (selectResponsable) {
+      filtroResponsableActual = ''; // Resetear filtro de responsable
+
+      // Definir el handler para poder removerlo después
+      const handleResponsableChange = (e) => {
+        // Obtener el texto del option seleccionado (nombre del responsable)
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        filtroResponsableActual =
+          selectedOption && selectedOption.value
+            ? selectedOption.text.trim()
+            : '';
+        console.log(
+          '📋 Filtrando servicios por responsable:',
+          filtroResponsableActual || 'todos'
+        );
+        aplicarFiltrosServicios();
+      };
+
+      // Remover listener anterior si existe (guardado en el elemento)
+      if (selectResponsable._filtroHandler) {
+        selectResponsable.removeEventListener(
+          'change',
+          selectResponsable._filtroHandler
+        );
+      }
+
+      // Guardar referencia al handler y agregar el listener
+      selectResponsable._filtroHandler = handleResponsableChange;
+      selectResponsable.addEventListener('change', handleResponsableChange);
+    }
+
+    // Configurar toggle para activar/desactivar filtro por responsable
+    const toggleFiltroResponsable = document.getElementById(
+      'toggleFiltroResponsable'
+    );
+    if (toggleFiltroResponsable) {
+      // Resetear el toggle al abrir el modal (activado por defecto)
+      toggleFiltroResponsable.checked = true;
+
+      // Remover listener anterior si existe
+      if (toggleFiltroResponsable._toggleHandler) {
+        toggleFiltroResponsable.removeEventListener(
+          'change',
+          toggleFiltroResponsable._toggleHandler
+        );
+      }
+
+      const handleToggleChange = () => {
+        console.log(
+          '🔄 Toggle filtro responsable:',
+          toggleFiltroResponsable.checked ? 'activado' : 'desactivado'
+        );
+        aplicarFiltrosServicios();
+      };
+
+      toggleFiltroResponsable._toggleHandler = handleToggleChange;
+      toggleFiltroResponsable.addEventListener('change', handleToggleChange);
+    }
+  } catch (error) {
+    console.error('Error al cargar servicios para selección:', error);
+    container.innerHTML =
+      '<p class="mensaje-vacio error">Error al cargar servicios.</p>';
+  }
 }
 
 /**
@@ -334,68 +375,81 @@ async function cargarServiciosParaSeleccion() {
  * Combina ambos filtros: busca por texto y filtra por el nombre del responsable seleccionado
  */
 function aplicarFiltrosServicios() {
-    const container = document.getElementById('listaServiciosCrear');
-    if (!container) return;
+  const container = document.getElementById('listaServiciosCrear');
+  if (!container) return;
 
-    const terminoLower = (filtroBusquedaActual || '').toLowerCase().trim();
-    const responsableLower = (filtroResponsableActual || '').toLowerCase().trim();
+  const terminoLower = (filtroBusquedaActual || '').toLowerCase().trim();
+  const responsableLower = (filtroResponsableActual || '').toLowerCase().trim();
 
-    // Verificar si el toggle de filtrado por responsable está activado
-    const toggleFiltroResponsable = document.getElementById('toggleFiltroResponsable');
-    const filtrarPorResponsable = toggleFiltroResponsable ? toggleFiltroResponsable.checked : true;
+  // Verificar si el toggle de filtrado por responsable está activado
+  const toggleFiltroResponsable = document.getElementById(
+    'toggleFiltroResponsable'
+  );
+  const filtrarPorResponsable = toggleFiltroResponsable
+    ? toggleFiltroResponsable.checked
+    : true;
 
-    // Aplicar filtros combinados
-    serviciosFiltrados = todosLosServicios.filter(servicio => {
-        // Filtro por responsable - solo aplicar si el toggle está activado
-        if (filtrarPorResponsable && responsableLower) {
-            const usuarioAsignado = (servicio.usuario_asignado_nombre || '').toLowerCase().trim();
-            // Si no hay usuario asignado o no coincide con el responsable, excluir
-            if (!usuarioAsignado || usuarioAsignado !== responsableLower) {
-                return false;
-            }
-        }
-
-        // Filtro por término de búsqueda
-        if (terminoLower) {
-            const descripcion = (servicio.descripcion || '').toLowerCase();
-            const ubicacion = (servicio.cuarto_numero ? `hab. ${servicio.cuarto_numero}` : (servicio.edificio_nombre || '')).toLowerCase();
-            const tipo = (servicio.tipo || '').toLowerCase();
-
-            if (!descripcion.includes(terminoLower) &&
-                !ubicacion.includes(terminoLower) &&
-                !tipo.includes(terminoLower)) {
-                return false;
-            }
-        }
-
-        return true;
-    });
-
-    // Reiniciar renderizado
-    serviciosRenderizados = 0;
-    container.innerHTML = '';
-
-    if (serviciosFiltrados.length === 0) {
-        const mensajeFiltro = (filtrarPorResponsable && responsableLower)
-            ? `No se encontraron servicios asignados a "${filtroResponsableActual}"${terminoLower ? ` con búsqueda "${filtroBusquedaActual}"` : ''}`
-            : 'No se encontraron servicios que coincidan.';
-        container.innerHTML = `<p class="mensaje-vacio">${mensajeFiltro}</p>`;
-        return;
+  // Aplicar filtros combinados
+  serviciosFiltrados = todosLosServicios.filter((servicio) => {
+    // Filtro por responsable - solo aplicar si el toggle está activado
+    if (filtrarPorResponsable && responsableLower) {
+      const usuarioAsignado = (servicio.usuario_asignado_nombre || '')
+        .toLowerCase()
+        .trim();
+      // Si no hay usuario asignado o no coincide con el responsable, excluir
+      if (!usuarioAsignado || usuarioAsignado !== responsableLower) {
+        return false;
+      }
     }
 
-    // Renderizar primer lote de los filtrados
-    renderizarLoteServicios(container);
+    // Filtro por término de búsqueda
+    if (terminoLower) {
+      const descripcion = (servicio.descripcion || '').toLowerCase();
+      const ubicacion = (
+        servicio.cuarto_numero
+          ? `hab. ${servicio.cuarto_numero}`
+          : servicio.edificio_nombre || ''
+      ).toLowerCase();
+      const tipo = (servicio.tipo || '').toLowerCase();
 
-    // Re-agregar centinela para lazy loading
-    const sentinel = document.createElement('div');
-    sentinel.id = 'sentinel-servicios';
-    sentinel.style.height = '10px';
-    container.appendChild(sentinel);
-
-    if (observerServicios) {
-        observerServicios.disconnect();
-        observerServicios.observe(sentinel);
+      if (
+        !descripcion.includes(terminoLower) &&
+        !ubicacion.includes(terminoLower) &&
+        !tipo.includes(terminoLower)
+      ) {
+        return false;
+      }
     }
+
+    return true;
+  });
+
+  // Reiniciar renderizado
+  serviciosRenderizados = 0;
+  container.innerHTML = '';
+
+  if (serviciosFiltrados.length === 0) {
+    const mensajeFiltro =
+      filtrarPorResponsable && responsableLower
+        ? `No se encontraron servicios asignados a "${filtroResponsableActual}"${terminoLower ? ` con búsqueda "${filtroBusquedaActual}"` : ''}`
+        : 'No se encontraron servicios que coincidan.';
+    container.innerHTML = `<p class="mensaje-vacio">${mensajeFiltro}</p>`;
+    return;
+  }
+
+  // Renderizar primer lote de los filtrados
+  renderizarLoteServicios(container);
+
+  // Re-agregar centinela para lazy loading
+  const sentinel = document.createElement('div');
+  sentinel.id = 'sentinel-servicios';
+  sentinel.style.height = '10px';
+  container.appendChild(sentinel);
+
+  if (observerServicios) {
+    observerServicios.disconnect();
+    observerServicios.observe(sentinel);
+  }
 }
 
 /**
@@ -404,8 +458,8 @@ function aplicarFiltrosServicios() {
  * @param {string} termino - Término de búsqueda
  */
 function filtrarServicios(termino) {
-    filtroBusquedaActual = termino;
-    aplicarFiltrosServicios();
+  filtroBusquedaActual = termino;
+  aplicarFiltrosServicios();
 }
 
 /**
@@ -413,64 +467,69 @@ function filtrarServicios(termino) {
  * @param {HTMLElement} container - El contenedor de la lista
  */
 function renderizarLoteServicios(container) {
-    const siguienteLote = serviciosFiltrados.slice(serviciosRenderizados, serviciosRenderizados + SERVICIOS_POR_LOTE);
+  const siguienteLote = serviciosFiltrados.slice(
+    serviciosRenderizados,
+    serviciosRenderizados + SERVICIOS_POR_LOTE
+  );
 
-    const estadoServicios = {
-        "cancelado": "Cancelado",
-        "pendiente": "Pendiente",
-        "en_proceso": "En Proceso",
-        "completado": "Completado"
-    }
+  const estadoServicios = {
+    cancelado: 'Cancelado',
+    pendiente: 'Pendiente',
+    en_proceso: 'En Proceso',
+    completado: 'Completado',
+  };
 
-    if (siguienteLote.length === 0) return;
+  if (siguienteLote.length === 0) return;
 
-    const fragment = document.createDocumentFragment();
+  const fragment = document.createDocumentFragment();
 
-    siguienteLote.forEach(servicio => {
-        const item = document.createElement('div');
-        item.className = 'servicio-checkbox-item';
+  siguienteLote.forEach((servicio) => {
+    const item = document.createElement('div');
+    item.className = 'servicio-checkbox-item';
 
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.id = `servicio_check_${servicio.id}`;
-        checkbox.value = servicio.id;
-        checkbox.name = 'servicios_seleccionados';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `servicio_check_${servicio.id}`;
+    checkbox.value = servicio.id;
+    checkbox.name = 'servicios_seleccionados';
 
-        const label = document.createElement('label');
-        label.htmlFor = `servicio_check_${servicio.id}`;
+    const label = document.createElement('label');
+    label.htmlFor = `servicio_check_${servicio.id}`;
 
-        const titulo = document.createElement('span');
-        titulo.textContent = servicio.descripcion || 'Servicio sin descripción';
+    const titulo = document.createElement('span');
+    titulo.textContent = servicio.descripcion || 'Servicio sin descripción';
 
-        const meta = document.createElement('span');
-        meta.className = 'servicio-meta';
-        // Mostrar ubicación (Cuarto/Edificio) ya que ahora son todos los servicios
-        const ubicacion = servicio.cuarto_numero ? `Hab. ${servicio.cuarto_numero}` : (servicio.edificio_nombre || 'Sin ubicación');
-        meta.textContent = `${ubicacion} · ${servicio.tipo === 'normal' ? 'Avería' : servicio.tipo === 'rutina' ? 'Alerta' : 'Otro'} · ${estadoServicios[servicio.estado]}`;
+    const meta = document.createElement('span');
+    meta.className = 'servicio-meta';
+    // Mostrar ubicación (Cuarto/Edificio) ya que ahora son todos los servicios
+    const ubicacion = servicio.cuarto_numero
+      ? `Hab. ${servicio.cuarto_numero}`
+      : servicio.edificio_nombre || 'Sin ubicación';
+    meta.textContent = `${ubicacion} · ${servicio.tipo === 'normal' ? 'Avería' : servicio.tipo === 'rutina' ? 'Alerta' : 'Otro'} · ${estadoServicios[servicio.estado]}`;
 
-        label.appendChild(titulo);
-        label.appendChild(meta);
+    label.appendChild(titulo);
+    label.appendChild(meta);
 
-        item.appendChild(checkbox);
-        item.appendChild(label);
-        fragment.appendChild(item);
-    });
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    fragment.appendChild(item);
+  });
 
-    // Insertar antes del sentinel si existe
-    const sentinel = document.getElementById('sentinel-servicios');
-    if (sentinel) {
-        container.insertBefore(fragment, sentinel);
-    } else {
-        container.appendChild(fragment);
-    }
+  // Insertar antes del sentinel si existe
+  const sentinel = document.getElementById('sentinel-servicios');
+  if (sentinel) {
+    container.insertBefore(fragment, sentinel);
+  } else {
+    container.appendChild(fragment);
+  }
 
-    serviciosRenderizados += siguienteLote.length;
+  serviciosRenderizados += siguienteLote.length;
 
-    // Si ya no hay más, desconectar observer
-    if (serviciosRenderizados >= serviciosFiltrados.length && observerServicios) {
-        observerServicios.disconnect();
-        if (sentinel) sentinel.remove();
-    }
+  // Si ya no hay más, desconectar observer
+  if (serviciosRenderizados >= serviciosFiltrados.length && observerServicios) {
+    observerServicios.disconnect();
+    if (sentinel) sentinel.remove();
+  }
 }
 
 /**
@@ -478,102 +537,115 @@ function renderizarLoteServicios(container) {
  * @param {number} tareaId - El ID de la tarea a editar.
  */
 async function abrirModalEditarTarea(tareaId) {
-    console.log('Abriendo modal para editar tarea ID:', tareaId);
-    if (!tareaId) {
-        console.warn('Se intentó abrir el modal de edición sin un ID de tarea.');
-        mostrarNotificacion('No se puede editar: ID de tarea no válido', 'error');
-        return;
+  console.log('Abriendo modal para editar tarea ID:', tareaId);
+  if (!tareaId) {
+    console.warn('Se intentó abrir el modal de edición sin un ID de tarea.');
+    mostrarNotificacion('No se puede editar: ID de tarea no válido', 'error');
+    return;
+  }
+
+  tareaIdActual = tareaId;
+  cuartoIdActual = null;
+
+  const modal = document.getElementById('modalEditarTarea');
+  if (!modal) {
+    console.error('El modal de edición de tareas no se encuentra en el DOM.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok) {
+      throw new Error(
+        `Error al obtener los datos de la tarea: ${response.statusText}`
+      );
+    }
+    const tarea = await response.json();
+
+    // Verificar permisos de edición
+    const rolUsuario = obtenerRolUsuarioActual();
+
+    // Si el usuario es técnico y la tarea está completada o cancelada, mostrar modal de advertencia
+    if (
+      rolUsuario === 'tecnico' &&
+      (tarea.estado === 'completada' || tarea.estado === 'cancelada')
+    ) {
+      mostrarModalAdvertenciaEdicion();
+      return;
     }
 
-    tareaIdActual = tareaId;
-    cuartoIdActual = null;
+    // Poblar formulario con los datos de la tarea
+    await poblarFormularioEdicion(tarea);
 
-    const modal = document.getElementById('modalEditarTarea');
-    if (!modal) {
-        console.error('El modal de edición de tareas no se encuentra en el DOM.');
-        return;
-    }
+    // Cargar adjuntos existentes (en modo editable)
+    await cargarAdjuntosTarea(tareaId, true, 'adjuntosEditarChips');
 
-    try {
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) {
-            throw new Error(`Error al obtener los datos de la tarea: ${response.statusText}`);
-        }
-        const tarea = await response.json();
-
-        // Verificar permisos de edición
-        const rolUsuario = obtenerRolUsuarioActual();
-
-        // Si el usuario es técnico y la tarea está completada o cancelada, mostrar modal de advertencia
-        if (rolUsuario === 'tecnico' && (tarea.estado === 'completada' || tarea.estado === 'cancelada')) {
-            mostrarModalAdvertenciaEdicion();
-            return;
-        }
-
-        // Poblar formulario con los datos de la tarea
-        await poblarFormularioEdicion(tarea);
-
-        // Cargar adjuntos existentes (en modo editable)
-        await cargarAdjuntosTarea(tareaId, true, 'adjuntosEditarChips');
-
-        modal.style.display = 'flex';
-        modal.setAttribute('aria-hidden', 'false');
-        lockBodyScroll();
-
-    } catch (error) {
-        console.error('Error al abrir modal de edición:', error);
-        mostrarNotificacion('No se pudieron cargar los datos de la tarea', 'error');
-    }
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    lockBodyScroll();
+  } catch (error) {
+    console.error('Error al abrir modal de edición:', error);
+    mostrarNotificacion('No se pudieron cargar los datos de la tarea', 'error');
+  }
 }
-
 
 /**
  * Cierra un modal específico por su ID.
  * @param {string} modalId - El ID del modal a cerrar ('modalCrearTarea' o 'modalEditarTarea').
  */
 function cerrarModal(modalId) {
-    const modal = document.getElementById(modalId);
-    if (modal) {
-        modal.style.display = 'none';
-        modal.setAttribute('aria-hidden', 'true');
-        console.log(`Modal ${modalId} cerrado.`);
-        unlockBodyScrollIfNoModal();
-    } else {
-        console.warn(`Se intentó cerrar un modal con ID '${modalId}' que no existe.`);
-    }
+  const modal = document.getElementById(modalId);
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    console.log(`Modal ${modalId} cerrado.`);
+    unlockBodyScrollIfNoModal();
+  } else {
+    console.warn(
+      `Se intentó cerrar un modal con ID '${modalId}' que no existe.`
+    );
+  }
 
-    // Limpiar formularios al cerrar
-    if (modalId === 'modalCrearTarea') {
-        limpiarFormulario('formCrearTarea');
-        archivosSeleccionados = [];
-    } else if (modalId === 'modalEditarTarea') {
-        limpiarFormulario('formEditarTarea');
-        archivosSeleccionados = [];
-    }
+  // Limpiar formularios al cerrar
+  if (modalId === 'modalCrearTarea') {
+    limpiarFormulario('formCrearTarea');
+    archivosSeleccionados = [];
+  } else if (modalId === 'modalEditarTarea') {
+    limpiarFormulario('formEditarTarea');
+    archivosSeleccionados = [];
+  }
 
-    // Resetear IDs actuales
-    cuartoIdActual = null;
-    tareaIdActual = null;
+  // Resetear IDs actuales
+  cuartoIdActual = null;
+  tareaIdActual = null;
 }
 
 /**
  * Muestra un diálogo de confirmación antes de eliminar una tarea.
  */
 function confirmarEliminarTarea() {
-    if (!tareaIdActual) {
-        mostrarNotificacion('No hay ninguna tarea seleccionada para eliminar', 'error');
-        return;
-    }
+  if (!tareaIdActual) {
+    mostrarNotificacion(
+      'No hay ninguna tarea seleccionada para eliminar',
+      'error'
+    );
+    return;
+  }
 
-    // Obtener el nombre de la tarea del formulario
-    const nombreTarea = document.getElementById('editarTareaNombre')?.value || 'esta tarea';
+  // Obtener el nombre de la tarea del formulario
+  const nombreTarea =
+    document.getElementById('editarTareaNombre')?.value || 'esta tarea';
 
-    // Usar confirm nativo para simplicidad (puede reemplazarse por un modal personalizado)
-    const confirmacion = confirm(`¿Estás seguro de que deseas eliminar "${nombreTarea}"?\n\nEsta acción no se puede deshacer.`);
+  // Usar confirm nativo para simplicidad (puede reemplazarse por un modal personalizado)
+  const confirmacion = confirm(
+    `¿Estás seguro de que deseas eliminar "${nombreTarea}"?\n\nEsta acción no se puede deshacer.`
+  );
 
-    if (confirmacion) {
-        eliminarTarea(tareaIdActual);
-    }
+  if (confirmacion) {
+    eliminarTarea(tareaIdActual);
+  }
 }
 
 /**
@@ -581,56 +653,62 @@ function confirmarEliminarTarea() {
  * @param {number} tareaId - El ID de la tarea a eliminar.
  */
 async function eliminarTarea(tareaId) {
-    if (!tareaId) {
-        mostrarNotificacion('ID de tarea no válido', 'error');
-        return;
+  if (!tareaId) {
+    mostrarNotificacion('ID de tarea no válido', 'error');
+    return;
+  }
+
+  const btnEliminar = document.getElementById('btnEliminarTarea');
+  let textoOriginal = '';
+
+  // Deshabilitar botón mientras se procesa
+  if (btnEliminar) {
+    textoOriginal = btnEliminar.innerHTML;
+    btnEliminar.disabled = true;
+    btnEliminar.innerHTML =
+      '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+  }
+
+  try {
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      method: 'DELETE',
+      headers: obtenerHeadersConAuth(),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message ||
+          `Error al eliminar la tarea: ${response.statusText}`
+      );
     }
 
-    const btnEliminar = document.getElementById('btnEliminarTarea');
-    let textoOriginal = '';
+    console.log(`✅ Tarea ${tareaId} eliminada exitosamente`);
 
-    // Deshabilitar botón mientras se procesa
+    // Cerrar el modal
+    cerrarModal('modalEditarTarea');
+
+    // Mostrar notificación de éxito
+    mostrarNotificacion('Tarea eliminada correctamente', 'success');
+
+    // Refrescar la lista de tareas
+    await refrescarTarjetasTareas();
+
+    // Actualizar selectores de tareas
+    await actualizarSelectoresTareas();
+  } catch (error) {
+    console.error('Error al eliminar tarea:', error);
+    mostrarNotificacion(
+      `Error al eliminar la tarea: ${error.message}`,
+      'error'
+    );
+  } finally {
+    // Restaurar botón
     if (btnEliminar) {
-        textoOriginal = btnEliminar.innerHTML;
-        btnEliminar.disabled = true;
-        btnEliminar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Eliminando...';
+      btnEliminar.disabled = false;
+      btnEliminar.innerHTML = textoOriginal;
     }
-
-    try {
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
-            method: 'DELETE',
-            headers: obtenerHeadersConAuth()
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Error al eliminar la tarea: ${response.statusText}`);
-        }
-
-        console.log(`✅ Tarea ${tareaId} eliminada exitosamente`);
-
-        // Cerrar el modal
-        cerrarModal('modalEditarTarea');
-
-        // Mostrar notificación de éxito
-        mostrarNotificacion('Tarea eliminada correctamente', 'success');
-
-        // Refrescar la lista de tareas
-        await refrescarTarjetasTareas();
-
-        // Actualizar selectores de tareas
-        await actualizarSelectoresTareas();
-
-    } catch (error) {
-        console.error('Error al eliminar tarea:', error);
-        mostrarNotificacion(`Error al eliminar la tarea: ${error.message}`, 'error');
-    } finally {
-        // Restaurar botón
-        if (btnEliminar) {
-            btnEliminar.disabled = false;
-            btnEliminar.innerHTML = textoOriginal;
-        }
-    }
+  }
 }
 
 // ------------------------------
@@ -642,159 +720,192 @@ async function eliminarTarea(tareaId) {
  * @param {Event} event - El evento de submit del formulario.
  */
 async function submitCrearTarea(event) {
-    event.preventDefault();
-    const form = event.target;
-    const formData = new FormData(form);
+  event.preventDefault();
+  const form = event.target;
+  const formData = new FormData(form);
 
-    // Validación de campos requeridos
-    const nombre = formData.get('nombre')?.trim();
-    const descripcion = formData.get('descripcion')?.trim();
-    const ubicacion = formData.get('ubicacion')?.trim();
-    const fechaLimite = formData.get('fecha_limite');
-    const responsableId = formData.get('responsable_id');
+  // Validación de campos requeridos
+  const nombre = formData.get('nombre')?.trim();
+  const descripcion = formData.get('descripcion')?.trim();
+  const ubicacion = formData.get('ubicacion')?.trim();
+  const fechaLimite = formData.get('fecha_limite');
+  const responsableId = formData.get('responsable_id');
 
-    if (!nombre || !descripcion || !fechaLimite || !responsableId) {
-        mostrarNotificacion('Por favor completa todos los campos requeridos', 'error');
-        return;
+  if (!nombre || !descripcion || !fechaLimite || !responsableId) {
+    mostrarNotificacion(
+      'Por favor completa todos los campos requeridos',
+      'error'
+    );
+    return;
+  }
+
+  // Recolectar tags
+  const tags = [];
+  document.querySelectorAll('#tagsListCrear .tag').forEach((tag) => {
+    const texto = tag.textContent.replace('×', '').trim();
+    if (texto) tags.push(texto);
+  });
+
+  // Obtener ID del usuario actual
+  let usuarioCreadorId = null;
+  try {
+    // Intentar desde AppState
+    if (
+      window.AppState &&
+      window.AppState.currentUser &&
+      window.AppState.currentUser.id
+    ) {
+      usuarioCreadorId = window.AppState.currentUser.id;
     }
+    // Si no, desde localStorage/sessionStorage
+    if (!usuarioCreadorId) {
+      const storedUser = JSON.parse(
+        localStorage.getItem('currentUser') ||
+          sessionStorage.getItem('currentUser') ||
+          'null'
+      );
+      if (storedUser && storedUser.id) {
+        usuarioCreadorId = storedUser.id;
+      }
+    }
+    console.log('👤 Usuario creador ID:', usuarioCreadorId);
+  } catch (e) {
+    console.warn('Error obteniendo usuario creador:', e);
+  }
 
-    // Recolectar tags
-    const tags = [];
-    document.querySelectorAll('#tagsListCrear .tag').forEach(tag => {
-        const texto = tag.textContent.replace('×', '').trim();
-        if (texto) tags.push(texto);
+  const tareaData = {
+    titulo: nombre, // Se usa internamente
+    nombre: nombre, // Backend legacy espera 'nombre'
+    descripcion: descripcion,
+    ubicacion: ubicacion,
+    prioridad: formData.get('prioridad'),
+    estado: formData.get('estado'),
+    fecha_limite: fechaLimite,
+    responsable_id: parseInt(responsableId),
+    cuarto_id: cuartoIdActual,
+    tags: tags,
+    usuario_creador_id: usuarioCreadorId, // ID del usuario que crea la tarea
+  };
+
+  console.log('Enviando nueva tarea:', tareaData);
+
+  // Deshabilitar botón de submit
+  const btnSubmit = form.querySelector('button[type="submit"]');
+  const textoOriginal = btnSubmit.innerHTML;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+
+  try {
+    const response = await fetch(`${API_URL}/tareas`, {
+      method: 'POST',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify(tareaData),
     });
 
-    // Obtener ID del usuario actual
-    let usuarioCreadorId = null;
-    try {
-        // Intentar desde AppState
-        if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
-            usuarioCreadorId = window.AppState.currentUser.id;
-        }
-        // Si no, desde localStorage/sessionStorage
-        if (!usuarioCreadorId) {
-            const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-            if (storedUser && storedUser.id) {
-                usuarioCreadorId = storedUser.id;
-            }
-        }
-        console.log('👤 Usuario creador ID:', usuarioCreadorId);
-    } catch (e) {
-        console.warn('Error obteniendo usuario creador:', e);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message || `Error al crear la tarea: ${response.statusText}`
+      );
     }
 
-    const tareaData = {
-        titulo: nombre,  // Se usa internamente
-        nombre: nombre,  // Backend legacy espera 'nombre'
-        descripcion: descripcion,
-        ubicacion: ubicacion,
-        prioridad: formData.get('prioridad'),
-        estado: formData.get('estado'),
-        fecha_limite: fechaLimite,
-        responsable_id: parseInt(responsableId),
-        cuarto_id: cuartoIdActual,
-        tags: tags,
-        usuario_creador_id: usuarioCreadorId  // ID del usuario que crea la tarea
-    };
+    const nuevaTarea = await response.json();
+    console.log('Tarea creada con éxito:', nuevaTarea);
 
-    console.log('Enviando nueva tarea:', tareaData);
+    // Asignar tarea a servicios seleccionados
+    const checkboxesServicios = document.querySelectorAll(
+      'input[name="servicios_seleccionados"]:checked'
+    );
+    if (checkboxesServicios.length > 0) {
+      console.log(
+        `Asignando tarea ${nuevaTarea.id} a ${checkboxesServicios.length} servicios...`
+      );
 
-    // Deshabilitar botón de submit
-    const btnSubmit = form.querySelector('button[type="submit"]');
-    const textoOriginal = btnSubmit.innerHTML;
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
-
-    try {
-        const response = await fetch(`${API_URL}/tareas`, {
-            method: 'POST',
+      const promesasAsignacion = Array.from(checkboxesServicios).map(
+        (checkbox) => {
+          const servicioId = checkbox.value;
+          // Actualizamos el servicio para asignarle la tarea
+          // Nota: Asumimos que el endpoint PUT /api/mantenimientos/:id acepta tarea_id
+          // Si no existe ese campo en la BD, esto podría fallar o ser ignorado por el backend
+          return fetch(`${API_URL}/mantenimientos/${servicioId}`, {
+            method: 'PUT',
             headers: obtenerHeadersConAuth(),
-            body: JSON.stringify(tareaData)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error al crear la tarea: ${response.statusText}`);
+            body: JSON.stringify({ tarea_id: nuevaTarea.id }),
+          })
+            .then((res) => {
+              if (!res.ok)
+                console.warn(`Error al asignar tarea a servicio ${servicioId}`);
+              return res;
+            })
+            .catch((err) =>
+              console.error(
+                `Error de red al asignar servicio ${servicioId}`,
+                err
+              )
+            );
         }
+      );
 
-        const nuevaTarea = await response.json();
-        console.log('Tarea creada con éxito:', nuevaTarea);
-
-        // Asignar tarea a servicios seleccionados
-        const checkboxesServicios = document.querySelectorAll('input[name="servicios_seleccionados"]:checked');
-        if (checkboxesServicios.length > 0) {
-            console.log(`Asignando tarea ${nuevaTarea.id} a ${checkboxesServicios.length} servicios...`);
-
-            const promesasAsignacion = Array.from(checkboxesServicios).map(checkbox => {
-                const servicioId = checkbox.value;
-                // Actualizamos el servicio para asignarle la tarea
-                // Nota: Asumimos que el endpoint PUT /api/mantenimientos/:id acepta tarea_id
-                // Si no existe ese campo en la BD, esto podría fallar o ser ignorado por el backend
-                return fetch(`${API_URL}/mantenimientos/${servicioId}`, {
-                    method: 'PUT',
-                    headers: obtenerHeadersConAuth(),
-                    body: JSON.stringify({ tarea_id: nuevaTarea.id })
-                }).then(res => {
-                    if (!res.ok) console.warn(`Error al asignar tarea a servicio ${servicioId}`);
-                    return res;
-                }).catch(err => console.error(`Error de red al asignar servicio ${servicioId}`, err));
-            });
-
-            await Promise.all(promesasAsignacion);
-            mostrarNotificacion(`Tarea creada y asignada a ${checkboxesServicios.length} servicios`, 'success');
-        } else {
-            mostrarNotificacion('¡Tarea creada con éxito!', 'success');
-        }
-
-        // Subir archivos adjuntos si hay alguno seleccionado
-        if (archivosSeleccionados && archivosSeleccionados.length > 0) {
-            console.log(`📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${nuevaTarea.id}...`);
-
-            for (const file of archivosSeleccionados) {
-                try {
-                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
-                    await subirAdjuntoTarea(file, nuevaTarea.id);
-                    console.log(`✅ Archivo ${file.name} subido`);
-                } catch (uploadError) {
-                    console.error(`Error al subir ${file.name}:`, uploadError);
-                    mostrarNotificacion(`Error al subir ${file.name}`, 'error');
-                }
-            }
-
-            // Limpiar archivos seleccionados
-            archivosSeleccionados = [];
-            mostrarNotificacion('Archivos adjuntados correctamente', 'success');
-        }
-
-        cerrarModal('modalCrearTarea');
-
-        // Actualizar selectores con la nueva tarea
-        await actualizarSelectoresTareas();
-
-        // Seleccionar automáticamente la tarea recién creada en el selector del cuarto
-        if (cuartoIdActual && nuevaTarea.id) {
-            const selector = document.getElementById(`tareaAsignadaInline-${cuartoIdActual}`);
-            if (selector) {
-                // Agregar la nueva opción
-                const option = document.createElement('option');
-                option.value = nuevaTarea.id;
-                option.textContent = `${nuevaTarea.nombre}`;
-                option.selected = true;
-                selector.appendChild(option);
-            }
-        }
-
-        // Refrescar tarjetas en la pestaña de tareas si existe la función
-        await refrescarTarjetasTareas();
-
-    } catch (error) {
-        console.error('Error en submitCrearTarea:', error);
-        mostrarNotificacion(`Error al crear la tarea: ${error.message}`, 'error');
-    } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = textoOriginal;
+      await Promise.all(promesasAsignacion);
+      mostrarNotificacion(
+        `Tarea creada y asignada a ${checkboxesServicios.length} servicios`,
+        'success'
+      );
+    } else {
+      mostrarNotificacion('¡Tarea creada con éxito!', 'success');
     }
+
+    // Subir archivos adjuntos si hay alguno seleccionado
+    if (archivosSeleccionados && archivosSeleccionados.length > 0) {
+      console.log(
+        `📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${nuevaTarea.id}...`
+      );
+
+      for (const file of archivosSeleccionados) {
+        try {
+          mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+          await subirAdjuntoTarea(file, nuevaTarea.id);
+          console.log(`✅ Archivo ${file.name} subido`);
+        } catch (uploadError) {
+          console.error(`Error al subir ${file.name}:`, uploadError);
+          mostrarNotificacion(`Error al subir ${file.name}`, 'error');
+        }
+      }
+
+      // Limpiar archivos seleccionados
+      archivosSeleccionados = [];
+      mostrarNotificacion('Archivos adjuntados correctamente', 'success');
+    }
+
+    cerrarModal('modalCrearTarea');
+
+    // Actualizar selectores con la nueva tarea
+    await actualizarSelectoresTareas();
+
+    // Seleccionar automáticamente la tarea recién creada en el selector del cuarto
+    if (cuartoIdActual && nuevaTarea.id) {
+      const selector = document.getElementById(
+        `tareaAsignadaInline-${cuartoIdActual}`
+      );
+      if (selector) {
+        // Agregar la nueva opción
+        const option = document.createElement('option');
+        option.value = nuevaTarea.id;
+        option.textContent = `${nuevaTarea.nombre}`;
+        option.selected = true;
+        selector.appendChild(option);
+      }
+    }
+
+    // Refrescar tarjetas en la pestaña de tareas si existe la función
+    await refrescarTarjetasTareas();
+  } catch (error) {
+    console.error('Error en submitCrearTarea:', error);
+    mostrarNotificacion(`Error al crear la tarea: ${error.message}`, 'error');
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = textoOriginal;
+  }
 }
 
 /**
@@ -802,103 +913,110 @@ async function submitCrearTarea(event) {
  * @param {Event} event - El evento de submit del formulario.
  */
 async function submitEditarTarea(event) {
-    event.preventDefault();
-    if (!tareaIdActual) {
-        console.error('No hay un ID de tarea para actualizar.');
-        mostrarNotificacion('Error: No se puede actualizar la tarea', 'error');
-        return;
-    }
+  event.preventDefault();
+  if (!tareaIdActual) {
+    console.error('No hay un ID de tarea para actualizar.');
+    mostrarNotificacion('Error: No se puede actualizar la tarea', 'error');
+    return;
+  }
 
-    const form = event.target;
-    const formData = new FormData(form);
+  const form = event.target;
+  const formData = new FormData(form);
 
-    // Validación
-    const nombre = formData.get('nombre')?.trim();
-    const descripcion = formData.get('descripcion')?.trim();
+  // Validación
+  const nombre = formData.get('nombre')?.trim();
+  const descripcion = formData.get('descripcion')?.trim();
 
-    if (!nombre || !descripcion) {
-        mostrarNotificacion('El nombre y descripción son requeridos', 'error');
-        return;
-    }
+  if (!nombre || !descripcion) {
+    mostrarNotificacion('El nombre y descripción son requeridos', 'error');
+    return;
+  }
 
-    // Recolectar tags
-    const tags = [];
-    document.querySelectorAll('#tagsListEditar .tag').forEach(tag => {
-        const texto = tag.textContent.replace('×', '').trim();
-        if (texto) tags.push(texto);
+  // Recolectar tags
+  const tags = [];
+  document.querySelectorAll('#tagsListEditar .tag').forEach((tag) => {
+    const texto = tag.textContent.replace('×', '').trim();
+    if (texto) tags.push(texto);
+  });
+
+  const tareaData = {
+    titulo: nombre, // Backend espera 'titulo', no 'nombre'
+    descripcion: descripcion,
+    ubicacion: formData.get('ubicacion')?.trim(),
+    prioridad: formData.get('prioridad'),
+    estado: formData.get('estado'),
+    fecha_limite: formData.get('fecha_limite'),
+    responsable_id: parseInt(formData.get('responsable_id')),
+    tags: tags,
+  };
+
+  console.log(`Actualizando tarea ${tareaIdActual}:`, tareaData);
+
+  // Deshabilitar botón de submit
+  const btnSubmit = form.querySelector('button[type="submit"]');
+  const textoOriginal = btnSubmit.innerHTML;
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+
+  try {
+    const response = await fetch(`${API_URL}/tareas/${tareaIdActual}`, {
+      method: 'PUT',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify(tareaData),
     });
 
-    const tareaData = {
-        titulo: nombre,  // Backend espera 'titulo', no 'nombre'
-        descripcion: descripcion,
-        ubicacion: formData.get('ubicacion')?.trim(),
-        prioridad: formData.get('prioridad'),
-        estado: formData.get('estado'),
-        fecha_limite: formData.get('fecha_limite'),
-        responsable_id: parseInt(formData.get('responsable_id')),
-        tags: tags
-    };
-
-    console.log(`Actualizando tarea ${tareaIdActual}:`, tareaData);
-
-    // Deshabilitar botón de submit
-    const btnSubmit = form.querySelector('button[type="submit"]');
-    const textoOriginal = btnSubmit.innerHTML;
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
-
-    try {
-        const response = await fetch(`${API_URL}/tareas/${tareaIdActual}`, {
-            method: 'PUT',
-            headers: obtenerHeadersConAuth(),
-            body: JSON.stringify(tareaData)
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Error al actualizar la tarea: ${response.statusText}`);
-        }
-
-        const tareaActualizada = await response.json();
-        console.log('Tarea actualizada con éxito:', tareaActualizada);
-
-        // Guardar el ID antes de cerrar el modal (porque cerrarModal resetea tareaIdActual)
-        const tareaId = tareaIdActual;
-
-        // Subir archivos adjuntos si hay alguno seleccionado
-        if (archivosSeleccionados && archivosSeleccionados.length > 0) {
-            console.log(`📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${tareaId}...`);
-
-            for (const file of archivosSeleccionados) {
-                try {
-                    mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
-                    await subirAdjuntoTarea(file, tareaId);
-                    console.log(`✅ Archivo ${file.name} subido`);
-                } catch (uploadError) {
-                    console.error(`Error al subir ${file.name}:`, uploadError);
-                    mostrarNotificacion(`Error al subir ${file.name}`, 'error');
-                }
-            }
-
-            // Limpiar archivos seleccionados
-            archivosSeleccionados = [];
-            mostrarNotificacion('Archivos adjuntados correctamente', 'success');
-        }
-
-        cerrarModal('modalEditarTarea');
-        mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
-
-        // Actualizar solo la tarjeta específica en lugar de recargar todas
-        await actualizarTarjetaTarea(tareaId);
-        await actualizarSelectoresTareas();
-
-    } catch (error) {
-        console.error('Error en submitEditarTarea:', error);
-        mostrarNotificacion(`Error al actualizar la tarea: ${error.message}`, 'error');
-    } finally {
-        btnSubmit.disabled = false;
-        btnSubmit.innerHTML = textoOriginal;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.message ||
+          `Error al actualizar la tarea: ${response.statusText}`
+      );
     }
+
+    const tareaActualizada = await response.json();
+    console.log('Tarea actualizada con éxito:', tareaActualizada);
+
+    // Guardar el ID antes de cerrar el modal (porque cerrarModal resetea tareaIdActual)
+    const tareaId = tareaIdActual;
+
+    // Subir archivos adjuntos si hay alguno seleccionado
+    if (archivosSeleccionados && archivosSeleccionados.length > 0) {
+      console.log(
+        `📎 Subiendo ${archivosSeleccionados.length} archivos a la tarea ${tareaId}...`
+      );
+
+      for (const file of archivosSeleccionados) {
+        try {
+          mostrarNotificacion(`Subiendo ${file.name}...`, 'info');
+          await subirAdjuntoTarea(file, tareaId);
+          console.log(`✅ Archivo ${file.name} subido`);
+        } catch (uploadError) {
+          console.error(`Error al subir ${file.name}:`, uploadError);
+          mostrarNotificacion(`Error al subir ${file.name}`, 'error');
+        }
+      }
+
+      // Limpiar archivos seleccionados
+      archivosSeleccionados = [];
+      mostrarNotificacion('Archivos adjuntados correctamente', 'success');
+    }
+
+    cerrarModal('modalEditarTarea');
+    mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
+
+    // Actualizar solo la tarjeta específica en lugar de recargar todas
+    await actualizarTarjetaTarea(tareaId);
+    await actualizarSelectoresTareas();
+  } catch (error) {
+    console.error('Error en submitEditarTarea:', error);
+    mostrarNotificacion(
+      `Error al actualizar la tarea: ${error.message}`,
+      'error'
+    );
+  } finally {
+    btnSubmit.disabled = false;
+    btnSubmit.innerHTML = textoOriginal;
+  }
 }
 
 // ------------------------------
@@ -909,28 +1027,28 @@ async function submitEditarTarea(event) {
  * Muestra el modal de advertencia cuando un técnico intenta editar una tarea completada o cancelada
  */
 function mostrarModalAdvertenciaEdicion() {
-    const modal = document.getElementById('modalAdvertenciaEdicion');
-    if (!modal) {
-        console.error('El modal de advertencia no se encuentra en el DOM.');
-        mostrarNotificacion('Contacta a administrador o supervisor', 'warning');
-        return;
-    }
+  const modal = document.getElementById('modalAdvertenciaEdicion');
+  if (!modal) {
+    console.error('El modal de advertencia no se encuentra en el DOM.');
+    mostrarNotificacion('Contacta a administrador o supervisor', 'warning');
+    return;
+  }
 
-    modal.style.display = 'flex';
-    modal.setAttribute('aria-hidden', 'false');
-    lockBodyScroll();
+  modal.style.display = 'flex';
+  modal.setAttribute('aria-hidden', 'false');
+  lockBodyScroll();
 }
 
 /**
  * Cierra el modal de advertencia
  */
 function cerrarModalAdvertenciaEdicion() {
-    const modal = document.getElementById('modalAdvertenciaEdicion');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.setAttribute('aria-hidden', 'true');
-        unlockBodyScrollIfNoModal();
-    }
+  const modal = document.getElementById('modalAdvertenciaEdicion');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    unlockBodyScrollIfNoModal();
+  }
 }
 
 /**
@@ -940,41 +1058,39 @@ function cerrarModalAdvertenciaEdicion() {
  * @param {string} tipo - El tipo de notificación ('success', 'error', 'warning', 'info')
  */
 function mostrarNotificacion(mensaje, tipo = 'info') {
-    notificar(mensaje, tipo);
+  notificar(mensaje, tipo);
 }
-
 
 /**
  * Limpia los campos de un formulario.
  * @param {string} formId - El ID del formulario a limpiar.
  */
 function limpiarFormulario(formId) {
-    const form = document.getElementById(formId);
-    if (form) {
-        form.reset();
+  const form = document.getElementById(formId);
+  if (form) {
+    form.reset();
 
-        // Limpiar tags
-        const tagsContainers = form.querySelectorAll('.tarea-edit-tags');
-        tagsContainers.forEach(container => {
-            container.innerHTML = '';
-        });
+    // Limpiar tags
+    const tagsContainers = form.querySelectorAll('.tarea-edit-tags');
+    tagsContainers.forEach((container) => {
+      container.innerHTML = '';
+    });
 
-        // Limpiar previsualizaciones de archivos
-        const filePreviews = form.querySelectorAll('.file-preview');
-        filePreviews.forEach(preview => {
-            preview.innerHTML = '';
-        });
+    // Limpiar previsualizaciones de archivos
+    const filePreviews = form.querySelectorAll('.file-preview');
+    filePreviews.forEach((preview) => {
+      preview.innerHTML = '';
+    });
 
-        // Limpiar inputs de archivo
-        const fileInputs = form.querySelectorAll('input[type="file"]');
-        fileInputs.forEach(input => {
-            input.value = '';
-        });
+    // Limpiar inputs de archivo
+    const fileInputs = form.querySelectorAll('input[type="file"]');
+    fileInputs.forEach((input) => {
+      input.value = '';
+    });
 
-        console.log(`Formulario ${formId} limpiado.`);
-    }
+    console.log(`Formulario ${formId} limpiado.`);
+  }
 }
-
 
 /**
  * Retorna las opciones de estado permitidas según el estado actual de la tarea
@@ -983,37 +1099,48 @@ function limpiarFormulario(formId) {
  * @param {boolean} tieneServicios - Si la tarea tiene servicios asignados
  * @returns {Array} Array de objetos {value, label}
  */
-function obtenerOpcionesEstadoPermitidas(estadoActual, progresoCompleto = true, tieneServicios = false) {
-    const todasLasOpciones = [
-        { value: 'pendiente', label: 'Pendiente' },
-        { value: 'en_proceso', label: 'En Proceso' },
-        { value: 'completada', label: 'Completada' },
-        { value: 'cancelada', label: 'Cancelada' }
-    ];
+function obtenerOpcionesEstadoPermitidas(
+  estadoActual,
+  progresoCompleto = true,
+  tieneServicios = false
+) {
+  const todasLasOpciones = [
+    { value: 'pendiente', label: 'Pendiente' },
+    { value: 'en_proceso', label: 'En Proceso' },
+    { value: 'completada', label: 'Completada' },
+    { value: 'cancelada', label: 'Cancelada' },
+  ];
 
-    switch (estadoActual) {
-        case 'completada':
-            // Si NO tiene servicios, permitir volver a cualquier estado (incluyendo pendiente)
-            if (!tieneServicios) {
-                return todasLasOpciones;
-            }
-            // Si tiene servicios pero el progreso no está completo, permitir volver a 'en_proceso'
-            if (!progresoCompleto) {
-                return todasLasOpciones.filter(o => o.value === 'completada' || o.value === 'en_proceso' || o.value === 'cancelada');
-            }
-            // Si el progreso está completo, solo puede cambiar a cancelada o quedarse completada
-            return todasLasOpciones.filter(o => o.value === 'completada' || o.value === 'cancelada');
+  switch (estadoActual) {
+    case 'completada':
+      // Si NO tiene servicios, permitir volver a cualquier estado (incluyendo pendiente)
+      if (!tieneServicios) {
+        return todasLasOpciones;
+      }
+      // Si tiene servicios pero el progreso no está completo, permitir volver a 'en_proceso'
+      if (!progresoCompleto) {
+        return todasLasOpciones.filter(
+          (o) =>
+            o.value === 'completada' ||
+            o.value === 'en_proceso' ||
+            o.value === 'cancelada'
+        );
+      }
+      // Si el progreso está completo, solo puede cambiar a cancelada o quedarse completada
+      return todasLasOpciones.filter(
+        (o) => o.value === 'completada' || o.value === 'cancelada'
+      );
 
-        case 'en_proceso':
-            // Puede cambiar a completada, cancelada o quedarse en proceso
-            // No puede volver a pendiente
-            return todasLasOpciones.filter(o => o.value !== 'pendiente');
+    case 'en_proceso':
+      // Puede cambiar a completada, cancelada o quedarse en proceso
+      // No puede volver a pendiente
+      return todasLasOpciones.filter((o) => o.value !== 'pendiente');
 
-        case 'pendiente':
-        default:
-            // Puede cambiar a cualquier estado
-            return todasLasOpciones;
-    }
+    case 'pendiente':
+    default:
+      // Puede cambiar a cualquier estado
+      return todasLasOpciones;
+  }
 }
 
 /**
@@ -1021,80 +1148,99 @@ function obtenerOpcionesEstadoPermitidas(estadoActual, progresoCompleto = true, 
  * @param {object} tarea - El objeto de la tarea con sus datos.
  */
 async function poblarFormularioEdicion(tarea) {
-    const form = document.getElementById('formEditarTarea');
-    if (!form) return;
+  const form = document.getElementById('formEditarTarea');
+  if (!form) return;
 
-    // Actualizar título del modal
-    const titulo = document.getElementById('tareaEditTitulo');
-    if (titulo) {
-        titulo.textContent = tarea.titulo || 'Tarea';
+  // Actualizar título del modal
+  const titulo = document.getElementById('tareaEditTitulo');
+  if (titulo) {
+    titulo.textContent = tarea.titulo || 'Tarea';
+  }
+
+  // Guardar ID de la tarea
+  const inputId = document.getElementById('tareaEditId');
+  if (inputId) {
+    inputId.value = tarea.id;
+  }
+
+  // Poblar campos básicos
+  const inputNombre = document.getElementById('editarTareaNombre');
+  if (inputNombre) inputNombre.value = tarea.titulo || '';
+
+  const inputDescripcion = document.getElementById('editarTareaDescripcion');
+  if (inputDescripcion) inputDescripcion.value = tarea.descripcion || '';
+
+  const inputUbicacion = document.getElementById('editarTareaUbicacion');
+  if (inputUbicacion) inputUbicacion.value = tarea.ubicacion || '';
+
+  const selectPrioridad = document.getElementById('editarTareaPrioridad');
+  if (selectPrioridad) selectPrioridad.value = tarea.prioridad || 'media';
+
+  // Cargar opciones de estado según el estado actual (condicional)
+  const selectEstado = document.getElementById('editarTareaEstado');
+  if (selectEstado) {
+    // Calcular si el progreso está completo basándose en los servicios
+    const serviciosAsignados = todosLosServiciosCache.filter(
+      (s) => s.tarea_id == tarea.id && s.estado !== 'cancelado'
+    );
+    const totalServicios = serviciosAsignados.length;
+    const serviciosCompletados = serviciosAsignados.filter(
+      (s) => s.estado === 'completado'
+    ).length;
+    const progresoCompleto =
+      totalServicios > 0 && serviciosCompletados === totalServicios;
+    const tieneServicios = totalServicios > 0;
+
+    const opciones = obtenerOpcionesEstadoPermitidas(
+      tarea.estado || 'pendiente',
+      progresoCompleto,
+      tieneServicios
+    );
+    selectEstado.innerHTML = opciones
+      .map(
+        (opcion) =>
+          `<option value="${opcion.value}" ${opcion.value === tarea.estado ? 'selected' : ''}>${opcion.label}</option>`
+      )
+      .join('');
+  }
+
+  // Formatear fecha para input type="date"
+  // Formatear fecha para input type="date"
+  const inputFecha = document.getElementById('editarTareaFecha');
+  // Intentar con fecha_vencimiento (backend) o fecha_limite (frontend legacy)
+  const fechaValor = tarea.fecha_vencimiento || tarea.fecha_limite;
+
+  if (inputFecha && fechaValor) {
+    const fecha = new Date(fechaValor);
+    // Ajustar zona horaria si es necesario, pero split('T')[0] suele funcionar para ISO strings
+    inputFecha.value = fecha.toISOString().split('T')[0];
+  }
+
+  // Cargar y seleccionar responsable
+  // Intentar con asignado_a (backend) o responsable_id (frontend legacy)
+  const responsableId = tarea.asignado_a || tarea.responsable_id;
+  await cargarUsuariosEnSelect('editarTareaResponsable', responsableId);
+
+  // Actualizar semáforo de prioridad
+  setTimeout(
+    () =>
+      actualizarSemaforoPrioridad(
+        'editarTareaPrioridad',
+        'semaforoPrioridadEditar'
+      ),
+    100
+  );
+
+  // Cargar tags si existen
+  if (tarea.tags && Array.isArray(tarea.tags) && tarea.tags.length > 0) {
+    const tagsContainer = document.getElementById('tagsListEditar');
+    if (tagsContainer) {
+      tagsContainer.innerHTML = '';
+      tarea.tags.forEach((tag) => {
+        agregarTagAlDOM(tag, tagsContainer);
+      });
     }
-
-    // Guardar ID de la tarea
-    const inputId = document.getElementById('tareaEditId');
-    if (inputId) {
-        inputId.value = tarea.id;
-    }
-
-    // Poblar campos básicos
-    const inputNombre = document.getElementById('editarTareaNombre');
-    if (inputNombre) inputNombre.value = tarea.titulo || '';
-
-    const inputDescripcion = document.getElementById('editarTareaDescripcion');
-    if (inputDescripcion) inputDescripcion.value = tarea.descripcion || '';
-
-    const inputUbicacion = document.getElementById('editarTareaUbicacion');
-    if (inputUbicacion) inputUbicacion.value = tarea.ubicacion || '';
-
-    const selectPrioridad = document.getElementById('editarTareaPrioridad');
-    if (selectPrioridad) selectPrioridad.value = tarea.prioridad || 'media';
-
-    // Cargar opciones de estado según el estado actual (condicional)
-    const selectEstado = document.getElementById('editarTareaEstado');
-    if (selectEstado) {
-        // Calcular si el progreso está completo basándose en los servicios
-        const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
-        const totalServicios = serviciosAsignados.length;
-        const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
-        const progresoCompleto = totalServicios > 0 && serviciosCompletados === totalServicios;
-        const tieneServicios = totalServicios > 0;
-
-        const opciones = obtenerOpcionesEstadoPermitidas(tarea.estado || 'pendiente', progresoCompleto, tieneServicios);
-        selectEstado.innerHTML = opciones.map(opcion =>
-            `<option value="${opcion.value}" ${opcion.value === tarea.estado ? 'selected' : ''}>${opcion.label}</option>`
-        ).join('');
-    }
-
-    // Formatear fecha para input type="date"
-    // Formatear fecha para input type="date"
-    const inputFecha = document.getElementById('editarTareaFecha');
-    // Intentar con fecha_vencimiento (backend) o fecha_limite (frontend legacy)
-    const fechaValor = tarea.fecha_vencimiento || tarea.fecha_limite;
-
-    if (inputFecha && fechaValor) {
-        const fecha = new Date(fechaValor);
-        // Ajustar zona horaria si es necesario, pero split('T')[0] suele funcionar para ISO strings
-        inputFecha.value = fecha.toISOString().split('T')[0];
-    }
-
-    // Cargar y seleccionar responsable
-    // Intentar con asignado_a (backend) o responsable_id (frontend legacy)
-    const responsableId = tarea.asignado_a || tarea.responsable_id;
-    await cargarUsuariosEnSelect('editarTareaResponsable', responsableId);
-
-    // Actualizar semáforo de prioridad
-    setTimeout(() => actualizarSemaforoPrioridad('editarTareaPrioridad', 'semaforoPrioridadEditar'), 100);
-
-    // Cargar tags si existen
-    if (tarea.tags && Array.isArray(tarea.tags) && tarea.tags.length > 0) {
-        const tagsContainer = document.getElementById('tagsListEditar');
-        if (tagsContainer) {
-            tagsContainer.innerHTML = '';
-            tarea.tags.forEach(tag => {
-                agregarTagAlDOM(tag, tagsContainer);
-            });
-        }
-    }
+  }
 }
 
 /**
@@ -1103,34 +1249,37 @@ async function poblarFormularioEdicion(tarea) {
  * @param {number} [selectedUserId] - El ID del usuario que debe aparecer seleccionado.
  */
 async function cargarUsuariosEnSelect(selectId, selectedUserId = null) {
-    const select = document.getElementById(selectId);
-    if (!select) {
-        console.error(`El select con ID '${selectId}' no fue encontrado.`);
-        return;
-    }
+  const select = document.getElementById(selectId);
+  if (!select) {
+    console.error(`El select con ID '${selectId}' no fue encontrado.`);
+    return;
+  }
 
-    try {
-        const response = await fetch(`${API_URL}/usuarios`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) throw new Error('No se pudo obtener la lista de usuarios.');
+  try {
+    const response = await fetch(`${API_URL}/usuarios`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok)
+      throw new Error('No se pudo obtener la lista de usuarios.');
 
-        const usuarios = await response.json();
+    const usuarios = await response.json();
 
-        select.innerHTML = '<option value="">Seleccione un responsable...</option>';
+    select.innerHTML = '<option value="">Seleccione un responsable...</option>';
 
-        usuarios.forEach(usuario => {
-            const option = document.createElement('option');
-            option.value = usuario.id;
-            option.textContent = usuario.nombre_completo || usuario.nombre || `Usuario ${usuario.id}`;
-            if (usuario.id == selectedUserId) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
-
-    } catch (error) {
-        console.error('Error al cargar usuarios:', error);
-        select.innerHTML = '<option value="">Error al cargar usuarios</option>';
-    }
+    usuarios.forEach((usuario) => {
+      const option = document.createElement('option');
+      option.value = usuario.id;
+      option.textContent =
+        usuario.nombre_completo || usuario.nombre || `Usuario ${usuario.id}`;
+      if (usuario.id == selectedUserId) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error al cargar usuarios:', error);
+    select.innerHTML = '<option value="">Error al cargar usuarios</option>';
+  }
 }
 
 /**
@@ -1139,20 +1288,20 @@ async function cargarUsuariosEnSelect(selectId, selectedUserId = null) {
  * @param {HTMLElement} container - El contenedor donde agregar el tag
  */
 function agregarTagAlDOM(tagText, container) {
-    const tagElement = document.createElement('span');
-    tagElement.className = 'tag';
+  const tagElement = document.createElement('span');
+  tagElement.className = 'tag';
 
-    const textNode = document.createTextNode(tagText);
-    tagElement.appendChild(textNode);
+  const textNode = document.createTextNode(tagText);
+  tagElement.appendChild(textNode);
 
-    const removeBtn = document.createElement('button');
-    removeBtn.type = 'button';
-    removeBtn.innerHTML = '×';
-    removeBtn.setAttribute('aria-label', 'Eliminar tag');
-    removeBtn.onclick = () => eliminarTag(tagElement);
+  const removeBtn = document.createElement('button');
+  removeBtn.type = 'button';
+  removeBtn.innerHTML = '×';
+  removeBtn.setAttribute('aria-label', 'Eliminar tag');
+  removeBtn.onclick = () => eliminarTag(tagElement);
 
-    tagElement.appendChild(removeBtn);
-    container.appendChild(tagElement);
+  tagElement.appendChild(removeBtn);
+  container.appendChild(tagElement);
 }
 
 /**
@@ -1161,34 +1310,34 @@ function agregarTagAlDOM(tagText, container) {
  * @param {string} containerId - El ID del contenedor donde agregar el tag
  */
 function agregarTag(inputId, containerId) {
-    const input = document.getElementById(inputId);
-    const container = document.getElementById(containerId);
+  const input = document.getElementById(inputId);
+  const container = document.getElementById(containerId);
 
-    if (!input || !container) {
-        console.error('Input o contenedor de tags no encontrado');
-        return;
-    }
+  if (!input || !container) {
+    console.error('Input o contenedor de tags no encontrado');
+    return;
+  }
 
-    const tagValue = input.value.trim();
+  const tagValue = input.value.trim();
 
-    if (!tagValue) {
-        return;
-    }
+  if (!tagValue) {
+    return;
+  }
 
-    // Evitar duplicados
-    const tagsExistentes = Array.from(container.querySelectorAll('.tag')).map(
-        tag => tag.textContent.replace('×', '').trim()
-    );
+  // Evitar duplicados
+  const tagsExistentes = Array.from(container.querySelectorAll('.tag')).map(
+    (tag) => tag.textContent.replace('×', '').trim()
+  );
 
-    if (tagsExistentes.includes(tagValue)) {
-        mostrarNotificacion('Este tag ya existe', 'warning');
-        input.value = '';
-        return;
-    }
-
-    agregarTagAlDOM(tagValue, container);
+  if (tagsExistentes.includes(tagValue)) {
+    mostrarNotificacion('Este tag ya existe', 'warning');
     input.value = '';
-    input.focus();
+    return;
+  }
+
+  agregarTagAlDOM(tagValue, container);
+  input.value = '';
+  input.focus();
 }
 
 /**
@@ -1196,9 +1345,9 @@ function agregarTag(inputId, containerId) {
  * @param {HTMLElement} tagElement - El elemento del tag a eliminar.
  */
 function eliminarTag(tagElement) {
-    if (tagElement && tagElement.parentNode) {
-        tagElement.remove();
-    }
+  if (tagElement && tagElement.parentNode) {
+    tagElement.remove();
+  }
 }
 
 /**
@@ -1208,25 +1357,25 @@ function eliminarTag(tagElement) {
  * @param {string} previewContainerId - El ID del contenedor de previsualización
  */
 function manejarArchivoAdjunto(event, previewContainerId) {
-    const previewContainer = document.getElementById(previewContainerId);
-    if (!previewContainer) return;
+  const previewContainer = document.getElementById(previewContainerId);
+  if (!previewContainer) return;
 
-    const files = event.target.files;
+  const files = event.target.files;
 
-    // Acumular nuevos archivos al array existente
-    const nuevosArchivos = Array.from(files);
-    archivosSeleccionados = [...archivosSeleccionados, ...nuevosArchivos];
+  // Acumular nuevos archivos al array existente
+  const nuevosArchivos = Array.from(files);
+  archivosSeleccionados = [...archivosSeleccionados, ...nuevosArchivos];
 
-    // Agregar cada nuevo archivo al preview (sin borrar los existentes)
-    for (const file of nuevosArchivos) {
-        const fileInfo = document.createElement('div');
-        fileInfo.className = 'file-preview-item';
+  // Agregar cada nuevo archivo al preview (sin borrar los existentes)
+  for (const file of nuevosArchivos) {
+    const fileInfo = document.createElement('div');
+    fileInfo.className = 'file-preview-item';
 
-        // Crear ID único para el archivo basado en nombre
-        const fileId = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
+    // Crear ID único para el archivo basado en nombre
+    const fileId = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}-${Date.now()}`;
 
-        // Agregar botón para remover archivo con barra de progreso
-        fileInfo.innerHTML = `
+    // Agregar botón para remover archivo con barra de progreso
+    fileInfo.innerHTML = `
             <div class="file-preview-info">
                 <span class="file-preview-name">${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
                 <button type="button" class="file-preview-remove" onclick="removerArchivoPreview(this, '${file.name}', '${previewContainerId}')" title="Quitar">
@@ -1238,13 +1387,13 @@ function manejarArchivoAdjunto(event, previewContainerId) {
                 <span class="file-progress-status">Esperando...</span>
             </div>
         `;
-        fileInfo.dataset.fileName = file.name;
-        fileInfo.dataset.fileId = fileId;
-        previewContainer.appendChild(fileInfo);
-    }
+    fileInfo.dataset.fileName = file.name;
+    fileInfo.dataset.fileId = fileId;
+    previewContainer.appendChild(fileInfo);
+  }
 
-    // Reset el input para permitir seleccionar el mismo archivo de nuevo
-    event.target.value = '';
+  // Reset el input para permitir seleccionar el mismo archivo de nuevo
+  event.target.value = '';
 }
 
 /**
@@ -1255,43 +1404,41 @@ function manejarArchivoAdjunto(event, previewContainerId) {
  * @param {string} message - Mensaje de estado opcional
  */
 function actualizarProgresoArchivo(fileName, percent, status, message) {
-    // Buscar el file preview item por nombre
-    const fileItems = document.querySelectorAll('.file-preview-item');
-    for (const item of fileItems) {
-        if (item.dataset.fileName === fileName) {
-            const progressBar = item.querySelector('.file-progress-bar');
-            const progressStatus = item.querySelector('.file-progress-status');
+  // Buscar el file preview item por nombre
+  const fileItems = document.querySelectorAll('.file-preview-item');
+  for (const item of fileItems) {
+    if (item.dataset.fileName === fileName) {
+      const progressBar = item.querySelector('.file-progress-bar');
+      const progressStatus = item.querySelector('.file-progress-status');
 
-            if (progressBar) {
-                // Usar CSS custom property para el progreso
-                progressBar.style.setProperty('--progress', `${percent}%`);
+      if (progressBar) {
+        // Usar CSS custom property para el progreso
+        progressBar.style.setProperty('--progress', `${percent}%`);
 
-                // Cambiar estado
-                progressBar.classList.remove('uploading', 'uploaded', 'error');
-                progressBar.classList.add(status);
-            }
+        // Cambiar estado
+        progressBar.classList.remove('uploading', 'uploaded', 'error');
+        progressBar.classList.add(status);
+      }
 
-            if (progressStatus) {
-                // Limpiar clases previas
-                progressStatus.classList.remove('success', 'error');
+      if (progressStatus) {
+        // Limpiar clases previas
+        progressStatus.classList.remove('success', 'error');
 
-                if (status === 'uploading') {
-                    progressStatus.textContent = message || `${percent}%`;
-                } else if (status === 'uploaded') {
-                    progressStatus.textContent = '✓ Listo';
-                    progressStatus.classList.add('success');
-                } else if (status === 'error') {
-                    progressStatus.textContent = '✗ Error';
-                    progressStatus.classList.add('error');
-                }
-            }
-
-            break;
+        if (status === 'uploading') {
+          progressStatus.textContent = message || `${percent}%`;
+        } else if (status === 'uploaded') {
+          progressStatus.textContent = '✓ Listo';
+          progressStatus.classList.add('success');
+        } else if (status === 'error') {
+          progressStatus.textContent = '✗ Error';
+          progressStatus.classList.add('error');
         }
+      }
+
+      break;
     }
+  }
 }
-
-
 
 /**
  * Remueve un archivo del preview y del array de archivos seleccionados
@@ -1300,14 +1447,16 @@ function actualizarProgresoArchivo(fileName, percent, status, message) {
  * @param {string} previewContainerId - ID del contenedor
  */
 function removerArchivoPreview(button, fileName, previewContainerId) {
-    // Remover del array
-    archivosSeleccionados = archivosSeleccionados.filter(f => f.name !== fileName);
+  // Remover del array
+  archivosSeleccionados = archivosSeleccionados.filter(
+    (f) => f.name !== fileName
+  );
 
-    // Remover del DOM
-    const fileItem = button.closest('.file-preview-item');
-    if (fileItem) {
-        fileItem.remove();
-    }
+  // Remover del DOM
+  const fileItem = button.closest('.file-preview-item');
+  if (fileItem) {
+    fileItem.remove();
+  }
 }
 
 /**
@@ -1316,23 +1465,29 @@ function removerArchivoPreview(button, fileName, previewContainerId) {
  * @param {string} semaforoId - El ID del div que representa el semáforo.
  */
 function actualizarSemaforoPrioridad(selectId, semaforoId) {
-    const select = document.getElementById(selectId);
-    const semaforo = document.getElementById(semaforoId);
+  const select = document.getElementById(selectId);
+  const semaforo = document.getElementById(semaforoId);
 
-    if (!select || !semaforo) {
-        console.warn(`No se encontró el select ${selectId} o el semáforo ${semaforoId}`);
-        return;
-    }
+  if (!select || !semaforo) {
+    console.warn(
+      `No se encontró el select ${selectId} o el semáforo ${semaforoId}`
+    );
+    return;
+  }
 
-    const prioridad = select.value;
+  const prioridad = select.value;
 
-    // Remover todas las clases de prioridad
-    semaforo.classList.remove('prioridad-alta', 'prioridad-media', 'prioridad-baja');
+  // Remover todas las clases de prioridad
+  semaforo.classList.remove(
+    'prioridad-alta',
+    'prioridad-media',
+    'prioridad-baja'
+  );
 
-    // Agregar la clase correspondiente
-    if (prioridad) {
-        semaforo.classList.add(`prioridad-${prioridad}`);
-    }
+  // Agregar la clase correspondiente
+  if (prioridad) {
+    semaforo.classList.add(`prioridad-${prioridad}`);
+  }
 }
 
 /**
@@ -1341,32 +1496,33 @@ function actualizarSemaforoPrioridad(selectId, semaforoId) {
  * @param {number} selectedTaskId - El ID de la tarea seleccionada
  */
 async function cargarTareasEnSelector(selectId, selectedTaskId = null) {
-    const select = document.getElementById(selectId);
-    if (!select) return;
+  const select = document.getElementById(selectId);
+  if (!select) return;
 
-    try {
-        const response = await fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) throw new Error('No se pudo obtener la lista de tareas');
+  try {
+    const response = await fetch(`${API_URL}/tareas`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok) throw new Error('No se pudo obtener la lista de tareas');
 
-        const tareas = await response.json();
-        select.innerHTML = '<option value="">-- Sin asignar existente --</option>';
+    const tareas = await response.json();
+    select.innerHTML = '<option value="">-- Sin asignar existente --</option>';
 
-        console.log("Mostrando el total de tareas", tareas);
+    console.log('Mostrando el total de tareas', tareas);
 
-        tareas.forEach(tarea => {
-            const option = document.createElement('option');
-            option.value = tarea.id;
-            option.textContent = `${tarea.titulo} (${tarea.asignado_a_nombre})`;
-            if (tarea.id == selectedTaskId) {
-                option.selected = true;
-            }
-            select.appendChild(option);
-        });
-
-    } catch (error) {
-        console.error('Error cargando tareas en selector:', error);
-        select.innerHTML = '<option value="">Error al cargar tareas</option>';
-    }
+    tareas.forEach((tarea) => {
+      const option = document.createElement('option');
+      option.value = tarea.id;
+      option.textContent = `${tarea.titulo} (${tarea.asignado_a_nombre})`;
+      if (tarea.id == selectedTaskId) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+  } catch (error) {
+    console.error('Error cargando tareas en selector:', error);
+    select.innerHTML = '<option value="">Error al cargar tareas</option>';
+  }
 }
 
 /**
@@ -1374,75 +1530,88 @@ async function cargarTareasEnSelector(selectId, selectedTaskId = null) {
  * @param {number} tareaId - ID de la tarea a actualizar
  */
 async function actualizarTarjetaTarea(tareaId) {
-    console.log(`🔄 Actualizando tarjeta de tarea ${tareaId}...`);
+  console.log(`🔄 Actualizando tarjeta de tarea ${tareaId}...`);
 
-    try {
-        // Obtener los datos actualizados de la tarea desde el backend
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
-            headers: obtenerHeadersConAuth()
-        });
+  try {
+    // Obtener los datos actualizados de la tarea desde el backend
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      headers: obtenerHeadersConAuth(),
+    });
 
-        if (!response.ok) {
-            throw new Error('Error al obtener datos de la tarea');
-        }
-
-        const tareaActualizada = await response.json();
-        console.log('Tarea obtenida:', tareaActualizada);
-
-        // Recargar servicios para tener datos actualizados
-        const responseServicios = await fetch(`${API_URL}/mantenimientos`, {
-            headers: obtenerHeadersConAuth()
-        });
-        let serviciosAsignados = [];
-        if (responseServicios.ok) {
-            todosLosServiciosCache = await responseServicios.json();
-            serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId);
-        }
-
-        // Ajustar el estado de la tarea según el progreso real de sus servicios (solo si no está cancelada ni completada)
-        if (tareaActualizada.estado !== 'cancelada' && tareaActualizada.estado !== 'completada') {
-            const estadoDerivado = calcularEstadoDesdeServicios(serviciosAsignados) || tareaActualizada.estado;
-            if (estadoDerivado && estadoDerivado !== tareaActualizada.estado) {
-                tareaActualizada.estado = estadoDerivado;
-            }
-        }
-
-        // Actualizar en el array local
-        const indice = todasLasTareas.findIndex(t => t.id == tareaId);
-        if (indice !== -1) {
-            todasLasTareas[indice] = tareaActualizada;
-        }
-
-        if (Array.isArray(tareasFiltradas)) {
-            const idxFiltrado = tareasFiltradas.findIndex(t => t.id == tareaId);
-            if (idxFiltrado !== -1) {
-                tareasFiltradas[idxFiltrado] = tareaActualizada;
-            }
-        }
-
-        // Buscar la tarjeta en el DOM
-        const tarjetaExistente = document.querySelector(`li[data-tarea-id="${tareaId}"]`);
-
-        if (tarjetaExistente) {
-            // Crear nueva tarjeta con datos actualizados
-            const nuevaTarjeta = crearTarjetaTarea(tareaActualizada, todosLosServiciosCache);
-
-            // Reemplazar la tarjeta antigua con la nueva
-            tarjetaExistente.replaceWith(nuevaTarjeta);
-            console.log(`✅ Tarjeta ${tareaId} actualizada en el DOM`);
-        } else {
-            console.warn(`⚠️ No se encontró la tarjeta ${tareaId} en el DOM, puede estar filtrada`);
-        }
-
-        // Actualizar el resumen de tareas
-        if (typeof actualizarResumenTareas === 'function') {
-            actualizarResumenTareas();
-        }
-
-    } catch (error) {
-        console.error('Error al actualizar tarjeta de tarea:', error);
-        mostrarNotificacion('Error al actualizar la vista de la tarea', 'error');
+    if (!response.ok) {
+      throw new Error('Error al obtener datos de la tarea');
     }
+
+    const tareaActualizada = await response.json();
+    console.log('Tarea obtenida:', tareaActualizada);
+
+    // Recargar servicios para tener datos actualizados
+    const responseServicios = await fetch(`${API_URL}/mantenimientos`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    let serviciosAsignados = [];
+    if (responseServicios.ok) {
+      todosLosServiciosCache = await responseServicios.json();
+      serviciosAsignados = todosLosServiciosCache.filter(
+        (s) => s.tarea_id == tareaId
+      );
+    }
+
+    // Ajustar el estado de la tarea según el progreso real de sus servicios (solo si no está cancelada ni completada)
+    if (
+      tareaActualizada.estado !== 'cancelada' &&
+      tareaActualizada.estado !== 'completada'
+    ) {
+      const estadoDerivado =
+        calcularEstadoDesdeServicios(serviciosAsignados) ||
+        tareaActualizada.estado;
+      if (estadoDerivado && estadoDerivado !== tareaActualizada.estado) {
+        tareaActualizada.estado = estadoDerivado;
+      }
+    }
+
+    // Actualizar en el array local
+    const indice = todasLasTareas.findIndex((t) => t.id == tareaId);
+    if (indice !== -1) {
+      todasLasTareas[indice] = tareaActualizada;
+    }
+
+    if (Array.isArray(tareasFiltradas)) {
+      const idxFiltrado = tareasFiltradas.findIndex((t) => t.id == tareaId);
+      if (idxFiltrado !== -1) {
+        tareasFiltradas[idxFiltrado] = tareaActualizada;
+      }
+    }
+
+    // Buscar la tarjeta en el DOM
+    const tarjetaExistente = document.querySelector(
+      `li[data-tarea-id="${tareaId}"]`
+    );
+
+    if (tarjetaExistente) {
+      // Crear nueva tarjeta con datos actualizados
+      const nuevaTarjeta = crearTarjetaTarea(
+        tareaActualizada,
+        todosLosServiciosCache
+      );
+
+      // Reemplazar la tarjeta antigua con la nueva
+      tarjetaExistente.replaceWith(nuevaTarjeta);
+      console.log(`✅ Tarjeta ${tareaId} actualizada en el DOM`);
+    } else {
+      console.warn(
+        `⚠️ No se encontró la tarjeta ${tareaId} en el DOM, puede estar filtrada`
+      );
+    }
+
+    // Actualizar el resumen de tareas
+    if (typeof actualizarResumenTareas === 'function') {
+      actualizarResumenTareas();
+    }
+  } catch (error) {
+    console.error('Error al actualizar tarjeta de tarea:', error);
+    mostrarNotificacion('Error al actualizar la vista de la tarea', 'error');
+  }
 }
 
 // ------------------------------
@@ -1457,16 +1626,15 @@ const TAREAS_POR_LOTE = 6;
 let observerTareas = null;
 let tareasCargadas = false; // Flag para controlar si ya se cargaron las tareas
 
-
 /**
  * Crea un skeleton card para tareas
  * @returns {HTMLElement} Elemento li con skeleton
  */
 function crearSkeletonTarea() {
-    const li = document.createElement('li');
-    li.className = 'skeleton-tarea-card';
+  const li = document.createElement('li');
+  li.className = 'skeleton-tarea-card';
 
-    li.innerHTML = `
+  li.innerHTML = `
         <div class="skeleton-tarea-header">
             <div class="skeleton-tarea-badges">
                 <div class="skeleton-badge-task"></div>
@@ -1505,7 +1673,7 @@ function crearSkeletonTarea() {
         </div>
     `;
 
-    return li;
+  return li;
 }
 
 /**
@@ -1513,391 +1681,447 @@ function crearSkeletonTarea() {
  * @param {HTMLElement} container - El contenedor de la lista
  */
 function renderizarLoteTareas(container) {
-    const siguienteLote = tareasFiltradas.slice(tareasRenderizadas, tareasRenderizadas + TAREAS_POR_LOTE);
+  const siguienteLote = tareasFiltradas.slice(
+    tareasRenderizadas,
+    tareasRenderizadas + TAREAS_POR_LOTE
+  );
 
-    if (siguienteLote.length === 0) return;
+  if (siguienteLote.length === 0) return;
 
-    const fragment = document.createDocumentFragment();
+  const fragment = document.createDocumentFragment();
 
-    siguienteLote.forEach((tarea, index) => {
-        const card = crearTarjetaTarea(tarea, todosLosServiciosCache);
-        card.classList.add('tarea-lazy');
+  siguienteLote.forEach((tarea, index) => {
+    const card = crearTarjetaTarea(tarea, todosLosServiciosCache);
+    card.classList.add('tarea-lazy');
 
-        // Añadir animación con delay progresivo
-        setTimeout(() => {
-            card.classList.add('card-appear');
-        }, index * 50);
+    // Añadir animación con delay progresivo
+    setTimeout(() => {
+      card.classList.add('card-appear');
+    }, index * 50);
 
-        fragment.appendChild(card);
-    });
+    fragment.appendChild(card);
+  });
 
-    // Insertar antes del sentinel
-    const sentinel = document.getElementById('sentinel-tareas');
-    if (sentinel) {
-        container.insertBefore(fragment, sentinel);
-    } else {
-        container.appendChild(fragment);
-    }
+  // Insertar antes del sentinel
+  const sentinel = document.getElementById('sentinel-tareas');
+  if (sentinel) {
+    container.insertBefore(fragment, sentinel);
+  } else {
+    container.appendChild(fragment);
+  }
 
-    tareasRenderizadas += siguienteLote.length;
+  tareasRenderizadas += siguienteLote.length;
 
-    // Si ya no hay más, desconectar observer
-    if (tareasRenderizadas >= tareasFiltradas.length && observerTareas) {
-        observerTareas.disconnect();
-        if (sentinel) sentinel.remove();
-        console.log(`✅ Todas las ${tareasRenderizadas} tareas renderizadas`);
-    }
+  // Si ya no hay más, desconectar observer
+  if (tareasRenderizadas >= tareasFiltradas.length && observerTareas) {
+    observerTareas.disconnect();
+    if (sentinel) sentinel.remove();
+    console.log(`✅ Todas las ${tareasRenderizadas} tareas renderizadas`);
+  }
 }
 
 /**
  * Aplica los filtros a las tareas y actualiza la vista
  */
 function aplicarFiltrosTareas() {
-    const inputBusqueda = document.getElementById('buscarTarea');
-    const selectEstado = document.getElementById('filtroEstadoTarea');
-    const selectPrioridad = document.getElementById('filtroPrioridadTarea');
-    const selectRol = document.getElementById('filtroRolTarea');
-    const selectTag = document.getElementById('filtroTagTarea');
+  const inputBusqueda = document.getElementById('buscarTarea');
+  const selectEstado = document.getElementById('filtroEstadoTarea');
+  const selectPrioridad = document.getElementById('filtroPrioridadTarea');
+  const selectRol = document.getElementById('filtroRolTarea');
+  const selectTag = document.getElementById('filtroTagTarea');
 
-    const terminoBusqueda = inputBusqueda ? inputBusqueda.value.toLowerCase().trim() : '';
-    const estadoFiltro = selectEstado ? selectEstado.value : '';
-    const prioridadFiltro = selectPrioridad ? selectPrioridad.value : '';
-    const rolFiltro = selectRol ? selectRol.value : '';
-    const tagFiltro = selectTag ? selectTag.value : '';
+  const terminoBusqueda = inputBusqueda
+    ? inputBusqueda.value.toLowerCase().trim()
+    : '';
+  const estadoFiltro = selectEstado ? selectEstado.value : '';
+  const prioridadFiltro = selectPrioridad ? selectPrioridad.value : '';
+  const rolFiltro = selectRol ? selectRol.value : '';
+  const tagFiltro = selectTag ? selectTag.value : '';
 
-    // Obtener el rol del usuario actual si es necesario
-    let rolUsuarioActual = null;
-    if (rolFiltro === 'mi-rol') {
-        // Intentar obtener el rol desde AppState
-        let userRole = null;
-        if (window.AppState && window.AppState.currentUser) {
-            userRole = window.AppState.currentUser.role || window.AppState.currentUser.rol;
-        }
-
-        // Si no está en AppState, intentar desde localStorage/sessionStorage
-        if (!userRole) {
-            try {
-                const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-                if (storedUser) {
-                    userRole = storedUser.role || storedUser.rol;
-                }
-            } catch (e) {
-                console.warn('Error obteniendo usuario de storage:', e);
-            }
-        }
-
-        if (userRole) {
-            // Los roles en la BD están en MAYÚSCULAS: 'ADMIN', 'SUPERVISOR', 'TECNICO'
-            const roleMap = {
-                'admin': 'ADMIN',
-                'supervisor': 'SUPERVISOR',
-                'tecnico': 'TECNICO',
-                'administrador': 'ADMIN',
-                'Administrador': 'ADMIN',
-                'Supervisor': 'SUPERVISOR',
-                'Técnico': 'TECNICO',
-                'ADMIN': 'ADMIN',
-                'SUPERVISOR': 'SUPERVISOR',
-                'TECNICO': 'TECNICO'
-            };
-            rolUsuarioActual = roleMap[userRole] || roleMap[userRole.toLowerCase()] || userRole.toUpperCase();
-            console.log('🔍 Filtro "Mi rol":', { userRole, rolUsuarioActual });
-        } else {
-            console.warn('⚠️ No se pudo obtener el rol del usuario para el filtro "Mi rol"');
-        }
+  // Obtener el rol del usuario actual si es necesario
+  let rolUsuarioActual = null;
+  if (rolFiltro === 'mi-rol') {
+    // Intentar obtener el rol desde AppState
+    let userRole = null;
+    if (window.AppState && window.AppState.currentUser) {
+      userRole =
+        window.AppState.currentUser.role || window.AppState.currentUser.rol;
     }
 
-    tareasFiltradas = todasLasTareas.filter(tarea => {
-        // Filtro de búsqueda (título, descripción, ubicación, tags)
-        if (terminoBusqueda) {
-            const titulo = (tarea.titulo || '').toLowerCase();
-            const descripcion = (tarea.descripcion || '').toLowerCase();
-            const ubicacion = (tarea.ubicacion || '').toLowerCase();
-            const tags = Array.isArray(tarea.tags) ? tarea.tags.join(' ').toLowerCase() : '';
-            const asignado = (tarea.asignado_a_nombre || '').toLowerCase();
-
-            const coincideBusqueda = titulo.includes(terminoBusqueda) ||
-                descripcion.includes(terminoBusqueda) ||
-                ubicacion.includes(terminoBusqueda) ||
-                tags.includes(terminoBusqueda) ||
-                asignado.includes(terminoBusqueda);
-
-            if (!coincideBusqueda) return false;
+    // Si no está en AppState, intentar desde localStorage/sessionStorage
+    if (!userRole) {
+      try {
+        const storedUser = JSON.parse(
+          localStorage.getItem('currentUser') ||
+            sessionStorage.getItem('currentUser') ||
+            'null'
+        );
+        if (storedUser) {
+          userRole = storedUser.role || storedUser.rol;
         }
+      } catch (e) {
+        console.warn('Error obteniendo usuario de storage:', e);
+      }
+    }
 
-        // Filtro de estado
-        if (estadoFiltro && tarea.estado !== estadoFiltro) {
-            return false;
+    if (userRole) {
+      // Los roles en la BD están en MAYÚSCULAS: 'ADMIN', 'SUPERVISOR', 'TECNICO'
+      const roleMap = {
+        admin: 'ADMIN',
+        supervisor: 'SUPERVISOR',
+        tecnico: 'TECNICO',
+        administrador: 'ADMIN',
+        Administrador: 'ADMIN',
+        Supervisor: 'SUPERVISOR',
+        Técnico: 'TECNICO',
+        ADMIN: 'ADMIN',
+        SUPERVISOR: 'SUPERVISOR',
+        TECNICO: 'TECNICO',
+      };
+      rolUsuarioActual =
+        roleMap[userRole] ||
+        roleMap[userRole.toLowerCase()] ||
+        userRole.toUpperCase();
+      console.log('🔍 Filtro "Mi rol":', { userRole, rolUsuarioActual });
+    } else {
+      console.warn(
+        '⚠️ No se pudo obtener el rol del usuario para el filtro "Mi rol"'
+      );
+    }
+  }
+
+  tareasFiltradas = todasLasTareas.filter((tarea) => {
+    // Filtro de búsqueda (título, descripción, ubicación, tags)
+    if (terminoBusqueda) {
+      const titulo = (tarea.titulo || '').toLowerCase();
+      const descripcion = (tarea.descripcion || '').toLowerCase();
+      const ubicacion = (tarea.ubicacion || '').toLowerCase();
+      const tags = Array.isArray(tarea.tags)
+        ? tarea.tags.join(' ').toLowerCase()
+        : '';
+      const asignado = (tarea.asignado_a_nombre || '').toLowerCase();
+
+      const coincideBusqueda =
+        titulo.includes(terminoBusqueda) ||
+        descripcion.includes(terminoBusqueda) ||
+        ubicacion.includes(terminoBusqueda) ||
+        tags.includes(terminoBusqueda) ||
+        asignado.includes(terminoBusqueda);
+
+      if (!coincideBusqueda) return false;
+    }
+
+    // Filtro de estado
+    if (estadoFiltro && tarea.estado !== estadoFiltro) {
+      return false;
+    }
+
+    // Filtro de prioridad
+    if (prioridadFiltro && tarea.prioridad !== prioridadFiltro) {
+      return false;
+    }
+
+    // Filtro de rol
+    if (rolFiltro === 'para-mi') {
+      // Filtrar por ID del usuario actual (tareas asignadas específicamente a mí)
+      let usuarioIdActual = null;
+      if (
+        window.AppState &&
+        window.AppState.currentUser &&
+        window.AppState.currentUser.id
+      ) {
+        usuarioIdActual = window.AppState.currentUser.id;
+      }
+      if (!usuarioIdActual) {
+        try {
+          const storedUser = JSON.parse(
+            localStorage.getItem('currentUser') ||
+              sessionStorage.getItem('currentUser') ||
+              'null'
+          );
+          if (storedUser && storedUser.id) {
+            usuarioIdActual = storedUser.id;
+          }
+        } catch (e) {
+          console.warn('Error obteniendo ID de usuario:', e);
         }
+      }
+      if (!usuarioIdActual) {
+        console.warn(
+          '⚠️ No se pudo obtener el ID del usuario para el filtro "Para mí"'
+        );
+        return false;
+      }
+      // Comparar con asignado_a (ID) de la tarea
+      const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
+      console.log('🔍 Filtro "Para mí":', { usuarioIdActual, tareaAsignadaA });
+      if (tareaAsignadaA != usuarioIdActual) {
+        return false;
+      }
+    } else if (rolFiltro === 'mi-rol') {
+      if (!rolUsuarioActual) {
+        // Si no se puede determinar el rol del usuario, no mostrar ninguna tarea
+        return false;
+      }
+      if (tarea.asignado_a_rol_nombre !== rolUsuarioActual) {
+        return false;
+      }
+    } else if (
+      rolFiltro &&
+      rolFiltro !== 'todos' &&
+      rolFiltro !== 'mi-rol' &&
+      rolFiltro !== 'para-mi'
+    ) {
+      // Los roles en la BD están en MAYÚSCULAS: 'ADMIN', 'SUPERVISOR', 'TECNICO'
+      const rolMap = {
+        admin: 'ADMIN',
+        supervisor: 'SUPERVISOR',
+        tecnico: 'TECNICO',
+        ADMIN: 'ADMIN',
+        SUPERVISOR: 'SUPERVISOR',
+        TECNICO: 'TECNICO',
+      };
+      const rolBuscado =
+        rolMap[rolFiltro] ||
+        rolMap[rolFiltro.toLowerCase()] ||
+        rolFiltro.toUpperCase();
+      console.log('🔍 Filtro por rol específico:', {
+        rolFiltro,
+        rolBuscado,
+        tareaRol: tarea.asignado_a_rol_nombre,
+      });
+      if (tarea.asignado_a_rol_nombre !== rolBuscado) {
+        return false;
+      }
+    } else if (rolFiltro === 'todos') {
+      // Si el usuario es supervisor, no mostrar tareas de ADMIN
+      const userRole = obtenerRolUsuarioActual();
+      if (
+        userRole === 'supervisor' &&
+        tarea.asignado_a_rol_nombre === 'ADMIN'
+      ) {
+        return false;
+      }
+    }
 
-        // Filtro de prioridad
-        if (prioridadFiltro && tarea.prioridad !== prioridadFiltro) {
-            return false;
-        }
+    // Filtro de tag
+    if (tagFiltro) {
+      const tagsTarea = Array.isArray(tarea.tags) ? tarea.tags : [];
+      if (!tagsTarea.includes(tagFiltro)) {
+        return false;
+      }
+    }
 
-        // Filtro de rol
-        if (rolFiltro === 'para-mi') {
-            // Filtrar por ID del usuario actual (tareas asignadas específicamente a mí)
-            let usuarioIdActual = null;
-            if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
-                usuarioIdActual = window.AppState.currentUser.id;
-            }
-            if (!usuarioIdActual) {
-                try {
-                    const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-                    if (storedUser && storedUser.id) {
-                        usuarioIdActual = storedUser.id;
-                    }
-                } catch (e) {
-                    console.warn('Error obteniendo ID de usuario:', e);
-                }
-            }
-            if (!usuarioIdActual) {
-                console.warn('⚠️ No se pudo obtener el ID del usuario para el filtro "Para mí"');
-                return false;
-            }
-            // Comparar con asignado_a (ID) de la tarea
-            const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
-            console.log('🔍 Filtro "Para mí":', { usuarioIdActual, tareaAsignadaA });
-            if (tareaAsignadaA != usuarioIdActual) {
-                return false;
-            }
-        } else if (rolFiltro === 'mi-rol') {
-            if (!rolUsuarioActual) {
-                // Si no se puede determinar el rol del usuario, no mostrar ninguna tarea
-                return false;
-            }
-            if (tarea.asignado_a_rol_nombre !== rolUsuarioActual) {
-                return false;
-            }
-        } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol' && rolFiltro !== 'para-mi') {
-            // Los roles en la BD están en MAYÚSCULAS: 'ADMIN', 'SUPERVISOR', 'TECNICO'
-            const rolMap = {
-                'admin': 'ADMIN',
-                'supervisor': 'SUPERVISOR',
-                'tecnico': 'TECNICO',
-                'ADMIN': 'ADMIN',
-                'SUPERVISOR': 'SUPERVISOR',
-                'TECNICO': 'TECNICO'
-            };
-            const rolBuscado = rolMap[rolFiltro] || rolMap[rolFiltro.toLowerCase()] || rolFiltro.toUpperCase();
-            console.log('🔍 Filtro por rol específico:', { rolFiltro, rolBuscado, tareaRol: tarea.asignado_a_rol_nombre });
-            if (tarea.asignado_a_rol_nombre !== rolBuscado) {
-                return false;
-            }
-        } else if (rolFiltro === 'todos') {
-            // Si el usuario es supervisor, no mostrar tareas de ADMIN
-            const userRole = obtenerRolUsuarioActual();
-            if (userRole === 'supervisor' && tarea.asignado_a_rol_nombre === 'ADMIN') {
-                return false;
-            }
-        }
+    return true;
+  });
 
-        // Filtro de tag
-        if (tagFiltro) {
-            const tagsTarea = Array.isArray(tarea.tags) ? tarea.tags : [];
-            if (!tagsTarea.includes(tagFiltro)) {
-                return false;
-            }
-        }
+  // Reiniciar renderizado
+  tareasRenderizadas = 0;
+  const listaTareas = document.getElementById('listaTareas');
+  if (listaTareas) {
+    listaTareas.innerHTML = '';
 
-        return true;
-    });
+    if (tareasFiltradas.length === 0) {
+      const mensajeNoTareas = document.getElementById('mensajeNoTareas');
+      if (mensajeNoTareas) {
+        mensajeNoTareas.style.display = 'block';
+      }
+      // Actualizar resumen incluso cuando no hay tareas (para poner contadores en 0)
+      actualizarResumenTareas();
+      return;
+    }
 
-    // Reiniciar renderizado
-    tareasRenderizadas = 0;
-    const listaTareas = document.getElementById('listaTareas');
-    if (listaTareas) {
-        listaTareas.innerHTML = '';
+    // Ocultar mensaje de no tareas si hay resultados
+    const mensajeNoTareas = document.getElementById('mensajeNoTareas');
+    if (mensajeNoTareas) {
+      mensajeNoTareas.style.display = 'none';
+    }
 
-        if (tareasFiltradas.length === 0) {
-            const mensajeNoTareas = document.getElementById('mensajeNoTareas');
-            if (mensajeNoTareas) {
-                mensajeNoTareas.style.display = 'block';
-            }
-            // Actualizar resumen incluso cuando no hay tareas (para poner contadores en 0)
-            actualizarResumenTareas();
-            return;
-        }
+    // Crear sentinel para lazy loading
+    const sentinel = document.createElement('div');
+    sentinel.id = 'sentinel-tareas';
+    sentinel.style.height = '1px';
+    listaTareas.appendChild(sentinel);
 
-        // Ocultar mensaje de no tareas si hay resultados
-        const mensajeNoTareas = document.getElementById('mensajeNoTareas');
-        if (mensajeNoTareas) {
-            mensajeNoTareas.style.display = 'none';
-        }
+    // Configurar Intersection Observer
+    if (observerTareas) {
+      observerTareas.disconnect();
+    }
 
-        // Crear sentinel para lazy loading
-        const sentinel = document.createElement('div');
-        sentinel.id = 'sentinel-tareas';
-        sentinel.style.height = '1px';
-        listaTareas.appendChild(sentinel);
-
-        // Configurar Intersection Observer
-        if (observerTareas) {
-            observerTareas.disconnect();
-        }
-
-        observerTareas = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    renderizarLoteTareas(listaTareas);
-                }
-            });
-        }, {
-            root: null,
-            rootMargin: '100px',
-            threshold: 0.1
+    observerTareas = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            renderizarLoteTareas(listaTareas);
+          }
         });
+      },
+      {
+        root: null,
+        rootMargin: '100px',
+        threshold: 0.1,
+      }
+    );
 
-        observerTareas.observe(sentinel);
+    observerTareas.observe(sentinel);
 
-        // Renderizar primer lote inmediatamente
-        renderizarLoteTareas(listaTareas);
+    // Renderizar primer lote inmediatamente
+    renderizarLoteTareas(listaTareas);
 
-        // Actualizar resumen de tareas
-        actualizarResumenTareas();
-    }
+    // Actualizar resumen de tareas
+    actualizarResumenTareas();
+  }
 }
 
 /**
  * Pobla el select de tags con todos los tags únicos de las tareas
  */
 function poblarSelectTags() {
-    const selectTag = document.getElementById('filtroTagTarea');
-    if (!selectTag) return;
+  const selectTag = document.getElementById('filtroTagTarea');
+  if (!selectTag) return;
 
-    // Obtener todos los tags únicos de todas las tareas
-    const todosLosTags = new Set();
-    todasLasTareas.forEach(tarea => {
-        if (tarea.tags && Array.isArray(tarea.tags)) {
-            tarea.tags.forEach(tag => {
-                if (tag && tag.trim()) {
-                    todosLosTags.add(tag.trim());
-                }
-            });
+  // Obtener todos los tags únicos de todas las tareas
+  const todosLosTags = new Set();
+  todasLasTareas.forEach((tarea) => {
+    if (tarea.tags && Array.isArray(tarea.tags)) {
+      tarea.tags.forEach((tag) => {
+        if (tag && tag.trim()) {
+          todosLosTags.add(tag.trim());
         }
-    });
-
-    // Ordenar tags alfabéticamente
-    const tagsOrdenados = Array.from(todosLosTags).sort();
-
-    // Guardar el valor seleccionado actual
-    const valorSeleccionado = selectTag.value;
-
-    // Limpiar opciones existentes (excepto "Todos los tags")
-    selectTag.innerHTML = '<option value="">Todos los tags</option>';
-
-    // Agregar cada tag como opción
-    tagsOrdenados.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag;
-        option.textContent = tag;
-        selectTag.appendChild(option);
-    });
-
-    // Restaurar el valor seleccionado si aún existe
-    if (valorSeleccionado && tagsOrdenados.includes(valorSeleccionado)) {
-        selectTag.value = valorSeleccionado;
+      });
     }
+  });
+
+  // Ordenar tags alfabéticamente
+  const tagsOrdenados = Array.from(todosLosTags).sort();
+
+  // Guardar el valor seleccionado actual
+  const valorSeleccionado = selectTag.value;
+
+  // Limpiar opciones existentes (excepto "Todos los tags")
+  selectTag.innerHTML = '<option value="">Todos los tags</option>';
+
+  // Agregar cada tag como opción
+  tagsOrdenados.forEach((tag) => {
+    const option = document.createElement('option');
+    option.value = tag;
+    option.textContent = tag;
+    selectTag.appendChild(option);
+  });
+
+  // Restaurar el valor seleccionado si aún existe
+  if (valorSeleccionado && tagsOrdenados.includes(valorSeleccionado)) {
+    selectTag.value = valorSeleccionado;
+  }
 }
 
 /**
  * Actualiza el texto del rol en el resumen según el filtro seleccionado
  */
 function actualizarRolResumen() {
-    const selectRol = document.getElementById('filtroRolTarea');
-    const elRolResumen = document.getElementById('tareasResumenRol');
+  const selectRol = document.getElementById('filtroRolTarea');
+  const elRolResumen = document.getElementById('tareasResumenRol');
 
-    if (!selectRol || !elRolResumen) return;
+  if (!selectRol || !elRolResumen) return;
 
-    const rolFiltro = selectRol.value;
+  const rolFiltro = selectRol.value;
 
-    // Mapeo de valores del filtro a nombres de rol
-    const rolMap = {
-        'mi-rol': 'Mi Rol',
-        'para-mi': 'Para Mí',
-        'todos': 'Todos los Roles',
-        'admin': 'Administrador',
-        'supervisor': 'Supervisor',
-        'tecnico': 'Técnico'
-    };
+  // Mapeo de valores del filtro a nombres de rol
+  const rolMap = {
+    'mi-rol': 'Mi Rol',
+    'para-mi': 'Para Mí',
+    todos: 'Todos los Roles',
+    admin: 'Administrador',
+    supervisor: 'Supervisor',
+    tecnico: 'Técnico',
+  };
 
-    const nombreRol = rolMap[rolFiltro] || 'Mi Rol';
-    elRolResumen.textContent = nombreRol;
+  const nombreRol = rolMap[rolFiltro] || 'Mi Rol';
+  elRolResumen.textContent = nombreRol;
 }
 
 /**
  * Actualiza el resumen de tareas en la columna lateral
  */
 function actualizarResumenTareas() {
-    // Asegurar que tareasFiltradas esté definida como array
-    if (!Array.isArray(tareasFiltradas)) {
-        tareasFiltradas = [];
+  // Asegurar que tareasFiltradas esté definida como array
+  if (!Array.isArray(tareasFiltradas)) {
+    tareasFiltradas = [];
+  }
+
+  const pendientes = tareasFiltradas.filter(
+    (t) => t.estado === 'pendiente'
+  ).length;
+  const enProceso = tareasFiltradas.filter(
+    (t) => t.estado === 'en_proceso'
+  ).length;
+  const completadas = tareasFiltradas.filter(
+    (t) => t.estado === 'completada'
+  ).length;
+  const canceladas = tareasFiltradas.filter(
+    (t) => t.estado === 'cancelada'
+  ).length;
+  const urgentes = tareasFiltradas.filter((t) => {
+    if (t.prioridad === 'alta') return true;
+    if (t.fecha_vencimiento) {
+      const fechaVenc = parsearFechaLocal(t.fecha_vencimiento);
+      const hoyLocal = new Date();
+      hoyLocal.setHours(0, 0, 0, 0);
+      fechaVenc.setHours(0, 0, 0, 0);
+      return fechaVenc < hoyLocal;
     }
+    return false;
+  }).length;
+  const total = tareasFiltradas.length;
+  const totalActivas = total - canceladas;
 
-    const pendientes = tareasFiltradas.filter(t => t.estado === 'pendiente').length;
-    const enProceso = tareasFiltradas.filter(t => t.estado === 'en_proceso').length;
-    const completadas = tareasFiltradas.filter(t => t.estado === 'completada').length;
-    const canceladas = tareasFiltradas.filter(t => t.estado === 'cancelada').length;
-    const urgentes = tareasFiltradas.filter(t => {
-        if (t.prioridad === 'alta') return true;
-        if (t.fecha_vencimiento) {
-            const fechaVenc = parsearFechaLocal(t.fecha_vencimiento);
-            const hoyLocal = new Date();
-            hoyLocal.setHours(0, 0, 0, 0);
-            fechaVenc.setHours(0, 0, 0, 0);
-            return fechaVenc < hoyLocal;
-        }
-        return false;
-    }).length;
-    const total = tareasFiltradas.length;
-    const totalActivas = total - canceladas;
+  const elPendientes = document.getElementById('tareasResumenPendientes');
+  const elEnProceso = document.getElementById('tareasResumenEnProceso');
+  const elCompletadas = document.getElementById('tareasResumenCompletadas');
+  const elUrgentes = document.getElementById('tareasResumenUrgentes');
+  const elTotal = document.getElementById('tareasResumenTotal');
 
-    const elPendientes = document.getElementById('tareasResumenPendientes');
-    const elEnProceso = document.getElementById('tareasResumenEnProceso');
-    const elCompletadas = document.getElementById('tareasResumenCompletadas');
-    const elUrgentes = document.getElementById('tareasResumenUrgentes');
-    const elTotal = document.getElementById('tareasResumenTotal');
+  if (elPendientes) elPendientes.textContent = pendientes;
+  if (elEnProceso) elEnProceso.textContent = enProceso;
+  if (elCompletadas) elCompletadas.textContent = completadas;
+  if (elUrgentes) elUrgentes.textContent = urgentes;
+  if (elTotal) elTotal.textContent = total;
 
-    if (elPendientes) elPendientes.textContent = pendientes;
-    if (elEnProceso) elEnProceso.textContent = enProceso;
-    if (elCompletadas) elCompletadas.textContent = completadas;
-    if (elUrgentes) elUrgentes.textContent = urgentes;
-    if (elTotal) elTotal.textContent = total;
+  // Actualizar Monitor Operativo
+  const statsPendientes = document.getElementById('tareasStatsPendientes');
+  const statsActivas = document.getElementById('tareasStatsActivas');
+  const statsCompletadas = document.getElementById('tareasStatsCompletadas');
+  const statsCanceladas = document.getElementById('tareasStatsCanceladas');
+  const statsProgress = document.getElementById('tareasStatsProgress');
+  const statsCaption = document.getElementById('tareasStatsCaption');
+  const statsHighlight = document.getElementById('tareasStatsHighlight');
 
-    // Actualizar Monitor Operativo
-    const statsPendientes = document.getElementById('tareasStatsPendientes');
-    const statsActivas = document.getElementById('tareasStatsActivas');
-    const statsCompletadas = document.getElementById('tareasStatsCompletadas');
-    const statsCanceladas = document.getElementById('tareasStatsCanceladas');
-    const statsProgress = document.getElementById('tareasStatsProgress');
-    const statsCaption = document.getElementById('tareasStatsCaption');
-    const statsHighlight = document.getElementById('tareasStatsHighlight');
+  if (statsPendientes) statsPendientes.textContent = pendientes;
+  if (statsActivas) statsActivas.textContent = enProceso;
+  if (statsCompletadas) statsCompletadas.textContent = completadas;
+  if (statsCanceladas) statsCanceladas.textContent = canceladas;
 
-    if (statsPendientes) statsPendientes.textContent = pendientes;
-    if (statsActivas) statsActivas.textContent = enProceso;
-    if (statsCompletadas) statsCompletadas.textContent = completadas;
-    if (statsCanceladas) statsCanceladas.textContent = canceladas;
+  // Actualizar progress bar (porcentaje de completadas, excluyendo canceladas)
+  if (statsProgress) {
+    const porcentaje =
+      totalActivas > 0 ? Math.round((completadas / totalActivas) * 100) : 0;
+    statsProgress.setAttribute('data-percent', `${porcentaje}%`);
+    statsProgress.style.setProperty('--progress-value', `${porcentaje}%`);
+  }
 
-    // Actualizar progress bar (porcentaje de completadas, excluyendo canceladas)
-    if (statsProgress) {
-        const porcentaje = totalActivas > 0 ? Math.round((completadas / totalActivas) * 100) : 0;
-        statsProgress.setAttribute('data-percent', `${porcentaje}%`);
-        statsProgress.style.setProperty('--progress-value', `${porcentaje}%`);
-    }
+  // Actualizar caption
+  if (statsCaption) {
+    statsCaption.textContent =
+      totalActivas > 0
+        ? `Total activas: ${totalActivas}`
+        : 'Sin tareas activas';
+  }
+  if (statsHighlight) {
+    statsHighlight.textContent = `${completadas} completadas · ${pendientes} pendientes`;
+  }
 
-    // Actualizar caption
-    if (statsCaption) {
-        statsCaption.textContent = totalActivas > 0
-            ? `Total activas: ${totalActivas}`
-            : 'Sin tareas activas';
-    }
-    if (statsHighlight) {
-        statsHighlight.textContent = `${completadas} completadas · ${pendientes} pendientes`;
-    }
-
-    // Actualizar también el texto del rol
-    actualizarRolResumen();
+  // Actualizar también el texto del rol
+  actualizarRolResumen();
 }
 
 /**
@@ -1907,24 +2131,30 @@ function actualizarResumenTareas() {
  * @returns {'pendiente'|'en_proceso'|'completada'|null}
  */
 function calcularEstadoDesdeServicios(serviciosAsignados = []) {
-    const serviciosActivos = serviciosAsignados.filter(s => s.estado !== 'cancelado');
-    if (serviciosActivos.length === 0) {
-        return null;
-    }
+  const serviciosActivos = serviciosAsignados.filter(
+    (s) => s.estado !== 'cancelado'
+  );
+  if (serviciosActivos.length === 0) {
+    return null;
+  }
 
-    const completados = serviciosActivos.filter(s => s.estado === 'completado').length;
-    const enProceso = serviciosActivos.filter(s => s.estado === 'en_proceso').length;
+  const completados = serviciosActivos.filter(
+    (s) => s.estado === 'completado'
+  ).length;
+  const enProceso = serviciosActivos.filter(
+    (s) => s.estado === 'en_proceso'
+  ).length;
 
-    if (completados === serviciosActivos.length) {
-        return 'completada';
-    }
+  if (completados === serviciosActivos.length) {
+    return 'completada';
+  }
 
-    if (enProceso > 0 || completados > 0) {
-        return 'en_proceso';
-    }
+  if (enProceso > 0 || completados > 0) {
+    return 'en_proceso';
+  }
 
-    // Todos los servicios activos están pendientes
-    return 'pendiente';
+  // Todos los servicios activos están pendientes
+  return 'pendiente';
 }
 
 /**
@@ -1933,7 +2163,7 @@ function calcularEstadoDesdeServicios(serviciosAsignados = []) {
  * @returns {string|null} 'completada', 'en_proceso', 'pendiente' o null (sin cambio automático)
  */
 function determinarEstadoAutomatico(serviciosAsignados) {
-    return calcularEstadoDesdeServicios(serviciosAsignados);
+  return calcularEstadoDesdeServicios(serviciosAsignados);
 }
 
 /**
@@ -1943,247 +2173,292 @@ function determinarEstadoAutomatico(serviciosAsignados) {
  * @returns {Promise<boolean>} true si se actualizó la tarea, false si no
  */
 async function verificarYActualizarTareaIndividual(tareaId) {
-    console.log(`🔍 Verificando tarea individual ${tareaId}...`);
+  console.log(`🔍 Verificando tarea individual ${tareaId}...`);
 
-    try {
-        // Obtener datos actuales de la tarea
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) {
-            console.error(`Error al obtener tarea ${tareaId}`);
-            return false;
-        }
-
-        const tarea = await response.json();
-
-        // No cambiar tareas canceladas o completadas automáticamente
-        if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
-            console.log(`⏭️ Tarea ${tareaId} está ${tarea.estado}, no se actualiza automáticamente`);
-            return false;
-        }
-
-        // Obtener servicios asignados a esta tarea (recargar para tener datos frescos)
-        const responseServicios = await fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() });
-        if (!responseServicios.ok) {
-            console.error('Error al obtener servicios');
-            return false;
-        }
-
-        const todosServicios = await responseServicios.json();
-        const serviciosAsignados = todosServicios.filter(s => s.tarea_id == tareaId);
-
-        // Si no tiene servicios asignados, no hacer nada
-        if (serviciosAsignados.length === 0) {
-            console.log(`⏭️ Tarea ${tareaId} no tiene servicios asignados`);
-            return false;
-        }
-
-        // Determinar el estado que debería tener según sus servicios
-        const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
-
-        // Si no hay cambio sugerido o el estado ya es el correcto, no hacer nada
-        if (!estadoSugerido || estadoSugerido === tarea.estado) {
-            console.log(`✅ Tarea ${tareaId} ya tiene el estado correcto: ${tarea.estado}`);
-            return false;
-        }
-
-        console.log(`🔄 Tarea ${tareaId} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`);
-
-        // Actualizar tarea con el nuevo estado
-        const responseUpdate = await fetch(`${API_URL}/tareas/${tareaId}`, {
-            method: 'PUT',
-            headers: obtenerHeadersConAuth(),
-            body: JSON.stringify({ estado: estadoSugerido })
-        });
-
-        if (responseUpdate.ok) {
-            console.log(`✅ Tarea ${tareaId} actualizada a "${estadoSugerido}" automáticamente`);
-
-            // Actualizar en el array local si existe
-            const tareaLocal = todasLasTareas?.find(t => t.id == tareaId);
-            if (tareaLocal) {
-                tareaLocal.estado = estadoSugerido;
-            }
-
-            // Actualizar cache de servicios
-            todosLosServiciosCache = todosServicios;
-
-            // Refrescar la tarjeta individual
-            await actualizarTarjetaTarea(tareaId);
-
-            // Notificar al usuario
-            const serviciosActivos = serviciosAsignados.filter(s => s.estado !== 'cancelado');
-            const completados = serviciosActivos.filter(s => s.estado === 'completado').length;
-            mostrarNotificacion(
-                `Tarea "${tarea.titulo}" actualizada a "${estadoSugerido}" (${completados}/${serviciosActivos.length} servicios completados)`,
-                'success'
-            );
-
-            return true;
-        } else {
-            console.error(`❌ Error al actualizar tarea ${tareaId}:`, responseUpdate.statusText);
-            return false;
-        }
-
-    } catch (error) {
-        console.error(`❌ Error verificando tarea ${tareaId}:`, error);
-        return false;
+  try {
+    // Obtener datos actuales de la tarea
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok) {
+      console.error(`Error al obtener tarea ${tareaId}`);
+      return false;
     }
+
+    const tarea = await response.json();
+
+    // No cambiar tareas canceladas o completadas automáticamente
+    if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
+      console.log(
+        `⏭️ Tarea ${tareaId} está ${tarea.estado}, no se actualiza automáticamente`
+      );
+      return false;
+    }
+
+    // Obtener servicios asignados a esta tarea (recargar para tener datos frescos)
+    const responseServicios = await fetch(`${API_URL}/mantenimientos`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!responseServicios.ok) {
+      console.error('Error al obtener servicios');
+      return false;
+    }
+
+    const todosServicios = await responseServicios.json();
+    const serviciosAsignados = todosServicios.filter(
+      (s) => s.tarea_id == tareaId
+    );
+
+    // Si no tiene servicios asignados, no hacer nada
+    if (serviciosAsignados.length === 0) {
+      console.log(`⏭️ Tarea ${tareaId} no tiene servicios asignados`);
+      return false;
+    }
+
+    // Determinar el estado que debería tener según sus servicios
+    const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
+
+    // Si no hay cambio sugerido o el estado ya es el correcto, no hacer nada
+    if (!estadoSugerido || estadoSugerido === tarea.estado) {
+      console.log(
+        `✅ Tarea ${tareaId} ya tiene el estado correcto: ${tarea.estado}`
+      );
+      return false;
+    }
+
+    console.log(
+      `🔄 Tarea ${tareaId} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`
+    );
+
+    // Actualizar tarea con el nuevo estado
+    const responseUpdate = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      method: 'PUT',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify({ estado: estadoSugerido }),
+    });
+
+    if (responseUpdate.ok) {
+      console.log(
+        `✅ Tarea ${tareaId} actualizada a "${estadoSugerido}" automáticamente`
+      );
+
+      // Actualizar en el array local si existe
+      const tareaLocal = todasLasTareas?.find((t) => t.id == tareaId);
+      if (tareaLocal) {
+        tareaLocal.estado = estadoSugerido;
+      }
+
+      // Actualizar cache de servicios
+      todosLosServiciosCache = todosServicios;
+
+      // Refrescar la tarjeta individual
+      await actualizarTarjetaTarea(tareaId);
+
+      // Notificar al usuario
+      const serviciosActivos = serviciosAsignados.filter(
+        (s) => s.estado !== 'cancelado'
+      );
+      const completados = serviciosActivos.filter(
+        (s) => s.estado === 'completado'
+      ).length;
+      mostrarNotificacion(
+        `Tarea "${tarea.titulo}" actualizada a "${estadoSugerido}" (${completados}/${serviciosActivos.length} servicios completados)`,
+        'success'
+      );
+
+      return true;
+    } else {
+      console.error(
+        `❌ Error al actualizar tarea ${tareaId}:`,
+        responseUpdate.statusText
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ Error verificando tarea ${tareaId}:`, error);
+    return false;
+  }
 }
 
 /**
- * Verifica si todas las tareas con todos sus servicios completados 
+ * Verifica si todas las tareas con todos sus servicios completados
  * deberían marcarse automáticamente como completadas (o en proceso)
  * Esta función se llama al cargar la pestaña de tareas
  */
 async function verificarYActualizarTareasCompletadas() {
-    console.log('🔍 Verificando todas las tareas...');
+  console.log('🔍 Verificando todas las tareas...');
 
-    let tareasActualizadas = 0;
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0); // Normalizar a medianoche
+  let tareasActualizadas = 0;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0); // Normalizar a medianoche
 
-    for (const tarea of todasLasTareas) {
-        // 1. PRIMERO: Verificar si la tarea está vencida y debe cancelarse
-        if (tarea.fecha_vencimiento && tarea.estado !== 'cancelada' && tarea.estado !== 'completada') {
-            // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
-            const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
-            fechaVencimiento.setHours(0, 0, 0, 0);
+  for (const tarea of todasLasTareas) {
+    // 1. PRIMERO: Verificar si la tarea está vencida y debe cancelarse
+    if (
+      tarea.fecha_vencimiento &&
+      tarea.estado !== 'cancelada' &&
+      tarea.estado !== 'completada'
+    ) {
+      // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
+      const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
+      fechaVencimiento.setHours(0, 0, 0, 0);
 
-            // Si la fecha de vencimiento es anterior a hoy, cancelar automáticamente
-            if (fechaVencimiento < hoy) {
-                console.log(`⏰ Tarea ${tarea.id} "${tarea.titulo}" está vencida. Cancelando automáticamente...`);
-
-                try {
-                    const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
-                        method: 'PUT',
-                        headers: obtenerHeadersConAuth(),
-                        body: JSON.stringify({ estado: 'cancelada' })
-                    });
-
-                    if (response.ok) {
-                        tarea.estado = 'cancelada';
-                        tareasActualizadas++;
-                        console.log(`✅ Tarea ${tarea.id} cancelada automáticamente por vencimiento`);
-                    }
-                } catch (error) {
-                    console.error(`❌ Error al cancelar tarea ${tarea.id}:`, error);
-                }
-
-                continue; // Pasar a la siguiente tarea
-            }
-        }
-
-        // 2. Solo procesar tareas que NO están canceladas o completadas (se respetan)
-        if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
-            continue;
-        }
-
-        // Obtener servicios asignados a esta tarea (excluir cancelados para el cálculo)
-        const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id);
-
-        // Si no tiene servicios asignados, no hacer nada
-        if (serviciosAsignados.length === 0) {
-            continue;
-        }
-
-        // Determinar estado sugerido
-        const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
-
-        // Si no hay sugerencia o ya tiene el estado correcto, continuar
-        if (!estadoSugerido || estadoSugerido === tarea.estado) {
-            continue;
-        }
-
-        console.log(`🔄 Tarea ${tarea.id} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`);
+      // Si la fecha de vencimiento es anterior a hoy, cancelar automáticamente
+      if (fechaVencimiento < hoy) {
+        console.log(
+          `⏰ Tarea ${tarea.id} "${tarea.titulo}" está vencida. Cancelando automáticamente...`
+        );
 
         try {
-            // Actualizar tarea
-            const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
-                method: 'PUT',
-                headers: obtenerHeadersConAuth(),
-                body: JSON.stringify({ estado: estadoSugerido })
-            });
+          const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
+            method: 'PUT',
+            headers: obtenerHeadersConAuth(),
+            body: JSON.stringify({ estado: 'cancelada' }),
+          });
 
-            if (response.ok) {
-                // Actualizar en el array local
-                tarea.estado = estadoSugerido;
-                tareasActualizadas++;
-                console.log(`✅ Tarea ${tarea.id} actualizada a "${estadoSugerido}" automáticamente`);
-            } else {
-                console.error(`❌ Error al actualizar tarea ${tarea.id}:`, response.statusText);
-            }
+          if (response.ok) {
+            tarea.estado = 'cancelada';
+            tareasActualizadas++;
+            console.log(
+              `✅ Tarea ${tarea.id} cancelada automáticamente por vencimiento`
+            );
+          }
         } catch (error) {
-            console.error(`❌ Error al actualizar tarea ${tarea.id}:`, error);
+          console.error(`❌ Error al cancelar tarea ${tarea.id}:`, error);
         }
+
+        continue; // Pasar a la siguiente tarea
+      }
     }
 
-    if (tareasActualizadas > 0) {
-        console.log(`✅ ${tareasActualizadas} tarea(s) actualizada(s) automáticamente`);
-        mostrarNotificacion(`${tareasActualizadas} tarea(s) actualizada(s) automáticamente`, 'success');
+    // 2. Solo procesar tareas que NO están canceladas o completadas (se respetan)
+    if (tarea.estado === 'cancelada' || tarea.estado === 'completada') {
+      continue;
     }
+
+    // Obtener servicios asignados a esta tarea (excluir cancelados para el cálculo)
+    const serviciosAsignados = todosLosServiciosCache.filter(
+      (s) => s.tarea_id == tarea.id
+    );
+
+    // Si no tiene servicios asignados, no hacer nada
+    if (serviciosAsignados.length === 0) {
+      continue;
+    }
+
+    // Determinar estado sugerido
+    const estadoSugerido = determinarEstadoAutomatico(serviciosAsignados);
+
+    // Si no hay sugerencia o ya tiene el estado correcto, continuar
+    if (!estadoSugerido || estadoSugerido === tarea.estado) {
+      continue;
+    }
+
+    console.log(
+      `🔄 Tarea ${tarea.id} "${tarea.titulo}": ${tarea.estado} → ${estadoSugerido}`
+    );
+
+    try {
+      // Actualizar tarea
+      const response = await fetch(`${API_URL}/tareas/${tarea.id}`, {
+        method: 'PUT',
+        headers: obtenerHeadersConAuth(),
+        body: JSON.stringify({ estado: estadoSugerido }),
+      });
+
+      if (response.ok) {
+        // Actualizar en el array local
+        tarea.estado = estadoSugerido;
+        tareasActualizadas++;
+        console.log(
+          `✅ Tarea ${tarea.id} actualizada a "${estadoSugerido}" automáticamente`
+        );
+      } else {
+        console.error(
+          `❌ Error al actualizar tarea ${tarea.id}:`,
+          response.statusText
+        );
+      }
+    } catch (error) {
+      console.error(`❌ Error al actualizar tarea ${tarea.id}:`, error);
+    }
+  }
+
+  if (tareasActualizadas > 0) {
+    console.log(
+      `✅ ${tareasActualizadas} tarea(s) actualizada(s) automáticamente`
+    );
+    mostrarNotificacion(
+      `${tareasActualizadas} tarea(s) actualizada(s) automáticamente`,
+      'success'
+    );
+  }
 }
 
 /**
  * Refresca la vista de tarjetas de tareas en la pestaña "Tareas".
  */
 async function refrescarTarjetasTareas() {
-    console.log('🔄 Refrescando tarjetas de tareas con lazy loading...');
+  console.log('🔄 Refrescando tarjetas de tareas con lazy loading...');
 
-    // Buscar función global primero
-    if (typeof window.refrescarTarjetasTareas === 'function' && window.refrescarTarjetasTareas !== refrescarTarjetasTareas) {
-        window.refrescarTarjetasTareas();
-        return;
+  // Buscar función global primero
+  if (
+    typeof window.refrescarTarjetasTareas === 'function' &&
+    window.refrescarTarjetasTareas !== refrescarTarjetasTareas
+  ) {
+    window.refrescarTarjetasTareas();
+    return;
+  }
+
+  // Implementación local
+  const listaTareas = document.getElementById('listaTareas');
+  if (!listaTareas) {
+    console.warn('No se encontró el contenedor #listaTareas');
+    return;
+  }
+
+  try {
+    // Mostrar skeletons solo si es la primera carga
+    if (!tareasCargadas) {
+      listaTareas.innerHTML = '';
+      for (let i = 0; i < TAREAS_POR_LOTE; i++) {
+        listaTareas.appendChild(crearSkeletonTarea());
+      }
     }
 
-    // Implementación local
-    const listaTareas = document.getElementById('listaTareas');
-    if (!listaTareas) {
-        console.warn('No se encontró el contenedor #listaTareas');
-        return;
-    }
+    // Fetch tasks and services from API
+    const [responseTareas, responseServicios] = await Promise.all([
+      fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() }),
+      fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() }),
+    ]);
 
-    try {
-        // Mostrar skeletons solo si es la primera carga
-        if (!tareasCargadas) {
-            listaTareas.innerHTML = '';
-            for (let i = 0; i < TAREAS_POR_LOTE; i++) {
-                listaTareas.appendChild(crearSkeletonTarea());
-            }
-        }
+    if (!responseTareas.ok) throw new Error('Error al cargar tareas');
+    if (!responseServicios.ok) throw new Error('Error al cargar servicios');
 
-        // Fetch tasks and services from API
-        const [responseTareas, responseServicios] = await Promise.all([
-            fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() }),
-            fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() })
-        ]);
+    todasLasTareas = await responseTareas.json();
+    todosLosServiciosCache = await responseServicios.json();
 
-        if (!responseTareas.ok) throw new Error('Error al cargar tareas');
-        if (!responseServicios.ok) throw new Error('Error al cargar servicios');
+    console.log(`📋 ${todasLasTareas.length} tareas cargadas`);
+    console.log(`🔧 ${todosLosServiciosCache.length} servicios cargados`);
 
-        todasLasTareas = await responseTareas.json();
-        todosLosServiciosCache = await responseServicios.json();
+    // Marcar como cargadas por primera vez
+    tareasCargadas = true;
 
-        console.log(`📋 ${todasLasTareas.length} tareas cargadas`);
-        console.log(`🔧 ${todosLosServiciosCache.length} servicios cargados`);
+    // Verificar y actualizar tareas que deberían estar completadas
+    await verificarYActualizarTareasCompletadas();
 
-        // Marcar como cargadas por primera vez
-        tareasCargadas = true;
+    // Poblar select de tags
+    poblarSelectTags();
 
-        // Verificar y actualizar tareas que deberían estar completadas
-        await verificarYActualizarTareasCompletadas();
+    // Aplicar filtros iniciales
+    aplicarFiltrosTareas();
 
-        // Poblar select de tags
-        poblarSelectTags();
-
-        // Aplicar filtros iniciales
-        aplicarFiltrosTareas();
-
-        console.log('✅ Sistema de lazy loading de tareas iniciado');
-
-    } catch (error) {
-        console.error('Error al refrescar tarjetas de tareas:', error);
-        listaTareas.innerHTML = '<p class="mensaje-vacio error">Error al cargar tareas.</p>';
-    }
+    console.log('✅ Sistema de lazy loading de tareas iniciado');
+  } catch (error) {
+    console.error('Error al refrescar tarjetas de tareas:', error);
+    listaTareas.innerHTML =
+      '<p class="mensaje-vacio error">Error al cargar tareas.</p>';
+  }
 }
 
 /**
@@ -2194,25 +2469,25 @@ async function refrescarTarjetasTareas() {
  * @returns {boolean} true si puede ver el botón de editar, false en caso contrario
  */
 function puedeEditarTarea(tarea) {
-    const rolUsuario = obtenerRolUsuarioActual();
+  const rolUsuario = obtenerRolUsuarioActual();
 
-    // Admin puede editar todo
-    if (rolUsuario === 'admin') {
-        return true;
-    }
+  // Admin puede editar todo
+  if (rolUsuario === 'admin') {
+    return true;
+  }
 
-    // Supervisor puede editar todo excepto tareas de admin
-    if (rolUsuario === 'supervisor') {
-        return tarea.asignado_a_rol_nombre !== 'ADMIN';
-    }
+  // Supervisor puede editar todo excepto tareas de admin
+  if (rolUsuario === 'supervisor') {
+    return tarea.asignado_a_rol_nombre !== 'ADMIN';
+  }
 
-    // Técnico puede VER el botón de editar en tareas de técnicos
-    // El modal de advertencia se muestra al hacer clic si está completada/cancelada
-    if (rolUsuario === 'tecnico') {
-        return tarea.asignado_a_rol_nombre === 'TECNICO';
-    }
+  // Técnico puede VER el botón de editar en tareas de técnicos
+  // El modal de advertencia se muestra al hacer clic si está completada/cancelada
+  if (rolUsuario === 'tecnico') {
+    return tarea.asignado_a_rol_nombre === 'TECNICO';
+  }
 
-    return false;
+  return false;
 }
 
 /**
@@ -2222,75 +2497,93 @@ function puedeEditarTarea(tarea) {
  * @returns {HTMLElement} Elemento li con la tarjeta
  */
 function crearTarjetaTarea(tarea, todosServicios = []) {
-    const li = document.createElement('li');
-    li.className = 'cuarto-item';
-    li.dataset.tareaId = tarea.id;
+  const li = document.createElement('li');
+  li.className = 'cuarto-item';
+  li.dataset.tareaId = tarea.id;
 
-    // Calculate progress from assigned services (excluding cancelled ones)
-    const serviciosAsignados = todosServicios.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
-    const totalServicios = serviciosAsignados.length;
-    const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
-    const porcentajeProgreso = totalServicios > 0 ? Math.round((serviciosCompletados / totalServicios) * 100) : 0;
-    const progresoCompleto = porcentajeProgreso === 100 && totalServicios > 0;
+  // Calculate progress from assigned services (excluding cancelled ones)
+  const serviciosAsignados = todosServicios.filter(
+    (s) => s.tarea_id == tarea.id && s.estado !== 'cancelado'
+  );
+  const totalServicios = serviciosAsignados.length;
+  const serviciosCompletados = serviciosAsignados.filter(
+    (s) => s.estado === 'completado'
+  ).length;
+  const porcentajeProgreso =
+    totalServicios > 0
+      ? Math.round((serviciosCompletados / totalServicios) * 100)
+      : 0;
+  const progresoCompleto = porcentajeProgreso === 100 && totalServicios > 0;
 
-    // Status mapping
-    const estadoMap = {
-        'pendiente': { label: 'Pendiente', class: 'status-pending' },
-        'en_proceso': { label: 'En Proceso', class: 'status-progress' },
-        'completada': { label: 'Completada', class: 'status-completed' },
-        'cancelada': { label: 'Cancelada', class: 'status-cancelled' }
-    };
-    let estadoVisual = tarea.estado;
-    if (estadoVisual !== 'cancelada' && estadoVisual !== 'completada') {
-        const derivado = calcularEstadoDesdeServicios(serviciosAsignados);
-        if (derivado) {
-            estadoVisual = derivado;
-        }
+  // Status mapping
+  const estadoMap = {
+    pendiente: { label: 'Pendiente', class: 'status-pending' },
+    en_proceso: { label: 'En Proceso', class: 'status-progress' },
+    completada: { label: 'Completada', class: 'status-completed' },
+    cancelada: { label: 'Cancelada', class: 'status-cancelled' },
+  };
+  let estadoVisual = tarea.estado;
+  if (estadoVisual !== 'cancelada' && estadoVisual !== 'completada') {
+    const derivado = calcularEstadoDesdeServicios(serviciosAsignados);
+    if (derivado) {
+      estadoVisual = derivado;
     }
-    const estadoInfo = estadoMap[estadoVisual] || { label: estadoVisual, class: 'status-pending' };
+  }
+  const estadoInfo = estadoMap[estadoVisual] || {
+    label: estadoVisual,
+    class: 'status-pending',
+  };
 
-    // Priority mapping (without emoji in text, CSS will add the dot)
-    const prioridadMap = {
-        'alta': { label: 'Alta', class: 'prioridad-alta' },
-        'media': { label: 'Media', class: 'prioridad-media' },
-        'baja': { label: 'Baja', class: 'prioridad-baja' }
-    };
-    const prioridadInfo = prioridadMap[tarea.prioridad] || { label: tarea.prioridad, class: 'prioridad-media' };
+  // Priority mapping (without emoji in text, CSS will add the dot)
+  const prioridadMap = {
+    alta: { label: 'Alta', class: 'prioridad-alta' },
+    media: { label: 'Media', class: 'prioridad-media' },
+    baja: { label: 'Baja', class: 'prioridad-baja' },
+  };
+  const prioridadInfo = prioridadMap[tarea.prioridad] || {
+    label: tarea.prioridad,
+    class: 'prioridad-media',
+  };
 
-    // Calculate days until due date
-    let diasVencimiento = '';
-    let vencimientoClass = 'normal';
-    if (tarea.fecha_vencimiento) {
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
-        const fechaLimite = parsearFechaLocal(tarea.fecha_vencimiento);
-        fechaLimite.setHours(0, 0, 0, 0);
-        const diffTime = fechaLimite - hoy;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  // Calculate days until due date
+  let diasVencimiento = '';
+  let vencimientoClass = 'normal';
+  if (tarea.fecha_vencimiento) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    // Extraer fecha sin problemas de timezone (el servidor envía ISO timestamps)
+    const fechaLimite = parsearFechaLocal(tarea.fecha_vencimiento);
+    fechaLimite.setHours(0, 0, 0, 0);
+    const diffTime = fechaLimite - hoy;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays < 0) {
-            diasVencimiento = `Vencida hace ${Math.abs(diffDays)} días`;
-            vencimientoClass = 'vencido';
-        } else if (diffDays === 0) {
-            diasVencimiento = 'Vence hoy';
-            vencimientoClass = 'proximo';
-        } else if (diffDays === 1) {
-            diasVencimiento = 'Vence mañana';
-            vencimientoClass = 'proximo';
-        } else if (diffDays <= 3) {
-            diasVencimiento = `Vence en ${diffDays} días`;
-            vencimientoClass = 'proximo';
-        } else {
-            diasVencimiento = `Vence en ${diffDays} días`;
-            vencimientoClass = 'normal';
-        }
+    if (diffDays < 0) {
+      diasVencimiento = `Vencida hace ${Math.abs(diffDays)} días`;
+      vencimientoClass = 'vencido';
+    } else if (diffDays === 0) {
+      diasVencimiento = 'Vence hoy';
+      vencimientoClass = 'proximo';
+    } else if (diffDays === 1) {
+      diasVencimiento = 'Vence mañana';
+      vencimientoClass = 'proximo';
+    } else if (diffDays <= 3) {
+      diasVencimiento = `Vence en ${diffDays} días`;
+      vencimientoClass = 'proximo';
+    } else {
+      diasVencimiento = `Vence en ${diffDays} días`;
+      vencimientoClass = 'normal';
     }
+  }
 
-    // Get initials for avatar
-    const initials = (tarea.asignado_a_nombre || 'FC').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+  // Get initials for avatar
+  const initials = (tarea.asignado_a_nombre || 'FC')
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .substring(0, 2)
+    .toUpperCase();
 
-    li.innerHTML = `
+  li.innerHTML = `
         <div class="cuarto-contenido">
             <div class="cuarto-header">
                 <div class="cuarto-numero-container">
@@ -2299,12 +2592,16 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                 <span class="badge ${prioridadInfo.class}">${prioridadInfo.label}</span>
             </div>
             
-            ${totalServicios > 0 ? `
+            ${
+              totalServicios > 0
+                ? `
                 <div class="tarea-progress-container" title="${serviciosCompletados} de ${totalServicios} servicios completados">
                     <div class="tarea-progress-bar ${progresoCompleto ? 'completed' : ''}" style="width: ${porcentajeProgreso}%"></div>
                     <span class="tarea-progress-info">${serviciosCompletados}/${totalServicios} servicios</span>
                 </div>
-            ` : ''}
+            `
+                : ''
+            }
             
             <div class="cuarto-info">
                 <h3 class="tarea-titulo">${tarea.titulo}</h3>
@@ -2314,25 +2611,37 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <span>${tarea.ubicacion || 'Sin ubicación'}</span>
                 </div>
                 
-                ${diasVencimiento ? `
+                ${
+                  diasVencimiento
+                    ? `
                     <div class="tarea-vencimiento ${vencimientoClass}">
                         <i class="fas fa-calendar"></i>
                         <span>${diasVencimiento}</span>
                     </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
-                ${tarea.tags && tarea.tags.length > 0 ? `
+                ${
+                  tarea.tags && tarea.tags.length > 0
+                    ? `
                     <div class="tarea-tags">
-                        ${tarea.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                        ${tarea.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
                     </div>
-                ` : ''}
+                `
+                    : ''
+                }
                 
-                ${parseInt(tarea.total_adjuntos) > 0 ? `
+                ${
+                  parseInt(tarea.total_adjuntos) > 0
+                    ? `
                     <div class="tarea-adjuntos-chip">
                         <i class="fas fa-paperclip"></i>
                         <span>${tarea.total_adjuntos}</span>
                     </div>
-                ` : ''}
+                `
+                    : ''
+                }
             </div>
 
             
@@ -2348,17 +2657,21 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <button class="btn-cuarto-action" onclick="verDetalleTarea(${tarea.id})" title="Ver detalles">
                         <i class="fas fa-eye"></i>
                     </button>
-                    ${puedeEditarTarea(tarea) ? `
+                    ${
+                      puedeEditarTarea(tarea)
+                        ? `
                         <button class="btn-cuarto-action btn-edit" onclick="abrirModalEditarTarea(${tarea.id})" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                 </div>
             </div>
         </div>
     `;
 
-    return li;
+  return li;
 }
 
 /**
@@ -2366,46 +2679,52 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
  * Útil después de crear o editar una tarea.
  */
 async function actualizarSelectoresTareas() {
-    console.log('Actualizando todos los selectores de tareas...');
-    const selectores = document.querySelectorAll('.selector-tarea-servicio');
+  console.log('Actualizando todos los selectores de tareas...');
+  const selectores = document.querySelectorAll('.selector-tarea-servicio');
 
-    if (selectores.length === 0) {
-        console.log('No se encontraron selectores de tareas para actualizar.');
-        return;
-    }
+  if (selectores.length === 0) {
+    console.log('No se encontraron selectores de tareas para actualizar.');
+    return;
+  }
 
-    try {
-        const response = await fetch(`${API_URL}/tareas`, { headers: obtenerHeadersConAuth() });
-        if (!response.ok) throw new Error('No se pudo obtener la lista de tareas para actualizar selectores.');
+  try {
+    const response = await fetch(`${API_URL}/tareas`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok)
+      throw new Error(
+        'No se pudo obtener la lista de tareas para actualizar selectores.'
+      );
 
-        const tareas = await response.json();
+    const tareas = await response.json();
 
-        selectores.forEach(select => {
-            const selectedValue = select.value;
-            const primeraOpcion = select.options[0]?.text || '-- Sin asignar existente --';
+    selectores.forEach((select) => {
+      const selectedValue = select.value;
+      const primeraOpcion =
+        select.options[0]?.text || '-- Sin asignar existente --';
 
-            select.innerHTML = `<option value="">${primeraOpcion}</option>`;
+      select.innerHTML = `<option value="">${primeraOpcion}</option>`;
 
-            tareas.forEach(tarea => {
-                const option = document.createElement('option');
-                option.value = tarea.id;
-                option.textContent = tarea.titulo;
-                select.appendChild(option);
-            });
+      tareas.forEach((tarea) => {
+        const option = document.createElement('option');
+        option.value = tarea.id;
+        option.textContent = tarea.titulo;
+        select.appendChild(option);
+      });
 
-            // Re-seleccionar el valor que estaba antes si aún existe
-            if (tareas.some(t => t.id == selectedValue)) {
-                select.value = selectedValue;
-            }
-        });
+      // Re-seleccionar el valor que estaba antes si aún existe
+      if (tareas.some((t) => t.id == selectedValue)) {
+        select.value = selectedValue;
+      }
+    });
 
-        console.log(`${selectores.length} selectores actualizados con ${tareas.length} tareas.`);
-
-    } catch (error) {
-        console.error('Error al actualizar los selectores de tareas:', error);
-    }
+    console.log(
+      `${selectores.length} selectores actualizados con ${tareas.length} tareas.`
+    );
+  } catch (error) {
+    console.error('Error al actualizar los selectores de tareas:', error);
+  }
 }
-
 
 // ------------------------------
 // DETALLE DE TAREA
@@ -2416,204 +2735,217 @@ async function actualizarSelectoresTareas() {
  * @param {number} tareaId - ID de la tarea a mostrar
  */
 async function verDetalleTarea(tareaId) {
-    console.log('🔍 Abriendo detalle de tarea ID:', tareaId);
+  console.log('🔍 Abriendo detalle de tarea ID:', tareaId);
 
-    // Asignar el ID de la tarea actual para el botón "Accionar"
-    tareaIdActual = tareaId;
+  // Asignar el ID de la tarea actual para el botón "Accionar"
+  tareaIdActual = tareaId;
 
-    const modal = document.getElementById('modalDetalleTarea');
-    if (!modal) {
-        console.error('Modal de detalle de tarea no encontrado');
-        return;
+  const modal = document.getElementById('modalDetalleTarea');
+  if (!modal) {
+    console.error('Modal de detalle de tarea no encontrado');
+    return;
+  }
+
+  try {
+    // Verificar autenticación
+    const headers = obtenerHeadersConAuth();
+    console.log('🔐 Headers preparados:', Object.keys(headers));
+
+    // Mostrar modal inmediatamente con loading
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    lockBodyScroll();
+
+    // Cargar datos de la tarea
+    console.log(`📡 Fetching: ${API_URL}/tareas/${tareaId}`);
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      headers: headers,
+    });
+
+    console.log(`📊 Response status: ${response.status}`);
+
+    if (response.status === 401) {
+      throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
     }
 
-    try {
-        // Verificar autenticación
-        const headers = obtenerHeadersConAuth();
-        console.log('🔐 Headers preparados:', Object.keys(headers));
-
-        // Mostrar modal inmediatamente con loading
-        modal.style.display = 'flex';
-        modal.setAttribute('aria-hidden', 'false');
-        lockBodyScroll();
-
-        // Cargar datos de la tarea
-        console.log(`📡 Fetching: ${API_URL}/tareas/${tareaId}`);
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
-            headers: headers
-        });
-
-        console.log(`📊 Response status: ${response.status}`);
-
-        if (response.status === 401) {
-            throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
-        }
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error response:', errorText);
-            throw new Error(`Error ${response.status}: ${errorText}`);
-        }
-
-        const tarea = await response.json();
-        console.log('📋 Tarea cargada:', tarea);
-
-        // Poblar información básica
-        document.getElementById('tareaModalId').textContent = `TASK-${String(tarea.id).padStart(3, '0')}`;
-        document.getElementById('tareaModalTitulo').textContent = tarea.titulo || 'Sin título';
-        document.getElementById('tareaModalDescripcion').textContent = tarea.descripcion || 'Sin descripción';
-
-        // Badges de prioridad y estado
-        const prioridadBadge = document.getElementById('tareaModalPrioridad');
-        const estadoBadge = document.getElementById('tareaModalEstado');
-
-        const prioridadMap = {
-            'alta': { label: 'ALTA', class: 'prioridad-alta' },
-            'media': { label: 'MEDIA', class: 'prioridad-media' },
-            'baja': { label: 'BAJA', class: 'prioridad-baja' }
-        };
-
-        const estadoMap = {
-            'pendiente': { label: 'PENDIENTE', class: 'status-pending' },
-            'en_proceso': { label: 'EN PROCESO', class: 'status-progress' },
-            'completada': { label: 'COMPLETADA', class: 'status-completed' },
-            'cancelada': { label: 'CANCELADA', class: 'status-cancelled' }
-        };
-
-        const prioridadInfo = prioridadMap[tarea.prioridad] || prioridadMap['media'];
-        const estadoInfo = estadoMap[tarea.estado] || estadoMap['pendiente'];
-
-        prioridadBadge.textContent = prioridadInfo.label;
-        prioridadBadge.className = 'tarea-modal-pill ' + prioridadInfo.class;
-
-        estadoBadge.textContent = estadoInfo.label;
-        estadoBadge.className = 'tarea-modal-pill ' + estadoInfo.class;
-
-        // Información del grid
-        document.getElementById('tareaModalUbicacion').textContent = tarea.ubicacion || 'Sin ubicación';
-        document.getElementById('tareaModalResponsable').textContent = tarea.asignado_a_nombre || 'Sin asignar';
-
-        // Formato de fecha de vencimiento
-        if (tarea.fecha_vencimiento) {
-            // Usar parsearFechaLocal para evitar problemas de timezone
-            const fecha = parsearFechaLocal(tarea.fecha_vencimiento);
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            fecha.setHours(0, 0, 0, 0);
-            const diffDays = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
-
-            let textoVencimiento = '';
-            if (diffDays < 0) {
-                textoVencimiento = `Vencida hace ${Math.abs(diffDays)} días`;
-            } else if (diffDays === 0) {
-                textoVencimiento = 'Vence hoy';
-            } else if (diffDays === 1) {
-                textoVencimiento = 'Vence mañana';
-            } else {
-                textoVencimiento = `Vence en ${diffDays} días`;
-            }
-
-            document.getElementById('tareaModalVence').textContent = textoVencimiento;
-        } else {
-            document.getElementById('tareaModalVence').textContent = 'Sin fecha límite';
-        }
-
-        // Mapear rol asignado a formato legible
-        const rolMap = {
-            'ADMIN': 'Administrador',
-            'SUPERVISOR': 'Supervisor',
-            'TECNICO': 'Técnico',
-            'admin': 'Administrador',
-            'supervisor': 'Supervisor',
-            'tecnico': 'Técnico'
-        };
-        const rolAsignado = tarea.asignado_a_rol_nombre
-            ? (rolMap[tarea.asignado_a_rol_nombre] || tarea.asignado_a_rol_nombre)
-            : 'Sin asignar';
-        document.getElementById('tareaModalRol').textContent = rolAsignado;
-
-        // Configurar botón de acción y texto de próxima acción según estado
-        const btnAccionar = document.getElementById('tareaModalAccion');
-        const nextStepText = document.getElementById('tareaModalNextStep');
-
-        if (btnAccionar && nextStepText) {
-            // Resetear estado del botón
-            btnAccionar.disabled = false;
-            btnAccionar.className = 'tarea-modal-btn btn-primary';
-
-            if (tarea.estado === 'pendiente') {
-                nextStepText.textContent = 'Iniciar';
-                btnAccionar.innerHTML = '<i class="fas fa-play"></i> Iniciar';
-                btnAccionar.onclick = () => accionarTarea(tarea.id, 'en_proceso');
-            } else if (tarea.estado === 'en_proceso') {
-                nextStepText.textContent = 'Completar';
-                btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
-                btnAccionar.className = 'tarea-modal-btn btn-success'; // Cambiar color a verde
-                btnAccionar.onclick = () => accionarTarea(tarea.id, 'completada');
-
-                // Verificar si hay servicios pendientes para cambiar el texto
-                if (typeof todosLosServiciosCache !== 'undefined') {
-                    const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tarea.id && s.estado !== 'cancelado');
-                    const serviciosCompletados = serviciosAsignados.filter(s => s.estado === 'completado').length;
-
-                    if (serviciosAsignados.length > serviciosCompletados) {
-                        btnAccionar.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
-                        // Opcional: añadir un tooltip o title explicando por qué
-                        btnAccionar.title = `Hay ${serviciosAsignados.length - serviciosCompletados} servicios pendientes`;
-                    }
-                }
-            } else if (tarea.estado === 'completada') {
-                nextStepText.textContent = 'Finalizada';
-                btnAccionar.innerHTML = '<i class="fas fa-check-double"></i> Completada';
-                btnAccionar.disabled = true;
-                btnAccionar.className = 'tarea-modal-btn btn-secondary';
-            } else if (tarea.estado === 'cancelada') {
-                nextStepText.textContent = 'Cancelada';
-                btnAccionar.innerHTML = '<i class="fas fa-ban"></i> Cancelada';
-                btnAccionar.disabled = true;
-                btnAccionar.className = 'tarea-modal-btn btn-danger';
-            }
-        }
-
-        // Fecha de creación
-        if (tarea.fecha_creacion) {
-            const fechaCreacion = new Date(tarea.fecha_creacion);
-            const opciones = {
-                weekday: 'short',
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            };
-            document.getElementById('tareaModalUltimoMovimiento').textContent =
-                fechaCreacion.toLocaleDateString('es-ES', opciones);
-        } else {
-            document.getElementById('tareaModalUltimoMovimiento').textContent = 'Sin fecha';
-        }
-
-        // Tags
-        const tagsContainer = document.getElementById('tareaModalTags');
-        if (tarea.tags && tarea.tags.length > 0) {
-            tagsContainer.innerHTML = tarea.tags.map(tag =>
-                `<span class="tarea-tag-mini">${tag}</span>`
-            ).join('');
-        } else {
-            tagsContainer.innerHTML = '<span class="tarea-tag-mini">General</span>';
-        }
-
-        // Cargar adjuntos de la tarea
-        await cargarAdjuntosTarea(tareaId);
-
-        // Cargar servicios asignados
-        await cargarServiciosAsignados(tareaId);
-
-    } catch (error) {
-        console.error('Error al cargar detalle de tarea:', error);
-        mostrarNotificacion('Error al cargar los detalles de la tarea', 'error');
-        modal.style.display = 'none';
-        unlockBodyScrollIfNoModal();
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error response:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
     }
+
+    const tarea = await response.json();
+    console.log('📋 Tarea cargada:', tarea);
+
+    // Poblar información básica
+    document.getElementById('tareaModalId').textContent =
+      `TASK-${String(tarea.id).padStart(3, '0')}`;
+    document.getElementById('tareaModalTitulo').textContent =
+      tarea.titulo || 'Sin título';
+    document.getElementById('tareaModalDescripcion').textContent =
+      tarea.descripcion || 'Sin descripción';
+
+    // Badges de prioridad y estado
+    const prioridadBadge = document.getElementById('tareaModalPrioridad');
+    const estadoBadge = document.getElementById('tareaModalEstado');
+
+    const prioridadMap = {
+      alta: { label: 'ALTA', class: 'prioridad-alta' },
+      media: { label: 'MEDIA', class: 'prioridad-media' },
+      baja: { label: 'BAJA', class: 'prioridad-baja' },
+    };
+
+    const estadoMap = {
+      pendiente: { label: 'PENDIENTE', class: 'status-pending' },
+      en_proceso: { label: 'EN PROCESO', class: 'status-progress' },
+      completada: { label: 'COMPLETADA', class: 'status-completed' },
+      cancelada: { label: 'CANCELADA', class: 'status-cancelled' },
+    };
+
+    const prioridadInfo =
+      prioridadMap[tarea.prioridad] || prioridadMap['media'];
+    const estadoInfo = estadoMap[tarea.estado] || estadoMap['pendiente'];
+
+    prioridadBadge.textContent = prioridadInfo.label;
+    prioridadBadge.className = 'tarea-modal-pill ' + prioridadInfo.class;
+
+    estadoBadge.textContent = estadoInfo.label;
+    estadoBadge.className = 'tarea-modal-pill ' + estadoInfo.class;
+
+    // Información del grid
+    document.getElementById('tareaModalUbicacion').textContent =
+      tarea.ubicacion || 'Sin ubicación';
+    document.getElementById('tareaModalResponsable').textContent =
+      tarea.asignado_a_nombre || 'Sin asignar';
+
+    // Formato de fecha de vencimiento
+    if (tarea.fecha_vencimiento) {
+      // Usar parsearFechaLocal para evitar problemas de timezone
+      const fecha = parsearFechaLocal(tarea.fecha_vencimiento);
+      const hoy = new Date();
+      hoy.setHours(0, 0, 0, 0);
+      fecha.setHours(0, 0, 0, 0);
+      const diffDays = Math.ceil((fecha - hoy) / (1000 * 60 * 60 * 24));
+
+      let textoVencimiento = '';
+      if (diffDays < 0) {
+        textoVencimiento = `Vencida hace ${Math.abs(diffDays)} días`;
+      } else if (diffDays === 0) {
+        textoVencimiento = 'Vence hoy';
+      } else if (diffDays === 1) {
+        textoVencimiento = 'Vence mañana';
+      } else {
+        textoVencimiento = `Vence en ${diffDays} días`;
+      }
+
+      document.getElementById('tareaModalVence').textContent = textoVencimiento;
+    } else {
+      document.getElementById('tareaModalVence').textContent =
+        'Sin fecha límite';
+    }
+
+    // Mapear rol asignado a formato legible
+    const rolMap = {
+      ADMIN: 'Administrador',
+      SUPERVISOR: 'Supervisor',
+      TECNICO: 'Técnico',
+      admin: 'Administrador',
+      supervisor: 'Supervisor',
+      tecnico: 'Técnico',
+    };
+    const rolAsignado = tarea.asignado_a_rol_nombre
+      ? rolMap[tarea.asignado_a_rol_nombre] || tarea.asignado_a_rol_nombre
+      : 'Sin asignar';
+    document.getElementById('tareaModalRol').textContent = rolAsignado;
+
+    // Configurar botón de acción y texto de próxima acción según estado
+    const btnAccionar = document.getElementById('tareaModalAccion');
+    const nextStepText = document.getElementById('tareaModalNextStep');
+
+    if (btnAccionar && nextStepText) {
+      // Resetear estado del botón
+      btnAccionar.disabled = false;
+      btnAccionar.className = 'tarea-modal-btn btn-primary';
+
+      if (tarea.estado === 'pendiente') {
+        nextStepText.textContent = 'Iniciar';
+        btnAccionar.innerHTML = '<i class="fas fa-play"></i> Iniciar';
+        btnAccionar.onclick = () => accionarTarea(tarea.id, 'en_proceso');
+      } else if (tarea.estado === 'en_proceso') {
+        nextStepText.textContent = 'Completar';
+        btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
+        btnAccionar.className = 'tarea-modal-btn btn-success'; // Cambiar color a verde
+        btnAccionar.onclick = () => accionarTarea(tarea.id, 'completada');
+
+        // Verificar si hay servicios pendientes para cambiar el texto
+        if (typeof todosLosServiciosCache !== 'undefined') {
+          const serviciosAsignados = todosLosServiciosCache.filter(
+            (s) => s.tarea_id == tarea.id && s.estado !== 'cancelado'
+          );
+          const serviciosCompletados = serviciosAsignados.filter(
+            (s) => s.estado === 'completado'
+          ).length;
+
+          if (serviciosAsignados.length > serviciosCompletados) {
+            btnAccionar.innerHTML =
+              '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
+            // Opcional: añadir un tooltip o title explicando por qué
+            btnAccionar.title = `Hay ${serviciosAsignados.length - serviciosCompletados} servicios pendientes`;
+          }
+        }
+      } else if (tarea.estado === 'completada') {
+        nextStepText.textContent = 'Finalizada';
+        btnAccionar.innerHTML =
+          '<i class="fas fa-check-double"></i> Completada';
+        btnAccionar.disabled = true;
+        btnAccionar.className = 'tarea-modal-btn btn-secondary';
+      } else if (tarea.estado === 'cancelada') {
+        nextStepText.textContent = 'Cancelada';
+        btnAccionar.innerHTML = '<i class="fas fa-ban"></i> Cancelada';
+        btnAccionar.disabled = true;
+        btnAccionar.className = 'tarea-modal-btn btn-danger';
+      }
+    }
+
+    // Fecha de creación
+    if (tarea.fecha_creacion) {
+      const fechaCreacion = new Date(tarea.fecha_creacion);
+      const opciones = {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      };
+      document.getElementById('tareaModalUltimoMovimiento').textContent =
+        fechaCreacion.toLocaleDateString('es-ES', opciones);
+    } else {
+      document.getElementById('tareaModalUltimoMovimiento').textContent =
+        'Sin fecha';
+    }
+
+    // Tags
+    const tagsContainer = document.getElementById('tareaModalTags');
+    if (tarea.tags && tarea.tags.length > 0) {
+      tagsContainer.innerHTML = tarea.tags
+        .map((tag) => `<span class="tarea-tag-mini">${tag}</span>`)
+        .join('');
+    } else {
+      tagsContainer.innerHTML = '<span class="tarea-tag-mini">General</span>';
+    }
+
+    // Cargar adjuntos de la tarea
+    await cargarAdjuntosTarea(tareaId);
+
+    // Cargar servicios asignados
+    await cargarServiciosAsignados(tareaId);
+  } catch (error) {
+    console.error('Error al cargar detalle de tarea:', error);
+    mostrarNotificacion('Error al cargar los detalles de la tarea', 'error');
+    modal.style.display = 'none';
+    unlockBodyScrollIfNoModal();
+  }
 }
 
 /**
@@ -2621,65 +2953,72 @@ async function verDetalleTarea(tareaId) {
  * @param {number} tareaId - ID de la tarea
  */
 async function cargarServiciosAsignados(tareaId) {
-    const container = document.getElementById('tareaModalServicios');
-    const serviciosContainer = document.getElementById('tareaModalServiciosContainer');
+  const container = document.getElementById('tareaModalServicios');
+  const serviciosContainer = document.getElementById(
+    'tareaModalServiciosContainer'
+  );
 
-    if (!container || !serviciosContainer) return;
+  if (!container || !serviciosContainer) return;
 
-    try {
-        // Mostrar loading
-        container.innerHTML = '<p style="text-align: center; color: var(--texto-secundario);"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</p>';
-        serviciosContainer.style.display = 'block';
+  try {
+    // Mostrar loading
+    container.innerHTML =
+      '<p style="text-align: center; color: var(--texto-secundario);"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</p>';
+    serviciosContainer.style.display = 'block';
 
-        // Obtener todos los servicios (mantenimientos)
-        const headers = window.obtenerHeadersConAuth
-            ? await window.obtenerHeadersConAuth()
-            : { 'Content-Type': 'application/json' };
+    // Obtener todos los servicios (mantenimientos)
+    const headers = window.obtenerHeadersConAuth
+      ? await window.obtenerHeadersConAuth()
+      : { 'Content-Type': 'application/json' };
 
-        const response = await fetch(`${API_URL}/mantenimientos`, { headers });
+    const response = await fetch(`${API_URL}/mantenimientos`, { headers });
 
-        if (!response.ok) throw new Error('Error al cargar servicios');
+    if (!response.ok) throw new Error('Error al cargar servicios');
 
-        const todosServicios = await response.json();
+    const todosServicios = await response.json();
 
-        // Filtrar servicios que tienen esta tarea asignada
-        const serviciosAsignados = todosServicios.filter(servicio =>
-            servicio.tarea_id == tareaId
-        );
+    // Filtrar servicios que tienen esta tarea asignada
+    const serviciosAsignados = todosServicios.filter(
+      (servicio) => servicio.tarea_id == tareaId
+    );
 
-        console.log(`📌 ${serviciosAsignados.length} servicios asignados a la tarea ${tareaId}`);
+    console.log(
+      `📌 ${serviciosAsignados.length} servicios asignados a la tarea ${tareaId}`
+    );
 
-        if (serviciosAsignados.length === 0) {
-            container.innerHTML = `
+    if (serviciosAsignados.length === 0) {
+      container.innerHTML = `
                 <div class="servicios-vacio">
                     <i class="fas fa-inbox"></i>
                     <p>No hay servicios asignados a esta tarea</p>
                 </div>
             `;
-            return;
-        }
+      return;
+    }
 
-        // Renderizar servicios con selector de estado
-        container.innerHTML = serviciosAsignados.map(servicio => {
-            const estadoMap = {
-                'cancelado': { label: 'Cancelado', class: 'estado-cancelado' },
-                'pendiente': { label: 'Pendiente', class: 'estado-pendiente' },
-                'en_proceso': { label: 'En Proceso', class: 'estado-en_proceso' },
-                'completado': { label: 'Completado', class: 'estado-completado' }
-            };
+    // Renderizar servicios con selector de estado
+    container.innerHTML = serviciosAsignados
+      .map((servicio) => {
+        const estadoMap = {
+          cancelado: { label: 'Cancelado', class: 'estado-cancelado' },
+          pendiente: { label: 'Pendiente', class: 'estado-pendiente' },
+          en_proceso: { label: 'En Proceso', class: 'estado-en_proceso' },
+          completado: { label: 'Completado', class: 'estado-completado' },
+        };
 
-            const estadoInfo = estadoMap[servicio.estado] || estadoMap['pendiente'];
-            const ubicacion = servicio.cuarto_numero
-                ? `Hab. ${servicio.cuarto_numero}`
-                : (servicio.edificio_nombre || 'Sin ubicación');
+        const estadoInfo = estadoMap[servicio.estado] || estadoMap['pendiente'];
+        const ubicacion = servicio.cuarto_numero
+          ? `Hab. ${servicio.cuarto_numero}`
+          : servicio.edificio_nombre || 'Sin ubicación';
 
-            const tipoIcono = servicio.tipo === 'normal' ? 'fa-wrench' : 'fa-bell';
-            const tipoTexto = servicio.tipo === 'normal' ? 'Avería' : 'Alerta';
+        const tipoIcono = servicio.tipo === 'normal' ? 'fa-wrench' : 'fa-bell';
+        const tipoTexto = servicio.tipo === 'normal' ? 'Avería' : 'Alerta';
 
-            // Personal asignado al servicio
-            const personalAsignado = servicio.usuario_asignado_nombre || 'Sin asignar';
+        // Personal asignado al servicio
+        const personalAsignado =
+          servicio.usuario_asignado_nombre || 'Sin asignar';
 
-            return `
+        return `
                 <div class="servicio-asignado-item" data-servicio-id="${servicio.id}">
                     <div class="servicio-asignado-info">
                         <div class="servicio-asignado-titulo">
@@ -2713,17 +3052,17 @@ async function cargarServiciosAsignados(tareaId) {
                     </div>
                 </div>
             `;
-        }).join('');
-
-    } catch (error) {
-        console.error('Error al cargar servicios asignados:', error);
-        container.innerHTML = `
+      })
+      .join('');
+  } catch (error) {
+    console.error('Error al cargar servicios asignados:', error);
+    container.innerHTML = `
             <div class="servicios-vacio">
                 <i class="fas fa-exclamation-triangle"></i>
                 <p>Error al cargar los servicios</p>
             </div>
         `;
-    }
+  }
 }
 
 /**
@@ -2731,69 +3070,72 @@ async function cargarServiciosAsignados(tareaId) {
  * @param {HTMLSelectElement} selectElement - El select que disparó el evento
  */
 async function cambiarEstadoServicioDesdeDetalle(selectElement) {
-    const servicioId = selectElement.dataset.servicioId;
-    const tareaId = selectElement.dataset.tareaId;
-    const nuevoEstado = selectElement.value;
+  const servicioId = selectElement.dataset.servicioId;
+  const tareaId = selectElement.dataset.tareaId;
+  const nuevoEstado = selectElement.value;
 
-    console.log(`🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`);
+  console.log(
+    `🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`
+  );
 
-    // Guardar estado anterior por si hay error
-    const estadoAnterior = selectElement.dataset.estadoAnterior || 'pendiente';
-    selectElement.dataset.estadoAnterior = nuevoEstado;
+  // Guardar estado anterior por si hay error
+  const estadoAnterior = selectElement.dataset.estadoAnterior || 'pendiente';
+  selectElement.dataset.estadoAnterior = nuevoEstado;
 
-    // Actualizar clase visual inmediatamente
-    selectElement.className = 'servicio-estado-select estado-' + nuevoEstado;
+  // Actualizar clase visual inmediatamente
+  selectElement.className = 'servicio-estado-select estado-' + nuevoEstado;
 
-    try {
-        const headers = window.obtenerHeadersConAuth
-            ? await window.obtenerHeadersConAuth()
-            : { 'Content-Type': 'application/json' };
+  try {
+    const headers = window.obtenerHeadersConAuth
+      ? await window.obtenerHeadersConAuth()
+      : { 'Content-Type': 'application/json' };
 
-        const response = await fetch(`${API_URL}/mantenimientos/${servicioId}`, {
-            method: 'PUT',
-            headers: { ...headers, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ estado: nuevoEstado })
-        });
+    const response = await fetch(`${API_URL}/mantenimientos/${servicioId}`, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: nuevoEstado }),
+    });
 
-        if (!response.ok) {
-            throw new Error('Error al actualizar estado del servicio');
-        }
-
-        console.log(`✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`);
-
-        // Mostrar notificación de éxito
-        if (typeof mostrarNotificacion === 'function') {
-            mostrarNotificacion('Estado del servicio actualizado', 'success');
-        }
-
-        // Actualizar la tarjeta de la tarea en el fondo si existe
-        if (typeof actualizarTarjetaTarea === 'function' && tareaId) {
-            actualizarTarjetaTarea(tareaId);
-        }
-
-    } catch (error) {
-        console.error('Error al cambiar estado del servicio:', error);
-
-        // Revertir al estado anterior
-        selectElement.value = estadoAnterior;
-        selectElement.className = 'servicio-estado-select estado-' + estadoAnterior;
-
-        if (typeof mostrarNotificacion === 'function') {
-            mostrarNotificacion('Error al actualizar el estado', 'error');
-        }
+    if (!response.ok) {
+      throw new Error('Error al actualizar estado del servicio');
     }
+
+    console.log(
+      `✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`
+    );
+
+    // Mostrar notificación de éxito
+    if (typeof mostrarNotificacion === 'function') {
+      mostrarNotificacion('Estado del servicio actualizado', 'success');
+    }
+
+    // Actualizar la tarjeta de la tarea en el fondo si existe
+    if (typeof actualizarTarjetaTarea === 'function' && tareaId) {
+      actualizarTarjetaTarea(tareaId);
+    }
+  } catch (error) {
+    console.error('Error al cambiar estado del servicio:', error);
+
+    // Revertir al estado anterior
+    selectElement.value = estadoAnterior;
+    selectElement.className = 'servicio-estado-select estado-' + estadoAnterior;
+
+    if (typeof mostrarNotificacion === 'function') {
+      mostrarNotificacion('Error al actualizar el estado', 'error');
+    }
+  }
 }
 
 /**
  * Cierra el modal de detalle de tarea
  */
 function cerrarModalDetalleTarea() {
-    const modal = document.getElementById('modalDetalleTarea');
-    if (modal) {
-        modal.style.display = 'none';
-        modal.setAttribute('aria-hidden', 'true');
-        unlockBodyScrollIfNoModal();
-    }
+  const modal = document.getElementById('modalDetalleTarea');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    unlockBodyScrollIfNoModal();
+  }
 }
 
 /**
@@ -2802,158 +3144,189 @@ function cerrarModalDetalleTarea() {
  * @param {string} nuevoEstado - Nuevo estado ('en_proceso', 'completada')
  */
 async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
-    try {
-        console.log(`🚀 Accionando tarea ${tareaId} a estado: ${nuevoEstado}...`);
+  try {
+    console.log(`🚀 Accionando tarea ${tareaId} a estado: ${nuevoEstado}...`);
 
-        const headers = obtenerHeadersConAuth();
+    const headers = obtenerHeadersConAuth();
 
-        const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-                estado: nuevoEstado
-            })
-        });
+    const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify({
+        estado: nuevoEstado,
+      }),
+    });
 
-        if (!response.ok) {
-            throw new Error(`Error al actualizar tarea: ${response.statusText}`);
-        }
-
-        const tareaActualizada = await response.json();
-        console.log(`✅ Tarea actualizada a "${nuevoEstado}":`, tareaActualizada);
-
-        // Actualizar UI del modal
-        const estadoBadge = document.getElementById('tareaModalEstado');
-        const btnAccionar = document.getElementById('tareaModalAccion');
-        const nextStepText = document.getElementById('tareaModalNextStep');
-
-        if (nuevoEstado === 'en_proceso') {
-            if (estadoBadge) {
-                estadoBadge.className = 'tarea-badge-estado status-progress';
-                estadoBadge.innerHTML = '<i class="fas fa-spinner"></i> En Proceso';
-            }
-            if (btnAccionar) {
-                btnAccionar.className = 'tarea-modal-btn btn-success';
-                btnAccionar.onclick = () => accionarTarea(tareaId, 'completada');
-
-                // Verificar si hay servicios que no estén completados
-                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId && s.estado !== 'cancelado');
-                const serviciosNoCompletados = serviciosAsignados.filter(s => s.estado !== 'completado');
-
-                if (serviciosNoCompletados.length > 0) {
-                    btnAccionar.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
-                    btnAccionar.title = `Hay ${serviciosNoCompletados.length} servicios pendientes`;
-                } else {
-                    btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
-                    btnAccionar.title = '';
-                }
-            }
-            if (nextStepText) nextStepText.textContent = 'Completar';
-
-            // Actualizar servicios asociados: cambiar los que están en 'pendiente' a 'en_proceso'
-            try {
-                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId);
-                const serviciosPendientes = serviciosAsignados.filter(s => s.estado === 'pendiente');
-
-                if (serviciosPendientes.length > 0) {
-                    console.log(`📋 Iniciando ${serviciosPendientes.length} servicios pendientes...`);
-
-                    // Actualizar cada servicio pendiente a 'en_proceso'
-                    const promesasActualizacion = serviciosPendientes.map(async (servicio) => {
-                        try {
-                            const respuesta = await fetch(`${API_URL}/mantenimientos/${servicio.id}`, {
-                                method: 'PUT',
-                                headers: obtenerHeadersConAuth(),
-                                body: JSON.stringify({ estado: 'en_proceso' })
-                            });
-
-                            if (respuesta.ok) {
-                                console.log(`✅ Servicio ${servicio.id} iniciado`);
-                                // Actualizar en cache
-                                servicio.estado = 'en_proceso';
-                                return true;
-                            }
-                            return false;
-                        } catch (error) {
-                            console.error(`❌ Error al iniciar servicio ${servicio.id}:`, error);
-                            return false;
-                        }
-                    });
-
-                    await Promise.all(promesasActualizacion);
-
-                    // Recargar servicios en el modal
-                    await cargarServiciosAsignados(tareaId);
-                }
-            } catch (error) {
-                console.error('❌ Error al actualizar servicios:', error);
-            }
-
-            mostrarNotificacion('Tarea iniciada correctamente', 'success');
-
-
-        } else if (nuevoEstado === 'completada') {
-            if (estadoBadge) {
-                estadoBadge.className = 'tarea-badge-estado status-completed';
-                estadoBadge.innerHTML = '<i class="fas fa-check-circle"></i> Completada';
-            }
-            if (btnAccionar) {
-                btnAccionar.innerHTML = '<i class="fas fa-check-double"></i> Completada';
-                btnAccionar.disabled = true;
-                btnAccionar.className = 'tarea-modal-btn btn-secondary';
-            }
-            if (nextStepText) nextStepText.textContent = 'Finalizada';
-
-            // Completar todos los servicios asociados que no estén completados
-            try {
-                const serviciosAsignados = todosLosServiciosCache.filter(s => s.tarea_id == tareaId && s.estado !== 'cancelado');
-                const serviciosNoCompletados = serviciosAsignados.filter(s => s.estado !== 'completado');
-
-                if (serviciosNoCompletados.length > 0) {
-                    console.log(`📋 Completando ${serviciosNoCompletados.length} servicios...`);
-
-                    // Actualizar cada servicio a 'completado'
-                    const promesasActualizacion = serviciosNoCompletados.map(async (servicio) => {
-                        try {
-                            const respuesta = await fetch(`${API_URL}/mantenimientos/${servicio.id}`, {
-                                method: 'PUT',
-                                headers: obtenerHeadersConAuth(),
-                                body: JSON.stringify({ estado: 'completado' })
-                            });
-
-                            if (respuesta.ok) {
-                                console.log(`✅ Servicio ${servicio.id} completado`);
-                                // Actualizar en cache
-                                servicio.estado = 'completado';
-                                return true;
-                            }
-                            return false;
-                        } catch (error) {
-                            console.error(`❌ Error al completar servicio ${servicio.id}:`, error);
-                            return false;
-                        }
-                    });
-
-                    await Promise.all(promesasActualizacion);
-
-                    // Recargar servicios en el modal
-                    await cargarServiciosAsignados(tareaId);
-                }
-            } catch (error) {
-                console.error('❌ Error al completar servicios:', error);
-            }
-
-            mostrarNotificacion('¡Tarea completada con éxito!', 'success');
-        }
-
-
-        // Actualizar solo la tarjeta específica en lugar de recargar todas
-        await actualizarTarjetaTarea(tareaId);
-
-    } catch (error) {
-        console.error('❌ Error al accionar tarea:', error);
-        mostrarNotificacion(`Error al accionar tarea: ${error.message}`, 'error');
+    if (!response.ok) {
+      throw new Error(`Error al actualizar tarea: ${response.statusText}`);
     }
+
+    const tareaActualizada = await response.json();
+    console.log(`✅ Tarea actualizada a "${nuevoEstado}":`, tareaActualizada);
+
+    // Actualizar UI del modal
+    const estadoBadge = document.getElementById('tareaModalEstado');
+    const btnAccionar = document.getElementById('tareaModalAccion');
+    const nextStepText = document.getElementById('tareaModalNextStep');
+
+    if (nuevoEstado === 'en_proceso') {
+      if (estadoBadge) {
+        estadoBadge.className = 'tarea-badge-estado status-progress';
+        estadoBadge.innerHTML = '<i class="fas fa-spinner"></i> En Proceso';
+      }
+      if (btnAccionar) {
+        btnAccionar.className = 'tarea-modal-btn btn-success';
+        btnAccionar.onclick = () => accionarTarea(tareaId, 'completada');
+
+        // Verificar si hay servicios que no estén completados
+        const serviciosAsignados = todosLosServiciosCache.filter(
+          (s) => s.tarea_id == tareaId && s.estado !== 'cancelado'
+        );
+        const serviciosNoCompletados = serviciosAsignados.filter(
+          (s) => s.estado !== 'completado'
+        );
+
+        if (serviciosNoCompletados.length > 0) {
+          btnAccionar.innerHTML =
+            '<i class="fas fa-exclamation-triangle"></i> Completar de todos modos';
+          btnAccionar.title = `Hay ${serviciosNoCompletados.length} servicios pendientes`;
+        } else {
+          btnAccionar.innerHTML = '<i class="fas fa-check"></i> Completar';
+          btnAccionar.title = '';
+        }
+      }
+      if (nextStepText) nextStepText.textContent = 'Completar';
+
+      // Actualizar servicios asociados: cambiar los que están en 'pendiente' a 'en_proceso'
+      try {
+        const serviciosAsignados = todosLosServiciosCache.filter(
+          (s) => s.tarea_id == tareaId
+        );
+        const serviciosPendientes = serviciosAsignados.filter(
+          (s) => s.estado === 'pendiente'
+        );
+
+        if (serviciosPendientes.length > 0) {
+          console.log(
+            `📋 Iniciando ${serviciosPendientes.length} servicios pendientes...`
+          );
+
+          // Actualizar cada servicio pendiente a 'en_proceso'
+          const promesasActualizacion = serviciosPendientes.map(
+            async (servicio) => {
+              try {
+                const respuesta = await fetch(
+                  `${API_URL}/mantenimientos/${servicio.id}`,
+                  {
+                    method: 'PUT',
+                    headers: obtenerHeadersConAuth(),
+                    body: JSON.stringify({ estado: 'en_proceso' }),
+                  }
+                );
+
+                if (respuesta.ok) {
+                  console.log(`✅ Servicio ${servicio.id} iniciado`);
+                  // Actualizar en cache
+                  servicio.estado = 'en_proceso';
+                  return true;
+                }
+                return false;
+              } catch (error) {
+                console.error(
+                  `❌ Error al iniciar servicio ${servicio.id}:`,
+                  error
+                );
+                return false;
+              }
+            }
+          );
+
+          await Promise.all(promesasActualizacion);
+
+          // Recargar servicios en el modal
+          await cargarServiciosAsignados(tareaId);
+        }
+      } catch (error) {
+        console.error('❌ Error al actualizar servicios:', error);
+      }
+
+      mostrarNotificacion('Tarea iniciada correctamente', 'success');
+    } else if (nuevoEstado === 'completada') {
+      if (estadoBadge) {
+        estadoBadge.className = 'tarea-badge-estado status-completed';
+        estadoBadge.innerHTML =
+          '<i class="fas fa-check-circle"></i> Completada';
+      }
+      if (btnAccionar) {
+        btnAccionar.innerHTML =
+          '<i class="fas fa-check-double"></i> Completada';
+        btnAccionar.disabled = true;
+        btnAccionar.className = 'tarea-modal-btn btn-secondary';
+      }
+      if (nextStepText) nextStepText.textContent = 'Finalizada';
+
+      // Completar todos los servicios asociados que no estén completados
+      try {
+        const serviciosAsignados = todosLosServiciosCache.filter(
+          (s) => s.tarea_id == tareaId && s.estado !== 'cancelado'
+        );
+        const serviciosNoCompletados = serviciosAsignados.filter(
+          (s) => s.estado !== 'completado'
+        );
+
+        if (serviciosNoCompletados.length > 0) {
+          console.log(
+            `📋 Completando ${serviciosNoCompletados.length} servicios...`
+          );
+
+          // Actualizar cada servicio a 'completado'
+          const promesasActualizacion = serviciosNoCompletados.map(
+            async (servicio) => {
+              try {
+                const respuesta = await fetch(
+                  `${API_URL}/mantenimientos/${servicio.id}`,
+                  {
+                    method: 'PUT',
+                    headers: obtenerHeadersConAuth(),
+                    body: JSON.stringify({ estado: 'completado' }),
+                  }
+                );
+
+                if (respuesta.ok) {
+                  console.log(`✅ Servicio ${servicio.id} completado`);
+                  // Actualizar en cache
+                  servicio.estado = 'completado';
+                  return true;
+                }
+                return false;
+              } catch (error) {
+                console.error(
+                  `❌ Error al completar servicio ${servicio.id}:`,
+                  error
+                );
+                return false;
+              }
+            }
+          );
+
+          await Promise.all(promesasActualizacion);
+
+          // Recargar servicios en el modal
+          await cargarServiciosAsignados(tareaId);
+        }
+      } catch (error) {
+        console.error('❌ Error al completar servicios:', error);
+      }
+
+      mostrarNotificacion('¡Tarea completada con éxito!', 'success');
+    }
+
+    // Actualizar solo la tarjeta específica en lugar de recargar todas
+    await actualizarTarjetaTarea(tareaId);
+  } catch (error) {
+    console.error('❌ Error al accionar tarea:', error);
+    mostrarNotificacion(`Error al accionar tarea: ${error.message}`, 'error');
+  }
 }
 
 // ------------------------------
@@ -2961,370 +3334,429 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
 // ------------------------------
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Inicializando módulo de tareas...');
+  console.log('Inicializando módulo de tareas...');
 
-    // Asignar eventos a los formularios de los modales
-    const formCrear = document.getElementById('formCrearTarea');
-    if (formCrear) {
-        formCrear.addEventListener('submit', submitCrearTarea);
-        console.log('Evento submit asignado al formulario de crear tarea');
-    } else {
-        console.warn('Formulario formCrearTarea no encontrado');
-    }
+  // Asignar eventos a los formularios de los modales
+  const formCrear = document.getElementById('formCrearTarea');
+  if (formCrear) {
+    formCrear.addEventListener('submit', submitCrearTarea);
+    console.log('Evento submit asignado al formulario de crear tarea');
+  } else {
+    console.warn('Formulario formCrearTarea no encontrado');
+  }
 
-    const formEditar = document.getElementById('formEditarTarea');
-    if (formEditar) {
-        formEditar.addEventListener('submit', submitEditarTarea);
-        console.log('Evento submit asignado al formulario de editar tarea');
-    } else {
-        console.warn('Formulario formEditarTarea no encontrado');
-    }
+  const formEditar = document.getElementById('formEditarTarea');
+  if (formEditar) {
+    formEditar.addEventListener('submit', submitEditarTarea);
+    console.log('Evento submit asignado al formulario de editar tarea');
+  } else {
+    console.warn('Formulario formEditarTarea no encontrado');
+  }
 
-    // Botón "Accionar" para cambiar estado a "En proceso"
-    const btnAccionar = document.getElementById('tareaModalAccion');
-    if (btnAccionar) {
-        btnAccionar.addEventListener('click', async () => {
-            if (!tareaIdActual) {
-                console.warn('No hay tarea actual para accionar');
-                return;
-            }
-            await accionarTarea(tareaIdActual);
-        });
-    }
+  // Botón "Accionar" para cambiar estado a "En proceso"
+  const btnAccionar = document.getElementById('tareaModalAccion');
+  if (btnAccionar) {
+    btnAccionar.addEventListener('click', async () => {
+      if (!tareaIdActual) {
+        console.warn('No hay tarea actual para accionar');
+        return;
+      }
+      await accionarTarea(tareaIdActual);
+    });
+  }
 
-    // Asignar eventos a los botones de "agregar tag"
-    const btnAddTagCrear = document.getElementById('btnAgregarTagCrear');
-    if (btnAddTagCrear) {
-        btnAddTagCrear.addEventListener('click', () => agregarTag('crearTareaTags', 'tagsListCrear'));
-    }
+  // Asignar eventos a los botones de "agregar tag"
+  const btnAddTagCrear = document.getElementById('btnAgregarTagCrear');
+  if (btnAddTagCrear) {
+    btnAddTagCrear.addEventListener('click', () =>
+      agregarTag('crearTareaTags', 'tagsListCrear')
+    );
+  }
 
-    const btnAddTagEditar = document.getElementById('btnAgregarTagEditar');
-    if (btnAddTagEditar) {
-        btnAddTagEditar.addEventListener('click', () => agregarTag('editarTareaTags', 'tagsListEditar'));
-    }
+  const btnAddTagEditar = document.getElementById('btnAgregarTagEditar');
+  if (btnAddTagEditar) {
+    btnAddTagEditar.addEventListener('click', () =>
+      agregarTag('editarTareaTags', 'tagsListEditar')
+    );
+  }
 
-    // Permitir agregar tags con Enter
-    const inputTagCrear = document.getElementById('crearTareaTags');
-    if (inputTagCrear) {
-        inputTagCrear.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                agregarTag('crearTareaTags', 'tagsListCrear');
-            }
-        });
-    }
+  // Permitir agregar tags con Enter
+  const inputTagCrear = document.getElementById('crearTareaTags');
+  if (inputTagCrear) {
+    inputTagCrear.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        agregarTag('crearTareaTags', 'tagsListCrear');
+      }
+    });
+  }
 
-    const inputTagEditar = document.getElementById('editarTareaTags');
-    if (inputTagEditar) {
-        inputTagEditar.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                agregarTag('editarTareaTags', 'tagsListEditar');
-            }
-        });
-    }
+  const inputTagEditar = document.getElementById('editarTareaTags');
+  if (inputTagEditar) {
+    inputTagEditar.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        agregarTag('editarTareaTags', 'tagsListEditar');
+      }
+    });
+  }
 
-    // Event listeners para filtros de tareas
-    const inputBuscarTarea = document.getElementById('buscarTarea');
-    if (inputBuscarTarea) {
-        let timeoutBusqueda = null;
-        inputBuscarTarea.addEventListener('input', (e) => {
-            clearTimeout(timeoutBusqueda);
-            timeoutBusqueda = setTimeout(() => {
-                if (todasLasTareas.length > 0) {
-                    aplicarFiltrosTareas();
-                }
-            }, 300);
-        });
-    }
-
-    const selectEstadoTarea = document.getElementById('filtroEstadoTarea');
-    if (selectEstadoTarea) {
-        const semaforoWrapperEstado = selectEstadoTarea.closest('[data-semaforo-wrapper]');
-        const semaforoIndicatorEstado = semaforoWrapperEstado ? semaforoWrapperEstado.querySelector('.semaforo-indicator') : null;
-
-        selectEstadoTarea.addEventListener('change', () => {
-            // Actualizar semáforo visual
-            if (semaforoIndicatorEstado) {
-                semaforoIndicatorEstado.classList.remove('estado-pendiente', 'estado-en_proceso', 'estado-completada', 'estado-cancelada');
-                if (selectEstadoTarea.value) {
-                    semaforoIndicatorEstado.classList.add(`estado-${selectEstadoTarea.value}`);
-                }
-            }
-
-            if (todasLasTareas.length > 0) {
-                aplicarFiltrosTareas();
-            }
-        });
-
-        // Actualizar semáforo inicial
-        if (semaforoIndicatorEstado && selectEstadoTarea.value) {
-            semaforoIndicatorEstado.classList.add(`estado-${selectEstadoTarea.value}`);
+  // Event listeners para filtros de tareas
+  const inputBuscarTarea = document.getElementById('buscarTarea');
+  if (inputBuscarTarea) {
+    let timeoutBusqueda = null;
+    inputBuscarTarea.addEventListener('input', (e) => {
+      clearTimeout(timeoutBusqueda);
+      timeoutBusqueda = setTimeout(() => {
+        if (todasLasTareas.length > 0) {
+          aplicarFiltrosTareas();
         }
-    }
+      }, 300);
+    });
+  }
 
-    const selectPrioridadTarea = document.getElementById('filtroPrioridadTarea');
-    if (selectPrioridadTarea) {
-        const semaforoWrapper = selectPrioridadTarea.closest('[data-semaforo-wrapper]');
-        const semaforoIndicator = semaforoWrapper ? semaforoWrapper.querySelector('.semaforo-indicator') : null;
+  const selectEstadoTarea = document.getElementById('filtroEstadoTarea');
+  if (selectEstadoTarea) {
+    const semaforoWrapperEstado = selectEstadoTarea.closest(
+      '[data-semaforo-wrapper]'
+    );
+    const semaforoIndicatorEstado = semaforoWrapperEstado
+      ? semaforoWrapperEstado.querySelector('.semaforo-indicator')
+      : null;
 
-        selectPrioridadTarea.addEventListener('change', () => {
-            // Actualizar semáforo visual
-            if (semaforoIndicator) {
-                semaforoIndicator.classList.remove('prioridad-alta', 'prioridad-media', 'prioridad-baja');
-                if (selectPrioridadTarea.value) {
-                    semaforoIndicator.classList.add(`prioridad-${selectPrioridadTarea.value}`);
-                }
-            }
-
-            if (todasLasTareas.length > 0) {
-                aplicarFiltrosTareas();
-            }
-        });
-
-        // Actualizar semáforo inicial
-        if (semaforoIndicator && selectPrioridadTarea.value) {
-            semaforoIndicator.classList.add(`prioridad-${selectPrioridadTarea.value}`);
+    selectEstadoTarea.addEventListener('change', () => {
+      // Actualizar semáforo visual
+      if (semaforoIndicatorEstado) {
+        semaforoIndicatorEstado.classList.remove(
+          'estado-pendiente',
+          'estado-en_proceso',
+          'estado-completada',
+          'estado-cancelada'
+        );
+        if (selectEstadoTarea.value) {
+          semaforoIndicatorEstado.classList.add(
+            `estado-${selectEstadoTarea.value}`
+          );
         }
+      }
+
+      if (todasLasTareas.length > 0) {
+        aplicarFiltrosTareas();
+      }
+    });
+
+    // Actualizar semáforo inicial
+    if (semaforoIndicatorEstado && selectEstadoTarea.value) {
+      semaforoIndicatorEstado.classList.add(
+        `estado-${selectEstadoTarea.value}`
+      );
     }
+  }
 
-    const selectRolTarea = document.getElementById('filtroRolTarea');
-    if (selectRolTarea) {
-        // Configurar opciones del selector según el rol del usuario
-        const rolUsuario = obtenerRolUsuarioActual();
-        const opcionesActuales = Array.from(selectRolTarea.options);
+  const selectPrioridadTarea = document.getElementById('filtroPrioridadTarea');
+  if (selectPrioridadTarea) {
+    const semaforoWrapper = selectPrioridadTarea.closest(
+      '[data-semaforo-wrapper]'
+    );
+    const semaforoIndicator = semaforoWrapper
+      ? semaforoWrapper.querySelector('.semaforo-indicator')
+      : null;
 
-        // Construir opciones del selector según el rol del usuario
-        let opcionesHTML = '<option value="para-mi" selected>Para mí</option><option value="mi-rol">Mi rol</option>';
+    selectPrioridadTarea.addEventListener('change', () => {
+      // Actualizar semáforo visual
+      if (semaforoIndicator) {
+        semaforoIndicator.classList.remove(
+          'prioridad-alta',
+          'prioridad-media',
+          'prioridad-baja'
+        );
+        if (selectPrioridadTarea.value) {
+          semaforoIndicator.classList.add(
+            `prioridad-${selectPrioridadTarea.value}`
+          );
+        }
+      }
 
-        if (rolUsuario === 'admin') {
-            // Admin puede ver todos los roles
-            opcionesHTML += `
+      if (todasLasTareas.length > 0) {
+        aplicarFiltrosTareas();
+      }
+    });
+
+    // Actualizar semáforo inicial
+    if (semaforoIndicator && selectPrioridadTarea.value) {
+      semaforoIndicator.classList.add(
+        `prioridad-${selectPrioridadTarea.value}`
+      );
+    }
+  }
+
+  const selectRolTarea = document.getElementById('filtroRolTarea');
+  if (selectRolTarea) {
+    // Configurar opciones del selector según el rol del usuario
+    const rolUsuario = obtenerRolUsuarioActual();
+    const opcionesActuales = Array.from(selectRolTarea.options);
+
+    // Construir opciones del selector según el rol del usuario
+    let opcionesHTML =
+      '<option value="para-mi" selected>Para mí</option><option value="mi-rol">Mi rol</option>';
+
+    if (rolUsuario === 'admin') {
+      // Admin puede ver todos los roles
+      opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
-        } else if (rolUsuario === 'supervisor') {
-            // Supervisor puede ver todos excepto admin
-            opcionesHTML += `
+    } else if (rolUsuario === 'supervisor') {
+      // Supervisor puede ver todos excepto admin
+      opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="tecnico">Técnico</option>
             `;
-        } else if (rolUsuario === 'tecnico') {
-            // Técnico puede ver todos excepto admin y supervisor
-            // No agregar opciones adicionales
-        }
-        else {
-            // Si no se puede determinar el rol, mostrar todas las opciones por defecto
-            opcionesHTML += `
+    } else if (rolUsuario === 'tecnico') {
+      // Técnico puede ver todos excepto admin y supervisor
+      // No agregar opciones adicionales
+    } else {
+      // Si no se puede determinar el rol, mostrar todas las opciones por defecto
+      opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="admin">Administrador</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
-        }
-        
-        // Establecer innerHTML una sola vez para evitar múltiples reflows
-        selectRolTarea.innerHTML = opcionesHTML;
-
-        selectRolTarea.addEventListener('change', () => {
-            // Actualizar el texto del rol en el resumen inmediatamente
-            actualizarRolResumen();
-
-            if (todasLasTareas.length > 0) {
-                aplicarFiltrosTareas();
-            }
-
-            // Recargar timeline de vencimientos
-            if (typeof cargarProximosVencimientos === 'function') {
-                cargarProximosVencimientos();
-            }
-        });
     }
 
-    const selectTagTarea = document.getElementById('filtroTagTarea');
-    if (selectTagTarea) {
-        selectTagTarea.addEventListener('change', () => {
-            if (todasLasTareas.length > 0) {
-                aplicarFiltrosTareas();
-            }
-        });
-    }
+    // Establecer innerHTML una sola vez para evitar múltiples reflows
+    selectRolTarea.innerHTML = opcionesHTML;
 
-    // Event listeners para cerrar modales
-    document.querySelectorAll('[data-close-crear-modal]').forEach(el => {
-        el.addEventListener('click', () => cerrarModal('modalCrearTarea'));
+    selectRolTarea.addEventListener('change', () => {
+      // Actualizar el texto del rol en el resumen inmediatamente
+      actualizarRolResumen();
+
+      if (todasLasTareas.length > 0) {
+        aplicarFiltrosTareas();
+      }
+
+      // Recargar timeline de vencimientos
+      if (typeof cargarProximosVencimientos === 'function') {
+        cargarProximosVencimientos();
+      }
     });
+  }
 
-    document.querySelectorAll('[data-close-modal]').forEach(el => {
-        el.addEventListener('click', () => cerrarModal('modalEditarTarea'));
+  const selectTagTarea = document.getElementById('filtroTagTarea');
+  if (selectTagTarea) {
+    selectTagTarea.addEventListener('change', () => {
+      if (todasLasTareas.length > 0) {
+        aplicarFiltrosTareas();
+      }
     });
+  }
 
-    // Event listeners para cerrar modal de advertencia
-    document.querySelectorAll('[data-close-advertencia-modal]').forEach(el => {
-        el.addEventListener('click', () => cerrarModalAdvertenciaEdicion());
+  // Event listeners para cerrar modales
+  document.querySelectorAll('[data-close-crear-modal]').forEach((el) => {
+    el.addEventListener('click', () => cerrarModal('modalCrearTarea'));
+  });
+
+  document.querySelectorAll('[data-close-modal]').forEach((el) => {
+    el.addEventListener('click', () => cerrarModal('modalEditarTarea'));
+  });
+
+  // Event listeners para cerrar modal de advertencia
+  document.querySelectorAll('[data-close-advertencia-modal]').forEach((el) => {
+    el.addEventListener('click', () => cerrarModalAdvertenciaEdicion());
+  });
+
+  // Cerrar con tecla Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modalCrear = document.getElementById('modalCrearTarea');
+      const modalEditar = document.getElementById('modalEditarTarea');
+      const modalAdvertencia = document.getElementById(
+        'modalAdvertenciaEdicion'
+      );
+
+      if (modalCrear && modalCrear.style.display === 'flex') {
+        cerrarModal('modalCrearTarea');
+      }
+      if (modalEditar && modalEditar.style.display === 'flex') {
+        cerrarModal('modalEditarTarea');
+      }
+      if (modalAdvertencia && modalAdvertencia.style.display === 'flex') {
+        cerrarModalAdvertenciaEdicion();
+      }
+    }
+  });
+
+  // Inicializar semáforos
+  const selectPrioridadCrear = document.getElementById('crearTareaPrioridad');
+  if (selectPrioridadCrear) {
+    selectPrioridadCrear.addEventListener('change', () =>
+      actualizarSemaforoPrioridad(
+        'crearTareaPrioridad',
+        'semaforoPrioridadCrear'
+      )
+    );
+  }
+
+  const selectPrioridadEditar = document.getElementById('editarTareaPrioridad');
+  if (selectPrioridadEditar) {
+    selectPrioridadEditar.addEventListener('change', () =>
+      actualizarSemaforoPrioridad(
+        'editarTareaPrioridad',
+        'semaforoPrioridadEditar'
+      )
+    );
+  }
+
+  // Eventos para el manejo de archivos adjuntos (Input Change)
+  const inputArchivoCrear = document.getElementById('crearTareaAdjuntos');
+  if (inputArchivoCrear) {
+    inputArchivoCrear.addEventListener('change', (e) => {
+      manejarArchivoAdjunto(e, 'filePreviewCrear');
     });
+  }
 
-    // Cerrar con tecla Escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modalCrear = document.getElementById('modalCrearTarea');
-            const modalEditar = document.getElementById('modalEditarTarea');
-            const modalAdvertencia = document.getElementById('modalAdvertenciaEdicion');
+  const inputArchivoEditar = document.getElementById('editarTareaAdjuntos');
+  if (inputArchivoEditar) {
+    inputArchivoEditar.addEventListener('change', async (e) => {
+      // Mostrar preview local
+      manejarArchivoAdjunto(e, 'filePreviewEditar');
 
-            if (modalCrear && modalCrear.style.display === 'flex') {
-                cerrarModal('modalCrearTarea');
-            }
-            if (modalEditar && modalEditar.style.display === 'flex') {
-                cerrarModal('modalEditarTarea');
-            }
-            if (modalAdvertencia && modalAdvertencia.style.display === 'flex') {
-                cerrarModalAdvertenciaEdicion();
-            }
-        }
-    });
+      // Subir archivos inmediatamente si tenemos tareaIdActual
+      if (tareaIdActual && e.target.files && e.target.files.length > 0) {
+        const files = Array.from(e.target.files);
 
-    // Inicializar semáforos
-    const selectPrioridadCrear = document.getElementById('crearTareaPrioridad');
-    if (selectPrioridadCrear) {
-        selectPrioridadCrear.addEventListener('change', () =>
-            actualizarSemaforoPrioridad('crearTareaPrioridad', 'semaforoPrioridadCrear'));
-    }
-
-    const selectPrioridadEditar = document.getElementById('editarTareaPrioridad');
-    if (selectPrioridadEditar) {
-        selectPrioridadEditar.addEventListener('change', () =>
-            actualizarSemaforoPrioridad('editarTareaPrioridad', 'semaforoPrioridadEditar'));
-    }
-
-    // Eventos para el manejo de archivos adjuntos (Input Change)
-    const inputArchivoCrear = document.getElementById('crearTareaAdjuntos');
-    if (inputArchivoCrear) {
-        inputArchivoCrear.addEventListener('change', (e) => {
-            manejarArchivoAdjunto(e, 'filePreviewCrear');
-        });
-    }
-
-    const inputArchivoEditar = document.getElementById('editarTareaAdjuntos');
-    if (inputArchivoEditar) {
-        inputArchivoEditar.addEventListener('change', async (e) => {
-            // Mostrar preview local
-            manejarArchivoAdjunto(e, 'filePreviewEditar');
-
-            // Subir archivos inmediatamente si tenemos tareaIdActual
-            if (tareaIdActual && e.target.files && e.target.files.length > 0) {
-                const files = Array.from(e.target.files);
-
-                for (const file of files) {
-                    try {
-                        // La barra de progreso muestra el estado, no necesitamos notificación de inicio
-                        await subirAdjuntoTarea(file, tareaIdActual);
-                        // Solo notificar éxito al final
-                        notificar(`${file.name} subido correctamente`, 'success');
-                    } catch (error) {
-                        console.error('Error al subir archivo:', error);
-                        // La barra de progreso muestra el error, pero notificamos también
-                        notificar(error.message || `Error al subir ${file.name}`, 'error');
-                    }
-                }
-
-                // Recargar los chips de adjuntos
-                await cargarAdjuntosTarea(tareaIdActual, true, 'adjuntosEditarChips');
-            }
-        });
-    }
-
-    // Drag and Drop para archivos
-    const setupDragAndDrop = (labelId, inputId, previewId) => {
-        const label = document.querySelector(`label[for="${inputId}"]`);
-        const input = document.getElementById(inputId);
-
-        if (!label || !input) return;
-
-        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-            label.addEventListener(eventName, preventDefaults, false);
-        });
-
-        function preventDefaults(e) {
-            e.preventDefault();
-            e.stopPropagation();
+        for (const file of files) {
+          try {
+            // La barra de progreso muestra el estado, no necesitamos notificación de inicio
+            await subirAdjuntoTarea(file, tareaIdActual);
+            // Solo notificar éxito al final
+            notificar(`${file.name} subido correctamente`, 'success');
+          } catch (error) {
+            console.error('Error al subir archivo:', error);
+            // La barra de progreso muestra el error, pero notificamos también
+            notificar(error.message || `Error al subir ${file.name}`, 'error');
+          }
         }
 
-        ['dragenter', 'dragover'].forEach(eventName => {
-            label.addEventListener(eventName, () => label.classList.add('highlight'), false);
-        });
+        // Recargar los chips de adjuntos
+        await cargarAdjuntosTarea(tareaIdActual, true, 'adjuntosEditarChips');
+      }
+    });
+  }
 
-        ['dragleave', 'drop'].forEach(eventName => {
-            label.addEventListener(eventName, () => label.classList.remove('highlight'), false);
-        });
+  // Drag and Drop para archivos
+  const setupDragAndDrop = (labelId, inputId, previewId) => {
+    const label = document.querySelector(`label[for="${inputId}"]`);
+    const input = document.getElementById(inputId);
 
-        label.addEventListener('drop', (e) => {
-            const dt = e.dataTransfer;
-            const files = dt.files;
+    if (!label || !input) return;
 
-            // Asignar archivos al input
-            input.files = files;
-
-            // Disparar evento change manualmente
-            const event = new Event('change', { bubbles: true });
-            input.dispatchEvent(event);
-        }, false);
-    };
-
-    setupDragAndDrop('uploadLabelCrear', 'crearTareaAdjuntos', 'filePreviewCrear');
-    setupDragAndDrop('uploadLabelEditar', 'editarTareaAdjuntos', 'filePreviewEditar');
-
-    // Cerrar modales al hacer clic en el overlay
-    const modales = ['modalCrearTarea', 'modalEditarTarea', 'modalDetalleTarea'];
-    modales.forEach(modalId => {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            const overlay = modal.querySelector('.modal-detalles-overlay');
-            if (overlay) {
-                overlay.addEventListener('click', () => {
-                    if (modalId === 'modalDetalleTarea') {
-                        cerrarModalDetalleTarea();
-                    } else {
-                        cerrarModal(modalId);
-                    }
-                });
-            }
-
-            // Cerrar con botones [data-close-modal]
-            const closeBtns = modal.querySelectorAll('[data-close-modal]');
-            closeBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    if (modalId === 'modalDetalleTarea') {
-                        cerrarModalDetalleTarea();
-                    } else {
-                        cerrarModal(modalId);
-                    }
-                });
-            });
-        }
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach((eventName) => {
+      label.addEventListener(eventName, preventDefaults, false);
     });
 
-    // Cerrar modal con tecla Escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modalCrear = document.getElementById('modalCrearTarea');
-            const modalEditar = document.getElementById('modalEditarTarea');
-            const modalDetalle = document.getElementById('modalDetalleTarea');
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-            if (modalCrear && modalCrear.style.display === 'flex') {
-                cerrarModal('modalCrearTarea');
-            } else if (modalEditar && modalEditar.style.display === 'flex') {
-                cerrarModal('modalEditarTarea');
-            } else if (modalDetalle && modalDetalle.style.display === 'flex') {
-                cerrarModalDetalleTarea();
-            }
-        }
+    ['dragenter', 'dragover'].forEach((eventName) => {
+      label.addEventListener(
+        eventName,
+        () => label.classList.add('highlight'),
+        false
+      );
     });
 
-    // Inicializar el texto del rol en el resumen
-    actualizarRolResumen();
+    ['dragleave', 'drop'].forEach((eventName) => {
+      label.addEventListener(
+        eventName,
+        () => label.classList.remove('highlight'),
+        false
+      );
+    });
 
-    console.log('Módulo de tareas inicializado correctamente.');
+    label.addEventListener(
+      'drop',
+      (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+
+        // Asignar archivos al input
+        input.files = files;
+
+        // Disparar evento change manualmente
+        const event = new Event('change', { bubbles: true });
+        input.dispatchEvent(event);
+      },
+      false
+    );
+  };
+
+  setupDragAndDrop(
+    'uploadLabelCrear',
+    'crearTareaAdjuntos',
+    'filePreviewCrear'
+  );
+  setupDragAndDrop(
+    'uploadLabelEditar',
+    'editarTareaAdjuntos',
+    'filePreviewEditar'
+  );
+
+  // Cerrar modales al hacer clic en el overlay
+  const modales = ['modalCrearTarea', 'modalEditarTarea', 'modalDetalleTarea'];
+  modales.forEach((modalId) => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+      const overlay = modal.querySelector('.modal-detalles-overlay');
+      if (overlay) {
+        overlay.addEventListener('click', () => {
+          if (modalId === 'modalDetalleTarea') {
+            cerrarModalDetalleTarea();
+          } else {
+            cerrarModal(modalId);
+          }
+        });
+      }
+
+      // Cerrar con botones [data-close-modal]
+      const closeBtns = modal.querySelectorAll('[data-close-modal]');
+      closeBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (modalId === 'modalDetalleTarea') {
+            cerrarModalDetalleTarea();
+          } else {
+            cerrarModal(modalId);
+          }
+        });
+      });
+    }
+  });
+
+  // Cerrar modal con tecla Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modalCrear = document.getElementById('modalCrearTarea');
+      const modalEditar = document.getElementById('modalEditarTarea');
+      const modalDetalle = document.getElementById('modalDetalleTarea');
+
+      if (modalCrear && modalCrear.style.display === 'flex') {
+        cerrarModal('modalCrearTarea');
+      } else if (modalEditar && modalEditar.style.display === 'flex') {
+        cerrarModal('modalEditarTarea');
+      } else if (modalDetalle && modalDetalle.style.display === 'flex') {
+        cerrarModalDetalleTarea();
+      }
+    }
+  });
+
+  // Inicializar el texto del rol en el resumen
+  actualizarRolResumen();
+
+  console.log('Módulo de tareas inicializado correctamente.');
 });
 
 // ------------------------------
@@ -3343,10 +3775,11 @@ window.cambiarEstadoServicioDesdeDetalle = cambiarEstadoServicioDesdeDetalle;
 
 // Exportar el flag de carga como getter/setter
 Object.defineProperty(window, 'tareasCargadas', {
-    get: () => tareasCargadas,
-    set: (value) => { tareasCargadas = value; }
+  get: () => tareasCargadas,
+  set: (value) => {
+    tareasCargadas = value;
+  },
 });
-
 
 // ------------------------------
 // PRÓXIMOS VENCIMIENTOS
@@ -3357,161 +3790,193 @@ Object.defineProperty(window, 'tareasCargadas', {
  * Respeta los permisos de visibilidad según el rol del usuario
  */
 async function cargarProximosVencimientos() {
-    const timeline = document.getElementById('tareasTimeline');
-    const mensajeNoTimeline = document.getElementById('mensajeNoTimeline');
+  const timeline = document.getElementById('tareasTimeline');
+  const mensajeNoTimeline = document.getElementById('mensajeNoTimeline');
 
-    if (!timeline) {
-        console.warn('⚠️ Elemento tareasTimeline no encontrado');
-        return;
+  if (!timeline) {
+    console.warn('⚠️ Elemento tareasTimeline no encontrado');
+    return;
+  }
+
+  try {
+    // Mostrar loading
+    timeline.innerHTML =
+      '<li class="mensaje-cargando">Cargando vencimientos...</li>';
+    if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'none';
+
+    // Obtener headers con autenticación
+    const headers = window.obtenerHeadersConAuth
+      ? await window.obtenerHeadersConAuth()
+      : obtenerHeadersConAuth();
+
+    // Obtener todas las tareas
+    const response = await fetch(`${API_URL}/tareas`, { headers });
+
+    if (!response.ok) {
+      throw new Error(`Error al cargar tareas: ${response.status}`);
     }
 
-    try {
-        // Mostrar loading
-        timeline.innerHTML = '<li class="mensaje-cargando">Cargando vencimientos...</li>';
-        if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'none';
+    const todasLasTareas = await response.json();
 
-        // Obtener headers con autenticación
-        const headers = window.obtenerHeadersConAuth
-            ? await window.obtenerHeadersConAuth()
-            : obtenerHeadersConAuth();
+    // Calcular fecha actual y fecha límite (hoy + 3 días)
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const tresDias = new Date(hoy);
+    tresDias.setDate(hoy.getDate() + 3);
+    tresDias.setHours(23, 59, 59, 999);
 
-        // Obtener todas las tareas
-        const response = await fetch(`${API_URL}/tareas`, { headers });
+    // Obtener rol del usuario actual y filtro activo
+    const rolUsuarioActual = obtenerRolUsuarioActual();
+    const selectRol = document.getElementById('filtroRolTarea');
+    const rolFiltro = selectRol ? selectRol.value : 'mi-rol';
 
-        if (!response.ok) {
-            throw new Error(`Error al cargar tareas: ${response.status}`);
+    // Filtrar tareas que vencen en los próximos 3 días Y respetan visibilidad
+    const tareasProximas = todasLasTareas.filter((tarea) => {
+      // Filtro de fecha y estado
+      if (
+        !tarea.fecha_vencimiento ||
+        tarea.estado === 'completada' ||
+        tarea.estado === 'cancelada'
+      ) {
+        return false;
+      }
+
+      // Usar parsearFechaLocal para evitar problemas de timezone
+      const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
+      fechaVencimiento.setHours(0, 0, 0, 0);
+
+      if (!(fechaVencimiento >= hoy && fechaVencimiento <= tresDias)) {
+        return false;
+      }
+
+      // Aplicar filtro de visibilidad por rol (igual que en filtrarTareas)
+      if (rolFiltro === 'para-mi') {
+        // Filtrar por ID del usuario actual
+        let usuarioIdActual = null;
+        if (
+          window.AppState &&
+          window.AppState.currentUser &&
+          window.AppState.currentUser.id
+        ) {
+          usuarioIdActual = window.AppState.currentUser.id;
         }
-
-        const todasLasTareas = await response.json();
-
-        // Calcular fecha actual y fecha límite (hoy + 3 días)
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const tresDias = new Date(hoy);
-        tresDias.setDate(hoy.getDate() + 3);
-        tresDias.setHours(23, 59, 59, 999);
-
-        // Obtener rol del usuario actual y filtro activo
-        const rolUsuarioActual = obtenerRolUsuarioActual();
-        const selectRol = document.getElementById('filtroRolTarea');
-        const rolFiltro = selectRol ? selectRol.value : 'mi-rol';
-
-        // Filtrar tareas que vencen en los próximos 3 días Y respetan visibilidad
-        const tareasProximas = todasLasTareas.filter(tarea => {
-            // Filtro de fecha y estado
-            if (!tarea.fecha_vencimiento || tarea.estado === 'completada' || tarea.estado === 'cancelada') {
-                return false;
+        if (!usuarioIdActual) {
+          try {
+            const storedUser = JSON.parse(
+              localStorage.getItem('currentUser') ||
+                sessionStorage.getItem('currentUser') ||
+                'null'
+            );
+            if (storedUser && storedUser.id) {
+              usuarioIdActual = storedUser.id;
             }
+          } catch (e) {
+            console.warn('Error obteniendo ID de usuario:', e);
+          }
+        }
+        if (!usuarioIdActual) {
+          return false;
+        }
+        const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
+        if (tareaAsignadaA != usuarioIdActual) {
+          return false;
+        }
+      } else if (rolFiltro === 'mi-rol') {
+        if (!rolUsuarioActual) {
+          return false;
+        }
+        // Comparación insensible a mayúsculas/minúsculas
+        const rolUsuarioUpper = rolUsuarioActual.toUpperCase();
+        const tareaRolUpper = (tarea.asignado_a_rol_nombre || '').toUpperCase();
 
-            // Usar parsearFechaLocal para evitar problemas de timezone
-            const fechaVencimiento = parsearFechaLocal(tarea.fecha_vencimiento);
-            fechaVencimiento.setHours(0, 0, 0, 0);
+        // Solo mostrar tareas asignadas al rol del usuario actual
+        if (tareaRolUpper !== rolUsuarioUpper) {
+          return false;
+        }
+      } else if (
+        rolFiltro &&
+        rolFiltro !== 'todos' &&
+        rolFiltro !== 'mi-rol' &&
+        rolFiltro !== 'para-mi'
+      ) {
+        // Filtro por rol específico
+        const rolMap = {
+          admin: 'ADMIN',
+          supervisor: 'SUPERVISOR',
+          tecnico: 'TECNICO',
+          ADMIN: 'ADMIN',
+          SUPERVISOR: 'SUPERVISOR',
+          TECNICO: 'TECNICO',
+        };
+        const rolBuscado =
+          rolMap[rolFiltro] ||
+          rolMap[rolFiltro.toLowerCase()] ||
+          rolFiltro.toUpperCase();
+        if (tarea.asignado_a_rol_nombre !== rolBuscado) {
+          return false;
+        }
+      } else if (rolFiltro === 'todos') {
+        // Si el usuario es supervisor, no mostrar tareas de ADMIN
+        if (
+          rolUsuarioActual === 'SUPERVISOR' &&
+          tarea.asignado_a_rol_nombre === 'ADMIN'
+        ) {
+          return false;
+        }
+      }
 
-            if (!(fechaVencimiento >= hoy && fechaVencimiento <= tresDias)) {
-                return false;
-            }
+      return true;
+    });
 
-            // Aplicar filtro de visibilidad por rol (igual que en filtrarTareas)
-            if (rolFiltro === 'para-mi') {
-                // Filtrar por ID del usuario actual
-                let usuarioIdActual = null;
-                if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
-                    usuarioIdActual = window.AppState.currentUser.id;
-                }
-                if (!usuarioIdActual) {
-                    try {
-                        const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-                        if (storedUser && storedUser.id) {
-                            usuarioIdActual = storedUser.id;
-                        }
-                    } catch (e) {
-                        console.warn('Error obteniendo ID de usuario:', e);
-                    }
-                }
-                if (!usuarioIdActual) {
-                    return false;
-                }
-                const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
-                if (tareaAsignadaA != usuarioIdActual) {
-                    return false;
-                }
-            } else if (rolFiltro === 'mi-rol') {
-                if (!rolUsuarioActual) {
-                    return false;
-                }
-                // Comparación insensible a mayúsculas/minúsculas
-                const rolUsuarioUpper = rolUsuarioActual.toUpperCase();
-                const tareaRolUpper = (tarea.asignado_a_rol_nombre || '').toUpperCase();
+    // Ordenar por fecha de vencimiento (más cercano primero)
+    tareasProximas.sort(
+      (a, b) =>
+        parsearFechaLocal(a.fecha_vencimiento) -
+        parsearFechaLocal(b.fecha_vencimiento)
+    );
 
-                // Solo mostrar tareas asignadas al rol del usuario actual
-                if (tareaRolUpper !== rolUsuarioUpper) {
-                    return false;
-                }
-            } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol' && rolFiltro !== 'para-mi') {
-                // Filtro por rol específico
-                const rolMap = {
-                    'admin': 'ADMIN',
-                    'supervisor': 'SUPERVISOR',
-                    'tecnico': 'TECNICO',
-                    'ADMIN': 'ADMIN',
-                    'SUPERVISOR': 'SUPERVISOR',
-                    'TECNICO': 'TECNICO'
-                };
-                const rolBuscado = rolMap[rolFiltro] || rolMap[rolFiltro.toLowerCase()] || rolFiltro.toUpperCase();
-                if (tarea.asignado_a_rol_nombre !== rolBuscado) {
-                    return false;
-                }
-            } else if (rolFiltro === 'todos') {
-                // Si el usuario es supervisor, no mostrar tareas de ADMIN
-                if (rolUsuarioActual === 'SUPERVISOR' && tarea.asignado_a_rol_nombre === 'ADMIN') {
-                    return false;
-                }
-            }
+    console.log(
+      `📅 ${tareasProximas.length} tareas con vencimiento próximo (filtradas por rol: ${rolFiltro})`
+    );
 
-            return true;
-        });
+    // Mostrar tareas o mensaje de "todo al día"
+    if (tareasProximas.length === 0) {
+      timeline.innerHTML = '';
+      if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'block';
+    } else {
+      // Renderizar cada tarea
+      timeline.innerHTML = tareasProximas
+        .map((tarea) => {
+          // Usar parsearFechaLocal para evitar problemas de timezone
+          const fechaVenc = parsearFechaLocal(tarea.fecha_vencimiento);
+          fechaVenc.setHours(0, 0, 0, 0);
+          const diasRestantes = Math.ceil(
+            (fechaVenc - hoy) / (1000 * 60 * 60 * 24)
+          );
 
-        // Ordenar por fecha de vencimiento (más cercano primero)
-        tareasProximas.sort((a, b) =>
-            parsearFechaLocal(a.fecha_vencimiento) - parsearFechaLocal(b.fecha_vencimiento)
-        );
+          // Determinar el texto y clase para los días restantes
+          let textoVencimiento, claseVencimiento;
+          if (diasRestantes === 0) {
+            textoVencimiento = 'Vence hoy';
+            claseVencimiento = 'vence-hoy';
+          } else if (diasRestantes === 1) {
+            textoVencimiento = 'Vence mañana';
+            claseVencimiento = 'vence-manana';
+          } else {
+            textoVencimiento = `Vence en ${diasRestantes} días`;
+            claseVencimiento = 'vence-proximo';
+          }
 
-        console.log(`📅 ${tareasProximas.length} tareas con vencimiento próximo (filtradas por rol: ${rolFiltro})`);
+          // Prioridad
+          const prioridadMap = {
+            alta: 'prioridad-alta',
+            media: 'prioridad-media',
+            baja: 'prioridad-baja',
+          };
+          const clasePrioridad =
+            prioridadMap[tarea.prioridad] || 'prioridad-media';
 
-        // Mostrar tareas o mensaje de "todo al día"
-        if (tareasProximas.length === 0) {
-            timeline.innerHTML = '';
-            if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'block';
-        } else {
-            // Renderizar cada tarea
-            timeline.innerHTML = tareasProximas.map(tarea => {
-                // Usar parsearFechaLocal para evitar problemas de timezone
-                const fechaVenc = parsearFechaLocal(tarea.fecha_vencimiento);
-                fechaVenc.setHours(0, 0, 0, 0);
-                const diasRestantes = Math.ceil((fechaVenc - hoy) / (1000 * 60 * 60 * 24));
-
-                // Determinar el texto y clase para los días restantes
-                let textoVencimiento, claseVencimiento;
-                if (diasRestantes === 0) {
-                    textoVencimiento = 'Vence hoy';
-                    claseVencimiento = 'vence-hoy';
-                } else if (diasRestantes === 1) {
-                    textoVencimiento = 'Vence mañana';
-                    claseVencimiento = 'vence-manana';
-                } else {
-                    textoVencimiento = `Vence en ${diasRestantes} días`;
-                    claseVencimiento = 'vence-proximo';
-                }
-
-                // Prioridad
-                const prioridadMap = {
-                    'alta': 'prioridad-alta',
-                    'media': 'prioridad-media',
-                    'baja': 'prioridad-baja'
-                };
-                const clasePrioridad = prioridadMap[tarea.prioridad] || 'prioridad-media';
-
-                return `
+          return `
                     <li class="timeline-task-item ${claseVencimiento}" onclick="window.verDetalleTarea(${tarea.id})" style="cursor: pointer;">
                         <span class="timeline-info">
                             <span class="timeline-cuarto" title="${tarea.ubicacion || 'General'}">
@@ -3529,25 +3994,26 @@ async function cargarProximosVencimientos() {
                         </span>
                     </li>
                 `;
-            }).join('');
+        })
+        .join('');
 
-            if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'none';
-        }
-
-    } catch (error) {
-        console.error('❌ Error al cargar próximos vencimientos:', error);
-        timeline.innerHTML = `
+      if (mensajeNoTimeline) mensajeNoTimeline.style.display = 'none';
+    }
+  } catch (error) {
+    console.error('❌ Error al cargar próximos vencimientos:', error);
+    timeline.innerHTML = `
             <li class="mensaje-error">
                 <i class="fas fa-exclamation-triangle"></i> 
                 Error al cargar vencimientos
             </li>
         `;
-    }
+  }
 }
 
 // Exponer funciones al scope global
 window.cargarProximosVencimientos = cargarProximosVencimientos;
-window.verificarYActualizarTareaIndividual = verificarYActualizarTareaIndividual;
+window.verificarYActualizarTareaIndividual =
+  verificarYActualizarTareaIndividual;
 
 // ------------------------------
 // DOCUMENTOS ADJUNTOS
@@ -3558,25 +4024,25 @@ let adjuntoActual = null;
 
 // Mapeo de extensiones a iconos de Font Awesome
 const ICONO_POR_EXTENSION = {
-    'pdf': 'fa-file-pdf',
-    'doc': 'fa-file-word',
-    'docx': 'fa-file-word',
-    'xls': 'fa-file-excel',
-    'xlsx': 'fa-file-excel',
-    'xlsm': 'fa-file-excel',
-    'csv': 'fa-file-csv',
-    'txt': 'fa-file-lines',
-    'md': 'fa-file-code',
-    'png': 'fa-file-image',
-    'jpg': 'fa-file-image',
-    'jpeg': 'fa-file-image',
-    'gif': 'fa-file-image',
-    'webp': 'fa-file-image',
-    'zip': 'fa-file-zipper',
-    'rar': 'fa-file-zipper',
-    '7z': 'fa-file-zipper',
-    'tar': 'fa-file-zipper',
-    'gz': 'fa-file-zipper'
+  pdf: 'fa-file-pdf',
+  doc: 'fa-file-word',
+  docx: 'fa-file-word',
+  xls: 'fa-file-excel',
+  xlsx: 'fa-file-excel',
+  xlsm: 'fa-file-excel',
+  csv: 'fa-file-csv',
+  txt: 'fa-file-lines',
+  md: 'fa-file-code',
+  png: 'fa-file-image',
+  jpg: 'fa-file-image',
+  jpeg: 'fa-file-image',
+  gif: 'fa-file-image',
+  webp: 'fa-file-image',
+  zip: 'fa-file-zipper',
+  rar: 'fa-file-zipper',
+  '7z': 'fa-file-zipper',
+  tar: 'fa-file-zipper',
+  gz: 'fa-file-zipper',
 };
 
 /**
@@ -3585,7 +4051,7 @@ const ICONO_POR_EXTENSION = {
  * @returns {string} Clase de icono Font Awesome
  */
 function obtenerIconoAdjunto(extension) {
-    return ICONO_POR_EXTENSION[extension?.toLowerCase()] || 'fa-file';
+  return ICONO_POR_EXTENSION[extension?.toLowerCase()] || 'fa-file';
 }
 
 /**
@@ -3594,11 +4060,11 @@ function obtenerIconoAdjunto(extension) {
  * @returns {string} Tamaño formateado (ej: "2.4 MB")
  */
 function formatearTamanoArchivo(bytes) {
-    if (!bytes || bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  if (!bytes || bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 /**
@@ -3607,38 +4073,48 @@ function formatearTamanoArchivo(bytes) {
  * @param {boolean} editable - Si es true, muestra botón eliminar en chips
  * @param {string} containerId - ID del contenedor (por defecto 'tareaModalAdjuntos')
  */
-async function cargarAdjuntosTarea(tareaId, editable = false, containerId = 'tareaModalAdjuntos') {
-    const container = document.getElementById(containerId);
-    if (!container) return;
+async function cargarAdjuntosTarea(
+  tareaId,
+  editable = false,
+  containerId = 'tareaModalAdjuntos'
+) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-    try {
-        // Mostrar loading
-        container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-spinner fa-spin"></i> Cargando...</span>';
+  try {
+    // Mostrar loading
+    container.innerHTML =
+      '<span class="adjuntos-empty-msg"><i class="fas fa-spinner fa-spin"></i> Cargando...</span>';
 
-        // Llamada real a la API
-        const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
-            headers: obtenerHeadersConAuth()
-        });
+    // Llamada real a la API
+    const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
+      headers: obtenerHeadersConAuth(),
+    });
 
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const adjuntos = await response.json();
-        console.log(`📎 ${adjuntos.length} adjuntos cargados para tarea ${tareaId}`);
-
-        if (adjuntos.length === 0) {
-            container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
-            return;
-        }
-
-        // Renderizar chips de adjuntos con o sin botón eliminar según modo
-        container.innerHTML = adjuntos.map(adjunto => renderAdjuntoChip(adjunto, editable)).join('');
-
-    } catch (error) {
-        console.error('Error al cargar adjuntos:', error);
-        container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-exclamation-triangle"></i> Error al cargar</span>';
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
+
+    const adjuntos = await response.json();
+    console.log(
+      `📎 ${adjuntos.length} adjuntos cargados para tarea ${tareaId}`
+    );
+
+    if (adjuntos.length === 0) {
+      container.innerHTML =
+        '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
+      return;
+    }
+
+    // Renderizar chips de adjuntos con o sin botón eliminar según modo
+    container.innerHTML = adjuntos
+      .map((adjunto) => renderAdjuntoChip(adjunto, editable))
+      .join('');
+  } catch (error) {
+    console.error('Error al cargar adjuntos:', error);
+    container.innerHTML =
+      '<span class="adjuntos-empty-msg"><i class="fas fa-exclamation-triangle"></i> Error al cargar</span>';
+  }
 }
 
 /**
@@ -3648,20 +4124,22 @@ async function cargarAdjuntosTarea(tareaId, editable = false, containerId = 'tar
  * @returns {string} HTML del chip
  */
 function renderAdjuntoChip(adjunto, editable = false) {
-    const icono = obtenerIconoAdjunto(adjunto.extension);
-    const nombre = adjunto.nombre_original || 'archivo';
-    const subidoPor = adjunto.subido_por_nombre || 'Usuario';
-    // URL directa de UploadThing (si existe)
-    const url = adjunto.url || '';
+  const icono = obtenerIconoAdjunto(adjunto.extension);
+  const nombre = adjunto.nombre_original || 'archivo';
+  const subidoPor = adjunto.subido_por_nombre || 'Usuario';
+  // URL directa de UploadThing (si existe)
+  const url = adjunto.url || '';
 
-    // Botón delete solo si es editable
-    const deleteBtn = editable ? `
+  // Botón delete solo si es editable
+  const deleteBtn = editable
+    ? `
         <button type="button" class="adjunto-chip-delete" onclick="event.stopPropagation(); confirmarEliminarAdjunto(${adjunto.id})" title="Eliminar">
             <i class="fas fa-times"></i>
         </button>
-    ` : '';
+    `
+    : '';
 
-    return `
+  return `
         <div class="adjunto-chip" onclick="abrirPreviewAdjunto(${adjunto.id})" data-adjunto-id="${adjunto.id}" 
              data-nombre="${nombre}" data-extension="${adjunto.extension}" 
              data-tamano="${adjunto.tamano_bytes}" data-fecha="${adjunto.created_at}"
@@ -3680,209 +4158,225 @@ function renderAdjuntoChip(adjunto, editable = false) {
  * @param {number} adjuntoId - ID del adjunto
  */
 function abrirPreviewAdjunto(adjuntoId) {
-    const modal = document.getElementById('modalPreviewAdjunto');
-    const chip = document.querySelector(`[data-adjunto-id="${adjuntoId}"]`);
+  const modal = document.getElementById('modalPreviewAdjunto');
+  const chip = document.querySelector(`[data-adjunto-id="${adjuntoId}"]`);
 
-    if (!modal || !chip) return;
+  if (!modal || !chip) return;
 
-    // Obtener datos del chip
-    const nombre = chip.dataset.nombre;
-    const extension = chip.dataset.extension;
-    const tamano = parseInt(chip.dataset.tamano);
-    const fecha = chip.dataset.fecha;
-    const subidoPor = chip.dataset.subidoPor || 'Usuario';
-    const directUrl = chip.dataset.url; // URL directa de UploadThing
+  // Obtener datos del chip
+  const nombre = chip.dataset.nombre;
+  const extension = chip.dataset.extension;
+  const tamano = parseInt(chip.dataset.tamano);
+  const fecha = chip.dataset.fecha;
+  const subidoPor = chip.dataset.subidoPor || 'Usuario';
+  const directUrl = chip.dataset.url; // URL directa de UploadThing
 
-    // Almacenar adjunto actual (incluyendo URL)
-    adjuntoActual = { id: adjuntoId, nombre, extension, tamano, fecha, subidoPor, url: directUrl };
+  // Almacenar adjunto actual (incluyendo URL)
+  adjuntoActual = {
+    id: adjuntoId,
+    nombre,
+    extension,
+    tamano,
+    fecha,
+    subidoPor,
+    url: directUrl,
+  };
 
-    // Actualizar modal
-    document.getElementById('previewAdjuntoNombre').textContent = nombre;
-    document.getElementById('previewAdjuntoTipo').innerHTML =
-        `<i class="fas ${obtenerIconoAdjunto(extension)}"></i> ${extension.toUpperCase()}`;
-    document.getElementById('previewAdjuntoTamano').innerHTML =
-        `<i class="fas fa-database"></i> ${formatearTamanoArchivo(tamano)}`;
+  // Actualizar modal
+  document.getElementById('previewAdjuntoNombre').textContent = nombre;
+  document.getElementById('previewAdjuntoTipo').innerHTML =
+    `<i class="fas ${obtenerIconoAdjunto(extension)}"></i> ${extension.toUpperCase()}`;
+  document.getElementById('previewAdjuntoTamano').innerHTML =
+    `<i class="fas fa-database"></i> ${formatearTamanoArchivo(tamano)}`;
 
-    // Formatear fecha con hora
-    const fechaObj = new Date(fecha);
-    const opciones = { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' };
-    document.getElementById('previewAdjuntoFecha').innerHTML =
-        `<i class="fas fa-calendar"></i> ${fechaObj.toLocaleDateString('es-ES', opciones)}`;
+  // Formatear fecha con hora
+  const fechaObj = new Date(fecha);
+  const opciones = {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  document.getElementById('previewAdjuntoFecha').innerHTML =
+    `<i class="fas fa-calendar"></i> ${fechaObj.toLocaleDateString('es-ES', opciones)}`;
 
-    // Mostrar quién lo subió
-    const subidoPorElement = document.getElementById('previewAdjuntoSubidoPor');
-    if (subidoPorElement) {
-        subidoPorElement.innerHTML = `<i class="fas fa-user"></i> ${subidoPor}`;
-    }
+  // Mostrar quién lo subió
+  const subidoPorElement = document.getElementById('previewAdjuntoSubidoPor');
+  if (subidoPorElement) {
+    subidoPorElement.innerHTML = `<i class="fas fa-user"></i> ${subidoPor}`;
+  }
 
-    // Actualizar área de preview según tipo
-    const previewContainer = document.getElementById('previewAdjuntoContainer');
-    const extensionesImagen = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-    const token = localStorage.getItem('token');
+  // Actualizar área de preview según tipo
+  const previewContainer = document.getElementById('previewAdjuntoContainer');
+  const extensionesImagen = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+  const token = localStorage.getItem('token');
 
-    if (extensionesImagen.includes(extension.toLowerCase())) {
-        // Para imágenes: usar URL directa de UploadThing si existe
-        previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
+  if (extensionesImagen.includes(extension.toLowerCase())) {
+    // Para imágenes: usar URL directa de UploadThing si existe
+    previewContainer.innerHTML =
+      '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando...</div>';
 
-        if (directUrl) {
-            // Usar URL directa de UploadThing
-            previewContainer.innerHTML = `
+    if (directUrl) {
+      // Usar URL directa de UploadThing
+      previewContainer.innerHTML = `
                 <img src="${directUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" 
                      onerror="this.parentElement.innerHTML='<div class=\'preview-placeholder\'><i class=\'fas fa-image\'></i><p>Imagen no disponible</p></div>'" />
             `;
-        } else {
-            // Fallback: cargar desde API con autenticación (para archivos antiguos)
-            fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
-                headers: obtenerHeadersConAuth()
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error('Error al cargar imagen');
-                    return response.blob();
-                })
-                .then(blob => {
-                    const imgUrl = URL.createObjectURL(blob);
-                    previewContainer.innerHTML = `
+    } else {
+      // Fallback: cargar desde API con autenticación (para archivos antiguos)
+      fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+        headers: obtenerHeadersConAuth(),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('Error al cargar imagen');
+          return response.blob();
+        })
+        .then((blob) => {
+          const imgUrl = URL.createObjectURL(blob);
+          previewContainer.innerHTML = `
                     <img src="${imgUrl}" alt="${nombre}" style="max-width: 100%; max-height: 400px; object-fit: contain;" />
                 `;
-                })
-                .catch(error => {
-                    console.error('Error cargando preview:', error);
-                    previewContainer.innerHTML = '<div class="preview-placeholder"><i class="fas fa-image"></i><p>Imagen no disponible</p></div>';
-                });
-        }
-    } else if (extension.toLowerCase() === 'pdf') {
-        // Para PDF: usar URL directa o embed con blob
-        previewContainer.innerHTML = '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando PDF...</div>';
+        })
+        .catch((error) => {
+          console.error('Error cargando preview:', error);
+          previewContainer.innerHTML =
+            '<div class="preview-placeholder"><i class="fas fa-image"></i><p>Imagen no disponible</p></div>';
+        });
+    }
+  } else if (extension.toLowerCase() === 'pdf') {
+    // Para PDF: usar URL directa o embed con blob
+    previewContainer.innerHTML =
+      '<div class="preview-loading"><i class="fas fa-spinner fa-spin"></i> Cargando PDF...</div>';
 
-        if (directUrl) {
-            // Usar URL directa de UploadThing
-            previewContainer.innerHTML = `
+    if (directUrl) {
+      // Usar URL directa de UploadThing
+      previewContainer.innerHTML = `
                 <embed src="${directUrl}" type="application/pdf" width="100%" height="400px" />
             `;
-        } else {
-            // Fallback: cargar desde API
-            fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
-                headers: obtenerHeadersConAuth()
-            })
-                .then(response => {
-                    if (!response.ok) throw new Error('Error al cargar PDF');
-                    return response.blob();
-                })
-                .then(blob => {
-                    const pdfUrl = URL.createObjectURL(blob);
-                    previewContainer.innerHTML = `
+    } else {
+      // Fallback: cargar desde API
+      fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}/preview`, {
+        headers: obtenerHeadersConAuth(),
+      })
+        .then((response) => {
+          if (!response.ok) throw new Error('Error al cargar PDF');
+          return response.blob();
+        })
+        .then((blob) => {
+          const pdfUrl = URL.createObjectURL(blob);
+          previewContainer.innerHTML = `
                     <embed src="${pdfUrl}" type="application/pdf" width="100%" height="400px" />
                 `;
-                })
-                .catch(error => {
-                    console.error('Error cargando PDF:', error);
-                    previewContainer.innerHTML = `
+        })
+        .catch((error) => {
+          console.error('Error cargando PDF:', error);
+          previewContainer.innerHTML = `
                     <div class="preview-placeholder">
                         <i class="fas fa-file-pdf"></i>
                         <p>No se pudo cargar el PDF</p>
                         <small>Haz clic en Descargar para ver el archivo</small>
                     </div>
                 `;
-                });
-        }
-    } else {
-        // Para otros archivos: placeholder genérico
-        previewContainer.innerHTML = `
+        });
+    }
+  } else {
+    // Para otros archivos: placeholder genérico
+    previewContainer.innerHTML = `
             <div class="preview-placeholder">
                 <i class="fas ${obtenerIconoAdjunto(extension)}"></i>
                 <p>Vista previa no disponible</p>
                 <small>Haz clic en Descargar para abrir el archivo</small>
             </div>
         `;
-    }
+  }
 
-    // Mostrar modal
-    modal.style.display = 'flex';
-    lockBodyScroll();
+  // Mostrar modal
+  modal.style.display = 'flex';
+  lockBodyScroll();
 }
 
 /**
  * Cierra el modal de preview de adjunto
  */
 function cerrarPreviewAdjunto() {
-    const modal = document.getElementById('modalPreviewAdjunto');
-    if (modal) {
-        modal.style.display = 'none';
-        adjuntoActual = null;
-        unlockBodyScrollIfNoModal();
-    }
+  const modal = document.getElementById('modalPreviewAdjunto');
+  if (modal) {
+    modal.style.display = 'none';
+    adjuntoActual = null;
+    unlockBodyScrollIfNoModal();
+  }
 }
 
 /**
  * Descarga el adjunto actual
  */
 function descargarAdjunto() {
-    if (!adjuntoActual) return;
+  if (!adjuntoActual) return;
 
-    mostrarNotificacion(`Descargando ${adjuntoActual.nombre}...`, 'info');
+  mostrarNotificacion(`Descargando ${adjuntoActual.nombre}...`, 'info');
 
-    // Si el adjunto tiene URL directa de UploadThing, descargar directamente
-    if (adjuntoActual.url && adjuntoActual.url.includes('utfs.io')) {
-        // Fetch del archivo desde UploadThing y crear blob para descarga
-        fetch(adjuntoActual.url)
-            .then(response => {
-                if (!response.ok) throw new Error('Error al descargar');
-                return response.blob();
-            })
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = adjuntoActual.nombre;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                a.remove();
-                mostrarNotificacion(`${adjuntoActual.nombre} descargado`, 'success');
-            })
-            .catch(error => {
-                console.error('Error al descargar desde UploadThing:', error);
-                // Fallback: abrir en nueva pestaña si fetch falla
-                window.open(adjuntoActual.url, '_blank');
-            });
-        return;
-    }
+  // Si el adjunto tiene URL directa de UploadThing, descargar directamente
+  if (adjuntoActual.url && adjuntoActual.url.includes('utfs.io')) {
+    // Fetch del archivo desde UploadThing y crear blob para descarga
+    fetch(adjuntoActual.url)
+      .then((response) => {
+        if (!response.ok) throw new Error('Error al descargar');
+        return response.blob();
+      })
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = adjuntoActual.nombre;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        a.remove();
+        mostrarNotificacion(`${adjuntoActual.nombre} descargado`, 'success');
+      })
+      .catch((error) => {
+        console.error('Error al descargar desde UploadThing:', error);
+        // Fallback: abrir en nueva pestaña si fetch falla
+        window.open(adjuntoActual.url, '_blank');
+      });
+    return;
+  }
 
-    // Fallback: descargar via API con autenticación (para archivos locales antiguos)
-    const downloadUrl = `${API_URL}/tareas/adjuntos/${adjuntoActual.id}/download`;
+  // Fallback: descargar via API con autenticación (para archivos locales antiguos)
+  const downloadUrl = `${API_URL}/tareas/adjuntos/${adjuntoActual.id}/download`;
 
-    fetch(downloadUrl, {
-        headers: obtenerHeadersConAuth()
+  fetch(downloadUrl, {
+    headers: obtenerHeadersConAuth(),
+  })
+    .then((response) => {
+      if (!response.ok) throw new Error('Error al descargar');
+      return response.blob();
     })
-        .then(response => {
-            if (!response.ok) throw new Error('Error al descargar');
-            return response.blob();
-        })
-        .then(blob => {
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = adjuntoActual.nombre;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-        })
-        .catch(error => {
-            console.error('Error al descargar:', error);
-            mostrarNotificacion('Error al descargar el archivo', 'error');
-        });
+    .then((blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = adjuntoActual.nombre;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      a.remove();
+    })
+    .catch((error) => {
+      console.error('Error al descargar:', error);
+      mostrarNotificacion('Error al descargar el archivo', 'error');
+    });
 }
-
 
 /**
  * Muestra confirmación antes de eliminar un adjunto
  * @param {number} adjuntoId - ID del adjunto
  */
 function confirmarEliminarAdjunto(adjuntoId) {
-    if (confirm('¿Estás seguro de que deseas eliminar este archivo?')) {
-        eliminarAdjunto(adjuntoId);
-    }
+  if (confirm('¿Estás seguro de que deseas eliminar este archivo?')) {
+    eliminarAdjunto(adjuntoId);
+  }
 }
 
 /**
@@ -3890,133 +4384,133 @@ function confirmarEliminarAdjunto(adjuntoId) {
  * @param {number} adjuntoId - ID del adjunto
  */
 async function eliminarAdjunto(adjuntoId) {
-    console.log(`📎 Eliminando adjunto ID: ${adjuntoId}`);
+  console.log(`📎 Eliminando adjunto ID: ${adjuntoId}`);
 
-    // Encontrar TODOS los chips con este ID (puede haber en modal detalle y modal editar)
-    const chips = document.querySelectorAll(`[data-adjunto-id="${adjuntoId}"]`);
-    console.log(`📎 Chips encontrados: ${chips.length}`);
+  // Encontrar TODOS los chips con este ID (puede haber en modal detalle y modal editar)
+  const chips = document.querySelectorAll(`[data-adjunto-id="${adjuntoId}"]`);
+  console.log(`📎 Chips encontrados: ${chips.length}`);
 
-    // Feedback visual inmediato - hacer los chips semi-transparentes
-    chips.forEach(chip => {
-        chip.style.opacity = '0.5';
-        chip.style.pointerEvents = 'none';
+  // Feedback visual inmediato - hacer los chips semi-transparentes
+  chips.forEach((chip) => {
+    chip.style.opacity = '0.5';
+    chip.style.pointerEvents = 'none';
+  });
+
+  try {
+    // Llamar a API para eliminar
+    const response = await fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}`, {
+      method: 'DELETE',
+      headers: obtenerHeadersConAuth(),
     });
 
-    try {
-        // Llamar a API para eliminar
-        const response = await fetch(`${API_URL}/tareas/adjuntos/${adjuntoId}`, {
-            method: 'DELETE',
-            headers: obtenerHeadersConAuth()
-        });
-
-        if (!response.ok) {
-            // Restaurar chips si hay error
-            chips.forEach(chip => {
-                chip.style.opacity = '1';
-                chip.style.pointerEvents = 'auto';
-            });
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        console.log(`✅ Adjunto ${adjuntoId} eliminado del servidor`);
-
-        // Animar la eliminación de todos los chips
-        chips.forEach(chip => {
-            chip.style.transition = 'all 0.3s ease';
-            chip.style.transform = 'scale(0.8)';
-            chip.style.opacity = '0';
-        });
-
-        setTimeout(() => {
-            // Remover todos los chips
-            chips.forEach(chip => chip.remove());
-            console.log(`📎 ${chips.length} chips removidos del DOM`);
-
-            // Verificar si quedan adjuntos en ambos contenedores
-            ['tareaModalAdjuntos', 'adjuntosEditarChips'].forEach(containerId => {
-                const container = document.getElementById(containerId);
-                if (container && container.querySelectorAll('.adjunto-chip').length === 0) {
-                    container.innerHTML = '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
-                }
-            });
-        }, 300);
-
-        mostrarNotificacion('Archivo eliminado correctamente', 'success');
-
-    } catch (error) {
-        console.error('Error al eliminar adjunto:', error);
-        mostrarNotificacion('Error al eliminar el archivo', 'error');
+    if (!response.ok) {
+      // Restaurar chips si hay error
+      chips.forEach((chip) => {
+        chip.style.opacity = '1';
+        chip.style.pointerEvents = 'auto';
+      });
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
+
+    console.log(`✅ Adjunto ${adjuntoId} eliminado del servidor`);
+
+    // Animar la eliminación de todos los chips
+    chips.forEach((chip) => {
+      chip.style.transition = 'all 0.3s ease';
+      chip.style.transform = 'scale(0.8)';
+      chip.style.opacity = '0';
+    });
+
+    setTimeout(() => {
+      // Remover todos los chips
+      chips.forEach((chip) => chip.remove());
+      console.log(`📎 ${chips.length} chips removidos del DOM`);
+
+      // Verificar si quedan adjuntos en ambos contenedores
+      ['tareaModalAdjuntos', 'adjuntosEditarChips'].forEach((containerId) => {
+        const container = document.getElementById(containerId);
+        if (
+          container &&
+          container.querySelectorAll('.adjunto-chip').length === 0
+        ) {
+          container.innerHTML =
+            '<span class="adjuntos-empty-msg"><i class="fas fa-paperclip"></i> Sin adjuntos</span>';
+        }
+      });
+    }, 300);
+
+    mostrarNotificacion('Archivo eliminado correctamente', 'success');
+  } catch (error) {
+    console.error('Error al eliminar adjunto:', error);
+    mostrarNotificacion('Error al eliminar el archivo', 'error');
+  }
 }
 
 /**
  * Sube un archivo adjunto a una tarea
  * El servidor se encarga de subirlo a UploadThing y guardar los metadatos
- * 
+ *
  * @param {File} file - Archivo a subir
  * @param {number} tareaId - ID de la tarea
  * @returns {Promise<Object>} Datos del adjunto creado
  */
 async function subirAdjuntoTarea(file, tareaId) {
-    console.log(`📤 Subiendo ${file.name} a tarea ${tareaId}...`);
+  console.log(`📤 Subiendo ${file.name} a tarea ${tareaId}...`);
 
-    // Actualizar progreso: Iniciando
-    actualizarProgresoArchivo(file.name, 5, 'uploading');
+  // Actualizar progreso: Iniciando
+  actualizarProgresoArchivo(file.name, 5, 'uploading');
 
-    const formData = new FormData();
-    formData.append('archivo', file);
+  const formData = new FormData();
+  formData.append('archivo', file);
 
-    const headers = obtenerHeadersConAuth();
-    // Remover Content-Type para que fetch lo maneje automáticamente con FormData
-    delete headers['Content-Type'];
+  const headers = obtenerHeadersConAuth();
+  // Remover Content-Type para que fetch lo maneje automáticamente con FormData
+  delete headers['Content-Type'];
 
-    try {
-        // Actualizar progreso: Subiendo
-        actualizarProgresoArchivo(file.name, 20, 'uploading');
+  try {
+    // Actualizar progreso: Subiendo
+    actualizarProgresoArchivo(file.name, 20, 'uploading');
 
-        // Simular progreso incremental durante la subida
-        let currentProgress = 20;
-        let progressInterval = setInterval(() => {
-            if (currentProgress < 80) {
-                currentProgress += 8;
-                actualizarProgresoArchivo(file.name, currentProgress, 'uploading');
-            }
-        }, 400);
+    // Simular progreso incremental durante la subida
+    let currentProgress = 20;
+    let progressInterval = setInterval(() => {
+      if (currentProgress < 80) {
+        currentProgress += 8;
+        actualizarProgresoArchivo(file.name, currentProgress, 'uploading');
+      }
+    }, 400);
 
+    const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
+      method: 'POST',
+      headers: headers,
+      body: formData,
+    });
 
-        const response = await fetch(`${API_URL}/tareas/${tareaId}/adjuntos`, {
-            method: 'POST',
-            headers: headers,
-            body: formData
-        });
+    clearInterval(progressInterval);
 
-        clearInterval(progressInterval);
-
-        if (!response.ok) {
-            actualizarProgresoArchivo(file.name, 100, 'error');
-            const errorData = await response.json().catch(() => ({ error: response.statusText }));
-            throw new Error(errorData.error || `Error ${response.status}`);
-        }
-
-        // Actualizar progreso: Procesando respuesta
-        actualizarProgresoArchivo(file.name, 90, 'uploading');
-
-        const adjunto = await response.json();
-
-        // Actualizar progreso: Completado
-        actualizarProgresoArchivo(file.name, 100, 'uploaded');
-
-        console.log('✅ Adjunto subido:', adjunto);
-        return adjunto;
-
-    } catch (error) {
-        actualizarProgresoArchivo(file.name, 100, 'error');
-        throw error;
+    if (!response.ok) {
+      actualizarProgresoArchivo(file.name, 100, 'error');
+      const errorData = await response
+        .json()
+        .catch(() => ({ error: response.statusText }));
+      throw new Error(errorData.error || `Error ${response.status}`);
     }
+
+    // Actualizar progreso: Procesando respuesta
+    actualizarProgresoArchivo(file.name, 90, 'uploading');
+
+    const adjunto = await response.json();
+
+    // Actualizar progreso: Completado
+    actualizarProgresoArchivo(file.name, 100, 'uploaded');
+
+    console.log('✅ Adjunto subido:', adjunto);
+    return adjunto;
+  } catch (error) {
+    actualizarProgresoArchivo(file.name, 100, 'error');
+    throw error;
+  }
 }
-
-
-
 
 // Exponer funciones de adjuntos al scope global
 window.abrirPreviewAdjunto = abrirPreviewAdjunto;
@@ -4027,84 +4521,88 @@ window.subirAdjuntoTarea = subirAdjuntoTarea;
 
 // Event listeners para modal de preview (se ejecutan en DOMContentLoaded extendido)
 document.addEventListener('DOMContentLoaded', () => {
-    // Cerrar modal preview con overlay
-    document.querySelectorAll('[data-close-preview-modal]').forEach(el => {
-        el.addEventListener('click', cerrarPreviewAdjunto);
+  // Cerrar modal preview con overlay
+  document.querySelectorAll('[data-close-preview-modal]').forEach((el) => {
+    el.addEventListener('click', cerrarPreviewAdjunto);
+  });
+
+  // Botón de descarga
+  const btnDescargar = document.getElementById('btnDescargarAdjunto');
+  if (btnDescargar) {
+    btnDescargar.addEventListener('click', descargarAdjunto);
+  }
+
+  // Botón agregar adjunto en modal de detalle (solo lectura - no permitir subir)
+  const btnAgregarAdjunto = document.getElementById('btnAgregarAdjuntoModal');
+  const inputAdjunto = document.getElementById('inputAdjuntoModal');
+  if (btnAgregarAdjunto && inputAdjunto) {
+    btnAgregarAdjunto.addEventListener('click', () => {
+      // Solo permitir subir si estamos en modo edición (verificar si existe tareaIdActual)
+      if (!tareaIdActual) {
+        notificar('Abre el modal de edición para subir archivos', 'warning');
+        return;
+      }
+      inputAdjunto.click();
     });
 
-    // Botón de descarga
-    const btnDescargar = document.getElementById('btnDescargarAdjunto');
-    if (btnDescargar) {
-        btnDescargar.addEventListener('click', descargarAdjunto);
-    }
+    inputAdjunto.addEventListener('change', async (e) => {
+      if (e.target.files && e.target.files.length > 0 && tareaIdActual) {
+        const file = e.target.files[0];
+        const container = document.getElementById('tareaModalAdjuntos');
 
-    // Botón agregar adjunto en modal de detalle (solo lectura - no permitir subir)
-    const btnAgregarAdjunto = document.getElementById('btnAgregarAdjuntoModal');
-    const inputAdjunto = document.getElementById('inputAdjuntoModal');
-    if (btnAgregarAdjunto && inputAdjunto) {
-        btnAgregarAdjunto.addEventListener('click', () => {
-            // Solo permitir subir si estamos en modo edición (verificar si existe tareaIdActual)
-            if (!tareaIdActual) {
-                notificar('Abre el modal de edición para subir archivos', 'warning');
-                return;
-            }
-            inputAdjunto.click();
-        });
-
-        inputAdjunto.addEventListener('change', async (e) => {
-            if (e.target.files && e.target.files.length > 0 && tareaIdActual) {
-                const file = e.target.files[0];
-                const container = document.getElementById('tareaModalAdjuntos');
-
-                // Crear skeleton chip mientras se sube
-                const skeletonId = `skeleton-${Date.now()}`;
-                const skeletonChip = document.createElement('div');
-                skeletonChip.className = 'adjunto-chip adjunto-chip-skeleton';
-                skeletonChip.id = skeletonId;
-                skeletonChip.innerHTML = `
+        // Crear skeleton chip mientras se sube
+        const skeletonId = `skeleton-${Date.now()}`;
+        const skeletonChip = document.createElement('div');
+        skeletonChip.className = 'adjunto-chip adjunto-chip-skeleton';
+        skeletonChip.id = skeletonId;
+        skeletonChip.innerHTML = `
                     <span class="adjunto-chip-icon skeleton-icon">
                         <i class="fas fa-spinner fa-spin"></i>
                     </span>
                     <span class="adjunto-chip-nombre skeleton-text">${file.name}</span>
                 `;
 
-                // Insertar skeleton al inicio del contenedor
-                if (container) {
-                    // Quitar mensaje "Sin adjuntos" si existe
-                    const emptyMsg = container.querySelector('.adjuntos-empty-msg');
-                    if (emptyMsg) emptyMsg.remove();
-                    container.insertBefore(skeletonChip, container.firstChild);
-                }
-
-                try {
-                    await subirAdjuntoTarea(file, tareaIdActual);
-                    notificar(`${file.name} subido`, 'success');
-                    // Recargar adjuntos (esto reemplazará el skeleton con el chip real)
-                    await cargarAdjuntosTarea(tareaIdActual, false, 'tareaModalAdjuntos');
-                } catch (error) {
-                    console.error('Error al subir archivo:', error);
-                    notificar(error.message || 'Error al subir archivo', 'error');
-                    // Remover skeleton en caso de error
-                    const skeleton = document.getElementById(skeletonId);
-                    if (skeleton) skeleton.remove();
-                }
-                e.target.value = ''; // Reset input
-            }
-        });
-    }
-
-    // Cerrar preview con Escape (solo cierra el preview, no otros modales)
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            const modalPreview = document.getElementById('modalPreviewAdjunto');
-            if (modalPreview && modalPreview.style.display === 'flex') {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                e.preventDefault();
-                cerrarPreviewAdjunto();
-            }
+        // Insertar skeleton al inicio del contenedor
+        if (container) {
+          // Quitar mensaje "Sin adjuntos" si existe
+          const emptyMsg = container.querySelector('.adjuntos-empty-msg');
+          if (emptyMsg) emptyMsg.remove();
+          container.insertBefore(skeletonChip, container.firstChild);
         }
-    }, true); // Usar capture=true para interceptar antes que otros handlers
+
+        try {
+          await subirAdjuntoTarea(file, tareaIdActual);
+          notificar(`${file.name} subido`, 'success');
+          // Recargar adjuntos (esto reemplazará el skeleton con el chip real)
+          await cargarAdjuntosTarea(tareaIdActual, false, 'tareaModalAdjuntos');
+        } catch (error) {
+          console.error('Error al subir archivo:', error);
+          notificar(error.message || 'Error al subir archivo', 'error');
+          // Remover skeleton en caso de error
+          const skeleton = document.getElementById(skeletonId);
+          if (skeleton) skeleton.remove();
+        }
+        e.target.value = ''; // Reset input
+      }
+    });
+  }
+
+  // Cerrar preview con Escape (solo cierra el preview, no otros modales)
+  document.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.key === 'Escape') {
+        const modalPreview = document.getElementById('modalPreviewAdjunto');
+        if (modalPreview && modalPreview.style.display === 'flex') {
+          e.stopPropagation();
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          cerrarPreviewAdjunto();
+        }
+      }
+    },
+    true
+  ); // Usar capture=true para interceptar antes que otros handlers
 });
 
 console.log('Módulo tareas-module.js cargado.');
