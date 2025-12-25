@@ -96,13 +96,14 @@ CREATE TABLE roles (
 
 **Datos Predefinidos:**
 
-| ID | Nombre     | Descripción                      | Permisos                                          |
-|----|------------|----------------------------------|---------------------------------------------------|
-| 1  | ADMIN      | Administrador del sistema        | `{"all": true}`                                   |
-| 2  | SUPERVISOR | Supervisor de mantenimiento      | `{"read": true, "write": true, "approve": true}`  |
-| 3  | TECNICO    | Técnico de mantenimiento         | `{"read": true, "write": true}`                   |
+| ID  | Nombre     | Descripción                 | Permisos                                         |
+| --- | ---------- | --------------------------- | ------------------------------------------------ |
+| 1   | ADMIN      | Administrador del sistema   | `{"all": true}`                                  |
+| 2   | SUPERVISOR | Supervisor de mantenimiento | `{"read": true, "write": true, "approve": true}` |
+| 3   | TECNICO    | Técnico de mantenimiento    | `{"read": true, "write": true}`                  |
 
 **Índices:**
+
 - `UNIQUE(nombre)` - Nombre de rol único
 
 ---
@@ -142,27 +143,28 @@ CREATE TABLE usuarios (
 
 **Atributos Clave:**
 
-| Campo                      | Tipo         | Descripción                                           |
-|----------------------------|--------------|-------------------------------------------------------|
-| `id`                       | SERIAL       | Identificador único del usuario                       |
-| `nombre`                   | VARCHAR(100) | Nombre completo                                       |
-| `email`                    | VARCHAR(100) | Email único (usado para login)                        |
-| `password_hash`            | VARCHAR(255) | Hash bcrypt de la contraseña                          |
-| `rol_id`                   | INTEGER      | Referencia al rol del usuario                         |
-| `activo`                   | BOOLEAN      | Usuario activo en el sistema                          |
-| `fecha_registro`           | TIMESTAMP    | Fecha de alta en el sistema (sign-in)                 |
-| `fecha_baja`               | TIMESTAMP    | Fecha de baja del sistema (sign-out)                  |
-| `motivo_baja`              | TEXT         | Razón de la baja                                      |
-| `usuario_baja_id`          | INTEGER      | Admin que dio de baja al usuario                      |
-| `numero_empleado`          | VARCHAR(50)  | Número de empleado único                              |
-| `departamento`             | VARCHAR(100) | Departamento/área de trabajo                          |
-| `telefono`                 | VARCHAR(20)  | Teléfono de contacto                                  |
-| `ultimo_acceso`            | TIMESTAMP    | Último login exitoso                                  |
-| `requiere_cambio_password` | BOOLEAN      | Forzar cambio de contraseña al próximo login          |
-| `intentos_fallidos`        | INTEGER      | Contador de intentos de login fallidos                |
-| `bloqueado_hasta`          | TIMESTAMP    | Fecha hasta la cual está bloqueado                    |
+| Campo                      | Tipo         | Descripción                                  |
+| -------------------------- | ------------ | -------------------------------------------- |
+| `id`                       | SERIAL       | Identificador único del usuario              |
+| `nombre`                   | VARCHAR(100) | Nombre completo                              |
+| `email`                    | VARCHAR(100) | Email único (usado para login)               |
+| `password_hash`            | VARCHAR(255) | Hash bcrypt de la contraseña                 |
+| `rol_id`                   | INTEGER      | Referencia al rol del usuario                |
+| `activo`                   | BOOLEAN      | Usuario activo en el sistema                 |
+| `fecha_registro`           | TIMESTAMP    | Fecha de alta en el sistema (sign-in)        |
+| `fecha_baja`               | TIMESTAMP    | Fecha de baja del sistema (sign-out)         |
+| `motivo_baja`              | TEXT         | Razón de la baja                             |
+| `usuario_baja_id`          | INTEGER      | Admin que dio de baja al usuario             |
+| `numero_empleado`          | VARCHAR(50)  | Número de empleado único                     |
+| `departamento`             | VARCHAR(100) | Departamento/área de trabajo                 |
+| `telefono`                 | VARCHAR(20)  | Teléfono de contacto                         |
+| `ultimo_acceso`            | TIMESTAMP    | Último login exitoso                         |
+| `requiere_cambio_password` | BOOLEAN      | Forzar cambio de contraseña al próximo login |
+| `intentos_fallidos`        | INTEGER      | Contador de intentos de login fallidos       |
+| `bloqueado_hasta`          | TIMESTAMP    | Fecha hasta la cual está bloqueado           |
 
 **Índices:**
+
 - `UNIQUE(email)` - Email único
 - `UNIQUE(numero_empleado)` - Número de empleado único
 - `idx_usuarios_rol` - Búsqueda por rol
@@ -203,25 +205,26 @@ CREATE TABLE sesiones_usuarios (
 
 **Atributos Clave:**
 
-| Campo                  | Tipo         | Descripción                                    |
-|------------------------|--------------|------------------------------------------------|
-| `usuario_id`           | INTEGER      | Usuario dueño de la sesión                     |
-| `token_sesion`         | VARCHAR(255) | Token único de sesión (refresh token)          |
-| `jwt_token`            | TEXT         | Token JWT de acceso                            |
-| `refresh_token`        | TEXT         | Token de refresco (7 días de validez)          |
-| `jwt_expiracion`       | TIMESTAMP    | Expiración del JWT (1 hora)                    |
-| `refresh_expiracion`   | TIMESTAMP    | Expiración del refresh token (7 días)          |
-| `fecha_login`          | TIMESTAMP    | Momento exacto del login                       |
-| `fecha_logout`         | TIMESTAMP    | Momento exacto del logout                      |
-| `ip_address`           | VARCHAR(45)  | Dirección IP del cliente                       |
-| `user_agent`           | TEXT         | User agent del navegador                       |
-| `dispositivo`          | VARCHAR(200) | Tipo de dispositivo (Desktop, Mobile, Tablet)  |
-| `sistema_operativo`    | VARCHAR(100) | Sistema operativo (Windows, macOS, Linux, etc) |
-| `navegador`            | VARCHAR(100) | Navegador usado (Chrome, Firefox, Safari, etc) |
-| `activa`               | BOOLEAN      | Indica si la sesión sigue activa               |
-| `cerrada_por`          | VARCHAR(20)  | Método de cierre: usuario, sistema, admin, etc |
+| Campo                | Tipo         | Descripción                                    |
+| -------------------- | ------------ | ---------------------------------------------- |
+| `usuario_id`         | INTEGER      | Usuario dueño de la sesión                     |
+| `token_sesion`       | VARCHAR(255) | Token único de sesión (refresh token)          |
+| `jwt_token`          | TEXT         | Token JWT de acceso                            |
+| `refresh_token`      | TEXT         | Token de refresco (7 días de validez)          |
+| `jwt_expiracion`     | TIMESTAMP    | Expiración del JWT (1 hora)                    |
+| `refresh_expiracion` | TIMESTAMP    | Expiración del refresh token (7 días)          |
+| `fecha_login`        | TIMESTAMP    | Momento exacto del login                       |
+| `fecha_logout`       | TIMESTAMP    | Momento exacto del logout                      |
+| `ip_address`         | VARCHAR(45)  | Dirección IP del cliente                       |
+| `user_agent`         | TEXT         | User agent del navegador                       |
+| `dispositivo`        | VARCHAR(200) | Tipo de dispositivo (Desktop, Mobile, Tablet)  |
+| `sistema_operativo`  | VARCHAR(100) | Sistema operativo (Windows, macOS, Linux, etc) |
+| `navegador`          | VARCHAR(100) | Navegador usado (Chrome, Firefox, Safari, etc) |
+| `activa`             | BOOLEAN      | Indica si la sesión sigue activa               |
+| `cerrada_por`        | VARCHAR(20)  | Método de cierre: usuario, sistema, admin, etc |
 
 **Índices:**
+
 - `UNIQUE(token_sesion)` - Token de sesión único
 - `idx_sesiones_usuario` - Búsqueda por usuario
 - `idx_sesiones_jwt_token` - Búsqueda por JWT
@@ -257,20 +260,21 @@ CREATE TABLE auditoria_usuarios (
 
 **Acciones Auditadas:**
 
-| Acción                  | Descripción                                   |
-|-------------------------|-----------------------------------------------|
-| `registro`              | Alta de nuevo usuario en el sistema           |
-| `actualizacion`         | Modificación de datos del usuario             |
-| `baja`                  | Baja del usuario del sistema                  |
-| `reactivacion`          | Reactivación de usuario dado de baja          |
-| `cambio_password`       | Cambio de contraseña                          |
-| `cambio_rol`            | Cambio de rol del usuario                     |
-| `cambio_permisos`       | Modificación de permisos                      |
-| `bloqueo`               | Bloqueo de usuario                            |
-| `desbloqueo`            | Desbloqueo de usuario                         |
-| `intento_login_fallido` | Intento fallido de inicio de sesión           |
+| Acción                  | Descripción                          |
+| ----------------------- | ------------------------------------ |
+| `registro`              | Alta de nuevo usuario en el sistema  |
+| `actualizacion`         | Modificación de datos del usuario    |
+| `baja`                  | Baja del usuario del sistema         |
+| `reactivacion`          | Reactivación de usuario dado de baja |
+| `cambio_password`       | Cambio de contraseña                 |
+| `cambio_rol`            | Cambio de rol del usuario            |
+| `cambio_permisos`       | Modificación de permisos             |
+| `bloqueo`               | Bloqueo de usuario                   |
+| `desbloqueo`            | Desbloqueo de usuario                |
+| `intento_login_fallido` | Intento fallido de inicio de sesión  |
 
 **Índices:**
+
 - `idx_auditoria_usuario` - Búsqueda por usuario
 - `idx_auditoria_accion` - Filtrado por tipo de acción
 - `idx_auditoria_fecha` - Ordenamiento cronológico
@@ -282,32 +286,32 @@ CREATE TABLE auditoria_usuarios (
 
 ### 4.1. Matriz de Permisos
 
-| Funcionalidad                     | TÉCNICO | SUPERVISOR | ADMIN |
-|-----------------------------------|---------|------------|-------|
-| **Habitaciones**                  |         |            |       |
-| Ver listado de habitaciones       | ✅      | ✅         | ✅    |
-| Filtrar por edificio/estado       | ✅      | ✅         | ✅    |
-| Registrar mantenimiento           | ✅      | ✅         | ✅    |
-| **Espacios Comunes**              |         |            |       |
-| Ver espacios comunes              | ✅      | ✅         | ✅    |
-| Gestionar espacios                | ✅      | ✅         | ✅    |
-| **Sábana de Servicios**           |         |            |       |
-| Consultar sábanas                 | ✅      | ✅         | ✅    |
-| Crear nueva sábana                | ❌      | ✅         | ✅    |
-| Exportar a Excel                  | ❌      | ✅         | ✅    |
-| Archivar período                  | ❌      | ✅         | ✅    |
-| Ver historial                     | ✅      | ✅         | ✅    |
-| **Checklist**                     |         |            |       |
-| Realizar checklist                | ✅      | ✅         | ✅    |
-| Consultar checklist               | ✅      | ✅         | ✅    |
-| **Gestión de Usuarios**           |         |            |       |
-| Ver listado de usuarios           | ❌      | ❌         | ✅    |
-| Crear nuevo usuario               | ❌      | ❌         | ✅    |
-| Editar usuario                    | ❌      | ❌         | ✅    |
-| Bloquear/Desbloquear usuario      | ❌      | ❌         | ✅    |
-| Dar de baja usuario               | ❌      | ❌         | ✅    |
-| Ver historial de sesiones         | ❌      | ❌         | ✅    |
-| Ver auditoría                     | ❌      | ❌         | ✅    |
+| Funcionalidad                | TÉCNICO | SUPERVISOR | ADMIN |
+| ---------------------------- | ------- | ---------- | ----- |
+| **Habitaciones**             |         |            |       |
+| Ver listado de habitaciones  | ✅      | ✅         | ✅    |
+| Filtrar por edificio/estado  | ✅      | ✅         | ✅    |
+| Registrar mantenimiento      | ✅      | ✅         | ✅    |
+| **Espacios Comunes**         |         |            |       |
+| Ver espacios comunes         | ✅      | ✅         | ✅    |
+| Gestionar espacios           | ✅      | ✅         | ✅    |
+| **Sábana de Servicios**      |         |            |       |
+| Consultar sábanas            | ✅      | ✅         | ✅    |
+| Crear nueva sábana           | ❌      | ✅         | ✅    |
+| Exportar a Excel             | ❌      | ✅         | ✅    |
+| Archivar período             | ❌      | ✅         | ✅    |
+| Ver historial                | ✅      | ✅         | ✅    |
+| **Checklist**                |         |            |       |
+| Realizar checklist           | ✅      | ✅         | ✅    |
+| Consultar checklist          | ✅      | ✅         | ✅    |
+| **Gestión de Usuarios**      |         |            |       |
+| Ver listado de usuarios      | ❌      | ❌         | ✅    |
+| Crear nuevo usuario          | ❌      | ❌         | ✅    |
+| Editar usuario               | ❌      | ❌         | ✅    |
+| Bloquear/Desbloquear usuario | ❌      | ❌         | ✅    |
+| Dar de baja usuario          | ❌      | ❌         | ✅    |
+| Ver historial de sesiones    | ❌      | ❌         | ✅    |
+| Ver auditoría                | ❌      | ❌         | ✅    |
 
 ### 4.2. Implementación en Frontend
 
@@ -316,12 +320,12 @@ CREATE TABLE auditoria_usuarios (
 ```css
 /* Elementos visibles solo para ADMIN */
 body:not(.admin) .admin-only {
-    display: none !important;
+  display: none !important;
 }
 
 /* Elementos visibles para SUPERVISOR y ADMIN */
 body:not(.supervisor):not(.admin) .supervisor-only {
-    display: none !important;
+  display: none !important;
 }
 ```
 
@@ -329,29 +333,29 @@ body:not(.supervisor):not(.admin) .supervisor-only {
 
 ```javascript
 function applyRolePermissions(role) {
-    document.body.classList.add(role);
-    
-    // Manejar elementos admin-only
-    if (role === 'admin') {
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'flex';
-        });
-    } else {
-        document.querySelectorAll('.admin-only').forEach(el => {
-            el.style.display = 'none';
-        });
-    }
-    
-    // Manejar elementos supervisor-only
-    if (role === 'admin' || role === 'supervisor') {
-        document.querySelectorAll('.supervisor-only').forEach(el => {
-            el.style.display = 'flex';
-        });
-    } else {
-        document.querySelectorAll('.supervisor-only').forEach(el => {
-            el.style.display = 'none';
-        });
-    }
+  document.body.classList.add(role);
+
+  // Manejar elementos admin-only
+  if (role === 'admin') {
+    document.querySelectorAll('.admin-only').forEach((el) => {
+      el.style.display = 'flex';
+    });
+  } else {
+    document.querySelectorAll('.admin-only').forEach((el) => {
+      el.style.display = 'none';
+    });
+  }
+
+  // Manejar elementos supervisor-only
+  if (role === 'admin' || role === 'supervisor') {
+    document.querySelectorAll('.supervisor-only').forEach((el) => {
+      el.style.display = 'flex';
+    });
+  } else {
+    document.querySelectorAll('.supervisor-only').forEach((el) => {
+      el.style.display = 'none';
+    });
+  }
 }
 ```
 
@@ -362,43 +366,43 @@ function applyRolePermissions(role) {
 ```javascript
 // Verificar que el usuario esté autenticado
 function verificarAutenticacion(req, res, next) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'No autorizado' });
-    }
-    
-    const token = authHeader.substring(7);
-    const decoded = verificarJWT(token);
-    
-    if (!decoded) {
-        return res.status(401).json({ error: 'Token inválido' });
-    }
-    
-    req.usuario = decoded;
-    next();
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  const token = authHeader.substring(7);
+  const decoded = verificarJWT(token);
+
+  if (!decoded) {
+    return res.status(401).json({ error: 'Token inválido' });
+  }
+
+  req.usuario = decoded;
+  next();
 }
 
 // Verificar rol de ADMIN
 function verificarAdmin(req, res, next) {
-    if (req.usuario.rol_nombre !== 'ADMIN') {
-        return res.status(403).json({ 
-            error: 'Prohibido',
-            mensaje: 'Se requieren permisos de administrador' 
-        });
-    }
-    next();
+  if (req.usuario.rol_nombre !== 'ADMIN') {
+    return res.status(403).json({
+      error: 'Prohibido',
+      mensaje: 'Se requieren permisos de administrador',
+    });
+  }
+  next();
 }
 
 // Verificar rol de SUPERVISOR o superior
 function verificarSupervisor(req, res, next) {
-    const rolesPermitidos = ['ADMIN', 'SUPERVISOR'];
-    if (!rolesPermitidos.includes(req.usuario.rol_nombre)) {
-        return res.status(403).json({ 
-            error: 'Prohibido',
-            mensaje: 'Se requieren permisos de supervisor o administrador' 
-        });
-    }
-    next();
+  const rolesPermitidos = ['ADMIN', 'SUPERVISOR'];
+  if (!rolesPermitidos.includes(req.usuario.rol_nombre)) {
+    return res.status(403).json({
+      error: 'Prohibido',
+      mensaje: 'Se requieren permisos de supervisor o administrador',
+    });
+  }
+  next();
 }
 ```
 
@@ -406,24 +410,18 @@ function verificarSupervisor(req, res, next) {
 
 ```javascript
 // Ruta solo para administradores
-router.get('/usuarios', 
-    verificarAutenticacion, 
-    verificarAdmin, 
-    listarUsuarios
-);
+router.get('/usuarios', verificarAutenticacion, verificarAdmin, listarUsuarios);
 
 // Ruta para supervisores y administradores
-router.post('/sabana/archivar', 
-    verificarAutenticacion, 
-    verificarSupervisor, 
-    archivarPeriodo
+router.post(
+  '/sabana/archivar',
+  verificarAutenticacion,
+  verificarSupervisor,
+  archivarPeriodo
 );
 
 // Ruta para todos los usuarios autenticados
-router.get('/habitaciones', 
-    verificarAutenticacion, 
-    listarHabitaciones
-);
+router.get('/habitaciones', verificarAutenticacion, listarHabitaciones);
 ```
 
 ---
@@ -461,6 +459,7 @@ El sistema implementa un esquema de **doble token**:
 ### 5.2. Estructura del JWT
 
 **Header:**
+
 ```json
 {
   "alg": "HS256",
@@ -469,6 +468,7 @@ El sistema implementa un esquema de **doble token**:
 ```
 
 **Payload:**
+
 ```json
 {
   "id": 123,
@@ -501,47 +501,47 @@ const REFRESH_TOKEN_EXPIRATION = '7d';
 
 // Generar JWT
 function generarJWT(usuario) {
-    const payload = {
-        id: usuario.id,
-        email: usuario.email,
-        nombre: usuario.nombre,
-        rol_id: usuario.rol_id,
-        rol_nombre: usuario.rol_nombre,
-        numero_empleado: usuario.numero_empleado,
-        departamento: usuario.departamento
-    };
+  const payload = {
+    id: usuario.id,
+    email: usuario.email,
+    nombre: usuario.nombre,
+    rol_id: usuario.rol_id,
+    rol_nombre: usuario.rol_nombre,
+    numero_empleado: usuario.numero_empleado,
+    departamento: usuario.departamento,
+  };
 
-    const token = jwt.sign(payload, JWT_SECRET, {
-        expiresIn: JWT_EXPIRATION,
-        issuer: 'jwm-mantenimiento',
-        audience: 'jwm-users'
-    });
+  const token = jwt.sign(payload, JWT_SECRET, {
+    expiresIn: JWT_EXPIRATION,
+    issuer: 'jwm-mantenimiento',
+    audience: 'jwm-users',
+  });
 
-    const expiration = new Date();
-    expiration.setHours(expiration.getHours() + 1);
+  const expiration = new Date();
+  expiration.setHours(expiration.getHours() + 1);
 
-    return { token, expiration };
+  return { token, expiration };
 }
 
 // Generar Refresh Token
 function generarRefreshToken() {
-    const token = crypto.randomBytes(64).toString('hex');
-    const expiration = new Date();
-    expiration.setDate(expiration.getDate() + 7);
-    return { token, expiration };
+  const token = crypto.randomBytes(64).toString('hex');
+  const expiration = new Date();
+  expiration.setDate(expiration.getDate() + 7);
+  return { token, expiration };
 }
 
 // Verificar JWT
 function verificarJWT(token) {
-    try {
-        return jwt.verify(token, JWT_SECRET, {
-            issuer: 'jwm-mantenimiento',
-            audience: 'jwm-users'
-        });
-    } catch (error) {
-        console.error('Token inválido:', error.message);
-        return null;
-    }
+  try {
+    return jwt.verify(token, JWT_SECRET, {
+      issuer: 'jwm-mantenimiento',
+      audience: 'jwm-users',
+    });
+  } catch (error) {
+    console.error('Token inválido:', error.message);
+    return null;
+  }
 }
 ```
 
@@ -573,49 +573,52 @@ Backend valida refresh token
 
 ```javascript
 async function refreshAccessToken() {
-    const refreshToken = localStorage.getItem('refreshToken') || 
-                         sessionStorage.getItem('refreshToken');
-    
-    if (!refreshToken) {
-        clearAuthData();
-        return false;
+  const refreshToken =
+    localStorage.getItem('refreshToken') ||
+    sessionStorage.getItem('refreshToken');
+
+  if (!refreshToken) {
+    clearAuthData();
+    return false;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Actualizar access token
+      const isRemembered = localStorage.getItem('refreshToken') !== null;
+      if (isRemembered) {
+        localStorage.setItem('accessToken', data.tokens.accessToken);
+      } else {
+        sessionStorage.setItem('accessToken', data.tokens.accessToken);
+      }
+      return true;
     }
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            // Actualizar access token
-            const isRemembered = localStorage.getItem('refreshToken') !== null;
-            if (isRemembered) {
-                localStorage.setItem('accessToken', data.tokens.accessToken);
-            } else {
-                sessionStorage.setItem('accessToken', data.tokens.accessToken);
-            }
-            return true;
-        }
-    } catch (error) {
-        console.error('Error al refrescar token:', error);
-        clearAuthData();
-        return false;
-    }
+  } catch (error) {
+    console.error('Error al refrescar token:', error);
+    clearAuthData();
+    return false;
+  }
 }
 ```
 
 ### 5.5. Almacenamiento de Tokens
 
 **Opción 1: "Recordar sesión" (localStorage)**
+
 - Access Token → `localStorage.accessToken`
 - Refresh Token → `localStorage.refreshToken`
 - Persiste entre cierres de navegador
 
 **Opción 2: Sesión temporal (sessionStorage)**
+
 - Access Token → `sessionStorage.accessToken`
 - Refresh Token → `sessionStorage.refreshToken`
 - Se borra al cerrar pestaña
@@ -623,11 +626,11 @@ async function refreshAccessToken() {
 ```javascript
 // Al hacer login con "Recordar sesión"
 if (rememberMe) {
-    localStorage.setItem('accessToken', data.tokens.accessToken);
-    localStorage.setItem('refreshToken', data.tokens.refreshToken);
+  localStorage.setItem('accessToken', data.tokens.accessToken);
+  localStorage.setItem('refreshToken', data.tokens.refreshToken);
 } else {
-    sessionStorage.setItem('accessToken', data.tokens.accessToken);
-    sessionStorage.setItem('refreshToken', data.tokens.refreshToken);
+  sessionStorage.setItem('accessToken', data.tokens.accessToken);
+  sessionStorage.setItem('refreshToken', data.tokens.refreshToken);
 }
 ```
 
@@ -665,39 +668,41 @@ if (rememberMe) {
 
 ```javascript
 function extraerInfoDispositivo(userAgent) {
-    // Detectar dispositivo
-    let dispositivo = 'Desktop';
-    if (/mobile/i.test(userAgent)) dispositivo = 'Mobile';
-    else if (/tablet/i.test(userAgent)) dispositivo = 'Tablet';
-    
-    // Detectar navegador
-    let navegador = 'Desconocido';
-    if (/Chrome/i.test(userAgent) && !/Edg/i.test(userAgent)) {
-        navegador = 'Chrome';
-    } else if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) {
-        navegador = 'Safari';
-    } else if (/Firefox/i.test(userAgent)) {
-        navegador = 'Firefox';
-    } else if (/Edg/i.test(userAgent)) {
-        navegador = 'Edge';
-    }
-    
-    // Detectar sistema operativo
-    let sistema_operativo = 'Desconocido';
-    if (/Windows/i.test(userAgent)) sistema_operativo = 'Windows';
-    else if (/Mac OS X/i.test(userAgent)) sistema_operativo = 'macOS';
-    else if (/Linux/i.test(userAgent)) sistema_operativo = 'Linux';
-    else if (/Android/i.test(userAgent)) sistema_operativo = 'Android';
-    else if (/iOS|iPhone|iPad/i.test(userAgent)) sistema_operativo = 'iOS';
-    
-    return { dispositivo, navegador, sistema_operativo };
+  // Detectar dispositivo
+  let dispositivo = 'Desktop';
+  if (/mobile/i.test(userAgent)) dispositivo = 'Mobile';
+  else if (/tablet/i.test(userAgent)) dispositivo = 'Tablet';
+
+  // Detectar navegador
+  let navegador = 'Desconocido';
+  if (/Chrome/i.test(userAgent) && !/Edg/i.test(userAgent)) {
+    navegador = 'Chrome';
+  } else if (/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent)) {
+    navegador = 'Safari';
+  } else if (/Firefox/i.test(userAgent)) {
+    navegador = 'Firefox';
+  } else if (/Edg/i.test(userAgent)) {
+    navegador = 'Edge';
+  }
+
+  // Detectar sistema operativo
+  let sistema_operativo = 'Desconocido';
+  if (/Windows/i.test(userAgent)) sistema_operativo = 'Windows';
+  else if (/Mac OS X/i.test(userAgent)) sistema_operativo = 'macOS';
+  else if (/Linux/i.test(userAgent)) sistema_operativo = 'Linux';
+  else if (/Android/i.test(userAgent)) sistema_operativo = 'Android';
+  else if (/iOS|iPhone|iPad/i.test(userAgent)) sistema_operativo = 'iOS';
+
+  return { dispositivo, navegador, sistema_operativo };
 }
 
 function obtenerIPCliente(req) {
-    return req.headers['x-forwarded-for']?.split(',')[0] || 
-           req.headers['x-real-ip'] || 
-           req.connection?.remoteAddress || 
-           'unknown';
+  return (
+    req.headers['x-forwarded-for']?.split(',')[0] ||
+    req.headers['x-real-ip'] ||
+    req.connection?.remoteAddress ||
+    'unknown'
+  );
 }
 ```
 
@@ -711,9 +716,9 @@ INSERT INTO sesiones_usuarios (
     jwt_expiracion, refresh_expiracion, ip_address, user_agent,
     dispositivo, navegador, sistema_operativo
 ) VALUES (
-    123, 
-    'refresh_token_hex', 
-    'jwt_token', 
+    123,
+    'refresh_token_hex',
+    'jwt_token',
     'refresh_token_hex',
     '2025-11-14 15:00:00',
     '2025-11-21 14:00:00',
@@ -729,20 +734,20 @@ INSERT INTO sesiones_usuarios (
 
 **Tipos de cierre:**
 
-| Tipo         | Descripción                                |
-|--------------|--------------------------------------------|
-| `usuario`    | Usuario hace logout manualmente            |
-| `sistema`    | Cierre automático por inactividad          |
-| `admin`      | Administrador cierra sesión remotamente    |
-| `timeout`    | Timeout de inactividad                     |
-| `expiracion` | Refresh token expirado                     |
+| Tipo         | Descripción                             |
+| ------------ | --------------------------------------- |
+| `usuario`    | Usuario hace logout manualmente         |
+| `sistema`    | Cierre automático por inactividad       |
+| `admin`      | Administrador cierra sesión remotamente |
+| `timeout`    | Timeout de inactividad                  |
+| `expiracion` | Refresh token expirado                  |
 
 **SQL de cierre:**
 
 ```sql
-UPDATE sesiones_usuarios 
-SET activa = FALSE, 
-    fecha_logout = CURRENT_TIMESTAMP, 
+UPDATE sesiones_usuarios
+SET activa = FALSE,
+    fecha_logout = CURRENT_TIMESTAMP,
     cerrada_por = 'usuario'
 WHERE refresh_token = $1 AND usuario_id = $2;
 ```
@@ -778,14 +783,14 @@ $$ LANGUAGE plpgsql;
 ```javascript
 // Al crear usuario
 const passwordHash = await pool.query(
-    'SELECT generar_password_hash($1) as hash',
-    ['password123']
+  'SELECT generar_password_hash($1) as hash',
+  ['password123']
 );
 
 // Al validar login
 const isValid = await pool.query(
-    'SELECT verificar_password($1, $2) as valido',
-    ['password123', usuario.password_hash]
+  'SELECT verificar_password($1, $2) as valido',
+  ['password123', usuario.password_hash]
 );
 ```
 
@@ -805,20 +810,23 @@ const intentosFallidos = usuario.intentos_fallidos + 1;
 let bloqueadoHasta = null;
 
 if (intentosFallidos >= 5) {
-    bloqueadoHasta = new Date();
-    bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + 30);
+  bloqueadoHasta = new Date();
+  bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + 30);
 }
 
 await pool.query(
-    'UPDATE usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3',
-    [intentosFallidos, bloqueadoHasta, usuario.id]
+  'UPDATE usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3',
+  [intentosFallidos, bloqueadoHasta, usuario.id]
 );
 
 // Registrar en auditoría
-await pool.query(`
+await pool.query(
+  `
     INSERT INTO auditoria_usuarios (usuario_id, accion, descripcion, ip_address)
     VALUES ($1, 'intento_login_fallido', $2, $3)
-`, [usuario.id, `Intento fallido #${intentosFallidos}`, ipCliente]);
+`,
+  [usuario.id, `Intento fallido #${intentosFallidos}`, ipCliente]
+);
 ```
 
 ### 7.3. Cambio Forzado de Contraseña
@@ -840,16 +848,16 @@ Al crear un usuario, se puede marcar `requiere_cambio_password = TRUE`, lo que o
 
 ```javascript
 if (currentUser.requiere_cambio_password) {
-    // Verificar con backend
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: { 'Authorization': `Bearer ${accessToken}` }
-    });
-    const data = await response.json();
-    
-    if (data.usuario.requiere_cambio_password) {
-        window.location.href = 'login.html?forcePassword=1';
-        return false;
-    }
+  // Verificar con backend
+  const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  const data = await response.json();
+
+  if (data.usuario.requiere_cambio_password) {
+    window.location.href = 'login.html?forcePassword=1';
+    return false;
+  }
 }
 ```
 
@@ -858,6 +866,7 @@ if (currentUser.requiere_cambio_password) {
 Todos los eventos críticos se registran en `auditoria_usuarios`:
 
 **Eventos auditados:**
+
 - ✅ Registro de nuevo usuario
 - ✅ Modificación de datos
 - ✅ Cambio de contraseña
@@ -869,7 +878,7 @@ Todos los eventos críticos se registran en `auditoria_usuarios`:
 **Consulta de auditoría:**
 
 ```sql
-SELECT 
+SELECT
     a.fecha_hora,
     a.accion,
     a.descripcion,
@@ -895,6 +904,7 @@ LIMIT 50;
 Iniciar sesión.
 
 **Request:**
+
 ```json
 {
   "email": "usuario@ejemplo.com",
@@ -903,6 +913,7 @@ Iniciar sesión.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -926,6 +937,7 @@ Iniciar sesión.
 ```
 
 **Errores:**
+
 - `401 Unauthorized` - Credenciales inválidas
 - `403 Forbidden` - Usuario inactivo o bloqueado
 
@@ -936,11 +948,13 @@ Iniciar sesión.
 Cerrar sesión.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Request:**
+
 ```json
 {
   "refreshToken": "a1b2c3d4e5f6..."
@@ -948,6 +962,7 @@ Authorization: Bearer <accessToken>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -962,6 +977,7 @@ Authorization: Bearer <accessToken>
 Refrescar access token.
 
 **Request:**
+
 ```json
 {
   "refreshToken": "a1b2c3d4e5f6..."
@@ -969,6 +985,7 @@ Refrescar access token.
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -983,6 +1000,7 @@ Refrescar access token.
 ```
 
 **Errores:**
+
 - `401 Unauthorized` - Refresh token inválido o expirado
 
 ---
@@ -992,11 +1010,13 @@ Refrescar access token.
 Obtener información del usuario autenticado.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1024,11 +1044,13 @@ Authorization: Bearer <accessToken>
 Listar todos los usuarios.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1053,11 +1075,13 @@ Authorization: Bearer <accessToken>
 Crear nuevo usuario.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Request:**
+
 ```json
 {
   "nombre": "María González",
@@ -1072,6 +1096,7 @@ Authorization: Bearer <accessToken>
 ```
 
 **Response (201 Created):**
+
 ```json
 {
   "success": true,
@@ -1093,11 +1118,13 @@ Authorization: Bearer <accessToken>
 Actualizar usuario existente.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Request:**
+
 ```json
 {
   "nombre": "María González López",
@@ -1107,6 +1134,7 @@ Authorization: Bearer <accessToken>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1121,11 +1149,13 @@ Authorization: Bearer <accessToken>
 Bloquear usuario.
 
 **Headers:**
+
 ```
 Authorization: Bearer <accessToken>
 ```
 
 **Request:**
+
 ```json
 {
   "motivo": "Incumplimiento de normas",
@@ -1134,6 +1164,7 @@ Authorization: Bearer <accessToken>
 ```
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1148,6 +1179,7 @@ Authorization: Bearer <accessToken>
 Desbloquear usuario.
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1162,6 +1194,7 @@ Desbloquear usuario.
 Historial de sesiones de un usuario.
 
 **Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -1191,13 +1224,13 @@ Historial de sesiones de un usuario.
 
 ```html
 <form id="loginForm">
-    <input type="email" id="emailInput" placeholder="Email" required>
-    <input type="password" id="passwordInput" placeholder="Contraseña" required>
-    <div class="checkbox-wrapper">
-        <input type="checkbox" id="rememberMe">
-        <label for="rememberMe">Recordar sesión</label>
-    </div>
-    <button type="submit">Iniciar Sesión</button>
+  <input type="email" id="emailInput" placeholder="Email" required />
+  <input type="password" id="passwordInput" placeholder="Contraseña" required />
+  <div class="checkbox-wrapper">
+    <input type="checkbox" id="rememberMe" />
+    <label for="rememberMe">Recordar sesión</label>
+  </div>
+  <button type="submit">Iniciar Sesión</button>
 </form>
 ```
 
@@ -1205,41 +1238,41 @@ Historial de sesiones de un usuario.
 
 ```javascript
 async function handleLogin(e) {
-    e.preventDefault();
-    
-    const email = document.getElementById('emailInput').value;
-    const password = document.getElementById('passwordInput').value;
-    const rememberMe = document.getElementById('rememberMe').checked;
-    
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-            // Guardar tokens
-            const storage = rememberMe ? localStorage : sessionStorage;
-            storage.setItem('accessToken', data.tokens.accessToken);
-            storage.setItem('refreshToken', data.tokens.refreshToken);
-            storage.setItem('currentUser', JSON.stringify(data.usuario));
-            
-            // Redirigir
-            if (data.usuario.requiere_cambio_password) {
-                window.location.href = 'cambiar-password.html';
-            } else {
-                window.location.href = 'index.html';
-            }
-        } else {
-            alert(data.mensaje || 'Error al iniciar sesión');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('Error de conexión');
+  e.preventDefault();
+
+  const email = document.getElementById('emailInput').value;
+  const password = document.getElementById('passwordInput').value;
+  const rememberMe = document.getElementById('rememberMe').checked;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.success) {
+      // Guardar tokens
+      const storage = rememberMe ? localStorage : sessionStorage;
+      storage.setItem('accessToken', data.tokens.accessToken);
+      storage.setItem('refreshToken', data.tokens.refreshToken);
+      storage.setItem('currentUser', JSON.stringify(data.usuario));
+
+      // Redirigir
+      if (data.usuario.requiere_cambio_password) {
+        window.location.href = 'cambiar-password.html';
+      } else {
+        window.location.href = 'index.html';
+      }
+    } else {
+      alert(data.mensaje || 'Error al iniciar sesión');
     }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error de conexión');
+  }
 }
 ```
 
@@ -1247,37 +1280,38 @@ async function handleLogin(e) {
 
 ```javascript
 async function checkAuthentication() {
-    const accessToken = localStorage.getItem('accessToken') || 
-                        sessionStorage.getItem('accessToken');
-    const currentUser = JSON.parse(
-        localStorage.getItem('currentUser') || 
-        sessionStorage.getItem('currentUser') || 
-        'null'
-    );
-    
-    if (!accessToken || !currentUser) {
-        window.location.href = 'login.html';
-        return false;
+  const accessToken =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken');
+  const currentUser = JSON.parse(
+    localStorage.getItem('currentUser') ||
+      sessionStorage.getItem('currentUser') ||
+      'null'
+  );
+
+  if (!accessToken || !currentUser) {
+    window.location.href = 'login.html';
+    return false;
+  }
+
+  // Verificar requiere cambio de password
+  if (currentUser.requiere_cambio_password) {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const data = await response.json();
+    if (data.usuario.requiere_cambio_password) {
+      window.location.href = 'login.html?forcePassword=1';
+      return false;
     }
-    
-    // Verificar requiere cambio de password
-    if (currentUser.requiere_cambio_password) {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
-        });
-        
-        const data = await response.json();
-        if (data.usuario.requiere_cambio_password) {
-            window.location.href = 'login.html?forcePassword=1';
-            return false;
-        }
-    }
-    
-    AppState.currentUser = currentUser;
-    updateUserInfo();
-    applyRolePermissions(currentUser.rol.toLowerCase());
-    
-    return true;
+  }
+
+  AppState.currentUser = currentUser;
+  updateUserInfo();
+  applyRolePermissions(currentUser.rol.toLowerCase());
+
+  return true;
 }
 ```
 
@@ -1285,36 +1319,37 @@ async function checkAuthentication() {
 
 ```javascript
 async function fetchWithAuth(url, options = {}) {
-    const accessToken = localStorage.getItem('accessToken') || 
-                        sessionStorage.getItem('accessToken');
-    
-    if (!accessToken) {
-        window.location.href = 'login.html';
-        throw new Error('No hay sesión activa');
+  const accessToken =
+    localStorage.getItem('accessToken') ||
+    sessionStorage.getItem('accessToken');
+
+  if (!accessToken) {
+    window.location.href = 'login.html';
+    throw new Error('No hay sesión activa');
+  }
+
+  const headers = {
+    ...options.headers,
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  };
+
+  const response = await fetch(url, { ...options, headers });
+
+  // Si el token expiró, intentar refrescar
+  if (response.status === 401) {
+    const refreshed = await refreshAccessToken();
+    if (refreshed) {
+      // Reintentar con nuevo token
+      const newAccessToken = localStorage.getItem('accessToken');
+      headers['Authorization'] = `Bearer ${newAccessToken}`;
+      return await fetch(url, { ...options, headers });
+    } else {
+      window.location.href = 'login.html';
     }
-    
-    const headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${accessToken}`,
-        'Content-Type': 'application/json'
-    };
-    
-    const response = await fetch(url, { ...options, headers });
-    
-    // Si el token expiró, intentar refrescar
-    if (response.status === 401) {
-        const refreshed = await refreshAccessToken();
-        if (refreshed) {
-            // Reintentar con nuevo token
-            const newAccessToken = localStorage.getItem('accessToken');
-            headers['Authorization'] = `Bearer ${newAccessToken}`;
-            return await fetch(url, { ...options, headers });
-        } else {
-            window.location.href = 'login.html';
-        }
-    }
-    
-    return response;
+  }
+
+  return response;
 }
 
 // Uso
@@ -1326,35 +1361,36 @@ const data = await response.json();
 
 ```javascript
 async function logout() {
-    if (!confirm('¿Está seguro que desea cerrar sesión?')) {
-        return;
+  if (!confirm('¿Está seguro que desea cerrar sesión?')) {
+    return;
+  }
+
+  try {
+    const refreshToken =
+      localStorage.getItem('refreshToken') ||
+      sessionStorage.getItem('refreshToken');
+
+    if (refreshToken) {
+      await fetchWithAuth(`${API_BASE_URL}/api/auth/logout`, {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken }),
+      });
     }
-    
-    try {
-        const refreshToken = localStorage.getItem('refreshToken') || 
-                            sessionStorage.getItem('refreshToken');
-        
-        if (refreshToken) {
-            await fetchWithAuth(`${API_BASE_URL}/api/auth/logout`, {
-                method: 'POST',
-                body: JSON.stringify({ refreshToken })
-            });
-        }
-    } catch (error) {
-        console.error('Error al cerrar sesión:', error);
-    } finally {
-        clearAuthData();
-        window.location.href = 'login.html';
-    }
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error);
+  } finally {
+    clearAuthData();
+    window.location.href = 'login.html';
+  }
 }
 
 function clearAuthData() {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    localStorage.removeItem('currentUser');
-    sessionStorage.removeItem('accessToken');
-    sessionStorage.removeItem('refreshToken');
-    sessionStorage.removeItem('currentUser');
+  localStorage.removeItem('accessToken');
+  localStorage.removeItem('refreshToken');
+  localStorage.removeItem('currentUser');
+  sessionStorage.removeItem('accessToken');
+  sessionStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('currentUser');
 }
 ```
 
@@ -1449,10 +1485,10 @@ function clearAuthData() {
 2. Click en "Ver Historial de Cambios"
 3. Sistema muestra tabla de auditoría:
 
-| Fecha                | Acción              | Ejecutor        | Descripción                    |
-|----------------------|---------------------|-----------------|--------------------------------|
-| 2025-11-14 14:30:00 | cambio_password     | Carlos Ramírez  | Cambio de password obligatorio |
-| 2025-11-14 10:00:00 | registro            | Admin Principal | Usuario registrado en sistema  |
+| Fecha               | Acción          | Ejecutor        | Descripción                    |
+| ------------------- | --------------- | --------------- | ------------------------------ |
+| 2025-11-14 14:30:00 | cambio_password | Carlos Ramírez  | Cambio de password obligatorio |
+| 2025-11-14 10:00:00 | registro        | Admin Principal | Usuario registrado en sistema  |
 
 4. Admin puede exportar auditoría a Excel
 5. Admin puede filtrar por tipo de acción o rango de fechas
@@ -1471,11 +1507,11 @@ function clearAuthData() {
 
 ## 📝 Historial de Cambios
 
-| Versión | Fecha      | Autor          | Cambios                                    |
-|---------|------------|----------------|--------------------------------------------|
-| 2.0     | 2025-11-14 | Leonardo Cruz  | Documentación completa del sistema JWT     |
-| 1.5     | 2025-11-13 | Leonardo Cruz  | Implementación de sesiones y auditoría     |
-| 1.0     | 2025-11-11 | Leonardo Cruz  | Esquema inicial de usuarios y roles        |
+| Versión | Fecha      | Autor         | Cambios                                |
+| ------- | ---------- | ------------- | -------------------------------------- |
+| 2.0     | 2025-11-14 | Leonardo Cruz | Documentación completa del sistema JWT |
+| 1.5     | 2025-11-13 | Leonardo Cruz | Implementación de sesiones y auditoría |
+| 1.0     | 2025-11-11 | Leonardo Cruz | Esquema inicial de usuarios y roles    |
 
 ---
 

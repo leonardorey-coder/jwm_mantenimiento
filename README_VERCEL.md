@@ -66,6 +66,7 @@ Esto iniciará el servidor Express en `http://localhost:3001`.
 ### Despliegue Inicial
 
 1. **Conectar el proyecto a Vercel:**
+
    ```bash
    vercel
    ```
@@ -242,4 +243,3 @@ Verifica que `app-loader.js` esté usando la detección automática de entorno. 
 ---
 
 **Nota:** Esta aplicación funciona tanto en desarrollo local (Express) como en Vercel (serverless) sin cambios en el código, gracias a la detección automática de entorno.
-

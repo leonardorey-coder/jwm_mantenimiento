@@ -1,8 +1,10 @@
 # Esquema de Base de Datos Completo - JW Mantto
+
 **Fecha:** 2025-11-11  
 **Sistema:** SGSOM (Sistema de Gestión de Servicios y Operaciones de Mantenimiento)
 
 ## 📋 Índice
+
 1. [Resumen General](#resumen-general)
 2. [Nuevas Funcionalidades Implementadas](#nuevas-funcionalidades-implementadas)
 3. [Estructura de Tablas](#estructura-de-tablas)
@@ -32,19 +34,21 @@ El esquema completo de base de datos implementa todas las funcionalidades defini
 ### 1. **Sistema de Estados con Colores**
 
 #### Tabla: `configuracion_estados`
+
 Almacena la configuración de estados con sus colores asociados:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `valor` | VARCHAR(50) | Valor del estado (disponible, ocupado, etc.) |
-| `label` | VARCHAR(100) | Etiqueta legible |
-| `color` | VARCHAR(7) | Color principal en hexadecimal (#4CAF50) |
-| `color_secundario` | VARCHAR(7) | Color de fondo (#E8F5E9) |
-| `icono` | VARCHAR(10) | Emoji o código de icono (🟢) |
-| `prioridad` | INTEGER | Orden de prioridad |
-| `disponible_para_reserva` | BOOLEAN | Si está disponible para reservas |
+| Campo                     | Tipo         | Descripción                                  |
+| ------------------------- | ------------ | -------------------------------------------- |
+| `valor`                   | VARCHAR(50)  | Valor del estado (disponible, ocupado, etc.) |
+| `label`                   | VARCHAR(100) | Etiqueta legible                             |
+| `color`                   | VARCHAR(7)   | Color principal en hexadecimal (#4CAF50)     |
+| `color_secundario`        | VARCHAR(7)   | Color de fondo (#E8F5E9)                     |
+| `icono`                   | VARCHAR(10)  | Emoji o código de icono (🟢)                 |
+| `prioridad`               | INTEGER      | Orden de prioridad                           |
+| `disponible_para_reserva` | BOOLEAN      | Si está disponible para reservas             |
 
 **Estados predefinidos:**
+
 - 🟢 **Disponible** - Verde (#4CAF50) - Listo para ocupar
 - 🔵 **Ocupado** - Azul (#2196F3) - Huésped hospedado
 - 🟠 **Mantenimiento** - Naranja (#FF9800) - En proceso de limpieza/reparación
@@ -53,18 +57,20 @@ Almacena la configuración de estados con sus colores asociados:
 ### 2. **Espacios Comunes**
 
 #### Tabla: `espacios_comunes`
+
 Gestiona áreas compartidas del hotel separadas de los cuartos:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `nombre` | VARCHAR(100) | Nombre del espacio |
-| `tipo` | VARCHAR(50) | Gimnasio, Piscina, Salón, Restaurante, Spa |
-| `estado` | VARCHAR(50) | Estado actual (usa configuración_estados) |
-| `capacidad` | INTEGER | Capacidad máxima de personas |
-| `horario_apertura` | TIME | Hora de apertura |
-| `horario_cierre` | TIME | Hora de cierre |
+| Campo              | Tipo         | Descripción                                |
+| ------------------ | ------------ | ------------------------------------------ |
+| `nombre`           | VARCHAR(100) | Nombre del espacio                         |
+| `tipo`             | VARCHAR(50)  | Gimnasio, Piscina, Salón, Restaurante, Spa |
+| `estado`           | VARCHAR(50)  | Estado actual (usa configuración_estados)  |
+| `capacidad`        | INTEGER      | Capacidad máxima de personas               |
+| `horario_apertura` | TIME         | Hora de apertura                           |
+| `horario_cierre`   | TIME         | Hora de cierre                             |
 
 **Ejemplos de espacios comunes:**
+
 - Gimnasio Principal
 - Piscina Infinity
 - Restaurante Gourmet
@@ -74,112 +80,121 @@ Gestiona áreas compartidas del hotel separadas de los cuartos:
 ### 3. **Sistema de Usuarios y Roles**
 
 #### Tabla: `roles`
+
 Define los roles del sistema:
 
-| Rol | Descripción | Permisos |
-|-----|-------------|----------|
-| **ADMIN** | Administrador del sistema | Todos los permisos |
+| Rol            | Descripción                 | Permisos                       |
+| -------------- | --------------------------- | ------------------------------ |
+| **ADMIN**      | Administrador del sistema   | Todos los permisos             |
 | **SUPERVISOR** | Supervisor de mantenimiento | Lectura, escritura, aprobación |
-| **TECNICO** | Técnico de mantenimiento | Lectura, escritura |
+| **TECNICO**    | Técnico de mantenimiento    | Lectura, escritura             |
 
 #### Tabla: `usuarios`
+
 Gestiona los usuarios del sistema:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `nombre` | VARCHAR(100) | Nombre completo |
-| `email` | VARCHAR(100) | Email único |
+| Campo           | Tipo         | Descripción                  |
+| --------------- | ------------ | ---------------------------- |
+| `nombre`        | VARCHAR(100) | Nombre completo              |
+| `email`         | VARCHAR(100) | Email único                  |
 | `password_hash` | VARCHAR(255) | Contraseña hasheada (bcrypt) |
-| `rol_id` | INTEGER | Referencia al rol |
-| `activo` | BOOLEAN | Si el usuario está activo |
-| `ultimo_acceso` | TIMESTAMP | Última vez que accedió |
+| `rol_id`        | INTEGER      | Referencia al rol            |
+| `activo`        | BOOLEAN      | Si el usuario está activo    |
+| `ultimo_acceso` | TIMESTAMP    | Última vez que accedió       |
 
 ### 4. **Sistema de Inspecciones**
 
 #### Tabla: `inspecciones`
+
 Registra las inspecciones realizadas a los mantenimientos:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `mantenimiento_id` | INTEGER | Mantenimiento inspeccionado |
-| `tecnico_id` | INTEGER | Técnico que realizó la inspección |
-| `resultado` | VARCHAR(50) | aprobado, rechazado, requiere_seguimiento |
-| `observaciones` | TEXT | Notas de la inspección |
-| `firma_capturada` | BOOLEAN | Si se capturó la firma |
-| `duracion_minutos` | INTEGER | Duración de la inspección |
+| Campo              | Tipo        | Descripción                               |
+| ------------------ | ----------- | ----------------------------------------- |
+| `mantenimiento_id` | INTEGER     | Mantenimiento inspeccionado               |
+| `tecnico_id`       | INTEGER     | Técnico que realizó la inspección         |
+| `resultado`        | VARCHAR(50) | aprobado, rechazado, requiere_seguimiento |
+| `observaciones`    | TEXT        | Notas de la inspección                    |
+| `firma_capturada`  | BOOLEAN     | Si se capturó la firma                    |
+| `duracion_minutos` | INTEGER     | Duración de la inspección                 |
 
 ### 5. **Sistema de Checklists**
 
 #### Tabla: `checklists`
+
 Listas de verificación para inspecciones:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `inspeccion_id` | INTEGER | Inspección asociada |
-| `titulo` | VARCHAR(200) | Título del checklist |
-| `completado` | BOOLEAN | Si está completado |
+| Campo                 | Tipo         | Descripción                    |
+| --------------------- | ------------ | ------------------------------ |
+| `inspeccion_id`       | INTEGER      | Inspección asociada            |
+| `titulo`              | VARCHAR(200) | Título del checklist           |
+| `completado`          | BOOLEAN      | Si está completado             |
 | `progreso_porcentaje` | DECIMAL(5,2) | Porcentaje de progreso (0-100) |
 
 #### Tabla: `checklist_items`
+
 Items individuales de cada checklist:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `checklist_id` | INTEGER | Checklist al que pertenece |
-| `descripcion` | TEXT | Descripción del item |
-| `obligatorio` | BOOLEAN | Si es obligatorio completarlo |
-| `completado` | BOOLEAN | Si está completado |
-| `orden` | INTEGER | Orden de visualización |
-| `fecha_completado` | TIMESTAMP | Cuándo se completó |
-| `usuario_completo_id` | INTEGER | Quién lo completó |
+| Campo                 | Tipo      | Descripción                   |
+| --------------------- | --------- | ----------------------------- |
+| `checklist_id`        | INTEGER   | Checklist al que pertenece    |
+| `descripcion`         | TEXT      | Descripción del item          |
+| `obligatorio`         | BOOLEAN   | Si es obligatorio completarlo |
+| `completado`          | BOOLEAN   | Si está completado            |
+| `orden`               | INTEGER   | Orden de visualización        |
+| `fecha_completado`    | TIMESTAMP | Cuándo se completó            |
+| `usuario_completo_id` | INTEGER   | Quién lo completó             |
 
 ### 6. **Sistema de Evidencias**
 
 #### Tabla: `evidencias`
+
 Almacena evidencias multimedia de las inspecciones:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `inspeccion_id` | INTEGER | Inspección asociada |
-| `tipo` | VARCHAR(20) | foto, video, archivo, audio |
-| `url` | TEXT | URL del archivo |
-| `nombre_archivo` | VARCHAR(255) | Nombre original |
-| `tamano_bytes` | BIGINT | Tamaño del archivo |
-| `mime_type` | VARCHAR(100) | Tipo MIME |
-| `descripcion` | TEXT | Descripción de la evidencia |
+| Campo            | Tipo         | Descripción                 |
+| ---------------- | ------------ | --------------------------- |
+| `inspeccion_id`  | INTEGER      | Inspección asociada         |
+| `tipo`           | VARCHAR(20)  | foto, video, archivo, audio |
+| `url`            | TEXT         | URL del archivo             |
+| `nombre_archivo` | VARCHAR(255) | Nombre original             |
+| `tamano_bytes`   | BIGINT       | Tamaño del archivo          |
+| `mime_type`      | VARCHAR(100) | Tipo MIME                   |
+| `descripcion`    | TEXT         | Descripción de la evidencia |
 
 ### 7. **Sistema de Firmas Digitales**
 
 #### Tabla: `firmas_digitales`
+
 Captura firmas digitales para validación:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `inspeccion_id` | INTEGER | Inspección asociada |
-| `firma_url` | TEXT | URL de la imagen de la firma |
-| `nombre_tecnico` | VARCHAR(100) | Nombre del técnico |
-| `cargo` | VARCHAR(100) | Cargo del técnico |
-| `fecha_firma` | TIMESTAMP | Cuándo se firmó |
-| `ip_address` | VARCHAR(45) | IP desde donde se firmó |
-| `dispositivo` | VARCHAR(200) | Información del dispositivo |
+| Campo            | Tipo         | Descripción                  |
+| ---------------- | ------------ | ---------------------------- |
+| `inspeccion_id`  | INTEGER      | Inspección asociada          |
+| `firma_url`      | TEXT         | URL de la imagen de la firma |
+| `nombre_tecnico` | VARCHAR(100) | Nombre del técnico           |
+| `cargo`          | VARCHAR(100) | Cargo del técnico            |
+| `fecha_firma`    | TIMESTAMP    | Cuándo se firmó              |
+| `ip_address`     | VARCHAR(45)  | IP desde donde se firmó      |
+| `dispositivo`    | VARCHAR(200) | Información del dispositivo  |
 
 ### 8. **Mejoras en Mantenimientos**
 
 #### Tabla: `mantenimientos` (mejorada)
+
 Campos adicionales implementados:
 
-| Campo | Tipo | Descripción |
-|-------|------|-------------|
-| `espacio_comun_id` | INTEGER | Referencia a espacio común (alternativo a cuarto_id) |
-| `prioridad` | VARCHAR(20) | baja, media, alta, urgente |
-| `fecha_inicio` | TIMESTAMP | Cuándo comenzó el trabajo |
-| `fecha_finalizacion` | TIMESTAMP | Cuándo terminó el trabajo |
-| `usuario_creador_id` | INTEGER | Quién creó el mantenimiento |
-| `usuario_asignado_id` | INTEGER | A quién se asignó |
-| `costo_estimado` | DECIMAL(10,2) | Costo estimado |
-| `costo_real` | DECIMAL(10,2) | Costo real |
+| Campo                 | Tipo          | Descripción                                          |
+| --------------------- | ------------- | ---------------------------------------------------- |
+| `espacio_comun_id`    | INTEGER       | Referencia a espacio común (alternativo a cuarto_id) |
+| `prioridad`           | VARCHAR(20)   | baja, media, alta, urgente                           |
+| `fecha_inicio`        | TIMESTAMP     | Cuándo comenzó el trabajo                            |
+| `fecha_finalizacion`  | TIMESTAMP     | Cuándo terminó el trabajo                            |
+| `usuario_creador_id`  | INTEGER       | Quién creó el mantenimiento                          |
+| `usuario_asignado_id` | INTEGER       | A quién se asignó                                    |
+| `costo_estimado`      | DECIMAL(10,2) | Costo estimado                                       |
+| `costo_real`          | DECIMAL(10,2) | Costo real                                           |
 
 **Tipos de mantenimiento:**
+
 - `normal` - Bajo demanda
 - `rutina` - Programado recurrente
 - `preventivo` - Preventivo
@@ -187,6 +202,7 @@ Campos adicionales implementados:
 - `emergencia` - Urgente
 
 **Estados de mantenimiento:**
+
 - `pendiente` - Por realizar
 - `en_proceso` - En ejecución
 - `completado` - Finalizado
@@ -234,30 +250,37 @@ roles (1) ──< (N) usuarios
 ### Vistas Creadas
 
 #### 1. `vista_cuartos_completa`
+
 Cuartos con información del edificio y configuración de estados (colores, iconos).
 
 #### 2. `vista_espacios_comunes_completa`
+
 Espacios comunes con información del edificio y configuración de estados.
 
 #### 3. `vista_mantenimientos_completa`
+
 Mantenimientos con toda la información relacionada (cuarto/espacio, edificio, usuarios).
 
 #### 4. `vista_inspecciones_completa`
+
 Inspecciones con información del técnico, mantenimiento y contadores de checklists/evidencias.
 
 ### Funciones Creadas
 
 #### 1. `calcular_progreso_checklist(checklist_id)`
+
 Calcula el porcentaje de progreso de un checklist basado en items completados.
 
 **Retorna:** DECIMAL(5,2) - Porcentaje de 0.00 a 100.00
 
 #### 2. `obtener_estadisticas_cuartos()`
+
 Obtiene estadísticas de estados de cuartos con colores.
 
 **Retorna:** Tabla con estado, cantidad, porcentaje, color, label
 
 #### 3. `obtener_estadisticas_espacios_comunes()`
+
 Obtiene estadísticas de estados de espacios comunes con colores.
 
 **Retorna:** Tabla con estado, cantidad, porcentaje, color, label
@@ -280,6 +303,7 @@ Obtiene estadísticas de estados de espacios comunes con colores.
 ### API de Cuartos (`/api/cuartos`)
 
 #### Gestión de Estados
+
 - `PATCH /api/cuartos/:id/estado` - Cambiar estado de un cuarto
 - `GET /api/cuartos/estado/:estado` - Filtrar cuartos por estado
 - `GET /api/cuartos/estadisticas/estados` - Estadísticas de estados
@@ -287,6 +311,7 @@ Obtiene estadísticas de estados de espacios comunes con colores.
 - `GET /api/cuartos/dashboard/estados` - Dashboard completo con estadísticas y colores
 
 #### CRUD Básico
+
 - `GET /api/cuartos` - Listar todos los cuartos
 - `GET /api/cuartos/:id` - Obtener un cuarto
 - `POST /api/cuartos` - Crear cuarto
@@ -349,19 +374,19 @@ GET    /api/usuarios/rol/:rol_id
 
 ## 📈 Mejoras Implementadas vs. Esquema Anterior
 
-| Característica | Esquema Anterior | Esquema Nuevo |
-|----------------|------------------|---------------|
-| Estados de cuartos | ✅ Básico | ✅ Con colores y configuración |
-| Espacios comunes | ❌ No | ✅ Tabla completa |
-| Usuarios y roles | ❌ No | ✅ Sistema completo |
-| Inspecciones | ❌ No | ✅ Con checklists |
-| Evidencias | ❌ No | ✅ Multimedia completo |
-| Firmas digitales | ❌ No | ✅ Implementado |
-| Prioridades | ❌ No | ✅ baja/media/alta/urgente |
-| Costos | ❌ No | ✅ Estimado y real |
-| Vistas SQL | ❌ No | ✅ 4 vistas útiles |
-| Funciones SQL | ❌ No | ✅ 3 funciones |
-| Triggers | ❌ No | ✅ 2 triggers |
+| Característica     | Esquema Anterior | Esquema Nuevo                  |
+| ------------------ | ---------------- | ------------------------------ |
+| Estados de cuartos | ✅ Básico        | ✅ Con colores y configuración |
+| Espacios comunes   | ❌ No            | ✅ Tabla completa              |
+| Usuarios y roles   | ❌ No            | ✅ Sistema completo            |
+| Inspecciones       | ❌ No            | ✅ Con checklists              |
+| Evidencias         | ❌ No            | ✅ Multimedia completo         |
+| Firmas digitales   | ❌ No            | ✅ Implementado                |
+| Prioridades        | ❌ No            | ✅ baja/media/alta/urgente     |
+| Costos             | ❌ No            | ✅ Estimado y real             |
+| Vistas SQL         | ❌ No            | ✅ 4 vistas útiles             |
+| Funciones SQL      | ❌ No            | ✅ 3 funciones                 |
+| Triggers           | ❌ No            | ✅ 2 triggers                  |
 
 ---
 
@@ -446,4 +471,3 @@ SELECT * FROM vista_mantenimientos_completa;
 **Última actualización:** 2025-11-11  
 **Versión del esquema:** 2.0.0  
 **Autor:** Sistema JW Mantto
-

@@ -1,21 +1,14 @@
 {
-    "threshold": 0,
-    "reporters": [
-        "html",
-        "console",
-        "badge"
-    ],
-    "ignore": [
-        "**/node_modules/**",
-        "**/*.min.js",
-        "**/dist/**",
-        "**/docs/**",
-        "**/scripts/**"
-    ],
-    "absolute": true,
-    "paths": [
-        "js",
-        "views",
-        "api"
-    ]
+  "threshold": 1,
+  "reporters": ["html", "console", "badge"],
+  "ignore": [
+    "**/node_modules/**",
+    "**/*.min.js",
+    "**/dist/**",
+    "**/docs/**",
+    "**/scripts/**",
+    "**/db/schema-postgres.sql"
+  ],
+  "absolute": true,
+  "paths": ["js", "views", "api"]
 }

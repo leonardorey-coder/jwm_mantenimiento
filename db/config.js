@@ -10,10 +10,12 @@ const envLocalPath = path.join(__dirname, '..', '.env.local');
 const nodeEnvFromEnv = process.env.NODE_ENV;
 
 if (nodeEnvFromEnv === 'development' && fs.existsSync(envLocalPath)) {
-    require('dotenv').config({ path: envLocalPath, override: true });
-    console.log('📁 Variables de .env.local cargadas para desarrollo (sobrescribiendo .env)');
+  require('dotenv').config({ path: envLocalPath, override: true });
+  console.log(
+    '📁 Variables de .env.local cargadas para desarrollo (sobrescribiendo .env)'
+  );
 } else if (nodeEnvFromEnv === 'production') {
-    console.log('☁️ Usando configuración de .env para producción');
+  console.log('☁️ Usando configuración de .env para producción');
 }
 
 // Debug: mostrar NODE_ENV final
@@ -22,95 +24,144 @@ console.log(`🔍 NODE_ENV detectado: "${process.env.NODE_ENV}"`);
 let isLocal = process.env.NODE_ENV === 'development';
 let dbConfig = {};
 
+/**
+ * Construye un objeto de configuración de base de datos con valores por defecto
+ * @param {Object} connectionParams - Parámetros de conexión (host, port, database, user, password)
+ * @param {Object|boolean} sslConfig - Configuración SSL o false para deshabilitarlo
+ * @returns {Object} Objeto de configuración de base de datos completo
+ */
+function buildDbConfig(connectionParams, sslConfig = false) {
+  return {
+    host: connectionParams.host,
+    port: parseInt(connectionParams.port || '5432'),
+    database: connectionParams.database,
+    user: connectionParams.user,
+    password: connectionParams.password,
+    max: parseInt(process.env.DB_POOL_MAX || '20'),
+    min: parseInt(process.env.DB_POOL_MIN || '2'),
+    idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
+    connectionTimeoutMillis: parseInt(
+      process.env.DB_CONNECTION_TIMEOUT || '2000'
+    ),
+    ssl: sslConfig,
+  };
+}
+
 // Construir configuración desde variables de entorno (funciona para ambos entornos)
 if (isLocal) {
-    // En desarrollo, usar variables de .env.local (POSTGRES_* o DB_*)
-    dbConfig = {
-        host: process.env.POSTGRES_HOST || process.env.PGHOST || process.env.DB_HOST || 'localhost',
-        port: parseInt(process.env.POSTGRES_PORT || process.env.DB_PORT || '5432'),
-        database: process.env.POSTGRES_DATABASE || process.env.PGDATABASE || process.env.DB_NAME || 'jwmantto',
-        user: process.env.POSTGRES_USER || process.env.PGUSER || process.env.DB_USER || 'leonardocruz',
-        password: process.env.POSTGRES_PASSWORD || process.env.PGPASSWORD || process.env.DB_PASSWORD || '',
-        max: parseInt(process.env.DB_POOL_MAX || '20'),
-        min: parseInt(process.env.DB_POOL_MIN || '2'),
-        idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
-        connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
-        ssl: false
-    };
-    console.log('🏠 Usando configuración local para desarrollo');
+  // En desarrollo, usar variables de .env.local (POSTGRES_* o DB_*)
+  dbConfig = buildDbConfig(
+    {
+      host:
+        process.env.POSTGRES_HOST ||
+        process.env.PGHOST ||
+        process.env.DB_HOST ||
+        'localhost',
+      port: process.env.POSTGRES_PORT || process.env.DB_PORT || '5432',
+      database:
+        process.env.POSTGRES_DATABASE ||
+        process.env.PGDATABASE ||
+        process.env.DB_NAME ||
+        'jwmantto',
+      user:
+        process.env.POSTGRES_USER ||
+        process.env.PGUSER ||
+        process.env.DB_USER ||
+        'leonardocruz',
+      password:
+        process.env.POSTGRES_PASSWORD ||
+        process.env.PGPASSWORD ||
+        process.env.DB_PASSWORD ||
+        '',
+    },
+    false
+  );
+  console.log('🏠 Usando configuración local para desarrollo');
 } else {
-    // En producción, usar DATABASE_URL si está disponible
-    if (process.env.DATABASE_URL) {
-        try {
-            const { parse } = require('pg-connection-string');
-            const parsed = parse(process.env.DATABASE_URL);
+  // En producción, usar DATABASE_URL si está disponible
+  if (process.env.DATABASE_URL) {
+    try {
+      const { parse } = require('pg-connection-string');
+      const parsed = parse(process.env.DATABASE_URL);
 
-            dbConfig = {
-                host: parsed.host,
-                port: parseInt(parsed.port || '5432'),
-                database: parsed.database,
-                user: parsed.user,
-                password: parsed.password,
-                ssl: parsed.ssl === 'true' || parsed.sslmode === 'require' ? {
-                    rejectUnauthorized: false
-                } : false,
-                max: parseInt(process.env.DB_POOL_MAX || '20'),
-                min: parseInt(process.env.DB_POOL_MIN || '2'),
-                idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
-                connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000')
-            };
+      const sslConfig =
+        parsed.ssl === 'true' || parsed.sslmode === 'require'
+          ? {
+              rejectUnauthorized: false,
+            }
+          : false;
 
-            console.log('🔗 Usando DATABASE_URL para conexión');
-        } catch (error) {
-            console.warn('⚠️ Error parseando DATABASE_URL, usando configuración individual:', error.message);
-        }
+      dbConfig = buildDbConfig(
+        {
+          host: parsed.host,
+          port: parsed.port,
+          database: parsed.database,
+          user: parsed.user,
+          password: parsed.password,
+        },
+        sslConfig
+      );
+
+      console.log('🔗 Usando DATABASE_URL para conexión');
+    } catch (error) {
+      console.warn(
+        '⚠️ Error parseando DATABASE_URL, usando configuración individual:',
+        error.message
+      );
     }
+  }
 
-    // Si no hay DATABASE_URL en producción, usar variables individuales
-    if (!dbConfig.host || !dbConfig.database) {
-        dbConfig = {
-            host: process.env.DB_HOST,
-            port: parseInt(process.env.DB_PORT || '5432'),
-            database: process.env.DB_NAME,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            max: parseInt(process.env.DB_POOL_MAX || '20'),
-            min: parseInt(process.env.DB_POOL_MIN || '2'),
-            idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
-            connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
-            ssl: process.env.DB_SSL === 'true' ? {
-                rejectUnauthorized: process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false'
-            } : false
-        };
-    }
+  // Si no hay DATABASE_URL en producción, usar variables individuales
+  if (!dbConfig.host || !dbConfig.database) {
+    const sslConfig =
+      process.env.DB_SSL === 'true'
+        ? {
+            rejectUnauthorized:
+              process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+          }
+        : false;
+
+    dbConfig = buildDbConfig(
+      {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        database: process.env.DB_NAME,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+      },
+      sslConfig
+    );
+  }
 }
 
 // Validar que los parámetros críticos estén configurados
 function validateConfig() {
-    const requiredParams = ['host', 'database', 'user', 'password'];
-    const missing = requiredParams.filter(param => !dbConfig[param]);
+  const requiredParams = ['host', 'database', 'user', 'password'];
+  const missing = requiredParams.filter((param) => !dbConfig[param]);
 
-    if (missing.length > 0) {
-        console.warn(`⚠️ Parámetros de configuración faltantes: ${missing.join(', ')}`);
-        console.warn('Usando valores por defecto para desarrollo local');
-    }
+  if (missing.length > 0) {
+    console.warn(
+      `⚠️ Parámetros de configuración faltantes: ${missing.join(', ')}`
+    );
+    console.warn('Usando valores por defecto para desarrollo local');
+  }
 
-    return missing.length === 0;
+  return missing.length === 0;
 }
 
 // Mostrar configuración (ocultando la contraseña)
 function displayConfig() {
-    console.log('🔧 Configuración de PostgreSQL:');
-    console.log(`   Host: ${dbConfig.host}`);
-    console.log(`   Puerto: ${dbConfig.port}`);
-    console.log(`   Base de datos: ${dbConfig.database}`);
-    console.log(`   Usuario: ${dbConfig.user}`);
-    console.log(`   SSL: ${dbConfig.ssl ? 'Habilitado' : 'Deshabilitado'}`);
-    console.log(`   Pool máximo: ${dbConfig.max} conexiones`);
+  console.log('🔧 Configuración de PostgreSQL:');
+  console.log(`   Host: ${dbConfig.host}`);
+  console.log(`   Puerto: ${dbConfig.port}`);
+  console.log(`   Base de datos: ${dbConfig.database}`);
+  console.log(`   Usuario: ${dbConfig.user}`);
+  console.log(`   SSL: ${dbConfig.ssl ? 'Habilitado' : 'Deshabilitado'}`);
+  console.log(`   Pool máximo: ${dbConfig.max} conexiones`);
 }
 
 module.exports = {
-    dbConfig,
-    validateConfig,
-    displayConfig
+  dbConfig,
+  validateConfig,
+  displayConfig,
 };

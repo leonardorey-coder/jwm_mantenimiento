@@ -3,145 +3,159 @@ let cuartoActualId = null;
 
 // Elementos del DOM para modales
 const modalMantenimiento = document.getElementById('modalMantenimiento');
-const modalEditarMantenimiento = document.getElementById('modalEditarMantenimiento');
+const modalEditarMantenimiento = document.getElementById(
+  'modalEditarMantenimiento'
+);
 const modalEditarEdificio = document.getElementById('modalEditarEdificio');
 const modalEditarCuarto = document.getElementById('modalEditarCuarto');
 
 // Elementos para los tipos de mantenimiento
 const tipoNormalBtn = document.getElementById('tipoNormal');
 const tipoRutinaBtn = document.getElementById('tipoRutina');
-const formMantenimientoNormal = document.getElementById('formMantenimientoNormal');
-const formMantenimientoRutina = document.getElementById('formMantenimientoRutina');
+const formMantenimientoNormal = document.getElementById(
+  'formMantenimientoNormal'
+);
+const formMantenimientoRutina = document.getElementById(
+  'formMantenimientoRutina'
+);
 const cuartoSeleccionado = document.getElementById('cuartoSeleccionado');
 
 // Elementos para búsqueda dinámica
 const buscarCuartoInput = document.getElementById('buscarCuarto');
 
 // Evento al cargar la página
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar elementos
-    inicializarInputsFlotantes();
-    
-    // Manejar mensajes de error o éxito (si existen en la URL)
-    manejarMensajes();
-    
-    // Configurar búsqueda en tiempo real
-    configurarBusquedaTiempoReal();
+document.addEventListener('DOMContentLoaded', function () {
+  // Inicializar elementos
+  inicializarInputsFlotantes();
+
+  // Manejar mensajes de error o éxito (si existen en la URL)
+  manejarMensajes();
+
+  // Configurar búsqueda en tiempo real
+  configurarBusquedaTiempoReal();
 });
 
 // Función para inicializar el estado de los inputs flotantes
 function inicializarInputsFlotantes() {
-    const inputs = document.querySelectorAll('.input-flotante input, .input-flotante textarea');
-    inputs.forEach(input => {
-        // Si el input ya tiene un valor, asegurarnos de que la etiqueta esté flotando
-        if (input.value.trim() !== '') {
-            input.classList.add('con-valor');
-        }
-        
-        // Agregar eventos para mantener la clase cuando cambia el valor
-        input.addEventListener('input', function() {
-            if (this.value.trim() !== '') {
-                this.classList.add('con-valor');
-            } else {
-                this.classList.remove('con-valor');
-            }
-        });
+  const inputs = document.querySelectorAll(
+    '.input-flotante input, .input-flotante textarea'
+  );
+  inputs.forEach((input) => {
+    // Si el input ya tiene un valor, asegurarnos de que la etiqueta esté flotando
+    if (input.value.trim() !== '') {
+      input.classList.add('con-valor');
+    }
+
+    // Agregar eventos para mantener la clase cuando cambia el valor
+    input.addEventListener('input', function () {
+      if (this.value.trim() !== '') {
+        this.classList.add('con-valor');
+      } else {
+        this.classList.remove('con-valor');
+      }
     });
+  });
 }
 
 // Función para manejar mensajes de error o éxito
 function manejarMensajes() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Mensajes de éxito
-    if (urlParams.has('mensaje')) {
-        const mensaje = urlParams.get('mensaje');
-        let textoMensaje = '';
-        
-        switch (mensaje) {
-            case 'edificio_agregado':
-                textoMensaje = 'Edificio agregado correctamente.';
-                break;
-            case 'edificio_actualizado':
-                textoMensaje = 'Edificio actualizado correctamente.';
-                break;
-            case 'edificio_eliminado':
-                textoMensaje = 'Edificio eliminado correctamente.';
-                break;
-            case 'cuarto_agregado':
-                textoMensaje = 'Cuarto registrado correctamente.';
-                break;
-            case 'cuarto_actualizado':
-                textoMensaje = 'Cuarto actualizado correctamente.';
-                break;
-            case 'cuarto_eliminado':
-                textoMensaje = 'Cuarto eliminado correctamente.';
-                break;
-            case 'mantenimiento_agregado':
-                textoMensaje = 'Mantenimiento registrado correctamente.';
-                break;
-            // No hay caso específico para 'mantenimiento_actualizado' o 'eliminado', se usa default
-            // case 'mantenimiento_actualizado':
-            //     textoMensaje = 'Mantenimiento actualizado correctamente.';
-            //     break;
-            // case 'mantenimiento_eliminado':
-            //     textoMensaje = 'Mantenimiento eliminado correctamente.';
-            //     break;
-            default:
-                textoMensaje = 'Operación completada correctamente.';
-        }
-        
-        // Usar notificación más moderna si está disponible (ej. Toastify, SweetAlert) o alert simple
-        // electronSafeAlert(textoMensaje); 
-        console.log("Mensaje:", textoMensaje); // Log para depuración
+  const urlParams = new URLSearchParams(window.location.search);
+
+  // Mensajes de éxito
+  if (urlParams.has('mensaje')) {
+    const mensaje = urlParams.get('mensaje');
+    let textoMensaje = '';
+
+    switch (mensaje) {
+      case 'edificio_agregado':
+        textoMensaje = 'Edificio agregado correctamente.';
+        break;
+      case 'edificio_actualizado':
+        textoMensaje = 'Edificio actualizado correctamente.';
+        break;
+      case 'edificio_eliminado':
+        textoMensaje = 'Edificio eliminado correctamente.';
+        break;
+      case 'cuarto_agregado':
+        textoMensaje = 'Cuarto registrado correctamente.';
+        break;
+      case 'cuarto_actualizado':
+        textoMensaje = 'Cuarto actualizado correctamente.';
+        break;
+      case 'cuarto_eliminado':
+        textoMensaje = 'Cuarto eliminado correctamente.';
+        break;
+      case 'mantenimiento_agregado':
+        textoMensaje = 'Mantenimiento registrado correctamente.';
+        break;
+      // No hay caso específico para 'mantenimiento_actualizado' o 'eliminado', se usa default
+      // case 'mantenimiento_actualizado':
+      //     textoMensaje = 'Mantenimiento actualizado correctamente.';
+      //     break;
+      // case 'mantenimiento_eliminado':
+      //     textoMensaje = 'Mantenimiento eliminado correctamente.';
+      //     break;
+      default:
+        textoMensaje = 'Operación completada correctamente.';
     }
-    
-    // Mensajes de error
-    if (urlParams.has('error')) {
-        const error = urlParams.get('error');
-        let textoError = '';
-        
-        textoError = {
-            'nombre_vacio': 'El nombre no puede estar vacío.',
-            'edificio_existe': 'Ya existe un edificio con ese nombre.',
-            'edificio_con_cuartos': 'No se puede eliminar el edificio porque tiene cuartos asociados.',
-            'cuarto_existe': 'Ya existe un cuarto con ese nombre en el mismo edificio.',
-            'datos_incompletos': 'Por favor, complete todos los campos obligatorios.',
-            'hora_obligatoria': 'Para las alertas, la hora es obligatoria.',
-            'error_sql': 'Error en la base de datos. Por favor, intente de nuevo.',
-            'default': 'Ha ocurrido un error. Por favor, intente de nuevo.',
-        }
-        
-        textoError = textoError[error] || textoError['default'];
-        
-        // Usar notificación más moderna o alert simple
-        electronSafeAlert(textoError); // Mostrar errores importantes al usuario
-        console.error("Error:", textoError); // Log para depuración
-    }
-    
-    // Limpiar parámetros de URL después de mostrar mensajes
-    if (urlParams.has('mensaje') || urlParams.has('error')) {
-        const path = window.location.pathname;
-        window.history.replaceState({}, document.title, path);
-    }
+
+    // Usar notificación más moderna si está disponible (ej. Toastify, SweetAlert) o alert simple
+    // electronSafeAlert(textoMensaje);
+    console.log('Mensaje:', textoMensaje); // Log para depuración
+  }
+
+  // Mensajes de error
+  if (urlParams.has('error')) {
+    const error = urlParams.get('error');
+    let textoError = '';
+
+    textoError = {
+      nombre_vacio: 'El nombre no puede estar vacío.',
+      edificio_existe: 'Ya existe un edificio con ese nombre.',
+      edificio_con_cuartos:
+        'No se puede eliminar el edificio porque tiene cuartos asociados.',
+      cuarto_existe: 'Ya existe un cuarto con ese nombre en el mismo edificio.',
+      datos_incompletos: 'Por favor, complete todos los campos obligatorios.',
+      hora_obligatoria: 'Para las alertas, la hora es obligatoria.',
+      error_sql: 'Error en la base de datos. Por favor, intente de nuevo.',
+      default: 'Ha ocurrido un error. Por favor, intente de nuevo.',
+    };
+
+    textoError = textoError[error] || textoError['default'];
+
+    // Usar notificación más moderna o alert simple
+    electronSafeAlert(textoError); // Mostrar errores importantes al usuario
+    console.error('Error:', textoError); // Log para depuración
+  }
+
+  // Limpiar parámetros de URL después de mostrar mensajes
+  if (urlParams.has('mensaje') || urlParams.has('error')) {
+    const path = window.location.pathname;
+    window.history.replaceState({}, document.title, path);
+  }
 }
 
 // Función para alternar visibilidad de mantenimientos
 function toggleMantenimientos(idCuarto, btnToggle) {
-    const listaMantenimientos = document.getElementById(`mantenimientos-${idCuarto}`);
-    const cuartoCard = document.getElementById(`cuarto-${idCuarto}`); // Obtener la tarjeta del cuarto
+  const listaMantenimientos = document.getElementById(
+    `mantenimientos-${idCuarto}`
+  );
+  const cuartoCard = document.getElementById(`cuarto-${idCuarto}`); // Obtener la tarjeta del cuarto
 
-    if (listaMantenimientos.style.display === 'none' || listaMantenimientos.style.display === '') {
-        listaMantenimientos.style.display = 'block';
-        btnToggle.textContent = 'Ocultar Mantenimientos';
-        // Opcional: Scroll suave para asegurar que la lista sea visible si se abre hacia abajo
-        // setTimeout(() => { // Pequeño delay para permitir que se muestre
-        //     listaMantenimientos.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        // }, 100);
-    } else {
-        listaMantenimientos.style.display = 'none';
-        btnToggle.textContent = 'Mostrar Mantenimientos';
-    }
+  if (
+    listaMantenimientos.style.display === 'none' ||
+    listaMantenimientos.style.display === ''
+  ) {
+    listaMantenimientos.style.display = 'block';
+    btnToggle.textContent = 'Ocultar Mantenimientos';
+    // Opcional: Scroll suave para asegurar que la lista sea visible si se abre hacia abajo
+    // setTimeout(() => { // Pequeño delay para permitir que se muestre
+    //     listaMantenimientos.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // }, 100);
+  } else {
+    listaMantenimientos.style.display = 'none';
+    btnToggle.textContent = 'Mostrar Mantenimientos';
+  }
 }
 
 // --- ELIMINADAS FUNCIONES DE MODAL ANTIGUAS ---
@@ -159,6 +173,6 @@ function toggleMantenimientos(idCuarto, btnToggle) {
 
 // Configurar búsqueda en tiempo real - DESHABILITADO
 function configurarBusquedaTiempoReal() {
-    // La búsqueda se maneja ahora en script_index.js
-    console.log('Búsqueda delegada a script_index.js');
+  // La búsqueda se maneja ahora en script_index.js
+  console.log('Búsqueda delegada a script_index.js');
 }

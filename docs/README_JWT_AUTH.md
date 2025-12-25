@@ -28,6 +28,7 @@ Rol: ADMIN
 ```
 
 Este administrador es el contacto para:
+
 - Registro de nuevos usuarios
 - Recuperación de contraseñas
 - Solicitudes de acceso
@@ -42,6 +43,7 @@ npm install
 ```
 
 Esto instalará:
+
 - `jsonwebtoken` - Para manejo de JWT
 - `bcrypt` - Para hashing de contraseñas (respaldo)
 - `pg` - Cliente PostgreSQL
@@ -75,6 +77,7 @@ psql -U postgres -d jwm_mantenimiento
 ```
 
 Esto creará:
+
 - Extensión pgcrypto para hashing
 - Tablas de usuarios, sesiones, auditoría
 - Usuario admin por defecto
@@ -85,6 +88,7 @@ Esto creará:
 ### Públicos (No requieren autenticación)
 
 #### 1. Login
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -96,6 +100,7 @@ Content-Type: application/json
 ```
 
 **Respuesta Exitosa:**
+
 ```json
 {
   "success": true,
@@ -108,7 +113,7 @@ Content-Type: application/json
     "departamento": "Administración General",
     "telefono": "+52 624 237 1063",
     "rol": "ADMIN",
-    "permisos": {"all": true}
+    "permisos": { "all": true }
   },
   "tokens": {
     "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
@@ -121,6 +126,7 @@ Content-Type: application/json
 ```
 
 #### 2. Refrescar Token
+
 ```http
 POST /api/auth/refresh
 Content-Type: application/json
@@ -131,11 +137,13 @@ Content-Type: application/json
 ```
 
 #### 3. Contacto Administrador
+
 ```http
 GET /api/auth/contacto-admin
 ```
 
 #### 4. Solicitar Acceso
+
 ```http
 POST /api/auth/solicitar-acceso
 Content-Type: application/json
@@ -152,6 +160,7 @@ Content-Type: application/json
 ### Protegidos (Requieren JWT)
 
 #### 5. Logout
+
 ```http
 POST /api/auth/logout
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -163,6 +172,7 @@ Content-Type: application/json
 ```
 
 #### 6. Información del Usuario
+
 ```http
 GET /api/auth/me
 Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
@@ -179,8 +189,8 @@ const response = await fetch('/api/auth/login', {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     email: 'fcruz@grupodiestra.com',
-    password: 'fcl1020'
-  })
+    password: 'fcl1020',
+  }),
 });
 
 const data = await response.json();
@@ -200,15 +210,15 @@ if (data.success) {
 // Función helper (ya incluida en login-jwt.js)
 async function fetchWithAuth(url, options = {}) {
   const accessToken = localStorage.getItem('accessToken');
-  
+
   const headers = {
     ...options.headers,
-    'Authorization': `Bearer ${accessToken}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
   };
-  
+
   const response = await fetch(url, { ...options, headers });
-  
+
   // Si token expiró, refrescar automáticamente
   if (response.status === 401) {
     await refreshAccessToken();
@@ -217,7 +227,7 @@ async function fetchWithAuth(url, options = {}) {
     headers['Authorization'] = `Bearer ${newToken}`;
     return await fetch(url, { ...options, headers });
   }
-  
+
   return response;
 }
 
@@ -230,18 +240,18 @@ const cuartos = await fetchWithAuth('/api/cuartos');
 ```javascript
 async function logout() {
   const refreshToken = localStorage.getItem('refreshToken');
-  
+
   await fetchWithAuth('/api/auth/logout', {
     method: 'POST',
-    body: JSON.stringify({ refreshToken })
+    body: JSON.stringify({ refreshToken }),
   });
-  
+
   // Limpiar localStorage
   localStorage.removeItem('accessToken');
   localStorage.removeItem('refreshToken');
   localStorage.removeItem('tokenExpiration');
   localStorage.removeItem('currentUser');
-  
+
   // Redirigir a login
   window.location.href = 'login.html';
 }
@@ -316,6 +326,7 @@ SELECT verificar_password('mi_contraseña', password_hash);
 ### Auditoría
 
 Todas las acciones se registran automáticamente:
+
 - Login/Logout
 - Intentos fallidos
 - Cambios de contraseña
@@ -333,8 +344,8 @@ SELECT * FROM vista_sesiones_activas;
 ### Ver Auditoría de un Usuario
 
 ```sql
-SELECT * FROM vista_actividad_reciente 
-WHERE usuario_id = 1 
+SELECT * FROM vista_actividad_reciente
+WHERE usuario_id = 1
 ORDER BY fecha_hora DESC;
 ```
 
@@ -347,8 +358,8 @@ SELECT * FROM obtener_estadisticas_usuarios();
 ### Cerrar Todas las Sesiones de un Usuario
 
 ```sql
-UPDATE sesiones_usuarios 
-SET activa = FALSE, 
+UPDATE sesiones_usuarios
+SET activa = FALSE,
     fecha_logout = CURRENT_TIMESTAMP,
     cerrada_por = 'admin'
 WHERE usuario_id = 5 AND activa = TRUE;

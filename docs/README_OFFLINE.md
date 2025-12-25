@@ -7,18 +7,21 @@ La aplicación JW Mantto ha sido **completamente modificada** para funcionar al 
 ## ✅ Funcionalidades Implementadas
 
 ### 🔧 Sistema Offline
+
 - ✅ **Base de datos SQLite local** - Almacena todos los datos en el dispositivo
 - ✅ **IPC (Inter-Process Communication)** - Comunicación directa entre frontend y backend sin HTTP
 - ✅ **Datos iniciales automáticos** - Crea cuartos, edificios y mantenimientos de ejemplo
 - ✅ **Detección automática de entorno** - Carga el módulo correcto según el entorno
 
 ### 📊 Gestión de Datos
+
 - ✅ **Cuartos**: CRUD completo (Crear, Leer, Actualizar, Eliminar)
 - ✅ **Edificios**: Gestión de edificios del hotel
 - ✅ **Mantenimientos**: Registro de averías y alertas rutinarias
 - ✅ **Persistencia**: Todos los datos se guardan localmente en SQLite
 
 ### 🔔 Sistema de Notificaciones
+
 - ✅ **Alertas automáticas** - Notificaciones basadas en hora y fecha
 - ✅ **Sonido de alerta** - Audio cuando se activa una notificación
 - ✅ **Notificaciones del navegador** - Alertas visuales del sistema
@@ -39,6 +42,7 @@ npm run electron
 ### 2. Verificar Funcionamiento
 
 Cuando la aplicación inicie, verás en la consola:
+
 ```
 🎯 Manejadores IPC registrados para modo offline
 💾 Inicializando base de datos offline...
@@ -83,11 +87,13 @@ La aplicación ahora permite:
 **Ubicación**: `~/Library/Application Support/jw-mantto/finest_mant_cuartos.db`
 
 **Tablas**:
+
 - `edificios` - Información de edificios del hotel
 - `cuartos` - Habitaciones con referencias a edificios
 - `mantenimientos` - Registros de averías y alertas rutinarias
 
 **Datos Iniciales**:
+
 - 3 edificios (A, B, C)
 - 65 cuartos (101-120, 201-230, 301-315)
 - 5 mantenimientos de ejemplo
@@ -116,16 +122,21 @@ npm start
 ## 🐛 Troubleshooting
 
 ### Problema: "Base de datos no disponible"
+
 **Solución**: Verificar que la aplicación se ejecute con `npm run electron` y no desde navegador web.
 
 ### Problema: No aparecen los datos
-**Solución**: 
+
+**Solución**:
+
 1. Verificar en la consola que dice "Base de datos inicializada correctamente"
 2. Comprobar que el archivo de BD se creó en la ruta indicada
 3. Reiniciar la aplicación
 
 ### Problema: Errores de IPC
-**Solución**: 
+
+**Solución**:
+
 1. Verificar que `nodeIntegration: true` en electron-main.js
 2. Confirmar que se usa `electron-app-loader.js` y no `app-loader.js`
 3. Verificar que todos los manejadores IPC estén registrados
@@ -133,6 +144,7 @@ npm start
 ## 📱 Funcionalidades Offline
 
 ### ✅ Lo que funciona 100% offline:
+
 - Gestión completa de cuartos y mantenimientos
 - Sistema de alertas y notificaciones
 - Búsqueda y filtrado de datos
@@ -140,12 +152,14 @@ npm start
 - Interfaz gráfica completa
 
 ### ❌ Lo que requiere internet (opcional):
+
 - Actualizaciones de la aplicación
 - Sincronización con sistemas externos (no implementado)
 
 ## 🔒 Seguridad
 
 La aplicación funciona completamente offline, por lo que:
+
 - ✅ **Datos seguros**: Todo se almacena localmente
 - ✅ **Sin conexiones externas**: No hay transferencia de datos
 - ✅ **Control total**: El usuario tiene control completo de sus datos
@@ -153,12 +167,14 @@ La aplicación funciona completamente offline, por lo que:
 ## 🎯 Resultado Final
 
 **La aplicación JW Mantto ahora es 100% offline y funciona sin necesidad de:**
+
 - ❌ Conexión a internet
 - ❌ Servidor web (Apache/XAMPP)
 - ❌ Servicios en la nube
 - ❌ Configuración de red
 
 **Solo necesitas:**
+
 - ✅ Tener Node.js instalado
 - ✅ Ejecutar `npm run electron`
 - ✅ ¡La aplicación funciona completamente!
@@ -166,6 +182,7 @@ La aplicación funciona completamente offline, por lo que:
 ## 📞 Soporte
 
 Para cualquier problema o duda:
+
 1. Verificar los logs en la consola de Electron
 2. Comprobar que los archivos estén en su lugar
 3. Reiniciar la aplicación si es necesario

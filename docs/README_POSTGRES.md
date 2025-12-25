@@ -67,6 +67,7 @@ npm install
 ```
 
 Esto instalará las nuevas dependencias:
+
 - `pg` - Driver de PostgreSQL para Node.js
 - `dotenv` - Gestión de variables de entorno
 
@@ -224,14 +225,14 @@ heroku config:get DATABASE_URL
 ```javascript
 // Si existe DATABASE_URL (Heroku), usarla
 if (process.env.DATABASE_URL) {
-    const { parse } = require('pg-connection-string');
-    const config = parse(process.env.DATABASE_URL);
-    dbConfig.host = config.host;
-    dbConfig.port = config.port;
-    dbConfig.database = config.database;
-    dbConfig.user = config.user;
-    dbConfig.password = config.password;
-    dbConfig.ssl = { rejectUnauthorized: false };
+  const { parse } = require('pg-connection-string');
+  const config = parse(process.env.DATABASE_URL);
+  dbConfig.host = config.host;
+  dbConfig.port = config.port;
+  dbConfig.database = config.database;
+  dbConfig.user = config.user;
+  dbConfig.password = config.password;
+  dbConfig.ssl = { rejectUnauthorized: false };
 }
 ```
 
@@ -313,7 +314,8 @@ CREATE DATABASE jwmantto;
 
 ### Error: "Connection timeout"
 
-**Solución**: 
+**Solución**:
+
 - Verifica que PostgreSQL esté corriendo: `brew services list` (macOS)
 - Verifica el puerto: `lsof -i :5432`
 - Ajusta `DB_CONNECTION_TIMEOUT` en `.env`

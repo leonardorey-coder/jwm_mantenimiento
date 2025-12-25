@@ -179,56 +179,61 @@ app-loader.js recarga datos y actualiza UI
 
 ### api/edificios.js
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/edificios` | Obtener todos los edificios |
-| GET | `/api/edificios/:id` | Obtener edificio específico |
+| Método | Endpoint             | Descripción                 |
+| ------ | -------------------- | --------------------------- |
+| GET    | `/api/edificios`     | Obtener todos los edificios |
+| GET    | `/api/edificios/:id` | Obtener edificio específico |
 
 ### api/cuartos.js
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/cuartos` | Obtener todos los cuartos |
-| GET | `/api/cuartos/:id` | Obtener cuarto específico |
-| POST | `/api/cuartos` | Crear nuevo cuarto |
-| PUT | `/api/cuartos/:id` | Actualizar cuarto |
-| DELETE | `/api/cuartos/:id` | Eliminar cuarto |
+| Método | Endpoint           | Descripción               |
+| ------ | ------------------ | ------------------------- |
+| GET    | `/api/cuartos`     | Obtener todos los cuartos |
+| GET    | `/api/cuartos/:id` | Obtener cuarto específico |
+| POST   | `/api/cuartos`     | Crear nuevo cuarto        |
+| PUT    | `/api/cuartos/:id` | Actualizar cuarto         |
+| DELETE | `/api/cuartos/:id` | Eliminar cuarto           |
 
 ### api/mantenimientos.js
 
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| GET | `/api/mantenimientos` | Obtener todos los mantenimientos |
-| GET | `/api/mantenimientos?cuarto_id=X` | Filtrar por cuarto |
-| GET | `/api/mantenimientos/:id` | Obtener mantenimiento específico |
-| POST | `/api/mantenimientos` | Crear nuevo mantenimiento |
-| PUT | `/api/mantenimientos/:id` | Actualizar mantenimiento |
-| PATCH | `/api/mantenimientos/:id/emitir` | Marcar alerta como emitida |
-| DELETE | `/api/mantenimientos/:id` | Eliminar mantenimiento |
+| Método | Endpoint                          | Descripción                      |
+| ------ | --------------------------------- | -------------------------------- |
+| GET    | `/api/mantenimientos`             | Obtener todos los mantenimientos |
+| GET    | `/api/mantenimientos?cuarto_id=X` | Filtrar por cuarto               |
+| GET    | `/api/mantenimientos/:id`         | Obtener mantenimiento específico |
+| POST   | `/api/mantenimientos`             | Crear nuevo mantenimiento        |
+| PUT    | `/api/mantenimientos/:id`         | Actualizar mantenimiento         |
+| PATCH  | `/api/mantenimientos/:id/emitir`  | Marcar alerta como emitida       |
+| DELETE | `/api/mantenimientos/:id`         | Eliminar mantenimiento           |
 
 ## Ventajas de la Arquitectura Modular
 
 ### ✅ Separación de Responsabilidades
+
 - Cada módulo maneja un recurso específico
 - Fácil de entender y mantener
 - Código más limpio y organizado
 
 ### ✅ Escalabilidad
+
 - Agregar nuevos recursos es simple: crear nuevo archivo en `api/`
 - No modifica el código existente
 - Sigue principio Open/Closed
 
 ### ✅ Reutilización
+
 - Los módulos pueden ser reutilizados en otros proyectos
 - Cada endpoint es independiente
 - Fácil testing unitario
 
 ### ✅ Mantenibilidad
+
 - Bugs son más fáciles de localizar
 - Cambios en un recurso no afectan otros
 - Documentación por módulo
 
 ### ✅ Trabajo en Equipo
+
 - Diferentes desarrolladores pueden trabajar en diferentes módulos
 - Menos conflictos en Git
 - División clara de tareas
@@ -236,6 +241,7 @@ app-loader.js recarga datos y actualiza UI
 ## Comparación: Antes vs Después
 
 ### ANTES (Monolítico)
+
 ```javascript
 // server.js - 384 líneas con TODO mezclado
 
@@ -250,6 +256,7 @@ app.delete('/api/mantenimientos/:id', async (req, res) => { ... });
 ```
 
 **Problemas:**
+
 - ❌ Difícil de navegar
 - ❌ Todo en un archivo
 - ❌ Difícil de testear
@@ -266,6 +273,7 @@ api/mantenimientos.js → 250 líneas - Lógica de mantenimientos
 ```
 
 **Ventajas:**
+
 - ✅ Cada archivo con propósito único
 - ✅ Fácil de navegar
 - ✅ Fácil de testear módulo por módulo
@@ -282,26 +290,26 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (dbManager) => {
-    // GET /api/empleados
-    router.get('/', async (req, res) => {
-        try {
-            if (dbManager) {
-                const empleados = await dbManager.getEmpleados();
-                res.json(empleados);
-            } else {
-                res.status(500).json({ error: 'BD no disponible' });
-            }
-        } catch (error) {
-            res.status(500).json({ error: error.message });
-        }
-    });
-    
-    // POST /api/empleados
-    router.post('/', async (req, res) => {
-        // ... lógica de creación
-    });
-    
-    return router;
+  // GET /api/empleados
+  router.get('/', async (req, res) => {
+    try {
+      if (dbManager) {
+        const empleados = await dbManager.getEmpleados();
+        res.json(empleados);
+      } else {
+        res.status(500).json({ error: 'BD no disponible' });
+      }
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // POST /api/empleados
+  router.post('/', async (req, res) => {
+    // ... lógica de creación
+  });
+
+  return router;
 };
 ```
 
@@ -311,8 +319,8 @@ module.exports = (dbManager) => {
 const empleadosRouter = require('./empleados');
 
 function setupApiRoutes(app, dbManager) {
-    // ... rutas existentes
-    app.use('/api/empleados', empleadosRouter(dbManager));
+  // ... rutas existentes
+  app.use('/api/empleados', empleadosRouter(dbManager));
 }
 ```
 
@@ -339,28 +347,26 @@ const request = require('supertest');
 const app = require('../server');
 
 describe('API de Cuartos', () => {
-    test('GET /api/cuartos retorna array', async () => {
-        const response = await request(app)
-            .get('/api/cuartos')
-            .expect(200);
-        
-        expect(Array.isArray(response.body)).toBe(true);
-    });
-    
-    test('POST /api/cuartos crea nuevo cuarto', async () => {
-        const nuevoCuarto = {
-            numero: '999',
-            edificio_id: 1
-        };
-        
-        const response = await request(app)
-            .post('/api/cuartos')
-            .send(nuevoCuarto)
-            .expect(201);
-        
-        expect(response.body).toHaveProperty('id');
-        expect(response.body.numero).toBe('999');
-    });
+  test('GET /api/cuartos retorna array', async () => {
+    const response = await request(app).get('/api/cuartos').expect(200);
+
+    expect(Array.isArray(response.body)).toBe(true);
+  });
+
+  test('POST /api/cuartos crea nuevo cuarto', async () => {
+    const nuevoCuarto = {
+      numero: '999',
+      edificio_id: 1,
+    };
+
+    const response = await request(app)
+      .post('/api/cuartos')
+      .send(nuevoCuarto)
+      .expect(201);
+
+    expect(response.body).toHaveProperty('id');
+    expect(response.body.numero).toBe('999');
+  });
 });
 ```
 
@@ -386,4 +392,3 @@ describe('API de Cuartos', () => {
 **Fecha de creación:** 2025-11-10  
 **Última actualización:** 2025-11-10  
 **Versión:** 1.0
-

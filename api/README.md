@@ -24,6 +24,7 @@ GET /api/health
 Verifica el estado del servidor y la conexión a la base de datos.
 
 **Respuesta exitosa:**
+
 ```json
 {
   "status": "ok",
@@ -43,6 +44,7 @@ GET /api/edificios
 ```
 
 **Respuesta exitosa:**
+
 ```json
 [
   {
@@ -60,9 +62,11 @@ GET /api/edificios/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del edificio
 
 **Respuesta exitosa:**
+
 ```json
 {
   "id": 1,
@@ -82,6 +86,7 @@ GET /api/cuartos
 ```
 
 **Respuesta exitosa:**
+
 ```json
 [
   {
@@ -102,6 +107,7 @@ GET /api/cuartos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del cuarto
 
 #### Crear un nuevo cuarto
@@ -111,6 +117,7 @@ POST /api/cuartos
 ```
 
 **Body (JSON):**
+
 ```json
 {
   "numero": "102",
@@ -121,10 +128,12 @@ POST /api/cuartos
 ```
 
 **Campos obligatorios:**
+
 - `numero` (string)
 - `edificio_id` (number)
 
 **Respuesta exitosa:** `201 Created`
+
 ```json
 {
   "id": 2,
@@ -142,9 +151,11 @@ PUT /api/cuartos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del cuarto
 
 **Body (JSON):**
+
 ```json
 {
   "numero": "102",
@@ -161,6 +172,7 @@ DELETE /api/cuartos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del cuarto
 
 ---
@@ -174,9 +186,11 @@ GET /api/mantenimientos
 ```
 
 **Query params (opcionales):**
+
 - `cuarto_id` (number): Filtrar por cuarto específico
 
 **Respuesta exitosa:**
+
 ```json
 [
   {
@@ -202,6 +216,7 @@ GET /api/mantenimientos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del mantenimiento
 
 #### Crear un nuevo mantenimiento
@@ -211,6 +226,7 @@ POST /api/mantenimientos
 ```
 
 **Body (JSON) - Avería normal:**
+
 ```json
 {
   "cuarto_id": 1,
@@ -220,6 +236,7 @@ POST /api/mantenimientos
 ```
 
 **Body (JSON) - Alerta/Rutina:**
+
 ```json
 {
   "cuarto_id": 1,
@@ -231,6 +248,7 @@ POST /api/mantenimientos
 ```
 
 **Campos obligatorios:**
+
 - `cuarto_id` (number)
 - `descripcion` (string)
 - `tipo` (string): "normal" o "rutina"
@@ -246,9 +264,11 @@ PUT /api/mantenimientos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del mantenimiento
 
 **Body (JSON):**
+
 ```json
 {
   "descripcion": "Limpieza profunda y desinfección",
@@ -268,11 +288,13 @@ PATCH /api/mantenimientos/:id/emitir
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del mantenimiento
 
 Este endpoint marca una alerta como emitida cuando el sistema de notificaciones la ha mostrado al usuario.
 
 **Respuesta exitosa:**
+
 ```json
 {
   "success": true,
@@ -287,9 +309,11 @@ DELETE /api/mantenimientos/:id
 ```
 
 **Parámetros:**
+
 - `id` (number): ID del mantenimiento
 
 **Respuesta exitosa:**
+
 ```json
 {
   "success": true,
@@ -326,25 +350,29 @@ Todos los endpoints devuelven errores en el siguiente formato:
 
 ```javascript
 // Obtener todos los cuartos
-const cuartos = await fetch('http://localhost:3001/api/cuartos')
-  .then(res => res.json());
+const cuartos = await fetch('http://localhost:3001/api/cuartos').then((res) =>
+  res.json()
+);
 
 // Crear un mantenimiento
-const nuevoMantenimiento = await fetch('http://localhost:3001/api/mantenimientos', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json'
-  },
-  body: JSON.stringify({
-    cuarto_id: 1,
-    tipo: 'normal',
-    descripcion: 'Cambiar bombillas'
-  })
-}).then(res => res.json());
+const nuevoMantenimiento = await fetch(
+  'http://localhost:3001/api/mantenimientos',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      cuarto_id: 1,
+      tipo: 'normal',
+      descripcion: 'Cambiar bombillas',
+    }),
+  }
+).then((res) => res.json());
 
 // Eliminar un mantenimiento
 await fetch('http://localhost:3001/api/mantenimientos/5', {
-  method: 'DELETE'
+  method: 'DELETE',
 });
 ```
 
@@ -395,4 +423,3 @@ Todas las peticiones se registran en la consola con timestamp, método HTTP y UR
 - **Entrada**: Las fechas se aceptan en formato ISO 8601 (YYYY-MM-DD)
 - **Salida**: Las fechas se devuelven en formato ISO 8601 completo con timestamp
 - **día_alerta**: Se almacena como número (1-31) representando el día del mes
-

@@ -3,6 +3,7 @@
 ## 📋 Resumen
 
 Se han creado esquemas completos de base de datos para el sistema JW Mantto basados en:
+
 - ✅ Diagrama de Clases del sistema
 - ✅ Implementaciones actuales de las APIs
 - ✅ Nuevas funcionalidades requeridas
@@ -12,6 +13,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
 ### 1. Esquemas SQL
 
 #### `/db/esquema_postgres_2025-11-11.sql` (Básico)
+
 - **Tamaño:** ~100 líneas
 - **Contenido:** Esquema básico con tablas principales
 - **Incluye:**
@@ -21,6 +23,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
   - Datos de ejemplo
 
 #### `/db/esquema_completo_2025-11-11.sql` (Completo) ⭐
+
 - **Tamaño:** ~800 líneas
 - **Contenido:** Esquema completo según diagrama de clases
 - **Incluye:**
@@ -38,6 +41,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
   - ✅ Datos de ejemplo completos
 
 #### `/db/migracion_esquema_completo_2025-11-11.sql` (Migración)
+
 - **Tamaño:** ~600 líneas
 - **Contenido:** Script de migración para BD existente
 - **Incluye:**
@@ -52,6 +56,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
 ### 2. Documentación
 
 #### `/docs/ESQUEMA_BD_COMPLETO.md`
+
 - **Tamaño:** ~500 líneas
 - **Contenido:** Documentación detallada del esquema
 - **Secciones:**
@@ -66,6 +71,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
   - Notas de implementación
 
 #### `/docs/DIAGRAMA_BD_COMPLETO.md`
+
 - **Tamaño:** ~700 líneas
 - **Contenido:** Diagrama visual de la base de datos
 - **Secciones:**
@@ -82,6 +88,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
   - Consideraciones de seguridad
 
 #### `/db/README_ESQUEMAS.md`
+
 - **Tamaño:** ~400 líneas
 - **Contenido:** Guía de instalación y uso
 - **Secciones:**
@@ -97,6 +104,7 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
   - Solución de problemas
 
 #### `/README.md` (Actualizado)
+
 - Agregada sección de documentación de base de datos
 - Enlaces a todos los documentos nuevos
 
@@ -107,12 +115,14 @@ Se han creado esquemas completos de base de datos para el sistema JW Mantto basa
 **Tabla:** `configuracion_estados`
 
 Estados predefinidos:
+
 - 🟢 **Disponible** - Verde (#4CAF50)
 - 🔵 **Ocupado** - Azul (#2196F3)
 - 🟠 **Mantenimiento** - Naranja (#FF9800)
 - ⚫ **Fuera de Servicio** - Gris (#616161)
 
 **Características:**
+
 - Colores hexadecimales
 - Colores secundarios para fondos
 - Iconos emoji
@@ -124,6 +134,7 @@ Estados predefinidos:
 **Tabla:** `espacios_comunes`
 
 **Tipos de espacios:**
+
 - Gimnasio
 - Piscina
 - Restaurante
@@ -131,6 +142,7 @@ Estados predefinidos:
 - Spa
 
 **Características:**
+
 - Estados con colores (igual que cuartos)
 - Capacidad
 - Horarios de apertura/cierre
@@ -142,11 +154,13 @@ Estados predefinidos:
 **Tablas:** `roles`, `usuarios`
 
 **Roles predefinidos:**
+
 - **ADMIN** - Administrador (todos los permisos)
 - **SUPERVISOR** - Supervisor (lectura, escritura, aprobación)
 - **TECNICO** - Técnico (lectura, escritura)
 
 **Características:**
+
 - Autenticación con contraseña hasheada (bcrypt)
 - Permisos en formato JSON
 - Control de acceso
@@ -157,6 +171,7 @@ Estados predefinidos:
 **Tabla:** `inspecciones`
 
 **Características:**
+
 - Asignación de técnico
 - Resultado (aprobado/rechazado/requiere_seguimiento)
 - Observaciones
@@ -168,6 +183,7 @@ Estados predefinidos:
 **Tablas:** `checklists`, `checklist_items`
 
 **Características:**
+
 - Listas de verificación por inspección
 - Items obligatorios y opcionales
 - Cálculo automático de progreso
@@ -179,12 +195,14 @@ Estados predefinidos:
 **Tabla:** `evidencias`
 
 **Tipos soportados:**
+
 - Fotos
 - Videos
 - Archivos
 - Audio
 
 **Características:**
+
 - URL de almacenamiento
 - Metadata (nombre, tamaño, MIME type)
 - Descripción
@@ -195,6 +213,7 @@ Estados predefinidos:
 **Tabla:** `firmas_digitales`
 
 **Características:**
+
 - Captura de firma como imagen
 - Nombre y cargo del técnico
 - Timestamp de firma
@@ -203,6 +222,7 @@ Estados predefinidos:
 ### 8. Mejoras en Mantenimientos ✅
 
 **Campos adicionales:**
+
 - `espacio_comun_id` - Soporte para espacios comunes
 - `prioridad` - baja/media/alta/urgente
 - `fecha_inicio` / `fecha_finalizacion` - Control de tiempos
@@ -210,6 +230,7 @@ Estados predefinidos:
 - `costo_estimado` / `costo_real` - Control de costos
 
 **Tipos expandidos:**
+
 - normal
 - rutina
 - preventivo
@@ -221,21 +242,26 @@ Estados predefinidos:
 ### Tablas (12 total)
 
 #### Configuración (2)
+
 1. `configuracion_estados` - Estados con colores
 2. `roles` - Roles del sistema
 
 #### Usuarios (1)
+
 3. `usuarios` - Usuarios del sistema
 
 #### Estructura (3)
+
 4. `edificios` - Edificios del hotel
 5. `cuartos` - Habitaciones
 6. `espacios_comunes` - Áreas comunes
 
 #### Operaciones (1)
+
 7. `mantenimientos` - Registros de mantenimiento
 
 #### Calidad (5)
+
 8. `inspecciones` - Inspecciones realizadas
 9. `checklists` - Listas de verificación
 10. `checklist_items` - Items de checklists
@@ -263,6 +289,7 @@ Estados predefinidos:
 ### Índices (35+)
 
 Índices optimizados para:
+
 - Búsquedas por estado
 - Búsquedas por edificio
 - Búsquedas por usuario
@@ -306,22 +333,22 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 
 ## 📈 Comparación con Esquema Anterior
 
-| Característica | Antes | Ahora |
-|----------------|-------|-------|
-| Tablas | 3 | 12 |
-| Estados con colores | ❌ | ✅ |
-| Espacios comunes | ❌ | ✅ |
-| Usuarios y roles | ❌ | ✅ |
-| Inspecciones | ❌ | ✅ |
-| Checklists | ❌ | ✅ |
-| Evidencias | ❌ | ✅ |
-| Firmas digitales | ❌ | ✅ |
-| Vistas SQL | 0 | 4 |
-| Funciones SQL | 0 | 3 |
-| Triggers | 0 | 2 |
-| Índices | ~5 | 35+ |
-| Prioridades | ❌ | ✅ |
-| Control de costos | ❌ | ✅ |
+| Característica      | Antes | Ahora |
+| ------------------- | ----- | ----- |
+| Tablas              | 3     | 12    |
+| Estados con colores | ❌    | ✅    |
+| Espacios comunes    | ❌    | ✅    |
+| Usuarios y roles    | ❌    | ✅    |
+| Inspecciones        | ❌    | ✅    |
+| Checklists          | ❌    | ✅    |
+| Evidencias          | ❌    | ✅    |
+| Firmas digitales    | ❌    | ✅    |
+| Vistas SQL          | 0     | 4     |
+| Funciones SQL       | 0     | 3     |
+| Triggers            | 0     | 2     |
+| Índices             | ~5    | 35+   |
+| Prioridades         | ❌    | ✅    |
+| Control de costos   | ❌    | ✅    |
 
 ## 🎨 Endpoints API a Implementar
 
@@ -336,17 +363,20 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 ### Por Implementar 📝
 
 #### Espacios Comunes
+
 - `GET /api/espacios-comunes`
 - `POST /api/espacios-comunes`
 - `PATCH /api/espacios-comunes/:id/estado`
 - `GET /api/espacios-comunes/dashboard/estados`
 
 #### Usuarios
+
 - `POST /api/auth/login`
 - `GET /api/usuarios`
 - `POST /api/usuarios`
 
 #### Inspecciones
+
 - `GET /api/inspecciones`
 - `POST /api/inspecciones`
 - `POST /api/inspecciones/:id/checklist`
@@ -356,6 +386,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 ## 📝 Próximos Pasos
 
 ### Backend
+
 1. ✅ Esquema de BD completo
 2. ⏳ APIs de Espacios Comunes
 3. ⏳ APIs de Usuarios y Autenticación
@@ -364,6 +395,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 6. ⏳ APIs de Evidencias
 
 ### Frontend
+
 1. ⏳ Interfaz de Espacios Comunes
 2. ⏳ Dashboard visual con colores
 3. ⏳ Sistema de login
@@ -372,6 +404,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 6. ⏳ Carga de evidencias
 
 ### Infraestructura
+
 1. ⏳ Sistema de autenticación JWT
 2. ⏳ Middleware de permisos
 3. ⏳ Almacenamiento de archivos (S3/local)
@@ -390,6 +423,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 ## ✅ Checklist de Implementación
 
 ### Base de Datos
+
 - [x] Crear esquema básico
 - [x] Crear esquema completo
 - [x] Crear script de migración
@@ -398,6 +432,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 - [x] Crear guía de instalación
 
 ### APIs (Pendiente)
+
 - [ ] API de Espacios Comunes
 - [ ] API de Usuarios
 - [ ] API de Autenticación
@@ -407,6 +442,7 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 - [ ] API de Firmas
 
 ### Frontend (Pendiente)
+
 - [ ] Gestión de Espacios Comunes
 - [ ] Dashboard con colores
 - [ ] Sistema de login
@@ -419,4 +455,3 @@ SELECT * FROM vista_cuartos_completa LIMIT 5;
 **Fecha de creación:** 2025-11-11  
 **Versión del esquema:** 2.0.0  
 **Estado:** ✅ Completo y listo para usar
-
