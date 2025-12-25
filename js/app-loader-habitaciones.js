@@ -381,10 +381,22 @@ function mostrarCuartos() {
         }
     };
 
-    // Ejecutar fallback en 3 tiempos para garantizar renderizado
-    setTimeout(() => renderizarCardsPendientes(1), 100);
-    setTimeout(() => renderizarCardsPendientes(2), 300);
-    setTimeout(() => renderizarCardsPendientes(3), 600);
+    // Ejecutar fallback para garantizar renderizado - optimizado para usar un solo timeout con requestIdleCallback
+    const ejecutarFallbacks = () => {
+        renderizarCardsPendientes(1);
+        if (window.requestIdleCallback) {
+            requestIdleCallback(() => {
+                renderizarCardsPendientes(2);
+                requestIdleCallback(() => renderizarCardsPendientes(3));
+            });
+        } else {
+            setTimeout(() => {
+                renderizarCardsPendientes(2);
+                setTimeout(() => renderizarCardsPendientes(3), 300);
+            }, 200);
+        }
+    };
+    setTimeout(ejecutarFallbacks, 100);
 
     console.log(`🏠 [HABITACIONES] Se procesaron ${procesados} cuartos (página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
     console.log('🏠 [HABITACIONES] === FIN MOSTRANDO CUARTOS ===');

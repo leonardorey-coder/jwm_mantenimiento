@@ -351,8 +351,14 @@ function poblarEdificiosSabana(items) {
     const selectEdificio = document.getElementById('filtroEdificioSabana');
     if (!selectEdificio) return;
 
-    // Obtener edificios únicos
-    const edificios = [...new Set(items.map(item => item.edificio).filter(Boolean))].sort();
+    // Obtener edificios únicos - optimizado para reducir iteraciones
+    const edificiosSet = new Set();
+    for (const item of items) {
+        if (item.edificio) {
+            edificiosSet.add(item.edificio);
+        }
+    }
+    const edificios = [...edificiosSet].sort();
 
     selectEdificio.innerHTML = '<option value="">Todos los edificios</option>';
     edificios.forEach(edificio => {

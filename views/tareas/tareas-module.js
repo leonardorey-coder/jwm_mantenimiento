@@ -3094,35 +3094,38 @@ document.addEventListener('DOMContentLoaded', () => {
         const rolUsuario = obtenerRolUsuarioActual();
         const opcionesActuales = Array.from(selectRolTarea.options);
 
-        // Limpiar opciones existentes excepto "Mi rol" y "Para mí"
-        selectRolTarea.innerHTML = '<option value="para-mi" selected>Para mí</option><option value="mi-rol">Mi rol</option>';
+        // Construir opciones del selector según el rol del usuario
+        let opcionesHTML = '<option value="para-mi" selected>Para mí</option><option value="mi-rol">Mi rol</option>';
 
         if (rolUsuario === 'admin') {
             // Admin puede ver todos los roles
-            selectRolTarea.innerHTML += `
+            opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
         } else if (rolUsuario === 'supervisor') {
             // Supervisor puede ver todos excepto admin
-            selectRolTarea.innerHTML += `
+            opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="tecnico">Técnico</option>
             `;
         } else if (rolUsuario === 'tecnico') {
             // Técnico puede ver todos excepto admin y supervisor
-            selectRolTarea.innerHTML += ``;
+            // No agregar opciones adicionales
         }
         else {
             // Si no se puede determinar el rol, mostrar todas las opciones por defecto
-            selectRolTarea.innerHTML += `
+            opcionesHTML += `
                 <option value="todos">Todos los roles</option>
                 <option value="admin">Administrador</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
         }
+        
+        // Establecer innerHTML una sola vez para evitar múltiples reflows
+        selectRolTarea.innerHTML = opcionesHTML;
 
         selectRolTarea.addEventListener('change', () => {
             // Actualizar el texto del rol en el resumen inmediatamente

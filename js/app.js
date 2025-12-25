@@ -666,108 +666,73 @@ function handleModalDragStart(e) {
 
 // Función para manejar el toggle de filtros en móvil
 function setupFiltrosToggle() {
-    // Toggle para Habitaciones
-    const toggleBtn = document.getElementById('toggleFiltros');
-    const contenedorFiltros = document.getElementById('contenedorFiltros');
+    // Cache de elementos DOM para evitar búsquedas repetidas
+    const domCache = {
+        habitaciones: {
+            toggle: document.getElementById('toggleFiltros'),
+            container: document.getElementById('contenedorFiltros')
+        },
+        espacios: {
+            toggle: document.getElementById('toggleFiltrosEspacios'),
+            container: document.getElementById('contenedorFiltrosEspacios')
+        },
+        sabana: {
+            toggle: document.getElementById('toggleFiltrosSabana'),
+            container: document.getElementById('contenedorFiltrosSabana')
+        },
+        tareas: {
+            toggle: document.getElementById('toggleFiltrosTareas'),
+            container: document.getElementById('contenedorFiltrosTareas')
+        }
+    };
 
-    if (toggleBtn && contenedorFiltros) {
+    // Función helper para configurar un toggle
+    const setupToggle = (elements, storageKey) => {
+        if (!elements.toggle || !elements.container) return;
+
         // Asegurar que empiece cerrado (remover clase 'show' si existe)
-        contenedorFiltros.classList.remove('show');
-        toggleBtn.classList.remove('active');
+        elements.container.classList.remove('show');
+        elements.toggle.classList.remove('active');
 
-        toggleBtn.addEventListener('click', () => {
-            contenedorFiltros.classList.toggle('show');
-            toggleBtn.classList.toggle('active');
+        elements.toggle.addEventListener('click', () => {
+            elements.container.classList.toggle('show');
+            elements.toggle.classList.toggle('active');
 
-            const isOpen = contenedorFiltros.classList.contains('show');
-            localStorage.setItem('filtrosOpen', isOpen);
-            console.log('🔄 Filtros toggled:', isOpen ? 'ABIERTO' : 'CERRADO');
+            const isOpen = elements.container.classList.contains('show');
+            localStorage.setItem(storageKey, isOpen);
+            if (storageKey === 'filtrosOpen') {
+                console.log('🔄 Filtros toggled:', isOpen ? 'ABIERTO' : 'CERRADO');
+            }
         });
 
         // Solo abrir si el usuario lo abrió previamente
-        const filtrosOpen = localStorage.getItem('filtrosOpen');
-        console.log('📱 Estado inicial filtros desde localStorage:', filtrosOpen);
+        const isOpen = localStorage.getItem(storageKey);
+        if (storageKey === 'filtrosOpen') {
+            console.log('📱 Estado inicial filtros desde localStorage:', isOpen);
+        }
 
-        if (filtrosOpen === 'true') {
-            contenedorFiltros.classList.add('show');
-            toggleBtn.classList.add('active');
-            console.log('✅ Filtros abiertos (preferencia guardada)');
-        } else {
+        if (isOpen === 'true') {
+            elements.container.classList.add('show');
+            elements.toggle.classList.add('active');
+            if (storageKey === 'filtrosOpen') {
+                console.log('✅ Filtros abiertos (preferencia guardada)');
+            }
+        } else if (storageKey === 'filtrosOpen') {
             console.log('✅ Filtros cerrados (estado por defecto)');
         }
-    }
+    };
+
+    // Toggle para Habitaciones
+    setupToggle(domCache.habitaciones, 'filtrosOpen');
 
     // Toggle para Espacios Comunes
-    const toggleBtnEspacios = document.getElementById('toggleFiltrosEspacios');
-    const contenedorFiltrosEspacios = document.getElementById('contenedorFiltrosEspacios');
-
-    if (toggleBtnEspacios && contenedorFiltrosEspacios) {
-        // Asegurar que empiece cerrado
-        contenedorFiltrosEspacios.classList.remove('show');
-        toggleBtnEspacios.classList.remove('active');
-
-        toggleBtnEspacios.addEventListener('click', () => {
-            contenedorFiltrosEspacios.classList.toggle('show');
-            toggleBtnEspacios.classList.toggle('active');
-
-            const isOpen = contenedorFiltrosEspacios.classList.contains('show');
-            localStorage.setItem('filtrosEspaciosOpen', isOpen);
-        });
-
-        const filtrosEspaciosOpen = localStorage.getItem('filtrosEspaciosOpen');
-        if (filtrosEspaciosOpen === 'true') {
-            contenedorFiltrosEspacios.classList.add('show');
-            toggleBtnEspacios.classList.add('active');
-        }
-    }
+    setupToggle(domCache.espacios, 'filtrosEspaciosOpen');
 
     // Toggle para Sábana
-    const toggleBtnSabana = document.getElementById('toggleFiltrosSabana');
-    const contenedorFiltrosSabana = document.getElementById('contenedorFiltrosSabana');
-
-    if (toggleBtnSabana && contenedorFiltrosSabana) {
-        // Asegurar que empiece cerrado
-        contenedorFiltrosSabana.classList.remove('show');
-        toggleBtnSabana.classList.remove('active');
-
-        toggleBtnSabana.addEventListener('click', () => {
-            contenedorFiltrosSabana.classList.toggle('show');
-            toggleBtnSabana.classList.toggle('active');
-
-            const isOpen = contenedorFiltrosSabana.classList.contains('show');
-            localStorage.setItem('filtrosSabanaOpen', isOpen);
-        });
-
-        const filtrosSabanaOpen = localStorage.getItem('filtrosSabanaOpen');
-        if (filtrosSabanaOpen === 'true') {
-            contenedorFiltrosSabana.classList.add('show');
-            toggleBtnSabana.classList.add('active');
-        }
-    }
+    setupToggle(domCache.sabana, 'filtrosSabanaOpen');
 
     // Toggle para Tareas
-    const toggleBtnTareas = document.getElementById('toggleFiltrosTareas');
-    const contenedorFiltrosTareas = document.getElementById('contenedorFiltrosTareas');
-
-    if (toggleBtnTareas && contenedorFiltrosTareas) {
-        // Asegurar que empiece cerrado
-        contenedorFiltrosTareas.classList.remove('show');
-        toggleBtnTareas.classList.remove('active');
-
-        toggleBtnTareas.addEventListener('click', () => {
-            contenedorFiltrosTareas.classList.toggle('show');
-            toggleBtnTareas.classList.toggle('active');
-
-            const isOpen = contenedorFiltrosTareas.classList.contains('show');
-            localStorage.setItem('filtrosTareasOpen', isOpen);
-        });
-
-        const filtrosTareasOpen = localStorage.getItem('filtrosTareasOpen');
-        if (filtrosTareasOpen === 'true') {
-            contenedorFiltrosTareas.classList.add('show');
-            toggleBtnTareas.classList.add('active');
-        }
-    }
+    setupToggle(domCache.tareas, 'filtrosTareasOpen');
 }
 
 function setupSearchListeners() {
@@ -1767,15 +1732,16 @@ function poblarFiltroEditoresChecklist() {
         ...editoresSet
     ]);
 
-    // Agregar opciones ordenadas
-    Array.from(todosEditores).filter(Boolean).sort().forEach(editor => {
+    // Agregar opciones ordenadas - optimizado para evitar conversiones innecesarias
+    const editoresArray = [...todosEditores].filter(Boolean).sort();
+    for (const editor of editoresArray) {
         const option = document.createElement('option');
         option.value = editor;
         option.textContent = editor;
         select.appendChild(option);
-    });
+    }
 
-    console.log('👥 [APP.JS] Filtro de editores poblado:', Array.from(todosEditores));
+    console.log('👥 [APP.JS] Filtro de editores poblado:', editoresArray);
 }
 
 /**
@@ -3357,9 +3323,18 @@ async function handleNuevaSeccionSubmit(event) {
         const nuevaCategoria = await responseCategoria.json();
         console.log('✅ Categoría creada en BD:', nuevaCategoria);
 
-        // 2. Agregar ítems si los hay
+        // 2. Agregar ítems si los hay - optimizado para evitar múltiples iteraciones
         const itemsRaw = (itemsInput?.value || '').trim();
-        const itemsArray = itemsRaw ? itemsRaw.split(/[,\n]+/).map(item => item.trim()).filter(Boolean) : [];
+        let itemsArray = [];
+        if (itemsRaw) {
+            const splitItems = itemsRaw.split(/[,\n]+/);
+            for (const item of splitItems) {
+                const trimmed = item.trim();
+                if (trimmed) {
+                    itemsArray.push(trimmed);
+                }
+            }
+        }
 
         for (const itemNombre of itemsArray) {
             try {

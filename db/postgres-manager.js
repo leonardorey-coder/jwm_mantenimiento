@@ -1517,19 +1517,32 @@ class PostgresManager {
      * Obtener tareas con filtros opcionales
      */
     async getTareas(filters = {}) {
+        // Optimized query using LEFT JOINs instead of correlated subqueries to reduce N+1 queries
         let query = `
             SELECT t.*, 
                    uc.nombre as creado_por_nombre,
                    ua.nombre as asignado_a_nombre,
                    ua.rol_id as asignado_a_rol_id,
                    r.nombre as asignado_a_rol_nombre,
-                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id) as total_mantenimientos,
-                   (SELECT COUNT(*) FROM mantenimientos m WHERE m.tarea_id = t.id AND m.estado = 'completado') as mantenimientos_completados,
-                   (SELECT COUNT(*) FROM tareas_adjuntos ta WHERE ta.tarea_id = t.id) as total_adjuntos
+                   COALESCE(mc.total_mantenimientos, 0) as total_mantenimientos,
+                   COALESCE(mc.mantenimientos_completados, 0) as mantenimientos_completados,
+                   COALESCE(ac.total_adjuntos, 0) as total_adjuntos
             FROM tareas t
             LEFT JOIN usuarios uc ON t.creado_por = uc.id
             LEFT JOIN usuarios ua ON t.asignado_a = ua.id
             LEFT JOIN roles r ON ua.rol_id = r.id
+            LEFT JOIN (
+                SELECT tarea_id, 
+                       COUNT(*) as total_mantenimientos,
+                       COUNT(*) FILTER (WHERE estado = 'completado') as mantenimientos_completados
+                FROM mantenimientos
+                GROUP BY tarea_id
+            ) mc ON mc.tarea_id = t.id
+            LEFT JOIN (
+                SELECT tarea_id, COUNT(*) as total_adjuntos
+                FROM tareas_adjuntos
+                GROUP BY tarea_id
+            ) ac ON ac.tarea_id = t.id
             WHERE 1=1
         `;
 
