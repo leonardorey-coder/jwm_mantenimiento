@@ -1636,7 +1636,33 @@ function aplicarFiltrosTareas() {
         }
 
         // Filtro de rol
-        if (rolFiltro === 'mi-rol') {
+        if (rolFiltro === 'para-mi') {
+            // Filtrar por ID del usuario actual (tareas asignadas específicamente a mí)
+            let usuarioIdActual = null;
+            if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
+                usuarioIdActual = window.AppState.currentUser.id;
+            }
+            if (!usuarioIdActual) {
+                try {
+                    const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+                    if (storedUser && storedUser.id) {
+                        usuarioIdActual = storedUser.id;
+                    }
+                } catch (e) {
+                    console.warn('Error obteniendo ID de usuario:', e);
+                }
+            }
+            if (!usuarioIdActual) {
+                console.warn('⚠️ No se pudo obtener el ID del usuario para el filtro "Para mí"');
+                return false;
+            }
+            // Comparar con asignado_a (ID) de la tarea
+            const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
+            console.log('🔍 Filtro "Para mí":', { usuarioIdActual, tareaAsignadaA });
+            if (tareaAsignadaA != usuarioIdActual) {
+                return false;
+            }
+        } else if (rolFiltro === 'mi-rol') {
             if (!rolUsuarioActual) {
                 // Si no se puede determinar el rol del usuario, no mostrar ninguna tarea
                 return false;
@@ -1644,7 +1670,7 @@ function aplicarFiltrosTareas() {
             if (tarea.asignado_a_rol_nombre !== rolUsuarioActual) {
                 return false;
             }
-        } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol') {
+        } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol' && rolFiltro !== 'para-mi') {
             // Los roles en la BD están en MAYÚSCULAS: 'ADMIN', 'SUPERVISOR', 'TECNICO'
             const rolMap = {
                 'admin': 'ADMIN',
@@ -1789,6 +1815,7 @@ function actualizarRolResumen() {
     // Mapeo de valores del filtro a nombres de rol
     const rolMap = {
         'mi-rol': 'Mi Rol',
+        'para-mi': 'Para Mí',
         'todos': 'Todos los Roles',
         'admin': 'Administrador',
         'supervisor': 'Supervisor',
@@ -3067,14 +3094,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const rolUsuario = obtenerRolUsuarioActual();
         const opcionesActuales = Array.from(selectRolTarea.options);
 
-        // Limpiar opciones existentes excepto "Mi rol"
-        selectRolTarea.innerHTML = '<option value="mi-rol" selected>Mi rol</option>';
+        // Limpiar opciones existentes excepto "Mi rol" y "Para mí"
+        selectRolTarea.innerHTML = '<option value="para-mi" selected>Para mí</option><option value="mi-rol">Mi rol</option>';
 
         if (rolUsuario === 'admin') {
             // Admin puede ver todos los roles
             selectRolTarea.innerHTML += `
                 <option value="todos">Todos los roles</option>
-                <option value="admin">Administrador</option>
                 <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
@@ -3082,15 +3108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Supervisor puede ver todos excepto admin
             selectRolTarea.innerHTML += `
                 <option value="todos">Todos los roles</option>
-                <option value="supervisor">Supervisor</option>
                 <option value="tecnico">Técnico</option>
             `;
         } else if (rolUsuario === 'tecnico') {
-            // Técnico solo puede ver técnico
-            selectRolTarea.innerHTML += `
-                <option value="tecnico">Técnico</option>
-            `;
-        } else {
+            // Técnico puede ver todos excepto admin y supervisor
+            selectRolTarea.innerHTML += ``;
+        }
+        else {
             // Si no se puede determinar el rol, mostrar todas las opciones por defecto
             selectRolTarea.innerHTML += `
                 <option value="todos">Todos los roles</option>
@@ -3385,7 +3409,30 @@ async function cargarProximosVencimientos() {
             }
 
             // Aplicar filtro de visibilidad por rol (igual que en filtrarTareas)
-            if (rolFiltro === 'mi-rol') {
+            if (rolFiltro === 'para-mi') {
+                // Filtrar por ID del usuario actual
+                let usuarioIdActual = null;
+                if (window.AppState && window.AppState.currentUser && window.AppState.currentUser.id) {
+                    usuarioIdActual = window.AppState.currentUser.id;
+                }
+                if (!usuarioIdActual) {
+                    try {
+                        const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+                        if (storedUser && storedUser.id) {
+                            usuarioIdActual = storedUser.id;
+                        }
+                    } catch (e) {
+                        console.warn('Error obteniendo ID de usuario:', e);
+                    }
+                }
+                if (!usuarioIdActual) {
+                    return false;
+                }
+                const tareaAsignadaA = tarea.asignado_a || tarea.responsable_id;
+                if (tareaAsignadaA != usuarioIdActual) {
+                    return false;
+                }
+            } else if (rolFiltro === 'mi-rol') {
                 if (!rolUsuarioActual) {
                     return false;
                 }
@@ -3397,7 +3444,7 @@ async function cargarProximosVencimientos() {
                 if (tareaRolUpper !== rolUsuarioUpper) {
                     return false;
                 }
-            } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol') {
+            } else if (rolFiltro && rolFiltro !== 'todos' && rolFiltro !== 'mi-rol' && rolFiltro !== 'para-mi') {
                 // Filtro por rol específico
                 const rolMap = {
                     'admin': 'ADMIN',
