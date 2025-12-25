@@ -10101,7 +10101,7 @@ tr[data-lazy="true"] {
 }
 
 .tarea-edit-section .section-header-title {
-  flex: 1;
+  width: -webkit-fill-available;
 }
 
 /* Controles del header (toggle y búsqueda) */
@@ -10109,7 +10109,13 @@ tr[data-lazy="true"] {
   display: flex;
   align-items: center;
   gap: 1rem;
-  flex-wrap: wrap;
+  width: -webkit-fill-available;
+}
+
+@media (max-width: 540px) {
+  .tarea-edit-section .section-header-controls {
+    flex-wrap: wrap;
+  }
 }
 
 /* Toggle filtro responsable */

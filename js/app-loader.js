@@ -3159,7 +3159,7 @@
                     <i class="fas fa-plus"></i> Crear
                 </button>
                 <!-- Se deberá seleccionar la tarea asignada si el servicio tiene una tarea asignada-->
-                    <select class="input-inline" id="tarea_asignada_edit-${servicioId}" name="tarea_asignada_edit-${servicioId}">
+                    <select class="input-inline" onpointerdown="if (window.cargarTareasEnSelector) cargarTareasEnSelector('tarea_asignada_edit-${servicioId}', ${servicio.tarea_id})" id="tarea_asignada_edit-${servicioId}" name="tarea_asignada_edit-${servicioId}">
                         <option value="">-- Sin asignar existente --</option>
                         
                     </select>
@@ -3177,12 +3177,6 @@
         </div>
     `;
 
-        // Cargar tareas en el selector después de crear el formulario
-        if (window.cargarTareasEnSelector) {
-            // Usar el ID del selector y pasar el tarea_id para pre-selección
-            window.cargarTareasEnSelector(`tarea_asignada_edit-${servicioId}`, servicio.tarea_id);
-        }
-
         /**
         * Poder enviar edicion con enter en el input descripcion
         */
@@ -3193,9 +3187,6 @@
             }
         });
     };
-
-
-
 
     /**
      * Cancelar edición de servicio
