@@ -3945,6 +3945,7 @@ body.admin .tab-content.admin-only.active {
   position: relative;
   overflow: hidden;
   text-align: left;
+  padding: 1rem;
 }
 
 .filtros-action-button::before {
