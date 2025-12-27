@@ -3193,6 +3193,54 @@
     // Cerrar modal con tecla Escape
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
+            // Cerrar formulario de edición inline de servicio (prioridad alta)
+            const formEdicionInline = document.querySelector('.servicio-form-inline');
+            if (formEdicionInline) {
+                const wrapper = formEdicionInline.closest('.servicio-item-wrapper');
+                if (wrapper) {
+                    const servicioId = parseInt(wrapper.dataset.servicioId);
+
+                    // Detectar si es espacio o cuarto buscando el contenedor padre
+                    const contenedorEspacio = wrapper.closest('[id^="servicios-espacio-"]');
+                    const contenedorCuarto = wrapper.closest('[id^="servicios-"]:not([id^="servicios-espacio-"])');
+
+                    let ubicacionId;
+                    let esEspacio;
+
+                    if (contenedorEspacio) {
+                        // Es un espacio común
+                        esEspacio = true;
+                        ubicacionId = parseInt(contenedorEspacio.id.replace('servicios-espacio-', ''));
+                    } else if (contenedorCuarto) {
+                        // Es un cuarto
+                        esEspacio = false;
+                        ubicacionId = parseInt(contenedorCuarto.id.replace('servicios-', ''));
+                    }
+
+                    if (ubicacionId && typeof cancelarEdicionServicio === 'function') {
+                        cancelarEdicionServicio(servicioId, ubicacionId, esEspacio);
+                    }
+                }
+                return;
+            }
+
+            // Cerrar formulario de registro inline de servicio (cuartos y espacios comunes)
+            const formRegistroInline = document.querySelector('.form-servicio-inline');
+            if (formRegistroInline) {
+                // Verificar si es un espacio común
+                const espacioId = parseInt(formRegistroInline.dataset.espacioId);
+                if (espacioId && typeof cerrarFormularioInlineEspacio === 'function') {
+                    cerrarFormularioInlineEspacio(espacioId);
+                    return;
+                }
+                // Si no es espacio, es cuarto
+                const cuartoId = parseInt(formRegistroInline.dataset.cuartoId);
+                if (cuartoId && typeof cerrarFormularioInline === 'function') {
+                    cerrarFormularioInline(cuartoId);
+                }
+                return;
+            }
+
             // Cerrar modal de detalles de servicio
             const modalServicio = document.getElementById('modalDetallesServicio');
             if (modalServicio && modalServicio.style.display === 'flex') {
