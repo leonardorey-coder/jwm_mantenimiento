@@ -2620,9 +2620,19 @@
         `;
         }
 
+        // Generar ID hexadecimal del servicio (serv-XXX)
+        const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+
         titulo.innerHTML = `
-        ${botonVolver}
-        <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i> Detalle del Servicio
+        <div class="header-with-id">
+            ${botonVolver}
+            <span class="header-title-text">
+                <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i> Detalle del Servicio
+            </span>
+            <span class="servicio-id-badge" title="ID: ${servicioHexId} (clic para copiar)" onclick="copiarIdServicio('${servicioHexId}', event)">
+                <span class="hex-prefix">#</span><span class="hex-value">${servicioHexId}</span>
+            </span>
+        </div>
     `;
         body.innerHTML = contenido;
         modal.style.display = 'flex';
@@ -2686,15 +2696,21 @@
             "></span>
         ` : '';
 
+            // Generar ID hexadecimal del servicio
+            const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+
             return `
             <div class="detalle-item-editable">
                 <div class="detalle-item-contenido" onclick="abrirModalDetalleServicio(${servicio.id}, true)">
-                    <div class="detalle-label">
+                    <div class="detalle-label-modal">
                         <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i> 
                         ${esAlerta ? 'Alerta' : 'Avería'}
                         ${prioridadIndicador}
+                        <span class="servicio-id-badge" title="ID: ${servicioHexId} (clic para copiar)" onclick="copiarIdServicio('${servicioHexId}', event)">
+                            <span class="hex-prefix">#</span><span class="hex-value">${servicioHexId}</span>
+                        </span>
                     </div>
-                    <div class="detalle-valor">
+                    <div class="detalle-valor-modal">
                         ${escapeHtml(servicio.descripcion)}
                         ${servicio.dia_alerta || servicio.hora ? `
                             <div style="font-size: 0.85rem; color: var(--texto-secundario); margin-top: 0.3rem;">
@@ -2950,6 +2966,27 @@
                 }
             }, 300);
         }, 200);
+    };
+
+    /**
+     * Copiar ID de servicio al portapapeles
+     */
+    window.copiarIdServicio = function (hexId, event) {
+        event.stopPropagation();
+
+        navigator.clipboard.writeText(hexId).then(() => {
+            if (window.mostrarAlertaBlur) {
+                window.mostrarAlertaBlur(`ID copiado: ${hexId}`, 'success');
+            }
+        }).catch(err => {
+            console.error('Error copiando ID:', err);
+            // Fallback: seleccionar el texto
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(event.target.closest('.servicio-id-badge'));
+            selection.removeAllRanges();
+            selection.addRange(range);
+        });
     };
 
     /**

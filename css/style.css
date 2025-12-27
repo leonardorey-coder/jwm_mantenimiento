@@ -6318,6 +6318,74 @@ body.admin a.admin-only {
   font-size: 1rem;
 }
 
+/* Badge de ID de servicio - estilo minimalista hexadecimal */
+.servicio-id-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--texto-secundario);
+  background: linear-gradient(135deg, var(--gris-claro) 0%, rgba(76, 84, 76, 0.08) 100%);
+  border: 1px solid var(--gris-separador);
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  text-transform: uppercase;
+  user-select: all;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.servicio-id-badge:hover {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border-color: var(--verde-oliva);
+  transform: scale(1.02);
+}
+
+.servicio-id-badge:active {
+  transform: scale(0.98);
+}
+
+.servicio-id-badge .hex-prefix {
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.servicio-id-badge .hex-value {
+  font-weight: 700;
+}
+
+/* Badge en el header del modal de detalle individual */
+.modal-detalles-header .header-with-id {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.modal-detalles-header .header-title-text {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Badge en la lista de servicios */
+.detalle-item-contenido .servicio-id-badge {
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
+/* Tooltip para indicar que es copiable */
+.servicio-id-badge[title]::after {
+  content: '';
+}
+
 .btn-volver-lista {
   background: transparent;
   border: 2px solid var(--blanco);
@@ -7076,6 +7144,20 @@ body.admin a.admin-only {
   font-size: 0.9rem;
 }
 
+.detalle-label-modal {
+  font-weight: 500;
+  color: var(--texto-secundario);
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  max-width: min-content;
+  flex-wrap: wrap;
+}
+
 .detalle-label {
   font-size: 0.85rem;
   font-weight: 500;
@@ -7088,6 +7170,14 @@ body.admin a.admin-only {
   gap: 0.5rem;
   flex-shrink: 0;
   min-width: 120px;
+  flex-wrap: wrap;
+}
+
+/* Forzar el badge de ID a una nueva línea */
+.detalle-label .servicio-id-badge {
+  flex-basis: 100%;
+  width: fit-content;
+  margin-top: 0.25rem;
 }
 
 .detalle-label i {
@@ -7095,6 +7185,17 @@ body.admin a.admin-only {
   color: var(--verde-oliva);
   width: 20px;
   text-align: center;
+}
+
+.detalle-valor-modal {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-principal);
+  line-height: 1.5;
+  flex: 1;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  min-width: 0;
 }
 
 .detalle-valor {

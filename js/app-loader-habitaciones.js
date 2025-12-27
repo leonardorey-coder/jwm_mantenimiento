@@ -595,11 +595,24 @@ function filtrarCuartos() {
         // Filtro por nombre de cuarto
         const coincideNombre = (cuarto.nombre || cuarto.numero || '').toString().toLowerCase().includes(buscarCuarto);
 
-        // Filtro por avería en mantenimientos
+        // Filtro por avería en mantenimientos (por descripción O por ID hexadecimal)
         const coincideAveria = buscarAveria === '' ||
-            (s.mantenimientos && s.mantenimientos.some(m =>
-                m.cuarto_id === cuarto.id && m.descripcion.toLowerCase().includes(buscarAveria)
-            ));
+            (s.mantenimientos && s.mantenimientos.some(m => {
+                if (m.cuarto_id !== cuarto.id) return false;
+
+                // Buscar por descripción
+                if (m.descripcion.toLowerCase().includes(buscarAveria)) return true;
+
+                // Buscar por ID hexadecimal (serv-XXX)
+                const servicioHexId = 'serv-' + m.id.toString(16).padStart(3, '0').toLowerCase();
+                if (servicioHexId.includes(buscarAveria)) return true;
+
+                // Buscar solo el número hex sin prefijo
+                const hexSinPrefijo = m.id.toString(16).padStart(3, '0').toLowerCase();
+                if (buscarAveria.includes(hexSinPrefijo)) return true;
+
+                return false;
+            }));
 
         // Filtro por edificio
         const coincideEdificio = filtroEdificio === '' || cuarto.edificio_id.toString() === filtroEdificio;
