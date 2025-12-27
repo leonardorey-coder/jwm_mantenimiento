@@ -17,32 +17,22 @@ class PostgresManager {
      */
     async initialize() {
         try {
-            console.log('🔌 Inicializando conexión a PostgreSQL...');
-
-            // Validar configuración
             validateConfig();
             displayConfig();
 
-            // Crear pool de conexiones
             this.pool = new Pool(dbConfig);
 
-            // Manejar errores del pool
             this.pool.on('error', (err) => {
-                console.error('❌ Error inesperado en el pool de PostgreSQL:', err);
+                console.error('Error inesperado en el pool de PostgreSQL:', err);
             });
 
-            // Probar conexión
             const client = await this.pool.connect();
-            const result = await client.query('SELECT NOW()');
-            console.log('✅ Conexión a PostgreSQL establecida:', result.rows[0].now);
+            await client.query('SELECT NOW()');
             client.release();
 
-            // Crear tablas si no existen
             await this.createTables();
-
-            console.log('✅ Base de datos PostgreSQL inicializada correctamente');
         } catch (error) {
-            console.error('❌ Error inicializando PostgreSQL:', error);
+            console.error('Error inicializando PostgreSQL:', error);
             throw error;
         }
     }
@@ -63,18 +53,13 @@ class PostgresManager {
             const tablesExist = parseInt(result.rows[0].count) === 3;
 
             if (tablesExist) {
-                console.log('✅ Las tablas ya existen, verificando migraciones...');
                 await this.runMigrations();
                 return;
             }
 
-            // Si no existen, crear las tablas básicas (sin DROP ni INSERT)
-            console.log('📄 Creando tablas en la base de datos...');
             await this.createBasicTables();
-            console.log('✅ Esquema de base de datos creado');
         } catch (error) {
-            console.error('❌ Error creando tablas:', error);
-            // No lanzar error, las tablas pueden ya existir
+            console.error('Error creando tablas:', error);
         }
     }
 
@@ -92,7 +77,6 @@ class PostgresManager {
             `);
 
             if (columnCheck.rows.length > 0 && columnCheck.rows[0].data_type === 'integer') {
-                console.log('🔄 Migrando dia_alerta de INTEGER a DATE...');
 
                 // 1. Limpiar columna temporal si existe de intentos anteriores
                 await this.pool.query(`
@@ -124,7 +108,6 @@ class PostgresManager {
                 // 6. Renombrar columna temporal
                 await this.pool.query(`ALTER TABLE mantenimientos RENAME COLUMN dia_alerta_temp TO dia_alerta`);
 
-                console.log('✅ Migración de dia_alerta completada (INTEGER → DATE)');
             }
 
             // Verificar si existe columna prioridad
@@ -136,13 +119,11 @@ class PostgresManager {
             `);
 
             if (prioridadCheck.rows.length === 0) {
-                console.log('🔄 Agregando columna prioridad...');
                 await this.pool.query(`
                     ALTER TABLE mantenimientos 
                     ADD COLUMN prioridad VARCHAR(20) DEFAULT 'media' 
                     CHECK (prioridad IN ('baja', 'media', 'alta', 'urgente'))
                 `);
-                console.log('✅ Columna prioridad agregada');
             }
 
             // Verificar si existe columna alerta_emitida
@@ -154,12 +135,10 @@ class PostgresManager {
             `);
 
             if (alertaEmitidaCheck.rows.length === 0) {
-                console.log('🔄 Agregando columna alerta_emitida...');
                 await this.pool.query(`
                     ALTER TABLE mantenimientos 
                     ADD COLUMN alerta_emitida BOOLEAN DEFAULT FALSE
                 `);
-                console.log('✅ Columna alerta_emitida agregada');
             }
 
             // Verificar si existe tabla tareas
@@ -171,7 +150,6 @@ class PostgresManager {
             `);
 
             if (parseInt(tareasTableCheck.rows[0].count) === 0) {
-                console.log('🔄 Creando tabla tareas...');
                 await this.pool.query(`
                     CREATE TABLE IF NOT EXISTS tareas (
                         id SERIAL PRIMARY KEY,
@@ -188,7 +166,6 @@ class PostgresManager {
                         archivos TEXT[]
                     )
                 `);
-                console.log('✅ Tabla tareas creada');
             }
 
             // Verificar si existe columna tarea_id en mantenimientos
@@ -200,12 +177,10 @@ class PostgresManager {
             `);
 
             if (tareaIdCheck.rows.length === 0) {
-                console.log('🔄 Agregando columna tarea_id a mantenimientos...');
                 await this.pool.query(`
                     ALTER TABLE mantenimientos 
                     ADD COLUMN tarea_id INTEGER REFERENCES tareas(id) ON DELETE SET NULL
                 `);
-                console.log('✅ Columna tarea_id agregada');
             }
 
             // Verificar y crear roles faltantes (siempre, no solo cuando está vacía)
@@ -226,7 +201,6 @@ class PostgresManager {
             `);
 
             if (fechaProgramadaCheck.rows.length > 0 && fechaProgramadaCheck.rows[0].data_type === 'date') {
-                console.log('🔄 Migrando fecha_programada de DATE a TIMESTAMPTZ...');
                 
                 // Convertir DATE a TIMESTAMPTZ (asumiendo medianoche UTC para fechas existentes)
                 await this.pool.query(`
@@ -235,11 +209,9 @@ class PostgresManager {
                     USING (fecha_programada::timestamp AT TIME ZONE 'UTC')
                 `);
                 
-                console.log('✅ Migración de fecha_programada completada (DATE → TIMESTAMPTZ)');
             }
 
             if (rolesFaltantes.length > 0) {
-                console.log('🔄 Insertando roles faltantes:', rolesFaltantes.join(', '));
 
                 // Insertar cada rol faltante individualmente usando INSERT sin ID explícito
                 for (const rolNombre of rolesFaltantes) {
@@ -291,11 +263,8 @@ class PostgresManager {
                         VALUES ($1, $2, $3::jsonb)
                         ON CONFLICT (nombre) DO NOTHING
                     `, [rolNombre, descripcion, permisos]);
-                    console.log(`✅ Rol ${rolNombre} insertado`);
                 }
-                console.log('✅ Roles faltantes insertados');
             } else {
-                console.log('✅ Todos los roles ya existen: ADMIN, SUPERVISOR, TECNICO');
             }
 
         } catch (error) {
@@ -643,7 +612,6 @@ class PostgresManager {
 
         if (fechaCambio || horaCambio) {
             // Si cambió fecha u hora, resetear alerta_emitida a FALSE
-            console.log(`🔄 Reseteando alerta_emitida para mantenimiento ${id} (fecha cambió: ${fechaCambio}, hora cambió: ${horaCambio})`);
             query = `
                 UPDATE mantenimientos 
                 SET descripcion = $1, hora = $2, dia_alerta = $3, prioridad = $4, alerta_emitida = FALSE
@@ -710,11 +678,6 @@ class PostgresManager {
         `;
         const horaServerResult = await this.pool.query(horaServerQuery);
         const serverTime = horaServerResult.rows[0];
-        console.log('🕐 Hora del servidor PostgreSQL:');
-        console.log(`   - UTC: ${serverTime.utc_now}`);
-        console.log(`   - Mazatlán: ${serverTime.mazatlan_now}`);
-        console.log(`   - Fecha hoy (Mazatlán): ${serverTime.fecha_hoy}`);
-        console.log(`   - Hora actual (Mazatlán): ${serverTime.hora_actual}`);
 
         // Primero, log de diagnóstico para ver qué alertas están pendientes
         const diagnosticQuery = `
@@ -727,7 +690,6 @@ class PostgresManager {
             AND dia_alerta IS NOT NULL
         `;
         const diagnosticResult = await this.pool.query(diagnosticQuery);
-        console.log(`🔍 Diagnóstico: ${diagnosticResult.rows.length} alertas con alerta_emitida=FALSE:`);
         diagnosticResult.rows.forEach(r => {
             const fechaHoy = r.fecha_hoy;
             const horaActual = r.hora_actual;
@@ -744,8 +706,6 @@ class PostgresManager {
             const horaPasada = r.hora === null || r.hora <= horaActual;
             const esPasada = fechaPasada || (mismaFecha && horaPasada);
 
-            console.log(`   - ID ${r.id}: fecha=${fechaAlerta} hora=${r.hora || 'NULL'} emitida=${r.alerta_emitida}`);
-            console.log(`     → hoy=${fechaHoyStr} ahora=${horaActual} => fechaPasada=${fechaPasada} mismaFecha=${mismaFecha} horaPasada=${horaPasada} => ${esPasada ? '⏰ DEBE MARCARSE' : '⏳ aún futura'}`);
         });
 
         // Usar timezone de Los Cabos para comparar correctamente
@@ -769,10 +729,8 @@ class PostgresManager {
         const count = result.rows.length;
 
         if (count > 0) {
-            console.log(`✅ Marcadas ${count} alertas pasadas como emitidas:`);
             result.rows.forEach(r => console.log(`   - ID ${r.id}: ${r.dia_alerta} ${r.hora || 'sin hora'} - ${r.descripcion?.substring(0, 30)}`));
         } else {
-            console.log('ℹ️ No hay alertas pasadas para marcar');
         }
 
         return count;
@@ -868,10 +826,8 @@ class PostgresManager {
         `;
 
         const result = await this.pool.query(query);
-        console.log(`📝 getAlertasPendientes: Encontradas ${result.rows.length} alertas pendientes`);
         if (result.rows.length > 0) {
             result.rows.forEach(r => {
-                console.log(`   - ID ${r.id}: ${r.dia_alerta} ${r.hora || 'sin hora'} (hoy=${r.fecha_hoy} ahora=${r.hora_actual})`);
             });
         }
         return result.rows;
@@ -1217,7 +1173,6 @@ class PostgresManager {
 
         // Buscar por nombre (case-insensitive)
         const rolNombre = rol.toString().trim().toUpperCase();
-        console.log(`🔍 Buscando rol por nombre: "${rolNombre}"`);
 
         const result = await this.pool.query(
             'SELECT id FROM roles WHERE UPPER(nombre) = $1',
@@ -1231,7 +1186,6 @@ class PostgresManager {
             throw new Error(`Rol "${rol}" no válido. Roles disponibles: ${nombresRoles || 'ninguno'}`);
         }
 
-        console.log(`✅ Rol "${rolNombre}" encontrado con ID: ${result.rows[0].id}`);
         return result.rows[0].id;
     }
 
@@ -1339,7 +1293,6 @@ class PostgresManager {
     }
 
     async getSabanaById(id) {
-        console.log('🔍 [DB] Buscando sábana con ID:', id);
 
         const querySabana = `
             SELECT s.*, 
@@ -1357,7 +1310,6 @@ class PostgresManager {
         }
 
         const sabana = resultSabana.rows[0];
-        console.log('✅ [DB] Sábana encontrada:', sabana.nombre);
 
         const queryItems = `
             SELECT si.id,
@@ -1386,7 +1338,6 @@ class PostgresManager {
         const resultItems = await this.pool.query(queryItems, [id]);
 
         sabana.items = resultItems.rows;
-        console.log('📦 [DB] Items cargados:', resultItems.rows.length);
 
         return sabana;
     }
@@ -1442,7 +1393,6 @@ class PostgresManager {
     }
 
     async archivarSabana(sabanaId) {
-        console.log('🗄️ [DB] Archivando sábana ID:', sabanaId);
 
         const query = `
             UPDATE sabanas
@@ -1457,7 +1407,6 @@ class PostgresManager {
             throw new Error(`Sábana con ID ${sabanaId} no encontrada`);
         }
 
-        console.log('✅ [DB] Sábana archivada:', {
             id: result.rows[0].id,
             nombre: result.rows[0].nombre,
             archivada: result.rows[0].archivada,
@@ -1487,7 +1436,6 @@ class PostgresManager {
             ORDER BY s.fecha_archivado DESC, s.fecha_creacion DESC
         `;
         const result = await this.pool.query(query);
-        console.log('📚 Sábanas archivadas encontradas:', result.rows.length);
         return result.rows;
     }
 
@@ -1664,11 +1612,9 @@ class PostgresManager {
             `);
 
             if (parseInt(tablesCheck.rows[0].count) >= 3) {
-                console.log('✅ Tablas de checklist ya existen');
                 return true;
             }
 
-            console.log('📄 Creando tablas de checklist...');
 
             // Crear tabla de categorías
             await this.pool.query(`
@@ -1764,7 +1710,6 @@ class PostgresManager {
                 `, [item.nombre, item.orden, item.categoria]);
             }
 
-            console.log('✅ Tablas de checklist creadas correctamente');
             return true;
         } catch (error) {
             console.error('❌ Error en migración de checklist:', error);
@@ -1887,8 +1832,6 @@ class PostgresManager {
      * Obtener datos completos de checklist para todos los cuartos
      */
     async getAllChecklistData(filters = {}) {
-        console.log('[PostgresManager.getAllChecklistData] Iniciando...');
-        console.log('[PostgresManager.getAllChecklistData] Filtros:', filters);
 
         let query = `
             SELECT 
@@ -1934,14 +1877,10 @@ class PostgresManager {
 
         query += ' ORDER BY c.numero, cat.orden, ci.orden';
 
-        console.log('[PostgresManager.getAllChecklistData] Query:', query);
-        console.log('[PostgresManager.getAllChecklistData] Params:', params);
 
         const result = await this.pool.query(query, params);
 
-        console.log('[PostgresManager.getAllChecklistData] Filas obtenidas:', result.rows.length);
         if (result.rows.length > 0) {
-            console.log('[PostgresManager.getAllChecklistData] Primera fila:', result.rows[0]);
         }
 
         // Agrupar resultados por cuarto
@@ -1985,10 +1924,7 @@ class PostgresManager {
         }
 
         const resultado = Array.from(cuartosMap.values());
-        console.log('[PostgresManager.getAllChecklistData] Cuartos procesados:', resultado.length);
         if (resultado.length > 0) {
-            console.log('[PostgresManager.getAllChecklistData] Primer cuarto:', resultado[0].numero);
-            console.log('[PostgresManager.getAllChecklistData] Items del primer cuarto:', resultado[0].items?.length);
         }
         return resultado;
     }
@@ -2151,11 +2087,9 @@ class PostgresManager {
             `);
 
             if (parseInt(tableCheck.rows[0].count) > 0) {
-                console.log('✅ Tabla checklist_fotos ya existe');
                 return;
             }
 
-            console.log('🔄 Creando tabla checklist_fotos...');
 
             await this.pool.query(`
                 CREATE TABLE IF NOT EXISTS checklist_fotos (
@@ -2175,7 +2109,6 @@ class PostgresManager {
             await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_fotos_item ON checklist_fotos(catalog_item_id)`);
             await this.pool.query(`CREATE INDEX IF NOT EXISTS idx_checklist_fotos_fecha ON checklist_fotos(created_at DESC)`);
 
-            console.log('✅ Tabla checklist_fotos creada');
         } catch (error) {
             console.error('⚠️ Error en migración de checklist_fotos:', error);
         }

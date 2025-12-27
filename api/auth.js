@@ -74,11 +74,6 @@ function verificarJWT(token) {
         });
         return decoded;
     } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-            console.log('Token JWT expirado');
-        } else if (error.name === 'JsonWebTokenError') {
-            console.log('Token JWT inválido');
-        }
         return null;
     }
 }

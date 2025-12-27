@@ -11,13 +11,7 @@ const nodeEnvFromEnv = process.env.NODE_ENV;
 
 if (nodeEnvFromEnv === 'development' && fs.existsSync(envLocalPath)) {
     require('dotenv').config({ path: envLocalPath, override: true });
-    console.log('📁 Variables de .env.local cargadas para desarrollo (sobrescribiendo .env)');
-} else if (nodeEnvFromEnv === 'production') {
-    console.log('☁️ Usando configuración de .env para producción');
 }
-
-// Debug: mostrar NODE_ENV final
-console.log(`🔍 NODE_ENV detectado: "${process.env.NODE_ENV}"`);
 
 let isLocal = process.env.NODE_ENV === 'development';
 let dbConfig = {};
@@ -37,7 +31,6 @@ if (isLocal) {
         connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000'),
         ssl: false
     };
-    console.log('🏠 Usando configuración local para desarrollo');
 } else {
     // En producción, usar DATABASE_URL si está disponible
     if (process.env.DATABASE_URL) {
@@ -59,10 +52,8 @@ if (isLocal) {
                 idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
                 connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000')
             };
-
-            console.log('🔗 Usando DATABASE_URL para conexión');
         } catch (error) {
-            console.warn('⚠️ Error parseando DATABASE_URL, usando configuración individual:', error.message);
+            // Error parseando DATABASE_URL, usar configuración individual
         }
     }
 
@@ -89,24 +80,20 @@ if (isLocal) {
 function validateConfig() {
     const requiredParams = ['host', 'database', 'user', 'password'];
     const missing = requiredParams.filter(param => !dbConfig[param]);
-
-    if (missing.length > 0) {
-        console.warn(`⚠️ Parámetros de configuración faltantes: ${missing.join(', ')}`);
-        console.warn('Usando valores por defecto para desarrollo local');
-    }
-
     return missing.length === 0;
 }
 
-// Mostrar configuración (ocultando la contraseña)
+// Mostrar configuración (ocultando la contraseña) - solo en desarrollo
 function displayConfig() {
-    console.log('🔧 Configuración de PostgreSQL:');
-    console.log(`   Host: ${dbConfig.host}`);
-    console.log(`   Puerto: ${dbConfig.port}`);
-    console.log(`   Base de datos: ${dbConfig.database}`);
-    console.log(`   Usuario: ${dbConfig.user}`);
-    console.log(`   SSL: ${dbConfig.ssl ? 'Habilitado' : 'Deshabilitado'}`);
-    console.log(`   Pool máximo: ${dbConfig.max} conexiones`);
+    if (process.env.NODE_ENV !== 'production') {
+        console.log('Configuración de PostgreSQL:');
+        console.log(`   Host: ${dbConfig.host}`);
+        console.log(`   Puerto: ${dbConfig.port}`);
+        console.log(`   Base de datos: ${dbConfig.database}`);
+        console.log(`   Usuario: ${dbConfig.user}`);
+        console.log(`   SSL: ${dbConfig.ssl ? 'Habilitado' : 'Deshabilitado'}`);
+        console.log(`   Pool máximo: ${dbConfig.max} conexiones`);
+    }
 }
 
 module.exports = {

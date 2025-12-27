@@ -26,7 +26,6 @@ if (!uploadthingToken) {
             const match = envContent.match(/^UPLOADTHING_TOKEN=['"]?([^'"\n]+)['"]?/m);
             if (match) {
                 uploadthingToken = match[1];
-                console.log('✅ UPLOADTHING_TOKEN cargado desde .env.local');
             }
         }
     } catch (e) {
@@ -44,6 +43,14 @@ let postgresManager;
 let dbInitialized = false;
 
 const validationMessageRegex = /(requerid|vac[ií]a|contraseñ|cambio|rol|válid|cambios)/i;
+const isProduction = process.env.NODE_ENV === 'production';
+
+// Helper para logging condicional (solo en desarrollo)
+const devLog = (...args) => {
+    if (!isProduction) {
+        console.log(...args);
+    }
+};
 
 function mapUsuarioErrorStatus(error) {
     if (!error) return 500;
@@ -73,18 +80,12 @@ async function initializeApp() {
         return;
     }
 
-    console.log('🚀 Inicializando aplicación en Vercel...');
-    console.log('🌐 Entorno:', process.env.NODE_ENV || 'development');
-
     try {
-        console.log('🗄️ Inicializando base de datos PostgreSQL...');
         postgresManager = new PostgresManager();
         await postgresManager.initialize();
-        console.log('✅ Base de datos PostgreSQL inicializada correctamente');
         dbInitialized = true;
     } catch (error) {
-        console.error('❌ Error inicializando la base de datos:', error);
-        console.log('🔄 Continuando sin base de datos PostgreSQL - usando datos mock');
+        console.error('Error inicializando la base de datos:', error);
         postgresManager = null;
         dbInitialized = true;
     }
@@ -177,10 +178,8 @@ app.get('/api/auth/me', verificarAutenticacion, authRoutes.me);
 // RUTAS DE USUARIOS (Solo Admin)
 // ====================================
 app.get('/api/auth/usuarios', verificarAutenticacion, verificarAdmin, async (req, res) => {
-    console.log('📋 [API] GET /api/auth/usuarios - Usuario:', req.usuario?.nombre);
     try {
         if (!postgresManager) {
-            console.error('❌ [API] Base de datos no disponible');
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
@@ -336,7 +335,6 @@ app.get('/api/edificios', async (req, res) => {
 // Obtener usuarios activos con sus roles
 app.get('/api/usuarios', async (req, res) => {
     try {
-        console.log('📥 GET /api/usuarios - iniciando...');
         if (postgresManager) {
             const query = `
                 SELECT u.id, u.nombre, u.email, u.rol_id, u.departamento, r.nombre as rol_nombre
@@ -346,14 +344,12 @@ app.get('/api/usuarios', async (req, res) => {
                 ORDER BY u.nombre
             `;
             const result = await postgresManager.pool.query(query);
-            console.log(`✅ Usuarios obtenidos: ${result.rows.length} registros`);
             res.json(result.rows);
         } else {
-            console.error('❌ Base de datos no disponible, usando datos mock');
             res.json(mockData.usuarios || []);
         }
     } catch (error) {
-        console.error('❌ Error al obtener usuarios:', error);
+        console.error('Error al obtener usuarios:', error);
         res.status(500).json({ error: 'Error al obtener usuarios', details: error.message });
     }
 });
@@ -361,22 +357,14 @@ app.get('/api/usuarios', async (req, res) => {
 // Obtener cuartos
 app.get('/api/cuartos', async (req, res) => {
     try {
-        console.log('📥 GET /api/cuartos - iniciando...');
-        console.log('🗄️ postgresManager:', postgresManager ? 'DISPONIBLE' : 'NO DISPONIBLE');
-
         if (postgresManager) {
-            console.log('🔍 Consultando base de datos...');
             const cuartos = await postgresManager.getCuartos();
-            console.log(`✅ Cuartos obtenidos: ${cuartos.length} registros`);
-            console.log('📤 Enviando respuesta JSON...');
             res.json(cuartos);
         } else {
-            console.error('❌ Base de datos no disponible, usando datos mock');
             res.json(mockData.cuartos);
         }
     } catch (error) {
-        console.error('❌ Error al obtener cuartos:', error);
-        console.error('Stack:', error.stack);
+        console.error('Error al obtener cuartos:', error);
         res.status(500).json({ error: 'Error al obtener cuartos', details: error.message });
     }
 });
@@ -409,7 +397,6 @@ app.put('/api/cuartos/:id', async (req, res) => {
         const cuartoId = parseInt(req.params.id);
         const { estado } = req.body;
 
-        // Validar que el estado sea válido
         const estadosValidos = ['disponible', 'ocupado', 'mantenimiento', 'fuera_servicio'];
         if (!estado || !estadosValidos.includes(estado)) {
             return res.status(400).json({
@@ -418,27 +405,22 @@ app.put('/api/cuartos/:id', async (req, res) => {
             });
         }
 
-        console.log(`🔄 Actualizando cuarto ${cuartoId} - nuevo estado: ${estado}`);
-
         if (postgresManager) {
             const resultado = await postgresManager.updateEstadoCuarto(cuartoId, estado);
             if (!resultado) {
                 return res.status(404).json({ error: 'Cuarto no encontrado' });
             }
-            console.log('✅ Estado actualizado en base de datos');
             res.json({
                 success: true,
                 message: 'Estado actualizado correctamente',
                 cuarto: resultado
             });
         } else {
-            // Modo mock: actualizar en memoria
             const cuarto = mockData.cuartos.find(c => c.id === cuartoId);
             if (!cuarto) {
                 return res.status(404).json({ error: 'Cuarto no encontrado' });
             }
             cuarto.estado = estado;
-            console.log('✅ Estado actualizado en datos mock');
             res.json({
                 success: true,
                 message: 'Estado actualizado correctamente',
@@ -446,7 +428,7 @@ app.put('/api/cuartos/:id', async (req, res) => {
             });
         }
     } catch (error) {
-        console.error('❌ Error al actualizar estado del cuarto:', error);
+        console.error('Error al actualizar estado del cuarto:', error);
         res.status(500).json({ error: 'Error al actualizar estado', details: error.message });
     }
 });
@@ -493,7 +475,7 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
         // Usar el usuario del JWT (autenticado) como creador
         const creadorId = req.usuario?.id || usuario_creador_id || 3;
 
-        console.log('📝 Creando mantenimiento:', {
+        // Creando mantenimiento
             cuarto_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
             usuario_creador_id: creadorId, usuario_asignado_id, tarea_id, notas, estado_cuarto,
             usuario_jwt: req.usuario?.nombre
@@ -535,11 +517,9 @@ app.post('/api/mantenimientos', verificarAutenticacion, async (req, res) => {
             const result = await postgresManager.pool.query(query, values);
             const nuevoMantenimiento = result.rows[0];
 
-            console.log('✅ Mantenimiento creado:', nuevoMantenimiento);
 
             // Si se proporcionó un estado_cuarto, actualizar el estado del cuarto
             if (estado_cuarto) {
-                console.log(`🔄 Actualizando estado del cuarto ${cuarto_id} a: ${estado_cuarto}`);
                 await postgresManager.updateEstadoCuarto(parseInt(cuarto_id), estado_cuarto);
             }
 
@@ -582,7 +562,6 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
         } = req.body;
         const mantenimientoId = parseInt(id);
 
-        console.log('✏️ Actualizando mantenimiento:', mantenimientoId, { descripcion, hora, dia_alerta, prioridad, estado, usuario_asignado_id, notas, tarea_id });
 
         if (postgresManager) {
             // Obtener el registro actual para comparar cambios
@@ -661,7 +640,6 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
             if (debeResetearAlerta) {
                 campos.push(`alerta_emitida = $${contador++}`);
                 valores.push(false);
-                console.log('🔄 Reseteando alerta_emitida a FALSE debido a cambio en fecha/hora');
             }
 
             if (campos.length > 0) {
@@ -674,7 +652,6 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
                 `;
 
                 const result = await postgresManager.pool.query(query, valores);
-                console.log('✅ Mantenimiento actualizado:', result.rows[0]);
 
                 res.json({
                     success: true,
@@ -720,13 +697,9 @@ app.get('/api/alertas/emitidas', async (req, res) => {
         // Log de timezone para debugging
         const serverTime = new Date();
         const losCabosTime = new Date(serverTime.toLocaleString('en-US', { timeZone: 'America/Mazatlan' }));
-        console.log('📋 Obteniendo alertas emitidas', fecha ? `para fecha: ${fecha}` : '(todas)');
-        console.log(`🕐 Server UTC: ${serverTime.toISOString()}`);
-        console.log(`🕐 Los Cabos time: ${losCabosTime.toISOString()}`);
 
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasEmitidas(fecha || null);
-            console.log(`✅ Alertas emitidas encontradas: ${alertas.length}`);
             res.json(alertas);
         } else {
             console.warn('⚠️ postgresManager no disponible, retornando array vacío');
@@ -749,16 +722,9 @@ app.get('/api/alertas/pendientes', async (req, res) => {
         // Log de timezone para debugging
         const serverTime = new Date();
         const losCabosTime = new Date(serverTime.toLocaleString('en-US', { timeZone: 'America/Mazatlan' }));
-        console.log('📋 Obteniendo alertas pendientes (no emitidas)');
-        console.log(`🕐 Server UTC: ${serverTime.toISOString()}`);
-        console.log(`🕐 Los Cabos time: ${losCabosTime.toISOString()}`);
 
         if (postgresManager) {
             const alertas = await postgresManager.getAlertasPendientes();
-            console.log(`✅ Alertas pendientes encontradas: ${alertas.length}`);
-            alertas.forEach(a => {
-                console.log(`   - ID ${a.id}: ${a.dia_alerta} ${a.hora} - ${a.descripcion?.substring(0, 30)}`);
-            });
             res.json(alertas);
         } else {
             console.warn('⚠️ postgresManager no disponible, retornando array vacío');
@@ -780,8 +746,6 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
     try {
         const { id } = req.params;
         const mantenimientoId = parseInt(id);
-
-        console.log('📢 Marcando alerta como emitida:', mantenimientoId);
 
         if (postgresManager) {
             await postgresManager.marcarAlertaEmitida(mantenimientoId);
@@ -811,7 +775,6 @@ app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
 // Marcar automáticamente alertas pasadas como emitidas
 app.post('/api/alertas/marcar-pasadas', async (req, res) => {
     try {
-        console.log('🔄 Marcando alertas pasadas como emitidas...');
 
         if (postgresManager) {
             const count = await postgresManager.marcarAlertasPasadasComoEmitidas();
@@ -905,7 +868,6 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
         const { id } = req.params;
         const mantenimientoId = parseInt(id);
 
-        console.log('🗑️ Eliminando mantenimiento:', mantenimientoId);
 
         if (postgresManager) {
             await postgresManager.deleteMantenimiento(mantenimientoId);
@@ -943,7 +905,6 @@ app.delete('/api/mantenimientos/:id', async (req, res) => {
 // Obtener espacios comunes
 app.get('/api/espacios-comunes', async (req, res) => {
     try {
-        console.log('📥 GET /api/espacios-comunes - iniciando...');
 
         if (postgresManager) {
             const query = `
@@ -954,7 +915,6 @@ app.get('/api/espacios-comunes', async (req, res) => {
                 ORDER BY e.nombre, ec.nombre
             `;
             const result = await postgresManager.pool.query(query);
-            console.log(`✅ Espacios comunes obtenidos: ${result.rows.length} registros`);
             res.json(result.rows);
         } else {
             console.error('❌ Base de datos no disponible, usando datos mock');
@@ -1024,7 +984,6 @@ app.put('/api/espacios-comunes/:id', async (req, res) => {
             });
         }
 
-        console.log(`🔄 Actualizando espacio común ${espacioId} - nuevo estado: ${estado}`);
 
         if (postgresManager) {
             const query = `
@@ -1039,7 +998,6 @@ app.put('/api/espacios-comunes/:id', async (req, res) => {
                 return res.status(404).json({ error: 'Espacio común no encontrado' });
             }
 
-            console.log('✅ Estado actualizado en base de datos');
             res.json({
                 success: true,
                 message: 'Estado actualizado correctamente',
@@ -1108,7 +1066,6 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
 
         const creadorId = req.usuario?.id || 3;
 
-        console.log('📝 Creando mantenimiento para espacio común:', {
             espacio_comun_id, descripcion, tipo, hora, dia_alerta, prioridad, estado,
             usuario_creador_id: creadorId, usuario_asignado_id, notas, estado_espacio, tarea_id
         });
@@ -1147,10 +1104,8 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
             const result = await postgresManager.pool.query(query, values);
             const nuevoMantenimiento = result.rows[0];
 
-            console.log('✅ Mantenimiento de espacio común creado:', nuevoMantenimiento);
 
             if (estado_espacio) {
-                console.log(`🔄 Actualizando estado del espacio ${espacio_comun_id} a: ${estado_espacio}`);
                 await postgresManager.pool.query(
                     'UPDATE espacios_comunes SET estado = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2',
                     [estado_espacio, parseInt(espacio_comun_id)]
@@ -1173,7 +1128,6 @@ app.post('/api/mantenimientos/espacios', verificarAutenticacion, async (req, res
 
 app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📝 Creando nueva sábana:', req.body);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1218,7 +1172,6 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
         };
 
         const nuevaSabana = await postgresManager.createSabana(sabanaData);
-        console.log('✅ Sábana creada:', nuevaSabana.id);
 
         res.status(201).json(nuevaSabana);
     } catch (error) {
@@ -1229,7 +1182,6 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
 
 app.get('/api/sabanas', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📥 GET /api/sabanas');
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1247,17 +1199,12 @@ app.get('/api/sabanas', verificarAutenticacion, async (req, res) => {
 
 app.get('/api/sabanas/archivadas', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📥 GET /api/sabanas/archivadas');
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const sabanas = await postgresManager.getSabanasArchivadas();
-        console.log('📦 Sábanas archivadas encontradas:', sabanas.length);
-        if (sabanas.length > 0) {
-            console.log('📊 Primera sábana archivada:', JSON.stringify(sabanas[0], null, 2));
-        }
         res.json(sabanas);
     } catch (error) {
         console.error('❌ Error al obtener sábanas archivadas:', error);
@@ -1267,7 +1214,6 @@ app.get('/api/sabanas/archivadas', verificarAutenticacion, async (req, res) => {
 
 app.get('/api/sabanas/:id', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📥 GET /api/sabanas/:id', req.params.id);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1279,7 +1225,6 @@ app.get('/api/sabanas/:id', verificarAutenticacion, async (req, res) => {
             return res.status(404).json({ error: 'Sábana no encontrada' });
         }
 
-        console.log('✅ Sábana encontrada:', sabana.id, 'con', sabana.items?.length || 0, 'items');
 
         res.json(sabana);
     } catch (error) {
@@ -1290,7 +1235,6 @@ app.get('/api/sabanas/:id', verificarAutenticacion, async (req, res) => {
 
 app.patch('/api/sabanas/items/:id', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('✏️ PATCH /api/sabanas/items/:id', req.params.id, req.body);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1325,7 +1269,6 @@ app.patch('/api/sabanas/items/:id', verificarAutenticacion, async (req, res) => 
 
         const itemActualizado = await postgresManager.updateSabanaItem(itemId, updateData);
 
-        console.log('✅ Item de sábana actualizado:', itemActualizado.id);
         res.json({ success: true, item: itemActualizado });
     } catch (error) {
         console.error('❌ Error al actualizar item de sábana:', error);
@@ -1335,7 +1278,6 @@ app.patch('/api/sabanas/items/:id', verificarAutenticacion, async (req, res) => 
 
 app.post('/api/sabanas/:id/archivar', verificarAutenticacion, verificarAdmin, async (req, res) => {
     try {
-        console.log('📦 POST /api/sabanas/:id/archivar', req.params.id);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1347,10 +1289,8 @@ app.post('/api/sabanas/:id/archivar', verificarAutenticacion, verificarAdmin, as
             return res.status(400).json({ error: 'ID de sábana inválido' });
         }
 
-        console.log('🔄 Archivando sábana ID:', sabanaId);
         const sabanaArchivada = await postgresManager.archivarSabana(sabanaId);
 
-        console.log('✅ Sábana archivada exitosamente:', {
             id: sabanaArchivada.id,
             nombre: sabanaArchivada.nombre,
             archivada: sabanaArchivada.archivada,
@@ -1366,7 +1306,6 @@ app.post('/api/sabanas/:id/archivar', verificarAutenticacion, verificarAdmin, as
 
 app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📥 GET /api/sabanas/servicio/:servicioId', req.params.servicioId);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1387,7 +1326,6 @@ app.get('/api/sabanas/servicio/:servicioId', verificarAutenticacion, async (req,
 
 app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (req, res) => {
     try {
-        console.log('🗑️ DELETE /api/sabanas/:id', req.params.id);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1404,7 +1342,6 @@ app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (re
             return res.status(404).json({ error: 'Sábana no encontrada' });
         }
 
-        console.log('🗑️ Eliminando sábana ID:', sabanaId, 'Nombre:', sabana.nombre);
         
         const query = 'DELETE FROM sabanas WHERE id = $1 RETURNING id, nombre';
         const result = await postgresManager.pool.query(query, [sabanaId]);
@@ -1414,7 +1351,6 @@ app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (re
         }
 
         const sabanaEliminada = result.rows[0];
-        console.log('✅ Sábana eliminada exitosamente:', sabanaEliminada);
 
         res.json({ 
             success: true, 
@@ -1438,7 +1374,6 @@ app.delete('/api/sabanas/:id', verificarAutenticacion, verificarAdmin, async (re
 app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) => {
     try {
         const adjuntoId = parseInt(req.params.id);
-        console.log(`📎 Eliminando adjunto ${adjuntoId}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1462,17 +1397,14 @@ app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) 
         if (adjunto.uploadthing_key) {
             try {
                 await utapi.deleteFiles(adjunto.uploadthing_key);
-                console.log('✅ Archivo eliminado de UploadThing:', adjunto.uploadthing_key);
             } catch (utError) {
                 console.warn('⚠️ Error eliminando de UploadThing (archivo puede no existir):', utError.message);
             }
         } else if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
             // Fallback: eliminar archivo físico local si existe (para adjuntos antiguos)
             fs.unlinkSync(adjunto.ruta_archivo);
-            console.log('✅ Archivo físico local eliminado:', adjunto.ruta_archivo);
         }
 
-        console.log('✅ Adjunto eliminado:', adjuntoId);
         res.json({ success: true, message: 'Adjunto eliminado correctamente' });
     } catch (error) {
         console.error('❌ Error al eliminar adjunto:', error);
@@ -1485,7 +1417,6 @@ app.delete('/api/tareas/adjuntos/:id', verificarAutenticacion, async (req, res) 
 app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, res) => {
     try {
         const adjuntoId = parseInt(req.params.id);
-        console.log(`📎 Preview adjunto ${adjuntoId}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1502,7 +1433,6 @@ app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, 
 
         // Si tiene URL de UploadThing, redirigir
         if (adjunto.url) {
-            console.log('📎 Redirigiendo a UploadThing URL:', adjunto.url);
             return res.redirect(adjunto.url);
         }
 
@@ -1523,40 +1453,32 @@ app.get('/api/tareas/adjuntos/:id/preview', verificarAutenticacion, async (req, 
 app.get('/api/tareas/adjuntos/:id/download', verificarAutenticacion, async (req, res) => {
     try {
         const adjuntoId = parseInt(req.params.id);
-        console.log(`📎 Descargando adjunto ${adjuntoId}`);
 
         if (!postgresManager) {
-            console.log('❌ postgresManager no disponible');
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const query = 'SELECT * FROM tareas_adjuntos WHERE id = $1';
         const result = await postgresManager.pool.query(query, [adjuntoId]);
-        console.log(`📎 Query resultado: ${result.rows.length} filas`);
 
         if (result.rows.length === 0) {
-            console.log(`❌ Adjunto ${adjuntoId} no encontrado en BD`);
             return res.status(404).json({ error: 'Adjunto no encontrado' });
         }
 
         const adjunto = result.rows[0];
-        console.log(`📎 Adjunto encontrado: url=${adjunto.url}, ruta=${adjunto.ruta_archivo}`);
 
         // Si tiene URL de UploadThing, redirigir para descarga
         if (adjunto.url) {
-            console.log('📎 Redirigiendo a UploadThing URL para descarga:', adjunto.url);
             return res.redirect(adjunto.url);
         }
 
         // Fallback: servir archivo local (para adjuntos antiguos)
         if (adjunto.ruta_archivo && fs.existsSync(adjunto.ruta_archivo)) {
-            console.log('📎 Sirviendo archivo local:', adjunto.ruta_archivo);
             res.setHeader('Content-Type', adjunto.mime_type);
             res.setHeader('Content-Disposition', `attachment; filename="${adjunto.nombre_original}"`);
             return res.sendFile(path.resolve(adjunto.ruta_archivo));
         }
 
-        console.log('❌ Archivo no encontrado (sin URL ni archivo local)');
         return res.status(404).json({ error: 'Archivo no encontrado' });
     } catch (error) {
         console.error('❌ Error al descargar adjunto:', error);
@@ -1569,7 +1491,6 @@ app.get('/api/tareas/adjuntos/:id/download', verificarAutenticacion, async (req,
 app.get('/api/tareas/:id/adjuntos', verificarAutenticacion, async (req, res) => {
     try {
         const tareaId = parseInt(req.params.id);
-        console.log(`📎 Obteniendo adjuntos de tarea ${tareaId}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1584,7 +1505,6 @@ app.get('/api/tareas/:id/adjuntos', verificarAutenticacion, async (req, res) => 
         `;
         const result = await postgresManager.pool.query(query, [tareaId]);
 
-        console.log(`✅ ${result.rows.length} adjuntos encontrados`);
         res.json(result.rows);
     } catch (error) {
         console.error('❌ Error al obtener adjuntos:', error);
@@ -1635,7 +1555,6 @@ app.post('/api/tareas', async (req, res) => {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
-        console.log('📝 Creando tarea:', req.body);
 
         // Obtener usuario creador desde JWT o body
         let creadoPor = req.body.usuario_creador_id;
@@ -1649,7 +1568,6 @@ app.post('/api/tareas', async (req, res) => {
                     const token = authHeader.slice(7);
                     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'jwmarriott-secret-2025');
                     creadoPor = decoded.id || decoded.userId;
-                    console.log('📝 Usuario extraído del JWT:', creadoPor);
                 } catch (jwtError) {
                     console.warn('⚠️ No se pudo decodificar JWT:', jwtError.message);
                 }
@@ -1669,10 +1587,8 @@ app.post('/api/tareas', async (req, res) => {
             creado_por: creadoPor ? parseInt(creadoPor) : null
         };
 
-        console.log('📝 Datos mapeados para BD:', data);
 
         const nuevaTarea = await postgresManager.createTarea(data);
-        console.log('✅ Tarea creada:', nuevaTarea);
         res.status(201).json(nuevaTarea);
     } catch (error) {
         console.error('❌ Error al crear tarea:', error);
@@ -1691,7 +1607,6 @@ app.put('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
-        console.log(`📝 Actualizando tarea ${req.params.id}:`, req.body);
 
         // Mapear campos del frontend a la base de datos
         // El frontend envía: nombre/titulo, fecha_limite, responsable_id
@@ -1735,7 +1650,6 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
         const adjuntosResult = await postgresManager.pool.query(queryAdjuntos, [tareaId]);
         const adjuntos = adjuntosResult.rows;
 
-        console.log(`📎 Tarea ${tareaId} tiene ${adjuntos.length} adjuntos a eliminar`);
 
         // Recolectar keys de UploadThing para eliminar
         const uploadthingKeys = adjuntos
@@ -1752,7 +1666,6 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
         if (uploadthingKeys.length > 0) {
             try {
                 await utapi.deleteFiles(uploadthingKeys);
-                console.log(`✅ ${uploadthingKeys.length} archivos eliminados de UploadThing`);
             } catch (utError) {
                 console.warn('⚠️ Error eliminando de UploadThing:', utError.message);
             }
@@ -1763,14 +1676,12 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
             if (adjunto.ruta_archivo && !adjunto.ruta_archivo.includes('utfs.io') && fs.existsSync(adjunto.ruta_archivo)) {
                 try {
                     fs.unlinkSync(adjunto.ruta_archivo);
-                    console.log('✅ Archivo físico eliminado:', adjunto.ruta_archivo);
                 } catch (fileError) {
                     console.error('⚠️ Error al eliminar archivo físico:', fileError);
                 }
             }
         }
 
-        console.log(`✅ Tarea ${tareaId} eliminada con ${adjuntos.length} archivos`);
         res.json({ success: true, message: 'Tarea eliminada correctamente' });
     } catch (error) {
         console.error('Error al eliminar tarea:', error);
@@ -1786,7 +1697,6 @@ app.delete('/api/tareas/:id', verificarAutenticacion, async (req, res) => {
 // Inicializar tablas de checklist (ejecutar migración)
 app.post('/api/checklist/init', verificarAutenticacion, verificarAdmin, async (req, res) => {
     try {
-        console.log('🔄 Inicializando tablas de checklist...');
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1834,13 +1744,8 @@ app.get('/api/checklist/iconos', (req, res) => {
 // Obtener categorías del checklist
 app.get('/api/checklist/categorias', async (req, res) => {
     try {
-        console.log('📥 ========================================');
-        console.log('📥 GET /api/checklist/categorias');
-        console.log('📥 postgresManager disponible:', !!postgresManager);
-        console.log('📥 ========================================');
 
         if (!postgresManager) {
-            console.log('📥 ⚠️ Sin conexión BD, retornando mock');
             // Datos mock para fallback
             const mockCategorias = [
                 { id: 1, nombre: 'Climatización', slug: 'climatizacion', icono: 'fa-temperature-half', orden: 1 },
@@ -1860,10 +1765,7 @@ app.get('/api/checklist/categorias', async (req, res) => {
             console.warn('📥 ⚠️ Migración ya ejecutada o error:', migrationError.message);
         }
 
-        console.log('📥 Consultando categorías en BD...');
         const categorias = await postgresManager.getChecklistCategorias();
-        console.log(`📥 ✅ Categorías obtenidas de BD: ${categorias.length}`);
-        console.log('📥 Categorías:', JSON.stringify(categorias, null, 2));
         res.json(categorias);
     } catch (error) {
         console.error('📥 ❌ Error al obtener categorías:', error);
@@ -1874,7 +1776,6 @@ app.get('/api/checklist/categorias', async (req, res) => {
 // Agregar nueva categoría
 app.post('/api/checklist/categorias', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📝 Creando categoría de checklist:', req.body);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1887,7 +1788,6 @@ app.post('/api/checklist/categorias', verificarAutenticacion, async (req, res) =
         }
 
         const nuevaCategoria = await postgresManager.addChecklistCategoria({ nombre, icono, orden });
-        console.log('✅ Categoría creada:', nuevaCategoria);
         res.status(201).json(nuevaCategoria);
     } catch (error) {
         console.error('❌ Error al crear categoría:', error);
@@ -1916,7 +1816,6 @@ app.delete('/api/checklist/categorias/:id', verificarAutenticacion, verificarAdm
 // Obtener ítems del catálogo de checklist
 app.get('/api/checklist/items', async (req, res) => {
     try {
-        console.log('📥 GET /api/checklist/items');
 
         if (!postgresManager) {
             // Datos mock para fallback
@@ -1932,7 +1831,6 @@ app.get('/api/checklist/items', async (req, res) => {
 
         const categoriaId = req.query.categoria_id ? parseInt(req.query.categoria_id) : null;
         const items = await postgresManager.getChecklistCatalogItems(categoriaId);
-        console.log(`✅ Ítems obtenidos: ${items.length}`);
         res.json(items);
     } catch (error) {
         console.error('❌ Error al obtener ítems:', error);
@@ -1943,7 +1841,6 @@ app.get('/api/checklist/items', async (req, res) => {
 // Agregar nuevo ítem al catálogo
 app.post('/api/checklist/items', verificarAutenticacion, async (req, res) => {
     try {
-        console.log('📝 Creando ítem de checklist:', req.body);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -1956,7 +1853,6 @@ app.post('/api/checklist/items', verificarAutenticacion, async (req, res) => {
         }
 
         const nuevoItem = await postgresManager.addChecklistCatalogItem({ nombre, categoria_id, orden });
-        console.log('✅ Ítem creado:', nuevoItem);
         res.status(201).json(nuevoItem);
     } catch (error) {
         console.error('❌ Error al crear ítem:', error);
@@ -1985,14 +1881,8 @@ app.delete('/api/checklist/items/:id', verificarAutenticacion, verificarAdmin, a
 // Obtener datos completos de checklist para todos los cuartos
 app.get('/api/checklist/cuartos', async (req, res) => {
     try {
-        console.log('📥 ========================================');
-        console.log('📥 GET /api/checklist/cuartos');
-        console.log('📥 Query params:', req.query);
-        console.log('📥 postgresManager disponible:', !!postgresManager);
-        console.log('📥 ========================================');
 
         if (!postgresManager) {
-            console.log('📥 ⚠️ Sin conexión BD');
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
@@ -2011,20 +1901,12 @@ app.get('/api/checklist/cuartos', async (req, res) => {
             filters.categoria_id = parseInt(req.query.categoria_id);
         }
 
-        console.log('📥 Filtros aplicados:', filters);
-        console.log('📥 Ejecutando getAllChecklistData...');
 
         const checklistData = await postgresManager.getAllChecklistData(filters);
 
-        console.log('📥 ========================================');
-        console.log(`📥 ✅ Datos obtenidos: ${checklistData.length} cuartos`);
         if (checklistData.length > 0) {
-            console.log('📥 Primer cuarto:', JSON.stringify(checklistData[0], null, 2));
-            console.log('📥 Items del primer cuarto:', checklistData[0].items?.length || 0);
         } else {
-            console.log('📥 ⚠️ No se encontraron cuartos con items');
         }
-        console.log('📥 ========================================');
 
         res.json(checklistData);
     } catch (error) {
@@ -2037,7 +1919,6 @@ app.get('/api/checklist/cuartos', async (req, res) => {
 // Obtener datos de checklist para un cuarto específico
 app.get('/api/checklist/cuartos/:id', async (req, res) => {
     try {
-        console.log(`📥 GET /api/checklist/cuartos/${req.params.id}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -2071,7 +1952,6 @@ app.get('/api/checklist/cuartos/:id', async (req, res) => {
             }))
         };
 
-        console.log(`✅ Datos de checklist para cuarto ${cuartoId}: ${cuartoData.items.length} ítems`);
         res.json(cuartoData);
     } catch (error) {
         console.error('❌ Error al obtener checklist del cuarto:', error);
@@ -2087,7 +1967,6 @@ app.put('/api/checklist/cuartos/:cuartoId/items/:itemId', verificarAutenticacion
         const { estado, observacion } = req.body;
         const usuarioId = req.usuario?.id;
 
-        console.log(`📝 Actualizando ítem ${itemId} del cuarto ${cuartoId}:`, { estado, observacion });
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -2105,7 +1984,6 @@ app.put('/api/checklist/cuartos/:cuartoId/items/:itemId', verificarAutenticacion
             observacion
         );
 
-        console.log('✅ Ítem actualizado:', resultado);
         res.json({ success: true, result: resultado });
     } catch (error) {
         console.error('❌ Error al actualizar ítem:', error);
@@ -2120,7 +1998,6 @@ app.put('/api/checklist/cuartos/:cuartoId/items', verificarAutenticacion, async 
         const { items } = req.body;
         const usuarioId = req.usuario?.id;
 
-        console.log(`📝 Actualizando ${items?.length || 0} ítems del cuarto ${cuartoId}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -2135,7 +2012,6 @@ app.put('/api/checklist/cuartos/:cuartoId/items', verificarAutenticacion, async 
         const exitosos = resultados.filter(r => r.success).length;
         const fallidos = resultados.filter(r => !r.success).length;
 
-        console.log(`✅ Actualización masiva: ${exitosos} exitosos, ${fallidos} fallidos`);
         res.json({
             success: fallidos === 0,
             exitosos,
@@ -2152,14 +2028,12 @@ app.put('/api/checklist/cuartos/:cuartoId/items', verificarAutenticacion, async 
 app.get('/api/checklist/cuartos/:id/resumen', async (req, res) => {
     try {
         const cuartoId = parseInt(req.params.id);
-        console.log(`📥 GET /api/checklist/cuartos/${cuartoId}/resumen`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const resumen = await postgresManager.getChecklistResumenByCuarto(cuartoId);
-        console.log(`✅ Resumen para cuarto ${cuartoId}:`, resumen);
         res.json(resumen);
     } catch (error) {
         console.error('❌ Error al obtener resumen:', error);
@@ -2170,14 +2044,12 @@ app.get('/api/checklist/cuartos/:id/resumen', async (req, res) => {
 // Obtener resumen general de todos los cuartos
 app.get('/api/checklist/resumen', async (req, res) => {
     try {
-        console.log('📥 GET /api/checklist/resumen');
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
         }
 
         const resumen = await postgresManager.getChecklistResumenGeneral();
-        console.log(`✅ Resumen general: ${resumen.length} cuartos`);
         res.json(resumen);
     } catch (error) {
         console.error('❌ Error al obtener resumen general:', error);
@@ -2210,7 +2082,6 @@ const uploadChecklistFotosMemory = multer({
 app.get('/api/checklist/cuartos/:cuartoId/fotos', async (req, res) => {
     try {
         const cuartoId = parseInt(req.params.cuartoId);
-        console.log(`📷 GET /api/checklist/cuartos/${cuartoId}/fotos`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -2220,7 +2091,6 @@ app.get('/api/checklist/cuartos/:cuartoId/fotos', async (req, res) => {
         await postgresManager.runChecklistFotosMigration();
 
         const fotos = await postgresManager.getChecklistFotosByCuarto(cuartoId);
-        console.log(`✅ ${fotos.length} fotos encontradas para cuarto ${cuartoId}`);
         res.json(fotos);
     } catch (error) {
         console.error('❌ Error al obtener fotos de checklist:', error);
@@ -2236,7 +2106,6 @@ app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploa
         const catalogItemId = req.body.catalog_item_id ? parseInt(req.body.catalog_item_id) : null;
         const notas = req.body.notas || null;
 
-        console.log(`📷 Subiendo foto para cuarto ${cuartoId}`, { catalogItemId, notas });
 
         if (!req.file) {
             return res.status(400).json({ error: 'No se recibió ninguna imagen' });
@@ -2249,19 +2118,16 @@ app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploa
         // Ejecutar migración si no existe la tabla
         await postgresManager.runChecklistFotosMigration();
 
-        console.log(`📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`);
         // Sanitizar nombre de archivo (remover espacios y caracteres especiales)
         const ext = path.extname(req.file.originalname).toLowerCase();
         const timestamp = Date.now();
         const sanitizedFilename = `checklist_foto_${timestamp}${ext}`;
-        console.log(`📷 Filename sanitizado: ${sanitizedFilename}, mimetype: ${req.file.mimetype}`);
 
         // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
         const { Blob } = require('buffer');
         const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
         const file = new File([blob], sanitizedFilename, { type: req.file.mimetype });
 
-        console.log(`📤 Iniciando upload a UploadThing (file size: ${file.size})...`);
         const uploadResult = await utapi.uploadFiles(file);
 
         if (uploadResult.error) {
@@ -2273,7 +2139,6 @@ app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploa
         }
 
         const { key, url } = uploadResult.data;
-        console.log(`✅ Foto subida a UploadThing: ${url}`);
 
         // Guardar metadatos en base de datos
         const nuevaFoto = await postgresManager.createChecklistFoto({
@@ -2285,7 +2150,6 @@ app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploa
             usuarioId
         });
 
-        console.log('✅ Foto guardada en BD:', nuevaFoto.id);
         res.status(201).json(nuevaFoto);
     } catch (error) {
         console.error('❌ Error al subir foto de checklist:', error);
@@ -2297,7 +2161,6 @@ app.post('/api/checklist/cuartos/:cuartoId/fotos', verificarAutenticacion, uploa
 app.delete('/api/checklist/fotos/:id', verificarAutenticacion, async (req, res) => {
     try {
         const fotoId = parseInt(req.params.id);
-        console.log(`📷 Eliminando foto de checklist ${fotoId}`);
 
         if (!postgresManager) {
             return res.status(500).json({ error: 'Base de datos no disponible' });
@@ -2316,13 +2179,11 @@ app.delete('/api/checklist/fotos/:id', verificarAutenticacion, async (req, res) 
         if (foto.uploadthing_key) {
             try {
                 await utapi.deleteFiles(foto.uploadthing_key);
-                console.log('✅ Foto eliminada de UploadThing:', foto.uploadthing_key);
             } catch (utError) {
                 console.warn('⚠️ Error eliminando de UploadThing:', utError.message);
             }
         }
 
-        console.log(`✅ Foto ${fotoId} eliminada`);
         res.json({ success: true, message: 'Foto eliminada correctamente', foto: fotoEliminada });
     } catch (error) {
         console.error('❌ Error al eliminar foto de checklist:', error);
@@ -2363,7 +2224,6 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemor
         const tareaId = parseInt(req.params.id);
         const usuarioId = req.usuario?.id;
 
-        console.log(`📎 Subiendo adjunto para tarea ${tareaId}`);
 
         // Verificar si hay archivo
         if (!req.file) {
@@ -2380,7 +2240,6 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemor
             return res.status(404).json({ error: 'Tarea no encontrada' });
         }
 
-        console.log(`📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`);
 
         // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
         const { Blob } = require('buffer');
@@ -2399,7 +2258,6 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemor
         }
 
         const { key, url, name, size } = uploadResult.data;
-        console.log(`✅ Archivo subido a UploadThing: ${url}`);
 
         // Obtener extensión
         const ext = path.extname(req.file.originalname).toLowerCase().replace('.', '');
@@ -2428,7 +2286,6 @@ app.post('/api/tareas/:id/adjuntos', verificarAutenticacion, uploadAdjuntosMemor
         const result = await postgresManager.pool.query(query, values);
         const nuevoAdjunto = result.rows[0];
 
-        console.log('✅ Adjunto guardado:', nuevoAdjunto.id, nuevoAdjunto.nombre_original);
 
         res.status(201).json(nuevoAdjunto);
     } catch (error) {
