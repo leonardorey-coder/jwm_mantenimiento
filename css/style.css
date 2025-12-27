@@ -7707,6 +7707,7 @@ body.dark-mode .skeleton-card {
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 3px solid var(--border-color);
+  gap: 0.5rem;
 }
 
 .habitacion-titulo {
@@ -7724,6 +7725,7 @@ body.dark-mode .skeleton-card {
   font-size: 1.3rem;
   font-weight: 700;
   color: var(--texto-principal);
+  width: max-content;
 }
 
 .habitacion-edificio {
@@ -7746,6 +7748,7 @@ body.dark-mode .skeleton-card {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border: 2px solid var(--negro-carbon);
+  text-align: center;
 }
 
 .estado-disponible {

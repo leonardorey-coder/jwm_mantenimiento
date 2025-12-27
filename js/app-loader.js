@@ -1532,6 +1532,13 @@
                     console.log('🔄 Refrescando UI de alertas...');
                     mostrarAlertasYRecientes();
                 }
+                // También refrescar alertas de espacios comunes
+                if (window.recargarMantenimientosEspacios) {
+                    await window.recargarMantenimientosEspacios();
+                }
+                if (window.cargarAlertasEspacios) {
+                    await window.cargarAlertasEspacios();
+                }
             } else {
                 console.log('ℹ️ No hay alertas pasadas pendientes de marcar (según backend)');
                 // Verificar en frontend como fallback
@@ -3543,6 +3550,24 @@
 
             datosActualizados.dia_alerta = fecha;
             datosActualizados.hora = hora;
+
+            // Verificar si la fecha/hora cambió y determinar si debe estar emitida o no
+            const ahora = new Date();
+            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+            const horaActual = ahora.toTimeString().slice(0, 5);
+
+            const fechaPasada = fecha < fechaActual;
+            const mismaFechaHoraPasada = fecha === fechaActual && hora.slice(0, 5) <= horaActual;
+            const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
+
+            // Si la fecha/hora cambió a futuro, resetear alerta_emitida
+            // Si la fecha/hora cambió a pasado, marcar como emitida
+            if (alertaYaPaso) {
+                datosActualizados.alerta_emitida = true;
+            } else {
+                // Si la nueva fecha es futura, resetear la emisión
+                datosActualizados.alerta_emitida = false;
+            }
         }
 
         // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar datos originales para rollback
@@ -3636,6 +3661,38 @@
             // Actualizar paneles de alertas
             await mostrarAlertasEmitidas();
             await mostrarHistorialAlertas();
+
+            // Si es espacio común, actualizar también el panel de alertas de espacios
+            if (esEspacio) {
+                if (window.cargarAlertasEspacios) {
+                    await window.cargarAlertasEspacios();
+                }
+
+                // Si es alerta, verificar si debe emitirse automáticamente
+                if (servicio.tipo === 'rutina' && datosActualizados.dia_alerta && datosActualizados.hora) {
+                    const ahora = new Date();
+                    const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+                    const horaActual = ahora.toTimeString().slice(0, 5);
+
+                    const fechaAlerta = datosActualizados.dia_alerta;
+                    const horaAlerta = datosActualizados.hora.slice(0, 5);
+
+                    const fechaPasada = fechaAlerta < fechaActual;
+                    const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
+                    const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
+
+                    if (alertaYaPaso) {
+                        console.log('⏰ [ESPACIOS] La alerta editada ya pasó, emitiendo automáticamente...');
+                        if (window.marcarAlertasPasadasComoEmitidas) {
+                            await window.marcarAlertasPasadasComoEmitidas();
+                        }
+                        // Actualizar paneles después de marcar como emitida
+                        if (window.cargarAlertasEspacios) {
+                            await window.cargarAlertasEspacios();
+                        }
+                    }
+                }
+            }
 
             // 🎯 NUEVO: Verificar y actualizar estado de tarea si el servicio está asignado a una
             if (datosActualizados.tarea_id && typeof window.verificarYActualizarTareaIndividual === 'function') {

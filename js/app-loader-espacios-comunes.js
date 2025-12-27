@@ -818,7 +818,7 @@ async function recargarMantenimientosEspacios() {
             // Actualizar mantenimientosEspacios locales
             mantenimientosEspacios = nuevosMantenimientosEspacios;
 
-            // Actualizar AppState
+            // Actualizar appLoaderState
             if (window.appLoaderState) {
                 window.appLoaderState.mantenimientosEspacios = mantenimientosEspacios;
 
@@ -834,6 +834,11 @@ async function recargarMantenimientosEspacios() {
                         mantenimientosGenerales.push(servicioActualizado);
                     }
                 });
+            }
+
+            // También sincronizar con AppState de app.js
+            if (window.AppState) {
+                window.AppState.mantenimientosEspacios = mantenimientosEspacios;
             }
 
             console.log('✅ Mantenimientos de espacios recargados y sincronizados');
@@ -926,6 +931,12 @@ async function guardarServicioEspacioInline(event, espacioId) {
 
         const nuevoServicio = await response.json();
 
+        // Agregar el nombre del espacio al servicio (puede no venir de la API)
+        const espacio = espaciosComunes.find(e => e.id === espacioId);
+        if (espacio && !nuevoServicio.espacio_nombre) {
+            nuevoServicio.espacio_nombre = espacio.nombre;
+        }
+
         // Actualizar localmente
         mantenimientosEspacios.unshift(nuevoServicio);
 
@@ -934,12 +945,63 @@ async function guardarServicioEspacioInline(event, espacioId) {
             window.appLoaderState.mantenimientosEspacios = mantenimientosEspacios;
         }
 
-        // Actualizar UI
+        // También sincronizar con AppState de app.js
+        if (window.AppState && window.AppState.mantenimientosEspacios) {
+            window.AppState.mantenimientosEspacios = mantenimientosEspacios;
+        }
+
+        // Actualizar UI de la card
         cerrarFormularioInlineEspacio(espacioId);
         renderizarServiciosEspacio(espacioId);
 
         if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Servicio agregado correctamente', 'success');
         actualizarEstadisticasEspacios();
+
+        // Si es una alerta (rutina), verificar si debe mostrarse y emitirse inmediatamente
+        if (tipo === 'rutina') {
+            // Obtener fecha/hora actual
+            const ahora = new Date();
+            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+            const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
+
+            // Extraer fecha y hora de la alerta
+            const fechaAlerta = data.dia_alerta;
+            const horaAlerta = data.hora ? data.hora.slice(0, 5) : '';
+
+            // Verificar si la alerta ya pasó (fecha anterior a hoy o misma fecha pero hora pasada)
+            const fechaPasada = fechaAlerta < fechaActual;
+            const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
+            const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
+
+            if (alertaYaPaso) {
+                console.log('⏰ [ESPACIOS] La alerta ya pasó, emitiendo automáticamente...');
+                // Marcar alertas pasadas como emitidas (por si la nueva alerta ya pasó)
+                if (window.marcarAlertasPasadasComoEmitidas) {
+                    await window.marcarAlertasPasadasComoEmitidas();
+                }
+            }
+
+            // Forzar actualización del sistema de notificaciones
+            console.log('🔄 [ESPACIOS] Nueva alerta agregada, verificando sistema de notificaciones...');
+            setTimeout(() => {
+                if (window.verificarYEmitirAlertas) {
+                    window.verificarYEmitirAlertas();
+                }
+            }, 1500);
+        }
+
+        // Actualizar paneles de alertas de espacios
+        if (window.cargarAlertasEspacios) {
+            await window.cargarAlertasEspacios();
+        }
+
+        // Actualizar también paneles de alertas emitidas y historial (comunes con habitaciones)
+        if (window.mostrarAlertasEmitidas) {
+            await window.mostrarAlertasEmitidas();
+        }
+        if (window.mostrarHistorialAlertas) {
+            await window.mostrarHistorialAlertas();
+        }
 
     } catch (error) {
         console.error('Error:', error);

@@ -3651,6 +3651,11 @@ function mostrarBtnEditarEspacio(mantenimientos, espacioId) {
 
 async function cargarAlertasEspacios() {
     console.log('📋 [ESPACIOS] Cargando alertas...');
+
+    // Use formatting functions from app-loader.js (exposed on window)
+    const formatearFechaCorta = window.formatearFechaCorta || ((fecha) => fecha || '');
+    const formatearHora = window.formatearHora || ((hora) => hora || '');
+
     const listaAlertas = document.getElementById('listaAlertasEspacios');
     const listaEmitidas = document.getElementById('listaAlertasEmitidasEspacios');
 
@@ -3658,10 +3663,20 @@ async function cargarAlertasEspacios() {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
+    // Helper para obtener nombre del espacio
+    const obtenerNombreEspacio = (alerta) => {
+        if (alerta.espacio_nombre) return alerta.espacio_nombre;
+        // Buscar en espaciosComunes si no viene el nombre
+        const espacio = AppState.espaciosComunes?.find(e => e.id === alerta.espacio_comun_id);
+        return espacio?.nombre || 'Espacio';
+    };
+
     if (listaAlertas) {
         // Alertas Programadas: alertas que AÚN NO se han emitido (independiente de la fecha)
         const alertasPendientes = AppState.mantenimientosEspacios.filter(m => {
-            if (m.tipo !== 'rutina' || m.estado !== 'pendiente') return false;
+            if (m.tipo !== 'rutina') return false;
+            // Solo mostrar alertas pendientes o en proceso que NO han sido emitidas
+            if (m.estado !== 'pendiente' && m.estado !== 'en_proceso') return false;
 
             // Mostrar solo alertas que NO han sido emitidas
             return !m.alerta_emitida;
@@ -3680,36 +3695,55 @@ async function cargarAlertasEspacios() {
             if (mensajeNoAlertasEspacios) {
                 mensajeNoAlertasEspacios.style.display = 'none';
             }
-            listaAlertas.innerHTML = alertasPendientes.map(alerta => `
-                <li class="alerta-item prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
-                    <div class="alerta-info">
-                        <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
-                        <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
-                    </div>
-                    <div class="alerta-meta">
-                        ${alerta.dia_alerta ? formatearFecha(alerta.dia_alerta) : ''}
-                        ${alerta.hora ? alerta.hora : ''}
-                    </div>
+            listaAlertas.innerHTML = alertasPendientes.map(alerta => {
+                // Extraer fecha de dia_alerta si es timestamp
+                const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
+                const nombreEspacio = obtenerNombreEspacio(alerta);
+                return `
+                <li class="rutina-item prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
+                    <span class="rutina-info">
+                        <span class="rutina-cuarto">${escapeHtml(nombreEspacio)}</span>
+                        <span class="rutina-descripcion">${escapeHtml(alerta.descripcion)}</span>
+                    </span>
+                    <span class="rutina-hora">
+                        ${fechaAlerta ? formatearFechaCorta(fechaAlerta) : '??/??'}
+                        ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
+                    </span>
                 </li>
-            `).join('');
+            `;
+            }).join('');
         }
     }
 
     if (listaEmitidas) {
-        // Alertas del Día: alertas emitidas de hoy
+        // Alertas del Día: alertas emitidas de hoy (pendientes o en proceso, no completadas/canceladas)
         const alertasEmitidas = AppState.mantenimientosEspacios.filter(m => {
-            if (m.tipo !== 'rutina' || m.estado !== 'pendiente') return false;
+            if (m.tipo !== 'rutina') return false;
+            // Solo mostrar alertas pendientes o en proceso (no completadas/canceladas)
+            if (m.estado !== 'pendiente' && m.estado !== 'en_proceso') return false;
             if (!m.alerta_emitida) return false; // Solo alertas emitidas
 
-            // Si no tiene fecha, usar lógica antigua
+            // Si no tiene fecha, mostrar igual
             if (!m.dia_alerta) return true;
 
             // Comparar fecha de la alerta con hoy
             const fechaAlerta = new Date(m.dia_alerta);
             fechaAlerta.setHours(0, 0, 0, 0);
 
-            // Mostrar en "Alertas del Día" solo si la fecha es hoy
-            return fechaAlerta.getTime() === hoy.getTime();
+            // Mostrar en "Alertas del Día" solo si la fecha es hoy o anterior (alertas pasadas)
+            return fechaAlerta.getTime() <= hoy.getTime();
+        }).sort((a, b) => {
+            // Ordenar por fecha y hora descendente (más reciente primero)
+            const fechaA = a.dia_alerta || '';
+            const fechaB = b.dia_alerta || '';
+            const horaA = a.hora || '00:00';
+            const horaB = b.hora || '00:00';
+
+            // Comparar primero por fecha, luego por hora
+            if (fechaA !== fechaB) {
+                return fechaB.localeCompare(fechaA); // Descendente
+            }
+            return horaB.localeCompare(horaA); // Descendente
         });
 
         const mensajeNoAlertasEmitidas = document.getElementById('mensaje-no-alertas-emitidas-espacios');
@@ -3725,25 +3759,30 @@ async function cargarAlertasEspacios() {
             if (mensajeNoAlertasEmitidas) {
                 mensajeNoAlertasEmitidas.style.display = 'none';
             }
-            listaEmitidas.innerHTML = alertasEmitidas.map(alerta => `
-                <li class="alerta-item alerta-emitida prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
-                    <div class="alerta-info">
-                        <strong>${escapeHtml(alerta.espacio_nombre || 'Espacio')}</strong>
-                        <span class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</span>
-                    </div>
-                    <div class="alerta-meta">
-                        ${alerta.dia_alerta ? formatearFecha(alerta.dia_alerta) : ''}
-                        ${alerta.hora ? alerta.hora : ''}
-                    </div>
+            listaEmitidas.innerHTML = alertasEmitidas.map(alerta => {
+                // Extraer fecha de dia_alerta si es timestamp
+                const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
+                const nombreEspacio = obtenerNombreEspacio(alerta);
+                return `
+                <li class="rutina-item alerta-emitida prioridad-${alerta.prioridad || 'media'}" data-alerta-id="${alerta.id}">
+                    <span class="rutina-info">
+                        <span class="rutina-cuarto">${escapeHtml(nombreEspacio)}</span>
+                        <span class="rutina-descripcion">${escapeHtml(alerta.descripcion)}</span>
+                    </span>
+                    <span class="rutina-hora">
+                        ${fechaAlerta ? formatearFechaCorta(fechaAlerta) : '??/??'}
+                        ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
+                    </span>
                 </li>
-            `).join('');
+            `;
+            }).join('');
         }
 
-        listaEmitidas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'alerta-item'));
+        listaEmitidas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'rutina-item'));
     }
 
     if (listaAlertas) {
-        listaAlertas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'alerta-item'));
+        listaAlertas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, 'rutina-item'));
     }
 }
 
