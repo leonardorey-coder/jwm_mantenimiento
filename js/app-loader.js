@@ -882,9 +882,13 @@
 
         let html = serviciosMostrar.map(servicio => {
             const esAlerta = servicio.tipo === 'rutina';
+            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+            const tipoServicioTexto = esAlerta
+                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
+                : 'Avería';
             const prioridadClass = servicio.prioridad ? `prioridad-${servicio.prioridad}` : '';
 
-            // Estado del mantenimiento con emoji
+            // Estado del mantenimiento con dropdown clickeable
             let estadoBadge = '';
             if (servicio.estado) {
                 const estadosEmoji = {
@@ -893,7 +897,22 @@
                     'completado': 'Completado',
                     'cancelado': 'Cancelado'
                 };
-                estadoBadge = `<span class="estado-badge estado-${servicio.estado}">${estadosEmoji[servicio.estado] || servicio.estado}</span>`;
+                // Crear dropdown inline para cambiar estado
+                estadoBadge = `
+                    <div class="estado-badge-wrapper" onclick="event.stopPropagation();">
+                        <select class="estado-badge-select estado-${servicio.estado}" 
+                                data-servicio-id="${servicio.id}"
+                                data-cuarto-id="${cuartoId}"
+                                data-es-espacio="${esEspacio}"
+                                onchange="cambiarEstadoServicioInline(this, event)"
+                                title="Cambiar estado del servicio">
+                            <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="en_proceso" ${servicio.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                            <option value="completado" ${servicio.estado === 'completado' ? 'selected' : ''}>Completado</option>
+                            <option value="cancelado" ${servicio.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                        </select>
+                    </div>
+                `;
             }
 
             // Usuario asignado
@@ -939,7 +958,7 @@
                         <div class="servicio-meta">
                             <span class="servicio-tipo-badge">
                                 <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                                ${esAlerta ? 'Alerta' : 'Avería'}
+                                ${tipoServicioTexto}
                             </span>
                             ${estadoBadge}
                             ${fechaHoraMostrar}
@@ -962,7 +981,7 @@
                     <div class="servicio-meta">
                         <span class="servicio-tipo-badge">
                             <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                            ${esAlerta ? 'Alerta' : 'Avería'}
+                            ${tipoServicioTexto}
                         </span>
                         ${estadoBadge}
                         ${fechaHoraMostrar}
@@ -2532,20 +2551,25 @@
         </div>
     `;
 
-        // Mostrar estado si existe
+        // Mostrar estado si existe (con dropdown editable)
         if (servicio.estado) {
-            const estadoTexto = {
-                'pendiente': 'Pendiente',
-                'en_proceso': 'En Proceso',
-                'completado': 'Completado',
-                'cancelado': 'Cancelado'
-            }[servicio.estado] || 'Pendiente';
-
             contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-tasks"></i> Estado</div>
                 <div class="detalle-valor">
-                    <span class="estado-badge estado-${servicio.estado}">${estadoTexto}</span>
+                    <div class="estado-badge-wrapper">
+                        <select class="estado-badge-select estado-${servicio.estado}" 
+                                data-servicio-id="${servicio.id}"
+                                data-cuarto-id="${servicio.cuarto_id || ''}"
+                                data-es-espacio="${servicio.espacio_comun_id ? 'true' : 'false'}"
+                                onchange="cambiarEstadoServicioInline(this, event)"
+                                title="Cambiar estado del servicio">
+                            <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="en_proceso" ${servicio.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                            <option value="completado" ${servicio.estado === 'completado' ? 'selected' : ''}>Completado</option>
+                            <option value="cancelado" ${servicio.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                        </select>
+                    </div>
                 </div>
             </div>
         `;
@@ -2912,6 +2936,10 @@
                         // Regenerar con TODOS los servicios (sin límite de 2)
                         let htmlEspacio = serviciosEspacio.map(servicio => {
                             const esAlerta = servicio.tipo === 'rutina';
+                            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+                            const tipoServicioTexto = esAlerta
+                                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
+                                : 'Avería';
 
                             let fechaHoraMostrar = '';
                             if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
@@ -2930,7 +2958,7 @@
                                         <div class="servicio-meta">
                                             <span class="servicio-tipo-badge">
                                                 <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                                                ${esAlerta ? 'Alerta' : 'Avería'}
+                                                ${tipoServicioTexto}
                                             </span>
                                             ${fechaHoraMostrar}
                                         </div>
@@ -2960,6 +2988,10 @@
                         // Regenerar con TODOS los servicios (sin límite de 2)
                         let html = serviciosUbicacion.map(servicio => {
                             const esAlerta = servicio.tipo === 'rutina';
+                            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+                            const tipoServicioTexto = esAlerta
+                                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
+                                : 'Avería';
 
                             let fechaHoraMostrar = '';
                             if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
@@ -2978,7 +3010,7 @@
                                         <div class="servicio-meta">
                                             <span class="servicio-tipo-badge">
                                                 <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                                                ${esAlerta ? 'Alerta' : 'Avería'}
+                                                ${tipoServicioTexto}
                                             </span>
                                             ${fechaHoraMostrar}
                                         </div>
@@ -3017,6 +3049,105 @@
                 }
             }, 300);
         }, 200);
+    };
+
+    /**
+     * Cambiar estado de un servicio desde el dropdown inline en las cards
+     */
+    window.cambiarEstadoServicioInline = async function (selectElement, event) {
+        event.stopPropagation();
+
+        const servicioId = selectElement.dataset.servicioId;
+        const cuartoId = selectElement.dataset.cuartoId;
+        const esEspacio = selectElement.dataset.esEspacio === 'true';
+        const nuevoEstado = selectElement.value;
+
+        console.log(`🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`);
+
+        // Obtener estado anterior de las clases actuales del elemento
+        const clasesActuales = Array.from(selectElement.classList);
+        const claseEstadoActual = clasesActuales.find(c => c.startsWith('estado-') && c !== 'estado-badge-select');
+        const estadoAnterior = claseEstadoActual ? claseEstadoActual.replace('estado-', '') : 'pendiente';
+
+        // Si es el mismo estado, no hacer nada
+        if (estadoAnterior === nuevoEstado) return;
+
+        console.log(`   Estado anterior: ${estadoAnterior} → Nuevo: ${nuevoEstado}`);
+
+        // Actualizar clase visual inmediatamente (optimistic update)
+        // Remover clase de estado anterior y agregar la nueva, preservando estado-badge-select
+        if (claseEstadoActual) {
+            selectElement.classList.remove(claseEstadoActual);
+        }
+        selectElement.classList.add(`estado-${nuevoEstado}`);
+
+        try {
+            const response = await fetchWithAuth(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: nuevoEstado })
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al actualizar estado del servicio');
+            }
+
+            console.log(`✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`);
+
+            // Actualizar en el array local de mantenimientos
+            const servicio = mantenimientos.find(m => m.id == servicioId);
+            if (servicio) {
+                servicio.estado = nuevoEstado;
+                // Si se completó o canceló, agregar fecha de finalización
+                if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+                    servicio.fecha_finalizacion = new Date().toISOString();
+                }
+            }
+
+            // También actualizar en mantenimientosEspacios si aplica
+            if (esEspacio) {
+                const servicioEspacio = window.appLoaderState?.mantenimientosEspacios?.find(m => m.id == servicioId);
+                if (servicioEspacio) {
+                    servicioEspacio.estado = nuevoEstado;
+                    if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+                        servicioEspacio.fecha_finalizacion = new Date().toISOString();
+                    }
+                }
+            }
+
+            // Sincronizar TODOS los selectores de estado de este servicio (modal y cards)
+            const todosSelectores = document.querySelectorAll(`.estado-badge-select[data-servicio-id="${servicioId}"]`);
+            todosSelectores.forEach(otroSelect => {
+                if (otroSelect !== selectElement) {
+                    // Actualizar valor
+                    otroSelect.value = nuevoEstado;
+                    // Actualizar clases de color
+                    const clasesOtro = Array.from(otroSelect.classList);
+                    const claseEstadoOtro = clasesOtro.find(c => c.startsWith('estado-') && c !== 'estado-badge-select');
+                    if (claseEstadoOtro) {
+                        otroSelect.classList.remove(claseEstadoOtro);
+                    }
+                    otroSelect.classList.add(`estado-${nuevoEstado}`);
+                }
+            });
+
+            // Mostrar notificación de éxito
+            if (window.mostrarAlertaBlur) {
+                window.mostrarAlertaBlur(`Estado actualizado a "${nuevoEstado.replace('_', ' ')}"`, 'success');
+            }
+
+        } catch (error) {
+            console.error('Error al cambiar estado del servicio:', error);
+
+            // Revertir al estado anterior
+            selectElement.value = estadoAnterior;
+            selectElement.classList.remove(`estado-${nuevoEstado}`);
+            selectElement.classList.add(`estado-${estadoAnterior}`);
+
+            if (window.mostrarAlertaBlur) {
+                window.mostrarAlertaBlur('Error al actualizar el estado', 'error');
+            }
+        }
     };
 
     /**
@@ -3133,6 +3264,10 @@
         if (!wrapper) return;
 
         const esAlerta = servicio.tipo === 'rutina';
+        const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+        const tipoServicioTexto = esAlerta
+            ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
+            : 'Avería';
 
         // Normalizar formato de fecha para el input date (YYYY-MM-DD)
         // Evitar problemas de timezone extrayendo la fecha directamente del string ISO
@@ -3174,7 +3309,7 @@
             <div class="form-inline-header">
                 <span class="servicio-tipo-badge">
                     <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                    ${esAlerta ? 'Alerta' : 'Avería'}
+                    ${tipoServicioTexto}
                 </span>
             </div>
             

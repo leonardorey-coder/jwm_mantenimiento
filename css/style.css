@@ -8127,6 +8127,66 @@ body.dark-mode .skeleton-card {
   color: #dc2626;
 }
 
+/* Dropdown inline para cambiar estado del servicio */
+.estado-badge-wrapper {
+  display: inline-block;
+  position: relative;
+}
+
+.estado-badge-select {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  border: none !important;
+  padding: 0.25rem 0.6rem !important;
+  border-radius: 20px !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  background-image: none !important;
+  background-repeat: no-repeat !important;
+  transition: background-color 0.2s ease, color 0.2s ease !important;
+  outline: none !important;
+  text-align: center;
+  min-width: 70px;
+}
+
+.estado-badge-select:hover {
+  filter: brightness(0.95);
+}
+
+.estado-badge-select:focus {
+  box-shadow: 0 0 0 2px rgba(76, 84, 76, 0.15);
+}
+
+.estado-badge-select.estado-pendiente {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+  color: #d97706 !important;
+}
+
+.estado-badge-select.estado-en_proceso {
+  background-color: rgba(59, 130, 246, 0.12) !important;
+  color: #2563eb !important;
+}
+
+.estado-badge-select.estado-completado {
+  background-color: rgba(34, 197, 94, 0.12) !important;
+  color: #16a34a !important;
+}
+
+.estado-badge-select.estado-cancelado {
+  background-color: rgba(239, 68, 68, 0.12) !important;
+  color: #dc2626 !important;
+}
+
+/* Opciones del select */
+.estado-badge-select option {
+  background: var(--blanco) !important;
+  color: var(--texto-principal) !important;
+  font-weight: 500 !important;
+  padding: 0.5rem !important;
+}
+
 .ver-mas-servicios {
   display: flex;
   align-items: center;
