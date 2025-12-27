@@ -826,16 +826,59 @@
 
     /**
      * Generar HTML de servicios (estilo espacios comunes)
+     * @param {Array} servicios - Lista de servicios
+     * @param {number} cuartoId - ID del cuarto
+     * @param {boolean} modoEdicion - Si está en modo edición
+     * @param {boolean} esEspacio - Si es un espacio común
+     * @param {string|null} filtroServicio - Término de búsqueda para filtrar servicio específico
      */
-    function generarServiciosHTML(servicios, cuartoId, modoEdicion = false, esEspacio = false) {
+    function generarServiciosHTML(servicios, cuartoId, modoEdicion = false, esEspacio = false, filtroServicio = null) {
 
         if (!servicios || servicios.length === 0) {
             return '<div style="padding: 1rem; text-align: center; color: var(--texto-secundario); font-style: italic; min-height: 78.99px;">No hay servicios registrados</div>';
         }
 
-        // Mostrar máximo 2 servicios más recientes
-        const serviciosMostrar = servicios.slice(0, 2);
-        const hayMasServicios = servicios.length > 2;
+        // Si hay un filtro de servicio, buscar coincidencia exacta
+        let serviciosFiltrados = servicios;
+        let esFiltroBusqueda = false;
+
+        if (filtroServicio && filtroServicio.trim() !== '') {
+            const termino = filtroServicio.toLowerCase().trim();
+
+            // Buscar coincidencia exacta por ID hex o descripción
+            const servicioExacto = servicios.find(servicio => {
+                // Coincidencia exacta por ID hexadecimal
+                const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toLowerCase();
+                const hexSinPrefijo = servicio.id.toString(16).padStart(3, '0').toLowerCase();
+
+                if (servicioHexId === termino || hexSinPrefijo === termino ||
+                    termino === '#' + servicioHexId || termino === '#serv-' + hexSinPrefijo) {
+                    return true;
+                }
+
+                // Coincidencia parcial fuerte (el término está contenido en el ID)
+                if (servicioHexId.includes(termino) || termino.includes(hexSinPrefijo)) {
+                    return true;
+                }
+
+                // Coincidencia por descripción (exacta o fuerte)
+                const descripcion = servicio.descripcion.toLowerCase();
+                if (descripcion.includes(termino) || termino.includes(descripcion.slice(0, 10))) {
+                    return true;
+                }
+
+                return false;
+            });
+
+            if (servicioExacto) {
+                serviciosFiltrados = [servicioExacto];
+                esFiltroBusqueda = true;
+            }
+        }
+
+        // Mostrar máximo 2 servicios más recientes (excepto si hay filtro exacto)
+        const serviciosMostrar = esFiltroBusqueda ? serviciosFiltrados : serviciosFiltrados.slice(0, 2);
+        const hayMasServicios = !esFiltroBusqueda && servicios.length > 2;
 
         let html = serviciosMostrar.map(servicio => {
             const esAlerta = servicio.tipo === 'rutina';
@@ -878,13 +921,21 @@
                 fechaFinalizacion = `<span><i class="fas fa-flag-checkered"></i> ${formatearFechaCorta(servicio.fecha_finalizacion)}</span>`;
             }
 
+            // Añadir badge de ID hex si es resultado de búsqueda
+            const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+            const idBadgeHtml = esFiltroBusqueda ? `
+                <span class="servicio-id-badge servicio-id-badge-highlight" title="ID: ${servicioHexId}" onclick="copiarIdServicio('${servicioHexId}', event)">
+                    <span class="hex-prefix">#</span><span class="hex-value">${servicioHexId}</span>
+                </span>
+            ` : '';
+
             // En modo edición, usar wrapper; en modo normal, solo el item
             if (modoEdicion) {
                 return `
             <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
                 <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${cuartoId}, ${esEspacio})" style="cursor: pointer;">
                     <div class="servicio-info">
-                        <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
+                        <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)} ${idBadgeHtml}</div>
                         <div class="servicio-meta">
                             <span class="servicio-tipo-badge">
                                 <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
@@ -905,9 +956,9 @@
         `;
             } else {
                 return `
-            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
+            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''} ${esFiltroBusqueda ? 'servicio-destacado' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
                 <div class="servicio-info">
-                    <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)}</div>
+                    <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)} ${idBadgeHtml}</div>
                     <div class="servicio-meta">
                         <span class="servicio-tipo-badge">
                             <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>

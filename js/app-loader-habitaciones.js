@@ -13,7 +13,8 @@ const getState = () => {
             cuartosFiltradosActual: [],
             paginaActualCuartos: 1,
             totalPaginasCuartos: 1,
-            CUARTOS_POR_PAGINA: 10
+            CUARTOS_POR_PAGINA: 10,
+            filtroServicioActual: null // Filtro de búsqueda para servicio específico
         };
     }
     return window.appLoaderState;
@@ -227,7 +228,7 @@ function mostrarCuartos() {
                             </div>
                         </div>
                         <div class="habitacion-servicios" id="servicios-${cuartoId}">
-                            ${generarServiciosHTML(mantenimientosCuarto, cuartoId)}
+                            ${generarServiciosHTML(mantenimientosCuarto, cuartoId, false, false, s.filtroServicioActual)}
                         </div>
                                         <!-- Selector de Estado Oculto hasta click en edición-->
                         <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
@@ -628,6 +629,9 @@ function filtrarCuartos() {
 
         return coincideNombre && coincideAveria && coincideEdificio && coincidePrioridad && coincideEstado;
     });
+
+    // Almacenar el término de búsqueda para filtrar servicios específicos en las cards
+    s.filtroServicioActual = buscarAveria.trim() !== '' ? buscarAveria : null;
 
     mostrarCuartosFiltrados(cuartosFiltrados);
 }

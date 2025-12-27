@@ -6386,6 +6386,38 @@ body.admin a.admin-only {
   content: '';
 }
 
+/* Badge resaltado cuando es resultado de búsqueda */
+.servicio-id-badge-highlight {
+  background: var(--verde-oliva) !important;
+  color: var(--blanco) !important;
+  border-color: var(--verde-oliva) !important;
+  animation: pulseHighlight 2s ease-in-out infinite;
+}
+
+@keyframes pulseHighlight {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(76, 84, 76, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px rgba(76, 84, 76, 0);
+  }
+}
+
+/* Servicio destacado cuando es resultado de búsqueda exacta */
+.servicio-item.servicio-destacado {
+  border: 2px solid var(--verde-oliva);
+  background: linear-gradient(135deg, rgba(76, 84, 76, 0.08) 0%, rgba(76, 84, 76, 0.02) 100%);
+  box-shadow: 0 2px 8px rgba(76, 84, 76, 0.15);
+}
+
+.servicio-item.servicio-destacado:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 84, 76, 0.2);
+}
+
 .btn-volver-lista {
   background: transparent;
   border: 2px solid var(--blanco);
