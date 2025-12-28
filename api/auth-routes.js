@@ -24,12 +24,9 @@ const pool = new Pool(dbConfig);
  * Iniciar sesión
  */
 async function login(req, res) {
-    console.log('🔵 [AUTH-ROUTES] Login iniciado');
     const { email, password } = req.body;
-    console.log('🔵 [AUTH-ROUTES] Email recibido:', email);
 
     if (!email || !password) {
-        console.log('🔴 [AUTH-ROUTES] Datos incompletos');
         return res.status(400).json({
             error: 'Datos incompletos',
             mensaje: 'Email y contraseña son requeridos'
@@ -37,7 +34,6 @@ async function login(req, res) {
     }
 
     try {
-        console.log('🔵 [AUTH-ROUTES] Buscando usuario en BD...');
         // Buscar usuario por email
         const userResult = await pool.query(`
             SELECT 
@@ -52,7 +48,6 @@ async function login(req, res) {
         `, [email]);
 
         if (userResult.rows.length === 0) {
-            console.log('🔴 [AUTH-ROUTES] Usuario no encontrado');
             return res.status(401).json({
                 error: 'Credenciales inválidas',
                 mensaje: 'Email o contraseña incorrectos'
@@ -60,11 +55,9 @@ async function login(req, res) {
         }
 
         const usuario = userResult.rows[0];
-        console.log('🔵 [AUTH-ROUTES] Usuario encontrado:', { id: usuario.id, nombre: usuario.nombre, rol: usuario.rol_nombre, activo: usuario.activo });
 
         // Verificar si el usuario está activo
         if (!usuario.activo || usuario.fecha_baja) {
-            console.log('🔴 [AUTH-ROUTES] Usuario inactivo o dado de baja');
             return res.status(403).json({
                 error: 'Usuario inactivo',
                 mensaje: 'Esta cuenta ha sido desactivada. Contacte al administrador.',
@@ -78,7 +71,6 @@ async function login(req, res) {
 
         // Verificar si está bloqueado
         if (usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date()) {
-            console.log('🔴 [AUTH-ROUTES] Usuario bloqueado hasta:', usuario.bloqueado_hasta);
             return res.status(403).json({
                 error: 'Usuario bloqueado',
                 mensaje: 'Usuario bloqueado por múltiples intentos fallidos',
@@ -86,16 +78,13 @@ async function login(req, res) {
             });
         }
 
-        console.log('🔵 [AUTH-ROUTES] Verificando contraseña...');
         // Verificar contraseña
         const passwordResult = await pool.query(
             'SELECT verificar_password($1, $2) as valido',
             [password, usuario.password_hash]
         );
 
-        console.log('🔵 [AUTH-ROUTES] Resultado verificación:', passwordResult.rows[0].valido);
         if (!passwordResult.rows[0].valido) {
-            console.log('🔴 [AUTH-ROUTES] Contraseña incorrecta');
             // Incrementar intentos fallidos
             const intentosFallidos = usuario.intentos_fallidos + 1;
             let bloqueadoHasta = null;
@@ -124,11 +113,9 @@ async function login(req, res) {
             });
         }
 
-        console.log('🔵 [AUTH-ROUTES] Contraseña correcta, generando tokens...');
         // Login exitoso - Generar tokens
         const { token: jwtToken, expiration: jwtExpiration } = generarJWT(usuario);
         const { token: refreshToken, expiration: refreshExpiration } = generarRefreshToken();
-        console.log('🔵 [AUTH-ROUTES] Tokens generados, creando sesión...');
 
         // Extraer información del dispositivo
         const infoDispositivo = extraerInfoDispositivo(req.headers['user-agent']);
@@ -156,7 +143,6 @@ async function login(req, res) {
             infoDispositivo.sistema_operativo
         ]);
 
-        console.log('🔵 [AUTH-ROUTES] Sesión creada, ID:', sessionResult.rows[0].id);
 
         // Resetear intentos fallidos
         await pool.query(
@@ -164,7 +150,6 @@ async function login(req, res) {
             [usuario.id]
         );
 
-        console.log('🔵 [AUTH-ROUTES] Enviando respuesta de login exitoso...');
         res.json({
             success: true,
             mensaje: 'Login exitoso',
@@ -447,7 +432,6 @@ async function solicitarAcceso(req, res) {
     try {
         // Aquí podrías implementar envío de email al admin
         // Por ahora, solo registramos en logs
-        console.log('📩 Nueva solicitud de acceso:', {
             nombre,
             email,
             telefono,
