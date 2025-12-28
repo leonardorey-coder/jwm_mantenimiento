@@ -483,6 +483,197 @@ body.modal-open {
   font-size: 1.1rem;
 }
 
+/* Download Buttons - App Versions */
+.download-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  text-decoration: none;
+  position: relative;
+}
+
+.download-btn i {
+  font-size: 1rem;
+}
+
+/* Portable Version - Green Olive style */
+.download-portable {
+  border: 1px solid rgba(76, 84, 76, 0.4);
+  background: rgba(76, 84, 76, 0.08);
+  color: var(--verde-oliva);
+}
+
+.download-portable:hover {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  border-color: var(--verde-oliva);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(76, 84, 76, 0.4);
+}
+
+.download-portable:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(76, 84, 76, 0.3);
+}
+
+/* Installer Version - Blue accent style */
+.download-installer {
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  background: rgba(59, 130, 246, 0.08);
+  color: #3b82f6;
+}
+
+.download-installer:hover {
+  background: #3b82f6;
+  color: var(--blanco);
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.4);
+}
+
+.download-installer:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* Tooltip for download buttons */
+.download-btn::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background: var(--negro-carbon);
+  color: var(--texto-header);
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border-radius: 6px;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.download-btn::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: var(--negro-carbon);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s ease;
+  margin-top: -4px;
+  z-index: 1001;
+}
+
+.download-btn:hover::after,
+.download-btn:hover::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Update Check Button */
+.update-check-btn {
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(147, 51, 234, 0.4);
+  background: rgba(147, 51, 234, 0.08);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: #9333ea;
+  position: relative;
+}
+
+.update-check-btn:hover {
+  background: #9333ea;
+  color: var(--blanco);
+  border-color: #9333ea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(147, 51, 234, 0.4);
+}
+
+.update-check-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(147, 51, 234, 0.3);
+}
+
+.update-check-btn i {
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  transform-origin: center center;
+  margin: 0;
+}
+
+.update-check-btn.checking i {
+  animation: update-spin 1s linear infinite;
+}
+
+@keyframes update-spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Update badge notification */
+.update-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.6rem;
+  font-weight: 700;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+@keyframes pulse-badge {
+
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Hide update button in web (only visible in Electron) */
+body:not(.electron-app) .update-check-btn {
+  display: none;
+}
+
 /* ========================================
    NAVEGACIÓN PREMIUM - MINIMAL & ELEGANT
    ======================================== */

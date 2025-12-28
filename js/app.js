@@ -452,71 +452,7 @@ async function logout() {
 // TEMA (CLARO/OSCURO)
 // ========================================
 
-// Función de notificaciones toast
-function showNotification(message, type = 'info') {
-    // Buscar o crear contenedor de notificaciones
-    let container = document.getElementById('notification-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notification-container';
-        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px;';
-        document.body.appendChild(container);
-    }
 
-    // Crear notificación
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-
-    // Estilos según tipo
-    const colors = {
-        success: { bg: '#10b981', icon: '✅' },
-        error: { bg: '#ef4444', icon: '❌' },
-        warning: { bg: '#f59e0b', icon: '⚠️' },
-        info: { bg: '#3b82f6', icon: 'ℹ️' }
-    };
-    const config = colors[type] || colors.info;
-
-    notification.style.cssText = `
-        background: ${config.bg};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 14px;
-        font-weight: 500;
-        animation: slideIn 0.3s ease;
-        max-width: 350px;
-    `;
-
-    notification.innerHTML = `<span>${config.icon}</span><span>${message}</span>`;
-    container.appendChild(notification);
-
-    // Agregar animación CSS si no existe
-    if (!document.getElementById('notification-styles')) {
-        const style = document.createElement('style');
-        style.id = 'notification-styles';
-        style.textContent = `
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
-    }
-
-    // Auto-remover después de 4 segundos
-    setTimeout(() => {
-        notification.style.animation = 'slideOut 0.3s ease forwards';
-        setTimeout(() => notification.remove(), 300);
-    }, 4000);
-}
 
 function initializeTheme() {
     const savedTheme = localStorage.getItem('theme') || 'light';
@@ -566,6 +502,56 @@ function setupEventListeners() {
     const themeToggle = document.getElementById('themeToggle');
     if (themeToggle) {
         themeToggle.addEventListener('click', toggleTheme);
+    }
+
+    // Botón de verificar actualizaciones (solo en Electron)
+    const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+    if (checkUpdatesBtn && window.electronAPI && window.electronAPI.updates) {
+        checkUpdatesBtn.addEventListener('click', async () => {
+            const btn = checkUpdatesBtn;
+            const badge = btn.querySelector('.update-badge');
+
+            // Estado de carga
+            btn.classList.add('checking');
+            btn.disabled = true;
+
+            try {
+                const result = await window.electronAPI.updates.check();
+
+                if (result.error) {
+                    if (window.mostrarAlertaBlur) {
+                        window.mostrarAlertaBlur(result.error, 'warning');
+                    } else {
+                        alert(result.error);
+                    }
+                } else if (result.hasUpdate) {
+                    // Hay actualización disponible
+                    if (badge) badge.style.display = 'flex';
+                    const mensaje = `¡Nueva versión ${result.latestVersion} disponible! (Actual: ${result.currentVersion})`;
+
+                    if (window.mostrarAlertaBlur) {
+                        window.mostrarAlertaBlur(mensaje, 'info');
+                    }
+
+                    // Preguntar si desea abrir la página de descarga
+                    if (electronSafeConfirm(`${mensaje}\n\n¿Desea abrir la página de descarga?`)) {
+                        window.open(result.downloadUrl, '_blank');
+                    }
+                } else {
+                    if (badge) badge.style.display = 'none';
+                    const mensajeExito = `Estás al día (v${result.currentVersion})`;
+                    if (window.mostrarAlertaBlur) {
+                        window.mostrarAlertaBlur(mensajeExito, 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Error verificando actualizaciones:', error);
+                showNotification('Error al verificar actualizaciones', 'error');
+            } finally {
+                btn.classList.remove('checking');
+                btn.disabled = false;
+            }
+        });
     }
 
     // Navegación entre tabs - Desktop y móvil

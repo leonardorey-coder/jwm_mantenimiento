@@ -51,3 +51,7 @@ storage/logs/*.log
 
 # Pruebas de integración
 js/notification-tester.js
+
+# Antigravity
+.antigravity
+.agent

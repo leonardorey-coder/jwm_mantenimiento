@@ -318,6 +318,87 @@ app.whenReady().then(async () => {
         ipcMain.handle('auth:get', async () => getAuthData());
         ipcMain.handle('auth:clear', async () => clearAuthData());
 
+        // Handler para verificar actualizaciones desde GitHub Releases
+        ipcMain.handle('updates:check', async () => {
+            try {
+                const https = require('https');
+                const currentVersion = app.getVersion();
+
+                return new Promise((resolve, reject) => {
+                    const options = {
+                        hostname: 'api.github.com',
+                        path: '/repos/leonardorey-coder/jwm_mantenimiento/releases/latest',
+                        method: 'GET',
+                        headers: {
+                            'User-Agent': 'JW-Mantto-App',
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    };
+
+                    const req = https.request(options, (res) => {
+                        let data = '';
+                        res.on('data', chunk => data += chunk);
+                        res.on('end', () => {
+                            try {
+                                if (res.statusCode === 404) {
+                                    resolve({
+                                        hasUpdate: false,
+                                        currentVersion,
+                                        message: 'No hay releases publicados aún'
+                                    });
+                                    return;
+                                }
+
+                                const release = JSON.parse(data);
+                                const latestVersion = release.tag_name.replace('v', '');
+                                const hasUpdate = latestVersion !== currentVersion;
+
+                                resolve({
+                                    hasUpdate,
+                                    currentVersion,
+                                    latestVersion,
+                                    releaseNotes: release.body || 'Sin notas de la versión',
+                                    downloadUrl: release.html_url,
+                                    publishedAt: release.published_at
+                                });
+                            } catch (parseError) {
+                                resolve({
+                                    hasUpdate: false,
+                                    currentVersion,
+                                    error: 'Error al procesar respuesta'
+                                });
+                            }
+                        });
+                    });
+
+                    req.on('error', (error) => {
+                        resolve({
+                            hasUpdate: false,
+                            currentVersion,
+                            error: 'Sin conexión a internet'
+                        });
+                    });
+
+                    req.setTimeout(10000, () => {
+                        req.destroy();
+                        resolve({
+                            hasUpdate: false,
+                            currentVersion,
+                            error: 'Tiempo de espera agotado'
+                        });
+                    });
+
+                    req.end();
+                });
+            } catch (error) {
+                return {
+                    hasUpdate: false,
+                    currentVersion: app.getVersion(),
+                    error: error.message
+                };
+            }
+        });
+
         // Handler para refrescar el foco de la ventana
         // WORKAROUND: Usamos la ventana dummy como pivote para no perder foco de la app
         // Esto evita que Windows le de foco al Explorador o Chrome al hacer blur()

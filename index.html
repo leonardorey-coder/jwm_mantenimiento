@@ -83,6 +83,20 @@
 
             <!-- Columna Derecha: Controles -->
             <div class="header-right">
+                <!-- Botones de descarga de la app -->
+                <a href="https://github.com/leonardorey-coder/jwm_mantenimiento/releases/latest" target="_blank"
+                    class="download-btn download-portable" title="Descargar versión Portable (desde GitHub)">
+                    <i class="fas fa-download"></i>
+                </a>
+                <a href="https://github.com/leonardorey-coder/jwm_mantenimiento/releases" target="_blank"
+                    class="download-btn download-installer" title="Ver todas las versiones en GitHub">
+                    <i class="fas fa-box-open"></i>
+                </a>
+                <!-- Botón para verificar actualizaciones (solo visible en Electron) -->
+                <button id="checkUpdatesBtn" class="update-check-btn" title="Buscar actualizaciones">
+                    <i class="fas fa-sync-alt"></i>
+                    <span class="update-badge" style="display: none;">!</span>
+                </button>
                 <button id="logoutBtn" class="logout-btn" title="Cerrar sesión">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>

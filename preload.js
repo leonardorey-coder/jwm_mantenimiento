@@ -27,6 +27,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
         clear: () => ipcRenderer.invoke('auth:clear')
     },
 
+    // Métodos para verificar actualizaciones
+    updates: {
+        check: () => ipcRenderer.invoke('updates:check')
+    },
+
     // Método para refrescar el foco de la ventana (soluciona bug de diálogos nativos)
     refreshWindowFocus: () => ipcRenderer.invoke('window:refreshFocus'),
 
