@@ -84,14 +84,14 @@
             <!-- Columna Derecha: Controles -->
             <div class="header-right">
                 <!-- Botones de descarga de la app -->
-                <a href="https://github.com/leonardorey-coder/jwm_mantenimiento/releases/latest" target="_blank"
-                    class="download-btn download-portable" title="Descargar versión Portable (desde GitHub)">
+                <button onclick="downloadPortable(this)" class="download-btn download-portable"
+                    title="Descargar versión Portable (desde GitHub)">
                     <i class="fas fa-download"></i>
-                </a>
-                <a href="https://github.com/leonardorey-coder/jwm_mantenimiento/releases" target="_blank"
-                    class="download-btn download-installer" title="Ver todas las versiones en GitHub">
+                </button>
+                <button onclick="downloadInstaller(this)" class="download-btn download-installer"
+                    title="Descargar versión Instalable (desde GitHub)">
                     <i class="fas fa-box-open"></i>
-                </a>
+                </button>
                 <!-- Botón para verificar actualizaciones (solo visible en Electron) -->
                 <button id="checkUpdatesBtn" class="update-check-btn" title="Buscar actualizaciones">
                     <i class="fas fa-sync-alt"></i>
@@ -2104,6 +2104,8 @@
     <link rel="stylesheet" href="views/tareas/tareas-cards.css">
     <link rel="stylesheet" href="views/tareas/tareas-timeline.css">
     <script src="views/tareas/tareas-module.js"></script>
+    <!-- GitHub Direct Downloads -->
+    <script src="js/github-downloads.js"></script>
     <!-- Checklist API y módulo -->
     <script src="js/checklist-api.js"></script>
     <script src="views/checklist/checklist-tab.js"></script>
