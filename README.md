@@ -11,6 +11,26 @@ Sistema moderno de registro y gestión de mantenimiento de habitaciones para hot
 - Contexto: **JW Marriott Resort & Spa — Estancia I**
 - Entregable de esta implementación: **Backend (API REST y Base de Datos) + PWA online/offline**
 
+---
+
+## ⚠️ IMPORTANTE: Advertencia de Seguridad de Windows
+
+Al descargar e instalar la aplicación de escritorio, **Windows mostrará una advertencia de seguridad** ("Windows protected your PC"). **Esto es completamente normal y esperado**.
+
+### ¿Por qué sucede esto?
+
+La aplicación **NO está firmada digitalmente** con un certificado de Microsoft. Obtener un certificado requiere un costo anual significativo (~$200-600 USD) que no está justificado para uso interno.
+
+### ¿Cómo instalar la aplicación de forma segura?
+
+1. Cuando veas la advertencia "Windows protected your PC", haz clic en **"More info"** (Más información).
+2. Luego haz clic en **"Run anyway"** (Ejecutar de todas formas).
+3. La aplicación se instalará normalmente.
+
+**Esta advertencia NO significa que la aplicación sea peligrosa**. Solo indica que no tiene un certificado de código comercial. La aplicación es de código privado, desarrollada internamente para JW Marriott Los Cabos.
+
+---
+
 ## ✨ Características Principales
 
 - 🏨 **Habitaciones y Espacios Comunes**: administración por edificio con estados y métricas
