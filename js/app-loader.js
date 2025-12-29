@@ -390,8 +390,8 @@
       if (!currentUser) {
         currentUser = JSON.parse(
           localStorage.getItem('currentUser') ||
-            sessionStorage.getItem('currentUser') ||
-            'null'
+          sessionStorage.getItem('currentUser') ||
+          'null'
         );
       }
 
@@ -574,9 +574,9 @@
       const nombresEspacios = await obtenerNombresEspaciosComunes();
       diccNombresEspaciosPorId = nombresEspacios
         ? nombresEspacios.reduce((acc, espacio) => {
-            acc[espacio.id] = espacio.nombre;
-            return acc;
-          }, {})
+          acc[espacio.id] = espacio.nombre;
+          return acc;
+        }, {})
         : {};
 
       // Validar respuestas principales
@@ -986,8 +986,8 @@
     // Intentar obtener usuario desde JWT primero
     const currentUser = JSON.parse(
       localStorage.getItem('currentUser') ||
-        sessionStorage.getItem('currentUser') ||
-        'null'
+      sessionStorage.getItem('currentUser') ||
+      'null'
     );
 
     let usuarioMostrar = null;
@@ -1213,7 +1213,7 @@
         `;
         } else {
           return `
-            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''} ${esFiltroBusqueda ? 'servicio-destacado' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
+            <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
                 <div class="servicio-info">
                     <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)} ${idBadgeHtml}</div>
                     <div class="servicio-meta">
@@ -3119,26 +3119,24 @@
       if (servicio.dia_alerta || servicio.hora) {
         contenido += `
                 <div class="detalle-fecha-hora">
-                    ${
-                      servicio.dia_alerta
-                        ? `
+                    ${servicio.dia_alerta
+            ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-calendar-alt"></i> Día de Alerta</div>
                             <div class="detalle-valor">${formatearDiaAlerta(servicio.dia_alerta)}</div>
                         </div>
                     `
-                        : ''
-                    }
-                    ${
-                      servicio.hora
-                        ? `
+            : ''
+          }
+                    ${servicio.hora
+            ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-clock"></i> Hora de Alerta</div>
                             <div class="detalle-valor">${formatearHora(servicio.hora)}</div>
                         </div>
                     `
-                        : ''
-                    }
+            : ''
+          }
                 </div>
             `;
       }
@@ -3269,16 +3267,15 @@
                     </div>
                     <div class="detalle-valor-modal">
                         ${escapeHtml(servicio.descripcion)}
-                        ${
-                          servicio.dia_alerta || servicio.hora
-                            ? `
+                        ${servicio.dia_alerta || servicio.hora
+            ? `
                             <div style="font-size: 0.85rem; color: var(--texto-secundario); margin-top: 0.3rem;">
                                 ${servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : ''} 
                                 ${servicio.hora ? formatearHora(servicio.hora) : ''}
                             </div>
                         `
-                            : ''
-                        }
+            : ''
+          }
                     </div>
                     <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 0.9rem;"></i>
                 </div>
@@ -4012,9 +4009,8 @@
                 placeholder="Descripción"
             />
             
-            ${
-              esAlerta
-                ? `
+            ${esAlerta
+        ? `
                 <div class="form-inline-row">
                     <input 
                         type="date" 
@@ -4030,8 +4026,8 @@
                     />
                 </div>
             `
-                : ''
-            }
+        : ''
+      }
             
             <select class="input-edicion-inline" id="edit-estado-${servicioId}">
                 <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>

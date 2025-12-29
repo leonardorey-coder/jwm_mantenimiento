@@ -408,7 +408,7 @@ function cargarContenidoEspacio(li, espacio) {
             </div>
         </div>
         <div class="habitacion-servicios" id="servicios-espacio-${espacio.id}">
-            ${window.generarServiciosHTML ? window.generarServiciosHTML(mantenimientosEspacio, espacio.id, false, true) : ''}
+            ${window.generarServiciosHTML ? window.generarServiciosHTML(mantenimientosEspacio, espacio.id, false, true, window.AppState?.filtroServicioEspacios || null) : ''}
         </div>
 
         <div class="estado-selector-inline" style="display: none" id="estado-selector-inline-espacio-${espacio.id}">
@@ -622,7 +622,8 @@ function toggleModoEdicionEspacio(espacioId) {
       serviciosEspacio,
       espacioId,
       false,
-      true
+      true,
+      window.AppState?.filtroServicioEspacios || null
     );
   } else {
     // Activar modo edición
@@ -638,7 +639,8 @@ function toggleModoEdicionEspacio(espacioId) {
       serviciosEspacio,
       espacioId,
       true,
-      true
+      true,
+      null  // No aplicar filtro en modo edición
     );
 
     // Actualizar pills de estado
@@ -968,7 +970,8 @@ function renderizarServiciosEspacio(espacioId) {
     serviciosEspacio,
     espacioId,
     enModoEdicion,
-    true
+    true,
+    enModoEdicion ? null : (window.AppState?.filtroServicioEspacios || null)
   );
 
   // Mostrar/Ocultar botón editar según si hay servicios

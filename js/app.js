@@ -60,6 +60,7 @@ const AppState = {
   mantenimientos: [],
   espaciosComunes: [],
   mantenimientosEspacios: [],
+  filtroServicioEspacios: null, // Almacena el término de búsqueda de servicio para espacios comunes
   usuarios: [],
   roles: [],
   usuariosFiltro: '',
@@ -1087,11 +1088,25 @@ function filterEspaciosComunes() {
     const mantenimientosEspacio = mantenimientosEspacios.filter(
       (m) => m.espacio_comun_id === espacio.id
     );
+
+    // Buscar servicio por descripción O por ID hexadecimal (serv-XXX)
     const coincideServicio =
       !buscarServicio ||
-      mantenimientosEspacio.some((m) =>
-        m.descripcion.toLowerCase().includes(buscarServicio)
-      );
+      mantenimientosEspacio.some((m) => {
+        // Buscar por descripción
+        if (m.descripcion.toLowerCase().includes(buscarServicio)) return true;
+
+        // Buscar por ID hexadecimal (serv-XXX)
+        const servicioHexId =
+          'serv-' + m.id.toString(16).padStart(3, '0').toLowerCase();
+        if (servicioHexId.includes(buscarServicio)) return true;
+
+        // Buscar solo el número hex sin prefijo
+        const hexSinPrefijo = m.id.toString(16).padStart(3, '0').toLowerCase();
+        if (buscarServicio.includes(hexSinPrefijo)) return true;
+
+        return false;
+      });
 
     const coincidePrioridad =
       !prioridadFiltro ||
@@ -1105,6 +1120,9 @@ function filterEspaciosComunes() {
       coincidePrioridad
     );
   });
+
+  // Almacenar el término de búsqueda de servicio para filtrar servicios específicos en las cards
+  AppState.filtroServicioEspacios = buscarServicio.trim() !== '' ? buscarServicio : null;
 
   const mensajeNoResultados = document.getElementById('mensajeNoEspacios');
   const lista = document.getElementById('listaEspaciosComunes');
