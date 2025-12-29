@@ -4602,6 +4602,8 @@ async function mostrarFotoPreview(file) {
     console.log(`📷 Items en selector: ${catalogItems.length}, preseleccionado: ${preselectedItemId}`);
 
     const usuarioNombre = AppState.currentUser?.nombre || AppState.currentUser?.name || 'Usuario';
+    const usuarioNombreSafe = (usuarioNombre || '').replace(/'/g, "\\'");
+    const fechaIso = new Date().toISOString();
     const fechaHora = new Date().toLocaleString('es-MX', {
         dateStyle: 'medium',
         timeStyle: 'short'
@@ -4626,7 +4628,7 @@ async function mostrarFotoPreview(file) {
                 </button>
             </div>
             <div class="modal-detalles-body checklist-foto-preview-body">
-                <div class="checklist-foto-preview-image-container">
+                <div class="checklist-foto-preview-image-container is-clickable" onclick="mostrarFotoCompletaChecklist(null, '${previewUrl}', 'Foto de Inspección', '', '${usuarioNombreSafe}', '${fechaIso}')">
                     <img src="${previewUrl}" alt="Preview de foto" class="checklist-foto-preview-img">
                 </div>
                 <div class="checklist-foto-form">

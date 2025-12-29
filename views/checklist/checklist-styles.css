@@ -2700,6 +2700,10 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   background: var(--gris-claro);
 }
 
+.checklist-foto-preview-image-container.is-clickable {
+  cursor: pointer;
+}
+
 .checklist-foto-preview-img {
   width: 100%;
   height: 100%;
@@ -2817,7 +2821,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 .checklist-foto-btn-guardar:hover {
-  background: var(--verde-oscuro);
+  background: var(--gris-grafito);
   transform: translate(-1px, -1px);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.2);
 }
