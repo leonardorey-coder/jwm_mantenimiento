@@ -9696,6 +9696,7 @@ tr[data-lazy="true"] {
   max-height: 360px;
   overflow-y: auto;
   scroll-behavior: smooth;
+  padding-top: 2px;
 }
 
 .alerta-espacio-header {
