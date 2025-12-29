@@ -243,6 +243,32 @@ function renderSabanaTable(items, archivada = false) {
             const item = items[i];
             const tr = document.createElement('tr');
             tr.setAttribute('data-lazy', 'true');
+            tr.dataset.itemId = item.id;
+
+            tr.addEventListener('click', (event) => {
+                if (archivada) return;
+                if (event.target.closest('input, textarea, button, select, label, a')) return;
+                const checkbox = tr.querySelector('input.checkbox-sabana');
+                if (!checkbox || checkbox.checked) {
+                    tbody.dataset.pendingSabanaClick = '';
+                    tr.classList.remove('sabana-pending');
+                    return;
+                }
+                const pendingId = tbody.dataset.pendingSabanaClick || '';
+                if (pendingId === String(item.id)) {
+                    tbody.dataset.pendingSabanaClick = '';
+                    tr.classList.remove('sabana-pending');
+                    checkbox.checked = true;
+                    toggleRealizadoSabana(item.id, true);
+                    return;
+                }
+                const previousPending = tbody.querySelector('tr.sabana-pending');
+                if (previousPending) {
+                    previousPending.classList.remove('sabana-pending');
+                }
+                tbody.dataset.pendingSabanaClick = String(item.id);
+                tr.classList.add('sabana-pending');
+            });
 
             const readonly = archivada ? 'disabled' : '';
             const readonlyClass = archivada ? 'readonly' : '';
@@ -1795,4 +1821,3 @@ console.log('📋 Funciones disponibles:', {
     archivarPeriodo: typeof window.archivarPeriodo,
     eliminarSabana: typeof window.eliminarSabana
 });
-

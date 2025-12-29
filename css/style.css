@@ -5147,6 +5147,16 @@ body.admin .tab-content.admin-only.active {
 .sabana-table tbody tr {
   border-bottom: 2px solid var(--gris-separador);
   transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.filtros-table tbody tr {
+  cursor: pointer;
+}
+
+.filtros-table tbody tr.sabana-pending {
+  background: rgba(255, 181, 0, 0.22);
+  box-shadow: 0 6px 16px rgba(104, 104, 104, 0.22);
 }
 
 .sabana-table tbody tr:hover {
