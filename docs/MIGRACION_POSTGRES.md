@@ -40,6 +40,7 @@ cp .env.example .env
 ```
 
 Este script:
+
 - ✅ Verifica que PostgreSQL esté instalado
 - ✅ Instala las dependencias de Node.js
 - ✅ Crea el archivo `.env` con tus credenciales
@@ -50,17 +51,20 @@ Este script:
 ### Opción 2: Configuración Manual
 
 1. **Instalar dependencias**:
+
 ```bash
 npm install
 ```
 
 2. **Configurar variables de entorno**:
+
 ```bash
 cp .env.example .env
 # Editar .env con tus credenciales
 ```
 
 3. **Crear base de datos**:
+
 ```bash
 psql postgres
 CREATE DATABASE jwmantto;
@@ -68,11 +72,13 @@ CREATE DATABASE jwmantto;
 ```
 
 4. **Ejecutar esquema**:
+
 ```bash
 psql -U postgres -d jwmantto -f db/schema-postgres.sql
 ```
 
 5. **Iniciar aplicación**:
+
 ```bash
 npm start
 ```
@@ -125,6 +131,7 @@ DB_SSL=true
 Para instrucciones detalladas, consulta: **[docs/README_POSTGRES.md](docs/README_POSTGRES.md)**
 
 Incluye:
+
 - 📋 Requisitos previos
 - 🔧 Configuración paso a paso
 - ☁️ Despliegue en diferentes proveedores de nube

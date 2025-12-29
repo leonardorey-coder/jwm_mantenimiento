@@ -2,215 +2,314 @@
 // y están disponibles globalmente en window
 
 (() => {
-    'use strict';
+  'use strict';
 
-    /**
-     * App Loader - Carga los datos desde el servidor Express local
-     * Este archivo reemplaza la lógica PHP para funcionar con la API local
-     */
+  /**
+   * App Loader - Carga los datos desde el servidor Express local
+   * Este archivo reemplaza la lógica PHP para funcionar con la API local
+   */
 
-    // URL base de la API - Detecta automáticamente el entorno
-    // En Vercel, usa la URL relativa. En local, usa localhost:3000 (Vercel dev) o 3001 (Express)
-    const API_BASE_URL = (() => {
-        const hostname = window.location.hostname;
+  // URL base de la API - Detecta automáticamente el entorno
+  // En Vercel, usa la URL relativa. En local, usa localhost:3000 (Vercel dev) o 3001 (Express)
+  const API_BASE_URL = (() => {
+    const hostname = window.location.hostname;
 
-        // Detectar si estamos en Vercel (producción o preview)
-        if (hostname.includes('vercel.app') || hostname.includes('vercel.com')) {
-            console.log('🌐 Entorno: Vercel (producción/preview)');
-            return '';
-        }
-
-        // En localhost (Vercel Dev, Express, o Electron) usar URLs relativas
-        // Esto funciona con cualquier puerto dinámico
-        if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            console.log('🌐 Entorno: Localhost (puerto:', window.location.port, ')');
-            return ''; // Usar URL relativa, funciona con cualquier puerto
-        }
-
-        // Fallback para otros entornos
-        console.log('🌐 Entorno: Otro -', hostname);
-        return '';
-    })();
-
-    console.log('🔧 DEBUG: app-loader.js - Configuración:', {
-        hostname: window.location.hostname,
-        port: window.location.port,
-        apiBaseUrl: API_BASE_URL || window.location.origin,
-        fullApiUrl: API_BASE_URL ? API_BASE_URL : window.location.origin
-    });
-
-    // Variables globales para almacenar datos
-    let cuartos = [];
-    let mantenimientos = [];
-    let edificios = [];
-    let usuarios = []; // Lista de usuarios activos
-    let usuarioActualId = null; // ID del usuario actual logeado
-    let intervalosNotificaciones = null;
-    let alertasEmitidas = new Set(); // Para evitar duplicados
-    let diccNombresEspaciosPorId = {}; // Diccionario de nombres de espacios comunes por ID
-    let eventosFiltrosConfigurados = false; // Para asegurarnos de enlazar filtros al menos una vez
-
-    /**
-     * Helper para obtener headers con autenticación JWT
-     */
-    async function obtenerHeadersConAuth(contentType = 'application/json') {
-        const headers = {};
-
-        if (contentType) {
-            headers['Content-Type'] = contentType;
-        }
-
-        // Intentar obtener desde IndexedDB primero
-        let accessToken = null;
-
-        if (window.storageHelper) {
-            try {
-                accessToken = await window.storageHelper.getAccessToken();
-            } catch (error) {
-                console.warn('⚠️ Error obteniendo token de IndexedDB:', error);
-            }
-        }
-
-        // Fallback a localStorage/sessionStorage
-        if (!accessToken) {
-            accessToken = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
-        }
-
-        if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`;
-        }
-
-        return headers;
+    // Detectar si estamos en Vercel (producción o preview)
+    if (hostname.includes('vercel.app') || hostname.includes('vercel.com')) {
+      console.log('🌐 Entorno: Vercel (producción/preview)');
+      return '';
     }
 
-    // Paginación de habitaciones
-    const CUARTOS_POR_PAGINA = 10;
-    let cuartosFiltradosActual = [];
-    let paginaActualCuartos = 1;
-    let totalPaginasCuartos = 1;
+    // En localhost (Vercel Dev, Express, o Electron) usar URLs relativas
+    // Esto funciona con cualquier puerto dinámico
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      console.log('🌐 Entorno: Localhost (puerto:', window.location.port, ')');
+      return ''; // Usar URL relativa, funciona con cualquier puerto
+    }
 
-    // Crear objeto de estado compartido que mantiene referencias actualizadas
-    // Usamos getters para que siempre retorne los valores actuales
-    window.appLoaderState = {
-        get cuartos() { return cuartos; },
-        set cuartos(val) { cuartos = val; },
-        get datosHabitacionesCargados() { return cuartos?.length > 0 || !!window._datosHabitacionesCargadosFlag; },
-        set datosHabitacionesCargados(val) { window._datosHabitacionesCargadosFlag = !!val; },
-        get mantenimientos() { return mantenimientos; },
-        set mantenimientos(val) { mantenimientos = val; },
-        get edificios() { return edificios; },
-        set edificios(val) { edificios = val; },
-        get usuarios() { return usuarios; },
-        set usuarios(val) { usuarios = val; },
-        get cuartosFiltradosActual() { return cuartosFiltradosActual; },
-        set cuartosFiltradosActual(val) { cuartosFiltradosActual = val; },
-        get paginaActualCuartos() { return paginaActualCuartos; },
-        set paginaActualCuartos(val) { paginaActualCuartos = val; },
-        get totalPaginasCuartos() { return totalPaginasCuartos; },
-        set totalPaginasCuartos(val) { totalPaginasCuartos = val; },
-        CUARTOS_POR_PAGINA: CUARTOS_POR_PAGINA
-    };
+    // Fallback para otros entornos
+    console.log('🌐 Entorno: Otro -', hostname);
+    return '';
+  })();
 
-    // Paginación de espacios comunes
-    const ESPACIOS_POR_PAGINA = 10;
-    let espaciosComunesFiltradosActual = [];
-    let paginaActualEspacios = 1;
-    let totalPaginasEspacios = 1;
+  console.log('🔧 DEBUG: app-loader.js - Configuración:', {
+    hostname: window.location.hostname,
+    port: window.location.port,
+    apiBaseUrl: API_BASE_URL || window.location.origin,
+    fullApiUrl: API_BASE_URL ? API_BASE_URL : window.location.origin,
+  });
 
-    // Datos mock para modo offline
-    const datosOffline = {
-        edificios: [
-            { id: 1, nombre: 'Torre A', descripcion: 'Edificio principal' },
-            { id: 2, nombre: 'Torre B', descripcion: 'Edificio secundario' }
-        ],
-        cuartos: [
-            { id: 1, numero: '101', nombre: '101', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'ocupado' },
-            { id: 2, numero: '102', nombre: '102', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'vacio' },
-            { id: 3, numero: '201', nombre: '201', edificio_id: 2, edificio_nombre: 'Torre B', estado: 'mantenimiento' },
-            { id: 4, numero: '202', nombre: '202', edificio_id: 2, edificio_nombre: 'Torre B', estado: 'vacio' },
-            { id: 5, numero: '301', nombre: '301', edificio_id: 1, edificio_nombre: 'Torre A', estado: 'fuera_servicio' }
-        ],
-        usuarios: [
-            { id: 1, nombre: 'Juan Pérez', rol_id: 1, departamento: 'Mantenimiento', rol_nombre: 'Administrador' },
-            { id: 2, nombre: 'María García', rol_id: 2, departamento: 'Limpieza', rol_nombre: 'Técnico' },
-            { id: 3, nombre: 'Carlos López', rol_id: 2, departamento: 'Mantenimiento', rol_nombre: 'Técnico' },
-            { id: 4, nombre: 'Ana Martínez', rol_id: 3, departamento: 'Recepción', rol_nombre: 'Usuario' }
-        ],
-        mantenimientos: [
-            {
-                id: 1,
-                cuarto_id: 1,
-                tipo: 'normal',
-                descripcion: 'Reparación de aire acondicionado',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 2,
-                cuarto_id: 1,
-                tipo: 'rutina',
-                descripcion: 'Cambio de filtros programado',
-                hora: '14:00:00',
-                dia_alerta: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'media',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 3,
-                cuarto_id: 1,
-                tipo: 'rutina',
-                descripcion: 'Inspección de seguridad',
-                hora: '10:00:00',
-                dia_alerta: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'alta',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 4,
-                cuarto_id: 1,
-                tipo: 'normal',
-                descripcion: 'Revisión de plomería en baño',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '101',
-                cuarto_nombre: '101'
-            },
-            {
-                id: 5,
-                cuarto_id: 2,
-                tipo: 'normal',
-                descripcion: 'Limpieza profunda',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '102',
-                cuarto_nombre: '102'
-            },
-            {
-                id: 6,
-                cuarto_id: 3,
-                tipo: 'rutina',
-                descripcion: 'Mantenimiento preventivo',
-                hora: '09:00:00',
-                dia_alerta: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                nivel_alerta: 'baja',
-                fecha_registro: new Date().toISOString(),
-                estado: 'pendiente',
-                cuarto_numero: '201',
-                cuarto_nombre: '201'
-            }
-        ]
-    };
+  // Variables globales para almacenar datos
+  let cuartos = [];
+  let mantenimientos = [];
+  let edificios = [];
+  let usuarios = []; // Lista de usuarios activos
+  let usuarioActualId = null; // ID del usuario actual logeado
+  let intervalosNotificaciones = null;
+  let alertasEmitidas = new Set(); // Para evitar duplicados
+  let diccNombresEspaciosPorId = {}; // Diccionario de nombres de espacios comunes por ID
+  let eventosFiltrosConfigurados = false; // Para asegurarnos de enlazar filtros al menos una vez
 
-    // Caché de plantillas para evitar recrearlas
-    const SKELETON_TEMPLATE = `
+  /**
+   * Helper para obtener headers con autenticación JWT
+   */
+  async function obtenerHeadersConAuth(contentType = 'application/json') {
+    const headers = {};
+
+    if (contentType) {
+      headers['Content-Type'] = contentType;
+    }
+
+    // Intentar obtener desde IndexedDB primero
+    let accessToken = null;
+
+    if (window.storageHelper) {
+      try {
+        accessToken = await window.storageHelper.getAccessToken();
+      } catch (error) {
+        console.warn('⚠️ Error obteniendo token de IndexedDB:', error);
+      }
+    }
+
+    // Fallback a localStorage/sessionStorage
+    if (!accessToken) {
+      accessToken =
+        localStorage.getItem('accessToken') ||
+        sessionStorage.getItem('accessToken');
+    }
+
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    return headers;
+  }
+
+  // Paginación de habitaciones
+  const CUARTOS_POR_PAGINA = 10;
+  let cuartosFiltradosActual = [];
+  let paginaActualCuartos = 1;
+  let totalPaginasCuartos = 1;
+
+  // Crear objeto de estado compartido que mantiene referencias actualizadas
+  // Usamos getters para que siempre retorne los valores actuales
+  window.appLoaderState = {
+    get cuartos() {
+      return cuartos;
+    },
+    set cuartos(val) {
+      cuartos = val;
+    },
+    get datosHabitacionesCargados() {
+      return cuartos?.length > 0 || !!window._datosHabitacionesCargadosFlag;
+    },
+    set datosHabitacionesCargados(val) {
+      window._datosHabitacionesCargadosFlag = !!val;
+    },
+    get mantenimientos() {
+      return mantenimientos;
+    },
+    set mantenimientos(val) {
+      mantenimientos = val;
+    },
+    get edificios() {
+      return edificios;
+    },
+    set edificios(val) {
+      edificios = val;
+    },
+    get usuarios() {
+      return usuarios;
+    },
+    set usuarios(val) {
+      usuarios = val;
+    },
+    get cuartosFiltradosActual() {
+      return cuartosFiltradosActual;
+    },
+    set cuartosFiltradosActual(val) {
+      cuartosFiltradosActual = val;
+    },
+    get paginaActualCuartos() {
+      return paginaActualCuartos;
+    },
+    set paginaActualCuartos(val) {
+      paginaActualCuartos = val;
+    },
+    get totalPaginasCuartos() {
+      return totalPaginasCuartos;
+    },
+    set totalPaginasCuartos(val) {
+      totalPaginasCuartos = val;
+    },
+    CUARTOS_POR_PAGINA: CUARTOS_POR_PAGINA,
+  };
+
+  // Paginación de espacios comunes
+  const ESPACIOS_POR_PAGINA = 10;
+  let espaciosComunesFiltradosActual = [];
+  let paginaActualEspacios = 1;
+  let totalPaginasEspacios = 1;
+
+  // Datos mock para modo offline
+  const datosOffline = {
+    edificios: [
+      { id: 1, nombre: 'Torre A', descripcion: 'Edificio principal' },
+      { id: 2, nombre: 'Torre B', descripcion: 'Edificio secundario' },
+    ],
+    cuartos: [
+      {
+        id: 1,
+        numero: '101',
+        nombre: '101',
+        edificio_id: 1,
+        edificio_nombre: 'Torre A',
+        estado: 'ocupado',
+      },
+      {
+        id: 2,
+        numero: '102',
+        nombre: '102',
+        edificio_id: 1,
+        edificio_nombre: 'Torre A',
+        estado: 'vacio',
+      },
+      {
+        id: 3,
+        numero: '201',
+        nombre: '201',
+        edificio_id: 2,
+        edificio_nombre: 'Torre B',
+        estado: 'mantenimiento',
+      },
+      {
+        id: 4,
+        numero: '202',
+        nombre: '202',
+        edificio_id: 2,
+        edificio_nombre: 'Torre B',
+        estado: 'vacio',
+      },
+      {
+        id: 5,
+        numero: '301',
+        nombre: '301',
+        edificio_id: 1,
+        edificio_nombre: 'Torre A',
+        estado: 'fuera_servicio',
+      },
+    ],
+    usuarios: [
+      {
+        id: 1,
+        nombre: 'Juan Pérez',
+        rol_id: 1,
+        departamento: 'Mantenimiento',
+        rol_nombre: 'Administrador',
+      },
+      {
+        id: 2,
+        nombre: 'María García',
+        rol_id: 2,
+        departamento: 'Limpieza',
+        rol_nombre: 'Técnico',
+      },
+      {
+        id: 3,
+        nombre: 'Carlos López',
+        rol_id: 2,
+        departamento: 'Mantenimiento',
+        rol_nombre: 'Técnico',
+      },
+      {
+        id: 4,
+        nombre: 'Ana Martínez',
+        rol_id: 3,
+        departamento: 'Recepción',
+        rol_nombre: 'Usuario',
+      },
+    ],
+    mantenimientos: [
+      {
+        id: 1,
+        cuarto_id: 1,
+        tipo: 'normal',
+        descripcion: 'Reparación de aire acondicionado',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '101',
+        cuarto_nombre: '101',
+      },
+      {
+        id: 2,
+        cuarto_id: 1,
+        tipo: 'rutina',
+        descripcion: 'Cambio de filtros programado',
+        hora: '14:00:00',
+        dia_alerta: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0],
+        nivel_alerta: 'media',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '101',
+        cuarto_nombre: '101',
+      },
+      {
+        id: 3,
+        cuarto_id: 1,
+        tipo: 'rutina',
+        descripcion: 'Inspección de seguridad',
+        hora: '10:00:00',
+        dia_alerta: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0],
+        nivel_alerta: 'alta',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '101',
+        cuarto_nombre: '101',
+      },
+      {
+        id: 4,
+        cuarto_id: 1,
+        tipo: 'normal',
+        descripcion: 'Revisión de plomería en baño',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '101',
+        cuarto_nombre: '101',
+      },
+      {
+        id: 5,
+        cuarto_id: 2,
+        tipo: 'normal',
+        descripcion: 'Limpieza profunda',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '102',
+        cuarto_nombre: '102',
+      },
+      {
+        id: 6,
+        cuarto_id: 3,
+        tipo: 'rutina',
+        descripcion: 'Mantenimiento preventivo',
+        hora: '09:00:00',
+        dia_alerta: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0],
+        nivel_alerta: 'baja',
+        fecha_registro: new Date().toISOString(),
+        estado: 'pendiente',
+        cuarto_numero: '201',
+        cuarto_nombre: '201',
+      },
+    ],
+  };
+
+  // Caché de plantillas para evitar recrearlas
+  const SKELETON_TEMPLATE = `
     <div class="card-placeholder skeleton-card">
         <div class="skeleton-header">
             <div class="skeleton-icon"></div>
@@ -231,674 +330,803 @@
     </div>
 `;
 
-    /**
-     * Función que se ejecuta cuando se carga la página
-     */
-    async function inicializarApp() {
-        console.log('🚀🚀🚀 JW Mantto - INICIALIZANDO APP 🚀🚀🚀');
-        console.log('🟢 [APP-LOADER] Timestamp inicio:', new Date().toISOString());
-        console.log('🌐 API_BASE_URL configurado:', API_BASE_URL);
-        console.log('📍 URL actual:', window.location.href);
-        console.log('📄 User Agent:', navigator.userAgent);
-        console.log('📋 Document readyState:', document.readyState);
+  /**
+   * Función que se ejecuta cuando se carga la página
+   */
+  async function inicializarApp() {
+    console.log('🚀🚀🚀 JW Mantto - INICIALIZANDO APP 🚀🚀🚀');
+    console.log('🟢 [APP-LOADER] Timestamp inicio:', new Date().toISOString());
+    console.log('🌐 API_BASE_URL configurado:', API_BASE_URL);
+    console.log('📍 URL actual:', window.location.href);
+    console.log('📄 User Agent:', navigator.userAgent);
+    console.log('📋 Document readyState:', document.readyState);
 
-        // Preparar audio para primera interacción del usuario
-        habilitarAudioConInteraccion();
+    // Preparar audio para primera interacción del usuario
+    habilitarAudioConInteraccion();
 
+    try {
+      console.log('🔍 Verificando elementos DOM...');
+      // Verificar que los elementos existan
+      const listaCuartos = document.getElementById('listaCuartos');
+      const filtroEdificio = document.getElementById('filtroEdificio');
+      console.log('📋 Elementos encontrados:', {
+        listaCuartos: !!listaCuartos,
+        filtroEdificio: !!filtroEdificio,
+      });
+
+      if (!listaCuartos) {
+        throw new Error('❌ Elemento listaCuartos no encontrado en el DOM');
+      }
+
+      // Mostrar skeletons de carga inicial
+      console.log('💀 Mostrando skeletons de carga...');
+      mostrarSkeletonsIniciales();
+
+      // Cargar datos iniciales
+      console.log('📥 Iniciando carga de datos...');
+      await cargarDatos();
+      console.log('✅ Datos cargados exitosamente:', {
+        cuartos: cuartos.length,
+        edificios: edificios.length,
+        mantenimientos: mantenimientos.length,
+      });
+
+      // Marcar alertas pasadas como emitidas
+      await marcarAlertasPasadasComoEmitidas();
+
+      // Establecer usuario actual desde la sesión JWT
+      let currentUser = null;
+
+      // Intentar obtener desde IndexedDB primero
+      if (window.storageHelper) {
         try {
-            console.log('🔍 Verificando elementos DOM...');
-            // Verificar que los elementos existan
-            const listaCuartos = document.getElementById('listaCuartos');
-            const filtroEdificio = document.getElementById('filtroEdificio');
-            console.log('📋 Elementos encontrados:', {
-                listaCuartos: !!listaCuartos,
-                filtroEdificio: !!filtroEdificio
-            });
-
-            if (!listaCuartos) {
-                throw new Error('❌ Elemento listaCuartos no encontrado en el DOM');
-            }
-
-            // Mostrar skeletons de carga inicial
-            console.log('💀 Mostrando skeletons de carga...');
-            mostrarSkeletonsIniciales();
-
-            // Cargar datos iniciales
-            console.log('📥 Iniciando carga de datos...');
-            await cargarDatos();
-            console.log('✅ Datos cargados exitosamente:', {
-                cuartos: cuartos.length,
-                edificios: edificios.length,
-                mantenimientos: mantenimientos.length
-            });
-
-            // Marcar alertas pasadas como emitidas
-            await marcarAlertasPasadasComoEmitidas();
-
-            // Establecer usuario actual desde la sesión JWT
-            let currentUser = null;
-
-            // Intentar obtener desde IndexedDB primero
-            if (window.storageHelper) {
-                try {
-                    currentUser = await window.storageHelper.getCurrentUser();
-                } catch (error) {
-                    console.warn('⚠️ Error obteniendo usuario de IndexedDB:', error);
-                }
-            }
-
-            // Fallback a localStorage/sessionStorage
-            if (!currentUser) {
-                currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-            }
-
-            if (currentUser && currentUser.id) {
-                usuarioActualId = currentUser.id;
-
-                // Guardar en IndexedDB si está disponible
-                if (window.storageHelper) {
-                    await window.storageHelper.saveCurrentUser(currentUser, true);
-                }
-
-                localStorage.setItem('usuarioActualId', currentUser.id);
-                console.log('👤 Usuario actual desde JWT:', currentUser.nombre, '(ID:', currentUser.id, ')');
-
-                // Mostrar usuario actual en el header
-                mostrarUsuarioActualEnHeader();
-            } else if (usuarios && usuarios.length > 0) {
-                // Fallback: usar primer usuario si no hay sesión JWT
-                const usuarioGuardado = localStorage.getItem('usuarioActualId');
-                usuarioActualId = usuarioGuardado ? parseInt(usuarioGuardado) : usuarios[0].id;
-                console.warn('⚠️ No hay sesión JWT activa, usando usuario por defecto:', usuarioActualId);
-
-                // Mostrar usuario actual en el header
-                mostrarUsuarioActualEnHeader();
-            }
-
-            // Configurar eventos de la interfaz
-            console.log('⚙️ Configurando eventos de interfaz...');
-            configurarEventos();
-
-            // Mostrar datos en la interfaz
-            window.appLoaderState.datosHabitacionesCargados = true;
-            renderHabitacionesUI('datos-cargados');
-
-            // Disparar evento para listeners externos (seguro si app.js ya intentó antes)
-            try {
-                window.dispatchEvent(new CustomEvent('habitaciones:dataCargada', {
-                    detail: {
-                        cuartos: cuartos?.length || 0,
-                        edificios: edificios?.length || 0,
-                        mantenimientos: mantenimientos?.length || 0
-                    }
-                }));
-            } catch (e) {
-                console.warn('No se pudo despachar evento habitaciones:dataCargada', e);
-            }
-
-            // Forzar render directo por si algún flujo no llamó renderHabitacionesUI
-            if (typeof window.mostrarCuartos === 'function') {
-                try {
-                    window.mostrarCuartos();
-                } catch (e) {
-                    console.warn('No se pudo forzar mostrarCuartos post-carga', e);
-                }
-            }
-
-            // Iniciar sistema de notificaciones
-            console.log('🔔 Iniciando sistema de notificaciones...');
-            iniciarSistemaNotificaciones();
-
-            console.log('🎉 Aplicación cargada exitosamente');
-
+          currentUser = await window.storageHelper.getCurrentUser();
         } catch (error) {
-            console.error('💥 Error al inicializar la aplicación:', error);
-            console.error('📋 Error name:', error.name);
-            console.error('📝 Error message:', error.message);
-            console.error('🔍 Stack trace:', error.stack);
-
-            // Intentar diagnóstico adicional
-            console.log('🔧 Iniciando diagnóstico de error...');
-            console.log('🌐 Conectividad a API:', API_BASE_URL);
-
-            // Probar conectividad básica
-            try {
-                console.log('🧪 Probando conectividad básica...');
-                const response = await fetch(API_BASE_URL + '/api/cuartos');
-                console.log('📡 Response status:', response.status);
-                console.log('📊 Response ok:', response.ok);
-            } catch (fetchError) {
-                console.error('🚫 Error de conectividad crítico:', fetchError);
-                console.error('🔍 Fetch error details:', fetchError.message);
-                throw fetchError; // Re-lanzar el error para manejarlo arriba
-            }
-
-            // Si llegamos aquí, hubo un error de aplicación, no de red
-            console.log('� Error de aplicación, re-intentando...');
-
-
-            // Si llegamos aquí, usar datos offline como último recurso
-            console.log('🆘 Usando datos offline como último recurso...');
-            try {
-                cuartos = datosOffline.cuartos;
-                edificios = datosOffline.edificios;
-                mantenimientos = datosOffline.mantenimientos;
-
-                window.appLoaderState.datosHabitacionesCargados = true;
-                renderHabitacionesUI('offline');
-
-                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline', 'warning');
-            } catch (offlineError) {
-                console.error('Error cargando datos offline:', offlineError);
-                mostrarError('Error crítico al cargar la aplicación.');
-            }
+          console.warn('⚠️ Error obteniendo usuario de IndexedDB:', error);
         }
-    }
+      }
 
-    // Ejecutar cuando el DOM esté listo
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', inicializarApp);
-    } else {
-        // DOM ya está listo, ejecutar inmediatamente
-        console.log('📄 DOM ya está listo, ejecutando inmediatamente...');
-        inicializarApp();
-    }
+      // Fallback a localStorage/sessionStorage
+      if (!currentUser) {
+        currentUser = JSON.parse(
+          localStorage.getItem('currentUser') ||
+            sessionStorage.getItem('currentUser') ||
+            'null'
+        );
+      }
 
-    /**
-     * Habilitar audio con la primera interacción del usuario
-     */
-    function habilitarAudioConInteraccion() {
-        const habilitarAudio = () => {
-            if (!window.audioInteractionEnabled) {
-                // Reproducir un sonido silencioso para habilitar el contexto de audio
-                const audio = new Audio();
-                audio.volume = 0;
-                audio.play().then(() => {
-                    window.audioInteractionEnabled = true;
-                    console.log('🔊 Audio habilitado tras interacción del usuario');
-                }).catch(() => {
-                    console.log('⚠️ No se pudo habilitar audio automáticamente');
-                });
-            }
+      if (currentUser && currentUser.id) {
+        usuarioActualId = currentUser.id;
 
-            // Remover event listeners después de la primera interacción
-            document.removeEventListener('click', habilitarAudio);
-            document.removeEventListener('keydown', habilitarAudio);
-        };
+        // Guardar en IndexedDB si está disponible
+        if (window.storageHelper) {
+          await window.storageHelper.saveCurrentUser(currentUser, true);
+        }
 
-        // Añadir listeners para la primera interacción
-        document.addEventListener('click', habilitarAudio, { once: true });
-        document.addEventListener('keydown', habilitarAudio, { once: true });
-    }
+        localStorage.setItem('usuarioActualId', currentUser.id);
+        console.log(
+          '👤 Usuario actual desde JWT:',
+          currentUser.nombre,
+          '(ID:',
+          currentUser.id,
+          ')'
+        );
 
-    /**
-     * Cargar todos los datos desde la API
-     */
-    async function cargarDatos() {
+        // Mostrar usuario actual en el header
+        mostrarUsuarioActualEnHeader();
+      } else if (usuarios && usuarios.length > 0) {
+        // Fallback: usar primer usuario si no hay sesión JWT
+        const usuarioGuardado = localStorage.getItem('usuarioActualId');
+        usuarioActualId = usuarioGuardado
+          ? parseInt(usuarioGuardado)
+          : usuarios[0].id;
+        console.warn(
+          '⚠️ No hay sesión JWT activa, usando usuario por defecto:',
+          usuarioActualId
+        );
+
+        // Mostrar usuario actual en el header
+        mostrarUsuarioActualEnHeader();
+      }
+
+      // Configurar eventos de la interfaz
+      console.log('⚙️ Configurando eventos de interfaz...');
+      configurarEventos();
+
+      // Mostrar datos en la interfaz
+      window.appLoaderState.datosHabitacionesCargados = true;
+      renderHabitacionesUI('datos-cargados');
+
+      // Disparar evento para listeners externos (seguro si app.js ya intentó antes)
+      try {
+        window.dispatchEvent(
+          new CustomEvent('habitaciones:dataCargada', {
+            detail: {
+              cuartos: cuartos?.length || 0,
+              edificios: edificios?.length || 0,
+              mantenimientos: mantenimientos?.length || 0,
+            },
+          })
+        );
+      } catch (e) {
+        console.warn('No se pudo despachar evento habitaciones:dataCargada', e);
+      }
+
+      // Forzar render directo por si algún flujo no llamó renderHabitacionesUI
+      if (typeof window.mostrarCuartos === 'function') {
         try {
-            console.log('🔄 Iniciando carga de datos desde API...');
-            console.log('🌐 API_BASE_URL:', API_BASE_URL);
-            console.log('📍 Location:', window.location.href);
-            console.log('🌍 Protocol:', window.location.protocol);
+          window.mostrarCuartos();
+        } catch (e) {
+          console.warn('No se pudo forzar mostrarCuartos post-carga', e);
+        }
+      }
 
-            // Cargar datos críticos en paralelo (habitaciones, edificios, mantenimientos)
-            console.log('📋 Iniciando cargas paralelas base...');
-            const [responseCuartos, responseEdificios, responseMantenimientos] = await Promise.all([
-                fetch(`${API_BASE_URL}/api/cuartos`),
-                fetch(`${API_BASE_URL}/api/edificios`),
-                fetch(`${API_BASE_URL}/api/mantenimientos`)
-            ]);
+      // Iniciar sistema de notificaciones
+      console.log('🔔 Iniciando sistema de notificaciones...');
+      iniciarSistemaNotificaciones();
 
-            const nombresEspacios = await obtenerNombresEspaciosComunes();
-            diccNombresEspaciosPorId = nombresEspacios ? nombresEspacios.reduce((acc, espacio) => {
-                acc[espacio.id] = espacio.nombre;
-                return acc;
-            }, {}) : {};
+      console.log('🎉 Aplicación cargada exitosamente');
+    } catch (error) {
+      console.error('💥 Error al inicializar la aplicación:', error);
+      console.error('📋 Error name:', error.name);
+      console.error('📝 Error message:', error.message);
+      console.error('🔍 Stack trace:', error.stack);
 
-            // Validar respuestas principales
-            if (!responseCuartos.ok) throw new Error(`❌ Error al cargar cuartos: ${responseCuartos.status}`);
-            if (!responseEdificios.ok) throw new Error(`❌ Error al cargar edificios: ${responseEdificios.status}`);
-            if (!responseMantenimientos.ok) throw new Error(`❌ Error al cargar mantenimientos: ${responseMantenimientos.status}`);
+      // Intentar diagnóstico adicional
+      console.log('🔧 Iniciando diagnóstico de error...');
+      console.log('🌐 Conectividad a API:', API_BASE_URL);
 
-            // Parsear JSON en paralelo para los datos principales
-            [cuartos, edificios, mantenimientos] = await Promise.all([
-                responseCuartos.json(),
-                responseEdificios.json(),
-                responseMantenimientos.json()
-            ]);
+      // Probar conectividad básica
+      try {
+        console.log('🧪 Probando conectividad básica...');
+        const response = await fetch(API_BASE_URL + '/api/cuartos');
+        console.log('📡 Response status:', response.status);
+        console.log('📊 Response ok:', response.ok);
+      } catch (fetchError) {
+        console.error('🚫 Error de conectividad crítico:', fetchError);
+        console.error('🔍 Fetch error details:', fetchError.message);
+        throw fetchError; // Re-lanzar el error para manejarlo arriba
+      }
 
-            // Cargar usuarios de forma independiente (no crítico)
-            try {
-                console.log('👤 Cargando usuarios activos...');
-                const responseUsuarios = await fetch(`${API_BASE_URL}/api/usuarios`);
-                if (!responseUsuarios.ok) {
-                    throw new Error(`Error HTTP ${responseUsuarios.status}`);
-                }
-                usuarios = await responseUsuarios.json();
-            } catch (usuariosError) {
-                console.warn('⚠️ No se pudieron cargar los usuarios desde API, usando datos previos/locales si existen.', usuariosError);
-                if (!usuarios || usuarios.length === 0) {
-                    // Intentar cargar desde IndexedDB primero
-                    if (window.storageHelper) {
-                        const usuariosDB = await window.storageHelper.getUsuarios();
-                        usuarios = usuariosDB && usuariosDB.length > 0 ? usuariosDB : [];
-                    }
-                    // Fallback a localStorage
-                    if (!usuarios || usuarios.length === 0) {
-                        const usuariosGuardados = localStorage.getItem('ultimosUsuarios');
-                        usuarios = usuariosGuardados ? JSON.parse(usuariosGuardados) : [];
-                    }
-                }
-            }
+      // Si llegamos aquí, hubo un error de aplicación, no de red
+      console.log('� Error de aplicación, re-intentando...');
 
-            console.log('✅ Datos principales cargados:', {
-                cuartos: cuartos.length,
-                edificios: edificios.length,
-                mantenimientos: mantenimientos.length,
-                usuarios: usuarios?.length || 0
-            });
+      // Si llegamos aquí, usar datos offline como último recurso
+      console.log('🆘 Usando datos offline como último recurso...');
+      try {
+        cuartos = datosOffline.cuartos;
+        edificios = datosOffline.edificios;
+        mantenimientos = datosOffline.mantenimientos;
 
-            console.log('🎉 Todos los datos cargados exitosamente desde API');
+        window.appLoaderState.datosHabitacionesCargados = true;
+        renderHabitacionesUI('offline');
 
-            // Repoblar select de edificios y re-aplicar filtros con datos reales
-            try {
-                mostrarEdificios();
-                if (typeof window.filtrarCuartos === 'function') {
-                    window.filtrarCuartos();
-                }
-            } catch (e) {
-                console.warn('No se pudo repoblar edificios/filtrar tras carga', e);
-            }
+        if (window.mostrarAlertaBlur)
+          window.mostrarAlertaBlur(
+            'Aplicación funcionando en modo offline',
+            'warning'
+          );
+      } catch (offlineError) {
+        console.error('Error cargando datos offline:', offlineError);
+        mostrarError('Error crítico al cargar la aplicación.');
+      }
+    }
+  }
 
-            // Guardar en IndexedDB primero, luego localStorage como respaldo
-            try {
-                if (window.storageHelper) {
-                    await window.storageHelper.saveAllData({
-                        cuartos,
-                        edificios,
-                        mantenimientos,
-                        usuarios
-                    });
-                    console.log('💾 Datos guardados en IndexedDB');
-                }
+  // Ejecutar cuando el DOM esté listo
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', inicializarApp);
+  } else {
+    // DOM ya está listo, ejecutar inmediatamente
+    console.log('📄 DOM ya está listo, ejecutando inmediatamente...');
+    inicializarApp();
+  }
 
-                // Mantener localStorage como fallback
-                localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
-                localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
-                localStorage.setItem('ultimosMantenimientos', JSON.stringify(mantenimientos));
-                localStorage.setItem('ultimosUsuarios', JSON.stringify(usuarios));
-                console.log('💾 Datos guardados en localStorage como respaldo');
-            } catch (storageError) {
-                console.warn('⚠️ No se pudo guardar en storage:', storageError);
-            }
+  /**
+   * Habilitar audio con la primera interacción del usuario
+   */
+  function habilitarAudioConInteraccion() {
+    const habilitarAudio = () => {
+      if (!window.audioInteractionEnabled) {
+        // Reproducir un sonido silencioso para habilitar el contexto de audio
+        const audio = new Audio();
+        audio.volume = 0;
+        audio
+          .play()
+          .then(() => {
+            window.audioInteractionEnabled = true;
+            console.log('🔊 Audio habilitado tras interacción del usuario');
+          })
+          .catch(() => {
+            console.log('⚠️ No se pudo habilitar audio automáticamente');
+          });
+      }
+
+      // Remover event listeners después de la primera interacción
+      document.removeEventListener('click', habilitarAudio);
+      document.removeEventListener('keydown', habilitarAudio);
+    };
+
+    // Añadir listeners para la primera interacción
+    document.addEventListener('click', habilitarAudio, { once: true });
+    document.addEventListener('keydown', habilitarAudio, { once: true });
+  }
+
+  /**
+   * Cargar todos los datos desde la API
+   */
+  async function cargarDatos() {
+    try {
+      console.log('🔄 Iniciando carga de datos desde API...');
+      console.log('🌐 API_BASE_URL:', API_BASE_URL);
+      console.log('📍 Location:', window.location.href);
+      console.log('🌍 Protocol:', window.location.protocol);
+
+      // Cargar datos críticos en paralelo (habitaciones, edificios, mantenimientos)
+      console.log('📋 Iniciando cargas paralelas base...');
+      const [responseCuartos, responseEdificios, responseMantenimientos] =
+        await Promise.all([
+          fetch(`${API_BASE_URL}/api/cuartos`),
+          fetch(`${API_BASE_URL}/api/edificios`),
+          fetch(`${API_BASE_URL}/api/mantenimientos`),
+        ]);
+
+      const nombresEspacios = await obtenerNombresEspaciosComunes();
+      diccNombresEspaciosPorId = nombresEspacios
+        ? nombresEspacios.reduce((acc, espacio) => {
+            acc[espacio.id] = espacio.nombre;
+            return acc;
+          }, {})
+        : {};
+
+      // Validar respuestas principales
+      if (!responseCuartos.ok)
+        throw new Error(
+          `❌ Error al cargar cuartos: ${responseCuartos.status}`
+        );
+      if (!responseEdificios.ok)
+        throw new Error(
+          `❌ Error al cargar edificios: ${responseEdificios.status}`
+        );
+      if (!responseMantenimientos.ok)
+        throw new Error(
+          `❌ Error al cargar mantenimientos: ${responseMantenimientos.status}`
+        );
+
+      // Parsear JSON en paralelo para los datos principales
+      [cuartos, edificios, mantenimientos] = await Promise.all([
+        responseCuartos.json(),
+        responseEdificios.json(),
+        responseMantenimientos.json(),
+      ]);
+
+      // Cargar usuarios de forma independiente (no crítico)
+      try {
+        console.log('👤 Cargando usuarios activos...');
+        const responseUsuarios = await fetch(`${API_BASE_URL}/api/usuarios`);
+        if (!responseUsuarios.ok) {
+          throw new Error(`Error HTTP ${responseUsuarios.status}`);
+        }
+        usuarios = await responseUsuarios.json();
+      } catch (usuariosError) {
+        console.warn(
+          '⚠️ No se pudieron cargar los usuarios desde API, usando datos previos/locales si existen.',
+          usuariosError
+        );
+        if (!usuarios || usuarios.length === 0) {
+          // Intentar cargar desde IndexedDB primero
+          if (window.storageHelper) {
+            const usuariosDB = await window.storageHelper.getUsuarios();
+            usuarios = usuariosDB && usuariosDB.length > 0 ? usuariosDB : [];
+          }
+          // Fallback a localStorage
+          if (!usuarios || usuarios.length === 0) {
+            const usuariosGuardados = localStorage.getItem('ultimosUsuarios');
+            usuarios = usuariosGuardados ? JSON.parse(usuariosGuardados) : [];
+          }
+        }
+      }
+
+      console.log('✅ Datos principales cargados:', {
+        cuartos: cuartos.length,
+        edificios: edificios.length,
+        mantenimientos: mantenimientos.length,
+        usuarios: usuarios?.length || 0,
+      });
+
+      console.log('🎉 Todos los datos cargados exitosamente desde API');
+
+      // Repoblar select de edificios y re-aplicar filtros con datos reales
+      try {
+        mostrarEdificios();
+        if (typeof window.filtrarCuartos === 'function') {
+          window.filtrarCuartos();
+        }
+      } catch (e) {
+        console.warn('No se pudo repoblar edificios/filtrar tras carga', e);
+      }
+
+      // Guardar en IndexedDB primero, luego localStorage como respaldo
+      try {
+        if (window.storageHelper) {
+          await window.storageHelper.saveAllData({
+            cuartos,
+            edificios,
+            mantenimientos,
+            usuarios,
+          });
+          console.log('💾 Datos guardados en IndexedDB');
+        }
+
+        // Mantener localStorage como fallback
+        localStorage.setItem('ultimosCuartos', JSON.stringify(cuartos));
+        localStorage.setItem('ultimosEdificios', JSON.stringify(edificios));
+        localStorage.setItem(
+          'ultimosMantenimientos',
+          JSON.stringify(mantenimientos)
+        );
+        localStorage.setItem('ultimosUsuarios', JSON.stringify(usuarios));
+        console.log('💾 Datos guardados en localStorage como respaldo');
+      } catch (storageError) {
+        console.warn('⚠️ No se pudo guardar en storage:', storageError);
+      }
+
+      return true;
+    } catch (error) {
+      console.error('💥 Error cargando datos desde API:', error);
+      console.error('📋 Error type:', typeof error);
+      console.error('📝 Error message:', error.message);
+      console.error('🔍 Error stack:', error.stack);
+
+      // Intentar cargar desde IndexedDB primero
+      if (window.storageHelper) {
+        console.log('🔄 Intentando cargar desde IndexedDB...');
+        try {
+          const offlineData = await window.storageHelper.loadOfflineData();
+
+          if (offlineData.hasData) {
+            cuartos = offlineData.data.cuartos || [];
+            edificios = offlineData.data.edificios || [];
+            mantenimientos = offlineData.data.mantenimientos || [];
+            usuarios = offlineData.data.usuarios || [];
+
+            setTimeout(() => {
+              if (window.mostrarAlertaBlur)
+                window.mostrarAlertaBlur(
+                  'Datos cargados desde IndexedDB (modo offline)',
+                  'info'
+                );
+            }, 2000);
 
             return true;
-
-        } catch (error) {
-            console.error('💥 Error cargando datos desde API:', error);
-            console.error('📋 Error type:', typeof error);
-            console.error('📝 Error message:', error.message);
-            console.error('🔍 Error stack:', error.stack);
-
-            // Intentar cargar desde IndexedDB primero
-            if (window.storageHelper) {
-                console.log('🔄 Intentando cargar desde IndexedDB...');
-                try {
-                    const offlineData = await window.storageHelper.loadOfflineData();
-
-                    if (offlineData.hasData) {
-                        cuartos = offlineData.data.cuartos || [];
-                        edificios = offlineData.data.edificios || [];
-                        mantenimientos = offlineData.data.mantenimientos || [];
-                        usuarios = offlineData.data.usuarios || [];
-
-                        setTimeout(() => {
-                            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Datos cargados desde IndexedDB (modo offline)', 'info');
-                        }, 2000);
-
-                        return true;
-                    }
-                } catch (idbError) {
-                    console.error('💥 Error al cargar desde IndexedDB:', idbError);
-                }
-            }
-
-            // Fallback a localStorage
-            console.log('🔄 Intentando cargar desde localStorage...');
-            try {
-                const cuartosGuardados = localStorage.getItem('ultimosCuartos');
-                const edificiosGuardados = localStorage.getItem('ultimosEdificios');
-                const mantenimientosGuardados = localStorage.getItem('ultimosMantenimientos');
-                const usuariosGuardados = localStorage.getItem('ultimosUsuarios');
-
-                if (cuartosGuardados && edificiosGuardados && mantenimientosGuardados) {
-                    cuartos = JSON.parse(cuartosGuardados);
-                    edificios = JSON.parse(edificiosGuardados);
-                    mantenimientos = JSON.parse(mantenimientosGuardados);
-                    usuarios = usuariosGuardados ? JSON.parse(usuariosGuardados) : [];
-
-                    console.log('💾 Datos cargados desde localStorage:', {
-                        cuartos: cuartos.length,
-                        edificios: edificios.length,
-                        mantenimientos: mantenimientos.length,
-                        usuarios: usuarios.length
-                    });
-
-                    setTimeout(() => {
-                        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Datos cargados desde caché local (sin conexión al servidor)', 'info');
-                    }, 2000);
-
-                    return true;
-                } else {
-                    console.log('❌ No hay datos válidos en localStorage');
-                }
-            } catch (localStorageError) {
-                console.error('💥 Error al cargar desde localStorage:', localStorageError);
-            }
-
-            console.log('🆘 Usando datos offline como último recurso...');
-
-            // Usar datos offline
-            try {
-                cuartos = datosOffline.cuartos;
-                edificios = datosOffline.edificios;
-                mantenimientos = datosOffline.mantenimientos;
-                usuarios = datosOffline.usuarios || [];
-
-                console.log('Datos offline cargados:', {
-                    cuartos: cuartos.length,
-                    edificios: edificios.length,
-                    mantenimientos: mantenimientos.length,
-                    usuarios: usuarios.length
-                });
-
-                // Mostrar mensaje informativo al usuario
-                setTimeout(() => {
-                    if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Aplicación funcionando en modo offline con datos de ejemplo', 'info');
-                }, 2000);
-
-                return true;
-            } catch (offlineError) {
-                console.error('Error cargando datos offline:', offlineError);
-                throw new Error('No se pueden cargar datos ni desde API ni desde cache offline');
-            }
+          }
+        } catch (idbError) {
+          console.error('💥 Error al cargar desde IndexedDB:', idbError);
         }
-    }
+      }
 
-    /**
-     * Configurar eventos de la interfaz
-     */
-    function configurarEventos() {
-        // Configurar filtros
-        const buscarCuarto = document.getElementById('buscarCuarto');
-        const buscarAveria = document.getElementById('buscarAveria');
-        const filtroEdificio = document.getElementById('filtroEdificio');
-        const filtroPrioridad = document.getElementById('filtroPrioridad');
-        const filtroEstado = document.getElementById('filtroEstado');
+      // Fallback a localStorage
+      console.log('🔄 Intentando cargar desde localStorage...');
+      try {
+        const cuartosGuardados = localStorage.getItem('ultimosCuartos');
+        const edificiosGuardados = localStorage.getItem('ultimosEdificios');
+        const mantenimientosGuardados = localStorage.getItem(
+          'ultimosMantenimientos'
+        );
+        const usuariosGuardados = localStorage.getItem('ultimosUsuarios');
 
-        const filtrarCuartosHandler = window.filtrarCuartos;
+        if (cuartosGuardados && edificiosGuardados && mantenimientosGuardados) {
+          cuartos = JSON.parse(cuartosGuardados);
+          edificios = JSON.parse(edificiosGuardados);
+          mantenimientos = JSON.parse(mantenimientosGuardados);
+          usuarios = usuariosGuardados ? JSON.parse(usuariosGuardados) : [];
 
-        if (filtrarCuartosHandler) {
-            if (buscarCuarto) buscarCuarto.addEventListener('input', filtrarCuartosHandler);
-            if (buscarAveria) buscarAveria.addEventListener('input', filtrarCuartosHandler);
-            if (filtroEdificio) filtroEdificio.addEventListener('change', filtrarCuartosHandler);
-            if (filtroPrioridad) {
-                // Configurar semáforo visual para el filtro de prioridad
-                const semaforoWrapperPrioridad = filtroPrioridad.closest('[data-semaforo-wrapper]');
-                const semaforoIndicatorPrioridad = semaforoWrapperPrioridad ? semaforoWrapperPrioridad.querySelector('.semaforo-indicator') : null;
+          console.log('💾 Datos cargados desde localStorage:', {
+            cuartos: cuartos.length,
+            edificios: edificios.length,
+            mantenimientos: mantenimientos.length,
+            usuarios: usuarios.length,
+          });
 
-                filtroPrioridad.addEventListener('change', function () {
-                    // Actualizar semáforo visual
-                    if (semaforoIndicatorPrioridad) {
-                        semaforoIndicatorPrioridad.classList.remove('prioridad-baja', 'prioridad-media', 'prioridad-alta');
-                        if (filtroPrioridad.value) {
-                            semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridad.value}`);
-                        }
-                    }
+          setTimeout(() => {
+            if (window.mostrarAlertaBlur)
+              window.mostrarAlertaBlur(
+                'Datos cargados desde caché local (sin conexión al servidor)',
+                'info'
+              );
+          }, 2000);
 
-                    // Ejecutar filtro
-                    filtrarCuartosHandler();
-                });
-
-                // Actualizar semáforo inicial si hay un valor seleccionado
-                if (semaforoIndicatorPrioridad && filtroPrioridad.value) {
-                    semaforoIndicatorPrioridad.classList.add(`prioridad-${filtroPrioridad.value}`);
-                }
-            }
-            if (filtroEstado) {
-                // Configurar semáforo visual para el filtro de estado
-                const semaforoWrapper = filtroEstado.closest('[data-semaforo-wrapper]');
-                const semaforoIndicator = semaforoWrapper ? semaforoWrapper.querySelector('.semaforo-indicator') : null;
-
-                filtroEstado.addEventListener('change', function () {
-                    // Actualizar semáforo visual
-                    if (semaforoIndicator) {
-                        semaforoIndicator.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera_servicio');
-                        if (filtroEstado.value) {
-                            semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
-                        }
-                    }
-
-                    // Ejecutar filtro
-                    filtrarCuartosHandler();
-                });
-
-                // Actualizar semáforo inicial si hay un valor seleccionado
-                if (semaforoIndicator && filtroEstado.value) {
-                    semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
-                }
-            }
+          return true;
         } else {
-            console.warn('⚠️ Handler filtrarCuartos no disponible en window, se omiten listeners de filtros.');
+          console.log('❌ No hay datos válidos en localStorage');
         }
+      } catch (localStorageError) {
+        console.error(
+          '💥 Error al cargar desde localStorage:',
+          localStorageError
+        );
+      }
 
-        // Reset inicial de filtros solo la primera vez para evitar valores persistentes tras hot reload
-        if (!eventosFiltrosConfigurados && filtrarCuartosHandler) {
-            if (buscarCuarto) buscarCuarto.value = '';
-            if (buscarAveria) buscarAveria.value = '';
-            if (filtroEdificio) filtroEdificio.value = '';
-            if (filtroPrioridad) filtroPrioridad.value = '';
-            if (filtroEstado) filtroEstado.value = '';
-            filtrarCuartosHandler();
+      console.log('🆘 Usando datos offline como último recurso...');
+
+      // Usar datos offline
+      try {
+        cuartos = datosOffline.cuartos;
+        edificios = datosOffline.edificios;
+        mantenimientos = datosOffline.mantenimientos;
+        usuarios = datosOffline.usuarios || [];
+
+        console.log('Datos offline cargados:', {
+          cuartos: cuartos.length,
+          edificios: edificios.length,
+          mantenimientos: mantenimientos.length,
+          usuarios: usuarios.length,
+        });
+
+        // Mostrar mensaje informativo al usuario
+        setTimeout(() => {
+          if (window.mostrarAlertaBlur)
+            window.mostrarAlertaBlur(
+              'Aplicación funcionando en modo offline con datos de ejemplo',
+              'info'
+            );
+        }, 2000);
+
+        return true;
+      } catch (offlineError) {
+        console.error('Error cargando datos offline:', offlineError);
+        throw new Error(
+          'No se pueden cargar datos ni desde API ni desde cache offline'
+        );
+      }
+    }
+  }
+
+  /**
+   * Configurar eventos de la interfaz
+   */
+  function configurarEventos() {
+    // Configurar filtros
+    const buscarCuarto = document.getElementById('buscarCuarto');
+    const buscarAveria = document.getElementById('buscarAveria');
+    const filtroEdificio = document.getElementById('filtroEdificio');
+    const filtroPrioridad = document.getElementById('filtroPrioridad');
+    const filtroEstado = document.getElementById('filtroEstado');
+
+    const filtrarCuartosHandler = window.filtrarCuartos;
+
+    if (filtrarCuartosHandler) {
+      if (buscarCuarto)
+        buscarCuarto.addEventListener('input', filtrarCuartosHandler);
+      if (buscarAveria)
+        buscarAveria.addEventListener('input', filtrarCuartosHandler);
+      if (filtroEdificio)
+        filtroEdificio.addEventListener('change', filtrarCuartosHandler);
+      if (filtroPrioridad) {
+        // Configurar semáforo visual para el filtro de prioridad
+        const semaforoWrapperPrioridad = filtroPrioridad.closest(
+          '[data-semaforo-wrapper]'
+        );
+        const semaforoIndicatorPrioridad = semaforoWrapperPrioridad
+          ? semaforoWrapperPrioridad.querySelector('.semaforo-indicator')
+          : null;
+
+        filtroPrioridad.addEventListener('change', function () {
+          // Actualizar semáforo visual
+          if (semaforoIndicatorPrioridad) {
+            semaforoIndicatorPrioridad.classList.remove(
+              'prioridad-baja',
+              'prioridad-media',
+              'prioridad-alta'
+            );
+            if (filtroPrioridad.value) {
+              semaforoIndicatorPrioridad.classList.add(
+                `prioridad-${filtroPrioridad.value}`
+              );
+            }
+          }
+
+          // Ejecutar filtro
+          filtrarCuartosHandler();
+        });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicatorPrioridad && filtroPrioridad.value) {
+          semaforoIndicatorPrioridad.classList.add(
+            `prioridad-${filtroPrioridad.value}`
+          );
         }
+      }
+      if (filtroEstado) {
+        // Configurar semáforo visual para el filtro de estado
+        const semaforoWrapper = filtroEstado.closest('[data-semaforo-wrapper]');
+        const semaforoIndicator = semaforoWrapper
+          ? semaforoWrapper.querySelector('.semaforo-indicator')
+          : null;
 
-        // Configurar formulario de agregar mantenimiento
-        const formAgregar = document.getElementById('formAgregarMantenimientoLateral');
-        if (formAgregar) {
-            formAgregar.addEventListener('submit', manejarAgregarMantenimiento);
+        filtroEstado.addEventListener('change', function () {
+          // Actualizar semáforo visual
+          if (semaforoIndicator) {
+            semaforoIndicator.classList.remove(
+              'estado-disponible',
+              'estado-ocupado',
+              'estado-mantenimiento',
+              'estado-fuera_servicio'
+            );
+            if (filtroEstado.value) {
+              semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
+            }
+          }
+
+          // Ejecutar filtro
+          filtrarCuartosHandler();
+        });
+
+        // Actualizar semáforo inicial si hay un valor seleccionado
+        if (semaforoIndicator && filtroEstado.value) {
+          semaforoIndicator.classList.add(`estado-${filtroEstado.value}`);
         }
-
-        // Configurar sincronización bidireccional del select de cuartos
-        const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
-        if (selectCuarto) {
-            selectCuarto.addEventListener('change', function () {
-                const cuartoId = this.value;
-                if (cuartoId) {
-                    // Seleccionar visualmente el cuarto en la interfaz
-                    if (window.seleccionarCuartoDesdeSelect) {
-                        window.seleccionarCuartoDesdeSelect(parseInt(cuartoId));
-                    }
-
-                    // Actualizar el selector de estado con el estado actual del cuarto
-                    if (window.actualizarSelectorEstado) {
-                        window.actualizarSelectorEstado(parseInt(cuartoId));
-                    }
-                } else {
-                    // Si no hay selección, remover todas las selecciones
-                    const todosLosCuartos = document.querySelectorAll('.cuarto');
-                    todosLosCuartos.forEach(cuarto => {
-                        cuarto.classList.remove('cuarto-seleccionado');
-                    });
-
-                    // Limpiar selector de estado
-                    const estadoSelector = document.getElementById('estadoCuartoSelector');
-                    if (estadoSelector) estadoSelector.value = '';
-                }
-            });
-        }
+      }
+    } else {
+      console.warn(
+        '⚠️ Handler filtrarCuartos no disponible en window, se omiten listeners de filtros.'
+      );
     }
 
-    /**
-     * Renderizar UI de habitaciones de forma segura
-     */
-    function renderHabitacionesUI(contexto = 'init') {
-        try {
-            console.log(`🖼️ [APP-LOADER] renderHabitacionesUI INICIANDO (${contexto})...`);
-            console.log(`🖼️ [APP-LOADER] Timestamp:`, new Date().toISOString());
-            console.log(`🖼️ [APP-LOADER] Datos disponibles:`, {
-                cuartos: cuartos?.length || 0,
-                edificios: edificios?.length || 0,
-                mantenimientos: mantenimientos?.length || 0
-            });
-
-            // Asegurar configuración de eventos de filtros aunque app.js haya renderizado antes
-            if (!eventosFiltrosConfigurados && typeof configurarEventos === 'function') {
-                configurarEventos();
-                eventosFiltrosConfigurados = true;
-            }
-
-            if (typeof window.sincronizarCuartosFiltrados === 'function') {
-                console.log('🖼️ [APP-LOADER] Llamando sincronizarCuartosFiltrados...');
-                window.sincronizarCuartosFiltrados();
-            } else {
-                console.warn('⚠️ [APP-LOADER] sincronizarCuartosFiltrados no disponible');
-            }
-
-            if (typeof window.mostrarCuartos === 'function') {
-                console.log('🖼️ [APP-LOADER] Llamando mostrarCuartos...');
-                window.mostrarCuartos();
-            } else {
-                console.warn('⚠️ [APP-LOADER] mostrarCuartos no disponible en window');
-            }
-
-            // Funciones locales del loader (no dependen de otros módulos)
-            console.log('🖼️ [APP-LOADER] Llamando mostrarEdificios...');
-            mostrarEdificios();
-            console.log('🖼️ [APP-LOADER] Llamando cargarCuartosEnSelect...');
-            cargarCuartosEnSelect();
-            console.log('🖼️ [APP-LOADER] Llamando mostrarAlertasYRecientes...');
-            mostrarAlertasYRecientes();
-
-            console.log(`🖼️ [APP-LOADER] renderHabitacionesUI COMPLETADO (${contexto})`);
-        } catch (error) {
-            console.error('❌ [APP-LOADER] Error renderizando habitaciones:', error);
-        }
+    // Reset inicial de filtros solo la primera vez para evitar valores persistentes tras hot reload
+    if (!eventosFiltrosConfigurados && filtrarCuartosHandler) {
+      if (buscarCuarto) buscarCuarto.value = '';
+      if (buscarAveria) buscarAveria.value = '';
+      if (filtroEdificio) filtroEdificio.value = '';
+      if (filtroPrioridad) filtroPrioridad.value = '';
+      if (filtroEstado) filtroEstado.value = '';
+      filtrarCuartosHandler();
     }
 
-    /**
-     * Mostrar el usuario actual en el header
-     */
-    function mostrarUsuarioActualEnHeader() {
-        // Intentar obtener usuario desde JWT primero
-        const currentUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
-
-        let usuarioMostrar = null;
-
-        if (currentUser && currentUser.id) {
-            // Usuario desde JWT
-            usuarioMostrar = {
-                nombre: currentUser.nombre,
-                rol_nombre: currentUser.rol || currentUser.rol_nombre
-            };
-        } else if (usuarioActualId) {
-            // Buscar en lista de usuarios
-            usuarioMostrar = usuarios.find(u => u.id === usuarioActualId);
-        }
-
-        if (!usuarioMostrar) {
-            console.warn('⚠️ No se pudo determinar el usuario actual');
-            return;
-        }
-
-        const userNameElement = document.getElementById('userName');
-        const userRoleElement = document.getElementById('userRole');
-
-        if (userNameElement) {
-            userNameElement.textContent = usuarioMostrar.nombre;
-        }
-
-        if (userRoleElement) {
-            userRoleElement.textContent = usuarioMostrar.rol_nombre || 'Usuario';
-        }
-
-        console.log('✅ Usuario mostrado en header:', usuarioMostrar.nombre, '(' + (usuarioMostrar.rol_nombre || 'Usuario') + ')');
+    // Configurar formulario de agregar mantenimiento
+    const formAgregar = document.getElementById(
+      'formAgregarMantenimientoLateral'
+    );
+    if (formAgregar) {
+      formAgregar.addEventListener('submit', manejarAgregarMantenimiento);
     }
 
-    /**
-     * Generar HTML de servicios (estilo espacios comunes)
-     * @param {Array} servicios - Lista de servicios
-     * @param {number} cuartoId - ID del cuarto
-     * @param {boolean} modoEdicion - Si está en modo edición
-     * @param {boolean} esEspacio - Si es un espacio común
-     * @param {string|null} filtroServicio - Término de búsqueda para filtrar servicio específico
-     */
-    function generarServiciosHTML(servicios, cuartoId, modoEdicion = false, esEspacio = false, filtroServicio = null) {
+    // Configurar sincronización bidireccional del select de cuartos
+    const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
+    if (selectCuarto) {
+      selectCuarto.addEventListener('change', function () {
+        const cuartoId = this.value;
+        if (cuartoId) {
+          // Seleccionar visualmente el cuarto en la interfaz
+          if (window.seleccionarCuartoDesdeSelect) {
+            window.seleccionarCuartoDesdeSelect(parseInt(cuartoId));
+          }
 
-        if (!servicios || servicios.length === 0) {
-            return '<div style="padding: 1rem; text-align: center; color: var(--texto-secundario); font-style: italic; min-height: 78.99px;">No hay servicios registrados</div>';
+          // Actualizar el selector de estado con el estado actual del cuarto
+          if (window.actualizarSelectorEstado) {
+            window.actualizarSelectorEstado(parseInt(cuartoId));
+          }
+        } else {
+          // Si no hay selección, remover todas las selecciones
+          const todosLosCuartos = document.querySelectorAll('.cuarto');
+          todosLosCuartos.forEach((cuarto) => {
+            cuarto.classList.remove('cuarto-seleccionado');
+          });
+
+          // Limpiar selector de estado
+          const estadoSelector = document.getElementById(
+            'estadoCuartoSelector'
+          );
+          if (estadoSelector) estadoSelector.value = '';
+        }
+      });
+    }
+  }
+
+  /**
+   * Renderizar UI de habitaciones de forma segura
+   */
+  function renderHabitacionesUI(contexto = 'init') {
+    try {
+      console.log(
+        `🖼️ [APP-LOADER] renderHabitacionesUI INICIANDO (${contexto})...`
+      );
+      console.log(`🖼️ [APP-LOADER] Timestamp:`, new Date().toISOString());
+      console.log(`🖼️ [APP-LOADER] Datos disponibles:`, {
+        cuartos: cuartos?.length || 0,
+        edificios: edificios?.length || 0,
+        mantenimientos: mantenimientos?.length || 0,
+      });
+
+      // Asegurar configuración de eventos de filtros aunque app.js haya renderizado antes
+      if (
+        !eventosFiltrosConfigurados &&
+        typeof configurarEventos === 'function'
+      ) {
+        configurarEventos();
+        eventosFiltrosConfigurados = true;
+      }
+
+      if (typeof window.sincronizarCuartosFiltrados === 'function') {
+        console.log('🖼️ [APP-LOADER] Llamando sincronizarCuartosFiltrados...');
+        window.sincronizarCuartosFiltrados();
+      } else {
+        console.warn(
+          '⚠️ [APP-LOADER] sincronizarCuartosFiltrados no disponible'
+        );
+      }
+
+      if (typeof window.mostrarCuartos === 'function') {
+        console.log('🖼️ [APP-LOADER] Llamando mostrarCuartos...');
+        window.mostrarCuartos();
+      } else {
+        console.warn('⚠️ [APP-LOADER] mostrarCuartos no disponible en window');
+      }
+
+      // Funciones locales del loader (no dependen de otros módulos)
+      console.log('🖼️ [APP-LOADER] Llamando mostrarEdificios...');
+      mostrarEdificios();
+      console.log('🖼️ [APP-LOADER] Llamando cargarCuartosEnSelect...');
+      cargarCuartosEnSelect();
+      console.log('🖼️ [APP-LOADER] Llamando mostrarAlertasYRecientes...');
+      mostrarAlertasYRecientes();
+
+      console.log(
+        `🖼️ [APP-LOADER] renderHabitacionesUI COMPLETADO (${contexto})`
+      );
+    } catch (error) {
+      console.error('❌ [APP-LOADER] Error renderizando habitaciones:', error);
+    }
+  }
+
+  /**
+   * Mostrar el usuario actual en el header
+   */
+  function mostrarUsuarioActualEnHeader() {
+    // Intentar obtener usuario desde JWT primero
+    const currentUser = JSON.parse(
+      localStorage.getItem('currentUser') ||
+        sessionStorage.getItem('currentUser') ||
+        'null'
+    );
+
+    let usuarioMostrar = null;
+
+    if (currentUser && currentUser.id) {
+      // Usuario desde JWT
+      usuarioMostrar = {
+        nombre: currentUser.nombre,
+        rol_nombre: currentUser.rol || currentUser.rol_nombre,
+      };
+    } else if (usuarioActualId) {
+      // Buscar en lista de usuarios
+      usuarioMostrar = usuarios.find((u) => u.id === usuarioActualId);
+    }
+
+    if (!usuarioMostrar) {
+      console.warn('⚠️ No se pudo determinar el usuario actual');
+      return;
+    }
+
+    const userNameElement = document.getElementById('userName');
+    const userRoleElement = document.getElementById('userRole');
+
+    if (userNameElement) {
+      userNameElement.textContent = usuarioMostrar.nombre;
+    }
+
+    if (userRoleElement) {
+      userRoleElement.textContent = usuarioMostrar.rol_nombre || 'Usuario';
+    }
+
+    console.log(
+      '✅ Usuario mostrado en header:',
+      usuarioMostrar.nombre,
+      '(' + (usuarioMostrar.rol_nombre || 'Usuario') + ')'
+    );
+  }
+
+  /**
+   * Generar HTML de servicios (estilo espacios comunes)
+   * @param {Array} servicios - Lista de servicios
+   * @param {number} cuartoId - ID del cuarto
+   * @param {boolean} modoEdicion - Si está en modo edición
+   * @param {boolean} esEspacio - Si es un espacio común
+   * @param {string|null} filtroServicio - Término de búsqueda para filtrar servicio específico
+   */
+  function generarServiciosHTML(
+    servicios,
+    cuartoId,
+    modoEdicion = false,
+    esEspacio = false,
+    filtroServicio = null
+  ) {
+    if (!servicios || servicios.length === 0) {
+      return '<div style="padding: 1rem; text-align: center; color: var(--texto-secundario); font-style: italic; min-height: 78.99px;">No hay servicios registrados</div>';
+    }
+
+    // Si hay un filtro de servicio, buscar coincidencia exacta
+    let serviciosFiltrados = servicios;
+    let esFiltroBusqueda = false;
+
+    if (filtroServicio && filtroServicio.trim() !== '') {
+      const termino = filtroServicio.toLowerCase().trim();
+
+      // Buscar coincidencia exacta por ID hex o descripción
+      const servicioExacto = servicios.find((servicio) => {
+        // Coincidencia exacta por ID hexadecimal
+        const servicioHexId =
+          'serv-' + servicio.id.toString(16).padStart(3, '0').toLowerCase();
+        const hexSinPrefijo = servicio.id
+          .toString(16)
+          .padStart(3, '0')
+          .toLowerCase();
+
+        if (
+          servicioHexId === termino ||
+          hexSinPrefijo === termino ||
+          termino === '#' + servicioHexId ||
+          termino === '#serv-' + hexSinPrefijo
+        ) {
+          return true;
         }
 
-        // Si hay un filtro de servicio, buscar coincidencia exacta
-        let serviciosFiltrados = servicios;
-        let esFiltroBusqueda = false;
-
-        if (filtroServicio && filtroServicio.trim() !== '') {
-            const termino = filtroServicio.toLowerCase().trim();
-
-            // Buscar coincidencia exacta por ID hex o descripción
-            const servicioExacto = servicios.find(servicio => {
-                // Coincidencia exacta por ID hexadecimal
-                const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toLowerCase();
-                const hexSinPrefijo = servicio.id.toString(16).padStart(3, '0').toLowerCase();
-
-                if (servicioHexId === termino || hexSinPrefijo === termino ||
-                    termino === '#' + servicioHexId || termino === '#serv-' + hexSinPrefijo) {
-                    return true;
-                }
-
-                // Coincidencia parcial fuerte (el término está contenido en el ID)
-                if (servicioHexId.includes(termino) || termino.includes(hexSinPrefijo)) {
-                    return true;
-                }
-
-                // Coincidencia por descripción (exacta o fuerte)
-                const descripcion = servicio.descripcion.toLowerCase();
-                if (descripcion.includes(termino) || termino.includes(descripcion.slice(0, 10))) {
-                    return true;
-                }
-
-                return false;
-            });
-
-            if (servicioExacto) {
-                serviciosFiltrados = [servicioExacto];
-                esFiltroBusqueda = true;
-            }
+        // Coincidencia parcial fuerte (el término está contenido en el ID)
+        if (
+          servicioHexId.includes(termino) ||
+          termino.includes(hexSinPrefijo)
+        ) {
+          return true;
         }
 
-        // Mostrar máximo 2 servicios más recientes (excepto si hay filtro exacto)
-        const serviciosMostrar = esFiltroBusqueda ? serviciosFiltrados : serviciosFiltrados.slice(0, 2);
-        const hayMasServicios = !esFiltroBusqueda && servicios.length > 2;
+        // Coincidencia por descripción (exacta o fuerte)
+        const descripcion = servicio.descripcion.toLowerCase();
+        if (
+          descripcion.includes(termino) ||
+          termino.includes(descripcion.slice(0, 10))
+        ) {
+          return true;
+        }
 
-        let html = serviciosMostrar.map(servicio => {
-            const esAlerta = servicio.tipo === 'rutina';
-            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
-            const tipoServicioTexto = esAlerta
-                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
-                : 'Avería';
-            const prioridadClass = servicio.prioridad ? `prioridad-${servicio.prioridad}` : '';
+        return false;
+      });
 
-            // Estado del mantenimiento con dropdown clickeable
-            let estadoBadge = '';
-            if (servicio.estado) {
-                const estadosEmoji = {
-                    'pendiente': 'Pendiente',
-                    'en_proceso': 'En Proceso',
-                    'completado': 'Completado',
-                    'cancelado': 'Cancelado'
-                };
-                // Crear dropdown inline para cambiar estado
-                estadoBadge = `
+      if (servicioExacto) {
+        serviciosFiltrados = [servicioExacto];
+        esFiltroBusqueda = true;
+      }
+    }
+
+    // Mostrar máximo 2 servicios más recientes (excepto si hay filtro exacto)
+    const serviciosMostrar = esFiltroBusqueda
+      ? serviciosFiltrados
+      : serviciosFiltrados.slice(0, 2);
+    const hayMasServicios = !esFiltroBusqueda && servicios.length > 2;
+
+    let html = serviciosMostrar
+      .map((servicio) => {
+        const esAlerta = servicio.tipo === 'rutina';
+        const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+        const tipoServicioTexto = esAlerta
+          ? esAlertaEmitida
+            ? 'Emitida'
+            : 'Alerta'
+          : 'Avería';
+        const prioridadClass = servicio.prioridad
+          ? `prioridad-${servicio.prioridad}`
+          : '';
+
+        // Estado del mantenimiento con dropdown clickeable
+        let estadoBadge = '';
+        if (servicio.estado) {
+          const estadosEmoji = {
+            pendiente: 'Pendiente',
+            en_proceso: 'En Proceso',
+            completado: 'Completado',
+            cancelado: 'Cancelado',
+          };
+          // Crear dropdown inline para cambiar estado
+          estadoBadge = `
                     <div class="estado-badge-wrapper" onclick="event.stopPropagation();">
                         <select class="estado-badge-select estado-${servicio.estado}" 
                                 data-servicio-id="${servicio.id}"
@@ -913,44 +1141,54 @@
                         </select>
                     </div>
                 `;
-            }
+        }
 
-            // Usuario asignado
-            let usuarioAsignado = '';
-            if (servicio.usuario_asignado_id) {
-                const usuario = usuarios.find(u => u.id === servicio.usuario_asignado_id);
-                if (usuario) {
-                    usuarioAsignado = `<span><i class="fas fa-user-check"></i> ${usuario.nombre}</span>`;
-                }
-            }
+        // Usuario asignado
+        let usuarioAsignado = '';
+        if (servicio.usuario_asignado_id) {
+          const usuario = usuarios.find(
+            (u) => u.id === servicio.usuario_asignado_id
+          );
+          if (usuario) {
+            usuarioAsignado = `<span><i class="fas fa-user-check"></i> ${usuario.nombre}</span>`;
+          }
+        }
 
-            // Para alertas, mostrar día y hora de alerta; para averías, fecha de registro
-            let fechaHoraMostrar = '';
-            if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
-                const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
-                const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
-                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
-            } else if (servicio.fecha_registro) {
-                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
-            }
+        // Para alertas, mostrar día y hora de alerta; para averías, fecha de registro
+        let fechaHoraMostrar = '';
+        if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
+          const diaAlerta = servicio.dia_alerta
+            ? formatearDiaAlerta(servicio.dia_alerta)
+            : '';
+          const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
+          fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
+        } else if (servicio.fecha_registro) {
+          fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
+        }
 
-            // Fecha de finalización
-            let fechaFinalizacion = '';
-            if (servicio.fecha_finalizacion && (servicio.estado === 'completado' || servicio.estado === 'cancelado')) {
-                fechaFinalizacion = `<span><i class="fas fa-flag-checkered"></i> ${formatearFechaCorta(servicio.fecha_finalizacion)}</span>`;
-            }
+        // Fecha de finalización
+        let fechaFinalizacion = '';
+        if (
+          servicio.fecha_finalizacion &&
+          (servicio.estado === 'completado' || servicio.estado === 'cancelado')
+        ) {
+          fechaFinalizacion = `<span><i class="fas fa-flag-checkered"></i> ${formatearFechaCorta(servicio.fecha_finalizacion)}</span>`;
+        }
 
-            // Añadir badge de ID hex si es resultado de búsqueda
-            const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
-            const idBadgeHtml = esFiltroBusqueda ? `
+        // Añadir badge de ID hex si es resultado de búsqueda
+        const servicioHexId =
+          'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+        const idBadgeHtml = esFiltroBusqueda
+          ? `
                 <span class="servicio-id-badge servicio-id-badge-highlight" title="ID: ${servicioHexId}" onclick="copiarIdServicio('${servicioHexId}', event)">
                     <span class="hex-prefix">#</span><span class="hex-value">${servicioHexId}</span>
                 </span>
-            ` : '';
+            `
+          : '';
 
-            // En modo edición, usar wrapper; en modo normal, solo el item
-            if (modoEdicion) {
-                return `
+        // En modo edición, usar wrapper; en modo normal, solo el item
+        if (modoEdicion) {
+          return `
             <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
                 <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${cuartoId}, ${esEspacio})" style="cursor: pointer;">
                     <div class="servicio-info">
@@ -973,8 +1211,8 @@
                 </button>
             </div>
         `;
-            } else {
-                return `
+        } else {
+          return `
             <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''} ${esFiltroBusqueda ? 'servicio-destacado' : ''}" onclick="abrirModalDetalleServicio(${servicio.id}, false)">
                 <div class="servicio-info">
                     <div class="servicio-descripcion">${escapeHtml(servicio.descripcion)} ${idBadgeHtml}</div>
@@ -992,186 +1230,217 @@
                 <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 1.2rem;"></i>
             </div>
         `;
-            }
-        }).join('');
+        }
+      })
+      .join('');
 
-        // Si hay más servicios, agregar botón con ícono de ojo
-        if (hayMasServicios) {
-            const serviciosRestantes = servicios.length - 2;
-            html += `
+    // Si hay más servicios, agregar botón con ícono de ojo
+    if (hayMasServicios) {
+      const serviciosRestantes = servicios.length - 2;
+      html += `
         <div class="ver-mas-servicios" onclick="verDetallesServicios(${cuartoId}, ${esEspacio}); event.stopPropagation();">
             <i class="fas fa-eye"></i>
             <span>Ver todos los servicios (${servicios.length})</span>
         </div>
     `;
-        }
-
-        return html;
     }
 
-    /**
-     * Mostrar edificios en el select de filtros
-     */
-    function mostrarEdificios() {
-        const filtroEdificio = document.getElementById('filtroEdificio');
-        if (!filtroEdificio) return;
+    return html;
+  }
 
-        // Mantener la opción "Todos los edificios"
-        filtroEdificio.innerHTML = '<option value="">Todos los edificios</option>';
+  /**
+   * Mostrar edificios en el select de filtros
+   */
+  function mostrarEdificios() {
+    const filtroEdificio = document.getElementById('filtroEdificio');
+    if (!filtroEdificio) return;
 
-        edificios.forEach(edificio => {
+    // Mantener la opción "Todos los edificios"
+    filtroEdificio.innerHTML = '<option value="">Todos los edificios</option>';
+
+    edificios.forEach((edificio) => {
+      const option = document.createElement('option');
+      option.value = edificio.id;
+      option.textContent = edificio.nombre;
+      filtroEdificio.appendChild(option);
+    });
+  }
+
+  /**
+   * Cargar cuartos en el select del formulario con optgroups
+   */
+  function cargarCuartosEnSelect() {
+    const select = document.getElementById('cuartoMantenimientoLateral');
+    if (!select) return;
+
+    select.innerHTML = '<option value="">-- Seleccionar Cuarto --</option>';
+
+    // Agrupar cuartos por edificio
+    const cuartosPorEdificio = {};
+    cuartos.forEach((cuarto) => {
+      const edificioNombre =
+        cuarto.edificio_nombre || 'Edificio ' + cuarto.edificio_id;
+      if (!cuartosPorEdificio[edificioNombre]) {
+        cuartosPorEdificio[edificioNombre] = [];
+      }
+      cuartosPorEdificio[edificioNombre].push(cuarto);
+    });
+
+    // Crear optgroups
+    Object.keys(cuartosPorEdificio)
+      .sort()
+      .forEach((edificioNombre) => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = edificioNombre;
+
+        cuartosPorEdificio[edificioNombre]
+          .sort((a, b) =>
+            (a.nombre || a.numero || '').localeCompare(
+              b.nombre || b.numero || ''
+            )
+          )
+          .forEach((cuarto) => {
             const option = document.createElement('option');
-            option.value = edificio.id;
-            option.textContent = edificio.nombre;
-            filtroEdificio.appendChild(option);
-        });
+            option.value = cuarto.id;
+            option.textContent = cuarto.nombre || cuarto.numero;
+            optgroup.appendChild(option);
+          });
 
+        select.appendChild(optgroup);
+      });
+  }
+
+  /**
+   * Mostrar alertas y mantenimientos recientes
+   */
+  function mostrarAlertasYRecientes() {
+    console.log('📝 [APP-LOADER] mostrarAlertasYRecientes INICIANDO...');
+    console.log('📝 [APP-LOADER] Timestamp:', new Date().toISOString());
+
+    mostrarAlertas();
+    console.log('📝 [APP-LOADER] mostrarAlertas llamado');
+
+    mostrarRecientes();
+    console.log('📝 [APP-LOADER] mostrarRecientes llamado');
+
+    mostrarAlertasEmitidas();
+    console.log('📝 [APP-LOADER] mostrarAlertasEmitidas llamado');
+
+    mostrarHistorialAlertas();
+    console.log('📝 [APP-LOADER] mostrarHistorialAlertas llamado');
+
+    console.log('📝 [APP-LOADER] mostrarAlertasYRecientes COMPLETADO');
+  }
+
+  /**
+   * Mostrar alertas pendientes (no emitidas) desde la API
+   */
+  async function mostrarAlertas() {
+    console.log('🚨 [APP-LOADER] ========================================');
+    console.log('🚨 [APP-LOADER] mostrarAlertas INICIANDO...');
+    console.log('🚨 [APP-LOADER] Timestamp:', new Date().toISOString());
+    console.log('🚨 [APP-LOADER] ========================================');
+
+    const listaAlertas = document.getElementById('listaVistaRutinas');
+    if (!listaAlertas) {
+      console.warn('🚨 [APP-LOADER] Elemento listaVistaRutinas no encontrado');
+      return;
     }
 
-    /**
-     * Cargar cuartos en el select del formulario con optgroups
-     */
-    function cargarCuartosEnSelect() {
-        const select = document.getElementById('cuartoMantenimientoLateral');
-        if (!select) return;
+    console.log('🚨 [APP-LOADER] Elemento listaVistaRutinas encontrado');
+    console.log(
+      '🚨 [APP-LOADER] innerHTML actual:',
+      listaAlertas.innerHTML.substring(0, 100) + '...'
+    );
 
-        select.innerHTML = '<option value="">-- Seleccionar Cuarto --</option>';
-
-        // Agrupar cuartos por edificio
-        const cuartosPorEdificio = {};
-        cuartos.forEach(cuarto => {
-            const edificioNombre = cuarto.edificio_nombre || 'Edificio ' + cuarto.edificio_id;
-            if (!cuartosPorEdificio[edificioNombre]) {
-                cuartosPorEdificio[edificioNombre] = [];
-            }
-            cuartosPorEdificio[edificioNombre].push(cuarto);
-        });
-
-        // Crear optgroups
-        Object.keys(cuartosPorEdificio).sort().forEach(edificioNombre => {
-            const optgroup = document.createElement('optgroup');
-            optgroup.label = edificioNombre;
-
-            cuartosPorEdificio[edificioNombre]
-                .sort((a, b) => (a.nombre || a.numero || '').localeCompare(b.nombre || b.numero || ''))
-                .forEach(cuarto => {
-                    const option = document.createElement('option');
-                    option.value = cuarto.id;
-                    option.textContent = cuarto.nombre || cuarto.numero;
-                    optgroup.appendChild(option);
-                });
-
-            select.appendChild(optgroup);
-        });
+    // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+    const mensajeCargandoInicial =
+      listaAlertas.querySelector('.mensaje-cargando');
+    if (mensajeCargandoInicial) {
+      console.log(
+        '🚨 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial'
+      );
+      mensajeCargandoInicial.remove();
     }
 
+    try {
+      console.log('📋 Cargando alertas pendientes desde BD...');
 
+      // Obtener alertas pendientes desde la API
+      const response = await fetch(`${API_BASE_URL}/api/alertas/pendientes`);
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
-    /**
-     * Mostrar alertas y mantenimientos recientes
-     */
-    function mostrarAlertasYRecientes() {
-        console.log('📝 [APP-LOADER] mostrarAlertasYRecientes INICIANDO...');
-        console.log('📝 [APP-LOADER] Timestamp:', new Date().toISOString());
+      const alertasPendientes = await response.json();
 
-        mostrarAlertas();
-        console.log('📝 [APP-LOADER] mostrarAlertas llamado');
+      console.log(
+        `📋 Alertas pendientes desde BD: ${alertasPendientes.length}`
+      );
+      console.log(
+        '🔍 Detalle de alertas:',
+        alertasPendientes.map(
+          (r) =>
+            `ID${r.id}(${r.dia_alerta} ${r.hora} - ${r.descripcion.substring(0, 20)}...)`
+        )
+      );
 
-        mostrarRecientes();
-        console.log('📝 [APP-LOADER] mostrarRecientes llamado');
+      // Buscar el mensaje de "no hay alertas"
+      const mensajeNoAlertas = document.getElementById(
+        'mensaje-no-alertas-encontradas'
+      );
 
-        mostrarAlertasEmitidas();
-        console.log('📝 [APP-LOADER] mostrarAlertasEmitidas llamado');
-
-        mostrarHistorialAlertas();
-        console.log('📝 [APP-LOADER] mostrarHistorialAlertas llamado');
-
-        console.log('📝 [APP-LOADER] mostrarAlertasYRecientes COMPLETADO');
-    }
-
-    /**
-     * Mostrar alertas pendientes (no emitidas) desde la API
-     */
-    async function mostrarAlertas() {
-        console.log('🚨 [APP-LOADER] ========================================');
-        console.log('🚨 [APP-LOADER] mostrarAlertas INICIANDO...');
-        console.log('🚨 [APP-LOADER] Timestamp:', new Date().toISOString());
-        console.log('🚨 [APP-LOADER] ========================================');
-
-        const listaAlertas = document.getElementById('listaVistaRutinas');
-        if (!listaAlertas) {
-            console.warn('🚨 [APP-LOADER] Elemento listaVistaRutinas no encontrado');
-            return;
+      if (alertasPendientes.length === 0) {
+        listaAlertas.innerHTML = '';
+        listaAlertas.style.display = 'none';
+        if (mensajeNoAlertas) {
+          mensajeNoAlertas.style.display = 'block';
+          mensajeNoAlertas.innerHTML =
+            '<i class="fas fa-check-circle"></i> No hay alertas programadas';
         }
+        return;
+      }
 
-        console.log('🚨 [APP-LOADER] Elemento listaVistaRutinas encontrado');
-        console.log('🚨 [APP-LOADER] innerHTML actual:', listaAlertas.innerHTML.substring(0, 100) + '...');
+      // Hay alertas, mostrar la lista y ocultar el mensaje
+      listaAlertas.style.display = 'block';
+      if (mensajeNoAlertas) {
+        mensajeNoAlertas.style.display = 'none';
+      }
 
-        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
-        const mensajeCargandoInicial = listaAlertas.querySelector('.mensaje-cargando');
-        if (mensajeCargandoInicial) {
-            console.log('🚨 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial');
-            mensajeCargandoInicial.remove();
-        }
+      listaAlertas.innerHTML = '';
+      // Mostrar TODAS las alertas pendientes
+      alertasPendientes.forEach((alerta, index) => {
+        console.log(
+          `📝 Procesando alerta ${index + 1}/${alertasPendientes.length}:`,
+          alerta
+        );
+        const li = document.createElement('li');
+        li.className = 'rutina-item';
+        li.id = `rutina-${alerta.id}`;
 
-        try {
-            console.log('📋 Cargando alertas pendientes desde BD...');
+        const isEspacioComun = !!alerta.espacio_comun_id;
+        const nombreUbicacion = isEspacioComun
+          ? alerta.espacio_nombre
+          : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
+        const nombreEdificio = alerta.edificio_nombre || '';
+        const ubicacionId = isEspacioComun
+          ? alerta.espacio_comun_id
+          : alerta.cuarto_id;
 
-            // Obtener alertas pendientes desde la API
-            const response = await fetch(`${API_BASE_URL}/api/alertas/pendientes`);
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
+        // Extraer fecha de dia_alerta si es timestamp
+        const fechaAlerta = alerta.dia_alerta?.includes('T')
+          ? alerta.dia_alerta.split('T')[0]
+          : alerta.dia_alerta;
 
-            const alertasPendientes = await response.json();
+        // Añadir todos los atributos data necesarios para el sistema de notificaciones
+        li.dataset.alertaId = alerta.id;
+        li.dataset.horaRaw = alerta.hora || '';
+        li.dataset.diaRaw = fechaAlerta || '';
+        li.dataset.descripcion = alerta.descripcion || '';
+        li.dataset.cuartoNombre = nombreUbicacion;
+        li.dataset.cuartoId = ubicacionId || '';
 
-            console.log(`📋 Alertas pendientes desde BD: ${alertasPendientes.length}`);
-            console.log('🔍 Detalle de alertas:', alertasPendientes.map(r => `ID${r.id}(${r.dia_alerta} ${r.hora} - ${r.descripcion.substring(0, 20)}...)`));
-
-            // Buscar el mensaje de "no hay alertas"
-            const mensajeNoAlertas = document.getElementById('mensaje-no-alertas-encontradas');
-
-            if (alertasPendientes.length === 0) {
-                listaAlertas.innerHTML = '';
-                listaAlertas.style.display = 'none';
-                if (mensajeNoAlertas) {
-                    mensajeNoAlertas.style.display = 'block';
-                    mensajeNoAlertas.innerHTML = '<i class="fas fa-check-circle"></i> No hay alertas programadas';
-                }
-                return;
-            }
-
-            // Hay alertas, mostrar la lista y ocultar el mensaje
-            listaAlertas.style.display = 'block';
-            if (mensajeNoAlertas) {
-                mensajeNoAlertas.style.display = 'none';
-            }
-
-            listaAlertas.innerHTML = '';
-            // Mostrar TODAS las alertas pendientes
-            alertasPendientes.forEach((alerta, index) => {
-                console.log(`📝 Procesando alerta ${index + 1}/${alertasPendientes.length}:`, alerta);
-                const li = document.createElement('li');
-                li.className = 'rutina-item';
-                li.id = `rutina-${alerta.id}`;
-
-                const isEspacioComun = !!alerta.espacio_comun_id;
-                const nombreUbicacion = isEspacioComun ? alerta.espacio_nombre : (alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`);
-                const nombreEdificio = alerta.edificio_nombre || '';
-                const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
-
-                // Extraer fecha de dia_alerta si es timestamp
-                const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
-
-                // Añadir todos los atributos data necesarios para el sistema de notificaciones
-                li.dataset.alertaId = alerta.id;
-                li.dataset.horaRaw = alerta.hora || '';
-                li.dataset.diaRaw = fechaAlerta || '';
-                li.dataset.descripcion = alerta.descripcion || '';
-                li.dataset.cuartoNombre = nombreUbicacion;
-                li.dataset.cuartoId = ubicacionId || '';
-
-                li.innerHTML = `
+        li.innerHTML = `
                 <span class="rutina-info">
                     <span class="rutina-cuarto" title="${escapeHtml(nombreEdificio)}">
                         ${escapeHtml(nombreUbicacion)}
@@ -1185,66 +1454,81 @@
                     ${alerta.hora ? formatearHora(alerta.hora) : '--:--'}
                 </span>
             `;
-                listaAlertas.appendChild(li);
-            });
+        listaAlertas.appendChild(li);
+      });
 
-            listaAlertas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "rutina-item"));
+      listaAlertas.addEventListener('click', (e) =>
+        abrirModalDetalleServicioEnLista(e, 'rutina-item')
+      );
 
-            console.log(`✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`);
+      console.log(
+        `✅ [APP-LOADER] Renderizadas ${alertasPendientes.length} alertas pendientes en el panel`
+      );
 
-            // Forzar actualización del DOM - quitar cualquier mensaje de "Cargando"
-            const mensajeCargando = listaAlertas.querySelector('.mensaje-cargando');
-            if (mensajeCargando) {
-                console.log('🚨 [APP-LOADER] Removiendo mensaje de cargando...');
-                mensajeCargando.remove();
-            }
-
-        } catch (error) {
-            console.error('❌ [APP-LOADER] Error cargando alertas pendientes:', error);
-            listaAlertas.innerHTML = '<li class="mensaje-no-items">Error cargando alertas</li>';
-        }
-
-        console.log('🚨 [APP-LOADER] mostrarAlertas COMPLETADO');
+      // Forzar actualización del DOM - quitar cualquier mensaje de "Cargando"
+      const mensajeCargando = listaAlertas.querySelector('.mensaje-cargando');
+      if (mensajeCargando) {
+        console.log('🚨 [APP-LOADER] Removiendo mensaje de cargando...');
+        mensajeCargando.remove();
+      }
+    } catch (error) {
+      console.error(
+        '❌ [APP-LOADER] Error cargando alertas pendientes:',
+        error
+      );
+      listaAlertas.innerHTML =
+        '<li class="mensaje-no-items">Error cargando alertas</li>';
     }
 
-    /**
-     * Mostrar mantenimientos recientes
-     */
-    function mostrarRecientes() {
-        console.log('=== MOSTRANDO RECIENTES ===');
+    console.log('🚨 [APP-LOADER] mostrarAlertas COMPLETADO');
+  }
 
-        const listaRecientes = document.getElementById('listaVistaRecientes');
-        if (!listaRecientes) {
-            console.error('Elemento listaVistaRecientes no encontrado');
-            return;
-        }
+  /**
+   * Mostrar mantenimientos recientes
+   */
+  function mostrarRecientes() {
+    console.log('=== MOSTRANDO RECIENTES ===');
 
-        console.log('Mantenimientos disponibles:', mantenimientos ? mantenimientos.length : 0);
+    const listaRecientes = document.getElementById('listaVistaRecientes');
+    if (!listaRecientes) {
+      console.error('Elemento listaVistaRecientes no encontrado');
+      return;
+    }
 
-        if (!mantenimientos || mantenimientos.length === 0) {
-            listaRecientes.innerHTML = '<li class="mensaje-no-items">No hay mantenimientos recientes</li>';
-            return;
-        }
+    console.log(
+      'Mantenimientos disponibles:',
+      mantenimientos ? mantenimientos.length : 0
+    );
 
-        const recientes = mantenimientos
-            .filter(m => m.tipo === 'normal')
-            .sort((a, b) => new Date(b.fecha_registro) - new Date(a.fecha_registro))
-            .slice(0, 5);
+    if (!mantenimientos || mantenimientos.length === 0) {
+      listaRecientes.innerHTML =
+        '<li class="mensaje-no-items">No hay mantenimientos recientes</li>';
+      return;
+    }
 
-        console.log('Mantenimientos recientes filtrados:', recientes.length);
+    const recientes = mantenimientos
+      .filter((m) => m.tipo === 'normal')
+      .sort((a, b) => new Date(b.fecha_registro) - new Date(a.fecha_registro))
+      .slice(0, 5);
 
-        if (recientes.length === 0) {
-            listaRecientes.innerHTML = '<li class="mensaje-no-items">No hay mantenimientos recientes</li>';
-            return;
-        }
+    console.log('Mantenimientos recientes filtrados:', recientes.length);
 
-        listaRecientes.innerHTML = '';
-        recientes.forEach((mantenimiento, index) => {
-            console.log(`Procesando mantenimiento reciente ${index + 1}:`, mantenimiento);
+    if (recientes.length === 0) {
+      listaRecientes.innerHTML =
+        '<li class="mensaje-no-items">No hay mantenimientos recientes</li>';
+      return;
+    }
 
-            const li = document.createElement('li');
-            li.className = 'reciente-item';
-            li.innerHTML = `
+    listaRecientes.innerHTML = '';
+    recientes.forEach((mantenimiento, index) => {
+      console.log(
+        `Procesando mantenimiento reciente ${index + 1}:`,
+        mantenimiento
+      );
+
+      const li = document.createElement('li');
+      li.className = 'reciente-item';
+      li.innerHTML = `
             <span class="reciente-tipo reciente-tipo-normal">Avería</span>
             <span class="reciente-info">
                 <span class="reciente-cuarto" title="${escapeHtml(mantenimiento.edificio_nombre || 'Sin edificio')}">
@@ -1259,93 +1543,114 @@
             </span>
             <button class="boton-ir-rutina" onclick="scrollToCuarto(${mantenimiento.cuarto_id})" title="Ir al cuarto">&#10148;</button>
         `;
-            listaRecientes.appendChild(li);
-        });
+      listaRecientes.appendChild(li);
+    });
 
-        console.log('=== FIN MOSTRANDO RECIENTES ===');
+    console.log('=== FIN MOSTRANDO RECIENTES ===');
+  }
+
+  /**
+   * Mostrar alertas emitidas hoy en el panel de alertas del día (desde API)
+   */
+  async function mostrarAlertasEmitidas() {
+    console.log('📅 [APP-LOADER] ========================================');
+    console.log('📅 [APP-LOADER] mostrarAlertasEmitidas INICIANDO...');
+    console.log('📅 [APP-LOADER] Timestamp:', new Date().toISOString());
+    console.log('📅 [APP-LOADER] ========================================');
+
+    const listaEmitidas = document.getElementById('listaAlertasEmitidas');
+    const mensajeNoEmitidas = document.getElementById(
+      'mensaje-no-alertas-emitidas'
+    );
+
+    if (!listaEmitidas) {
+      console.warn(
+        '📅 [APP-LOADER] Elemento listaAlertasEmitidas no encontrado'
+      );
+      return;
     }
 
-    /**
-     * Mostrar alertas emitidas hoy en el panel de alertas del día (desde API)
-     */
-    async function mostrarAlertasEmitidas() {
-        console.log('📅 [APP-LOADER] ========================================');
-        console.log('📅 [APP-LOADER] mostrarAlertasEmitidas INICIANDO...');
-        console.log('📅 [APP-LOADER] Timestamp:', new Date().toISOString());
-        console.log('📅 [APP-LOADER] ========================================');
+    console.log('📅 [APP-LOADER] Elemento listaAlertasEmitidas encontrado');
 
-        const listaEmitidas = document.getElementById('listaAlertasEmitidas');
-        const mensajeNoEmitidas = document.getElementById('mensaje-no-alertas-emitidas');
+    // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+    const mensajeCargandoInicial =
+      listaEmitidas.querySelector('.mensaje-cargando');
+    if (mensajeCargandoInicial) {
+      console.log(
+        '📅 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial'
+      );
+      mensajeCargandoInicial.remove();
+    }
 
-        if (!listaEmitidas) {
-            console.warn('📅 [APP-LOADER] Elemento listaAlertasEmitidas no encontrado');
-            return;
-        }
+    try {
+      // Usar fecha local actual (no UTC)
+      const ahora = new Date();
+      const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
 
-        console.log('📅 [APP-LOADER] Elemento listaAlertasEmitidas encontrado');
+      console.log(`📅 Cargando alertas emitidas para hoy: ${hoy}`);
 
-        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
-        const mensajeCargandoInicial = listaEmitidas.querySelector('.mensaje-cargando');
-        if (mensajeCargandoInicial) {
-            console.log('📅 [APP-LOADER] Removiendo mensaje "Cargando alertas..." inicial');
-            mensajeCargandoInicial.remove();
-        }
+      // Obtener alertas emitidas de hoy desde la API
+      const response = await fetch(
+        `${API_BASE_URL}/api/alertas/emitidas?fecha=${hoy}`
+      );
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
-        try {
-            // Usar fecha local actual (no UTC)
-            const ahora = new Date();
-            const hoy = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+      const alertasEmitidasBD = await response.json();
 
-            console.log(`📅 Cargando alertas emitidas para hoy: ${hoy}`);
+      console.log(
+        `📋 Alertas emitidas hoy desde BD:`,
+        alertasEmitidasBD.length
+      );
 
-            // Obtener alertas emitidas de hoy desde la API
-            const response = await fetch(`${API_BASE_URL}/api/alertas/emitidas?fecha=${hoy}`);
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
+      if (alertasEmitidasBD.length === 0) {
+        listaEmitidas.style.display = 'none';
+        if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'block';
+        return;
+      }
 
-            const alertasEmitidasBD = await response.json();
+      listaEmitidas.style.display = 'block';
+      if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'none';
 
-            console.log(`📋 Alertas emitidas hoy desde BD:`, alertasEmitidasBD.length);
+      listaEmitidas.innerHTML = '';
 
-            if (alertasEmitidasBD.length === 0) {
-                listaEmitidas.style.display = 'none';
-                if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'block';
-                return;
-            }
+      // Process alerts with common space names from dictionary
+      const alertasProcessadas = alertasEmitidasBD.map((alerta) => {
+        const isEspacioComun =
+          alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
+        const nombreEspacioComun = isEspacioComun
+          ? diccNombresEspaciosPorId[alerta.espacio_comun_id]
+          : null;
 
-            listaEmitidas.style.display = 'block';
-            if (mensajeNoEmitidas) mensajeNoEmitidas.style.display = 'none';
+        return {
+          ...alerta,
+          nombreEspacioComun,
+          isEspacioComun,
+        };
+      });
 
-            listaEmitidas.innerHTML = '';
+      alertasProcessadas
+        .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
+        .forEach((alerta) => {
+          const nombreCuarto = alerta.isEspacioComun
+            ? alerta.nombreEspacioComun
+            : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
-            // Process alerts with common space names from dictionary
-            const alertasProcessadas = alertasEmitidasBD.map((alerta) => {
-                const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
-                const nombreEspacioComun = isEspacioComun ? diccNombresEspaciosPorId[alerta.espacio_comun_id] : null;
+          // Extraer fecha de dia_alerta
+          const fechaAlerta = alerta.dia_alerta?.includes('T')
+            ? alerta.dia_alerta.split('T')[0]
+            : alerta.dia_alerta;
 
-                return {
-                    ...alerta,
-                    nombreEspacioComun,
-                    isEspacioComun
-                };
-            });
+          // Determinar clase de prioridad
+          const prioridadClass = alerta.prioridad
+            ? `prioridad-${alerta.prioridad}`
+            : 'prioridad-media';
 
-            alertasProcessadas
-                .sort((a, b) => (b.hora || '').localeCompare(a.hora || '')) // Ordenar por hora desc
-                .forEach(alerta => {
-                    const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
-
-                    // Extraer fecha de dia_alerta
-                    const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
-
-                    // Determinar clase de prioridad
-                    const prioridadClass = alerta.prioridad ? `prioridad-${alerta.prioridad}` : 'prioridad-media';
-
-                    const li = document.createElement('li');
-                    li.dataset.alertaId = alerta.id;
-                    li.className = `alerta-emitida-item ${prioridadClass}`;
-                    li.innerHTML = `
+          const li = document.createElement('li');
+          li.dataset.alertaId = alerta.id;
+          li.className = `alerta-emitida-item ${prioridadClass}`;
+          li.innerHTML = `
                     <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
                     <div class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</div>
                     <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
@@ -1353,132 +1658,156 @@
                         <div class="fecha-registro">Fecha: ${fechaAlerta ? formatearDiaAlerta(fechaAlerta) : 'N/A'}</div>
                     </div>
                 `;
-                    listaEmitidas.appendChild(li);
-                });
+          listaEmitidas.appendChild(li);
+        });
 
-            console.log(`✅ [APP-LOADER] Mostradas ${alertasEmitidasBD.length} alertas emitidas hoy en UI`);
-            console.log('📅 [APP-LOADER] mostrarAlertasEmitidas COMPLETADO');
-
-        } catch (error) {
-            console.error('❌ [APP-LOADER] Error cargando alertas emitidas:', error);
-            if (mensajeNoEmitidas) {
-                mensajeNoEmitidas.textContent = 'Error cargando alertas';
-                mensajeNoEmitidas.style.display = 'block';
-            }
-            listaEmitidas.style.display = 'none';
-        }
-
-        listaEmitidas.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "alerta-emitida-item"));
-
-        console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
+      console.log(
+        `✅ [APP-LOADER] Mostradas ${alertasEmitidasBD.length} alertas emitidas hoy en UI`
+      );
+      console.log('📅 [APP-LOADER] mostrarAlertasEmitidas COMPLETADO');
+    } catch (error) {
+      console.error('❌ [APP-LOADER] Error cargando alertas emitidas:', error);
+      if (mensajeNoEmitidas) {
+        mensajeNoEmitidas.textContent = 'Error cargando alertas';
+        mensajeNoEmitidas.style.display = 'block';
+      }
+      listaEmitidas.style.display = 'none';
     }
 
-    function abrirModalDetalleServicioEnLista(e, claseDeListaItem) {
-        if (e.target.classList.contains(claseDeListaItem)) {
-            const alertaId = e.target.dataset.alertaId;
-            abrirModalDetalleServicio(Number(alertaId));
-        } else if (e.target.parentElement.classList.contains(claseDeListaItem)) {
-            const alertaId = e.target.parentElement.dataset.alertaId;
-            abrirModalDetalleServicio(Number(alertaId));
-        } else if (e.target.parentElement.parentElement.classList.contains(claseDeListaItem)) {
-            const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
-            abrirModalDetalleServicio(Number(alertaId));
-        }
+    listaEmitidas.addEventListener('click', (e) =>
+      abrirModalDetalleServicioEnLista(e, 'alerta-emitida-item')
+    );
+
+    console.log('📅 [APP-LOADER] mostrarAlertasEmitidas FIN');
+  }
+
+  function abrirModalDetalleServicioEnLista(e, claseDeListaItem) {
+    if (e.target.classList.contains(claseDeListaItem)) {
+      const alertaId = e.target.dataset.alertaId;
+      abrirModalDetalleServicio(Number(alertaId));
+    } else if (e.target.parentElement.classList.contains(claseDeListaItem)) {
+      const alertaId = e.target.parentElement.dataset.alertaId;
+      abrirModalDetalleServicio(Number(alertaId));
+    } else if (
+      e.target.parentElement.parentElement.classList.contains(claseDeListaItem)
+    ) {
+      const alertaId = e.target.parentElement.parentElement.dataset.alertaId;
+      abrirModalDetalleServicio(Number(alertaId));
+    }
+  }
+
+  async function obtenerNombresEspaciosComunes() {
+    const response = await fetch(`${API_BASE_URL}/api/espacios-comunes`);
+    const data = await response.json();
+    if (data) {
+      return data;
+    }
+    return null;
+  }
+  window.obtenerNombresEspaciosComunes = obtenerNombresEspaciosComunes;
+
+  /**
+   * Mostrar historial completo de alertas emitidas (desde API, sin filtro de fecha)
+   */
+  async function mostrarHistorialAlertas() {
+    console.log('📚 [APP-LOADER] ========================================');
+    console.log('📚 [APP-LOADER] mostrarHistorialAlertas INICIANDO...');
+    console.log('📚 [APP-LOADER] Timestamp:', new Date().toISOString());
+    console.log('📚 [APP-LOADER] ========================================');
+
+    const listaHistorial = document.getElementById('listaHistorialAlertas');
+    const mensajeNoHistorial = document.getElementById('mensaje-no-historial');
+
+    if (!listaHistorial) {
+      console.warn(
+        '📚 [APP-LOADER] Elemento listaHistorialAlertas no encontrado'
+      );
+      return;
     }
 
-    async function obtenerNombresEspaciosComunes() {
-        const response = await fetch(`${API_BASE_URL}/api/espacios-comunes`);
-        const data = await response.json();
-        if (data) {
-            return data;
-        }
-        return null;
+    // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
+    const mensajeCargandoInicial =
+      listaHistorial.querySelector('.mensaje-cargando');
+    if (mensajeCargandoInicial) {
+      console.log(
+        '📚 [APP-LOADER] Removiendo mensaje "Cargando historial..." inicial'
+      );
+      mensajeCargandoInicial.remove();
     }
-    window.obtenerNombresEspaciosComunes = obtenerNombresEspaciosComunes;
 
-    /**
-     * Mostrar historial completo de alertas emitidas (desde API, sin filtro de fecha)
-     */
-    async function mostrarHistorialAlertas() {
-        console.log('📚 [APP-LOADER] ========================================');
-        console.log('📚 [APP-LOADER] mostrarHistorialAlertas INICIANDO...');
-        console.log('📚 [APP-LOADER] Timestamp:', new Date().toISOString());
-        console.log('📚 [APP-LOADER] ========================================');
+    try {
+      console.log(
+        `📚 [APP-LOADER] Cargando historial completo de alertas emitidas desde BD...`
+      );
 
-        const listaHistorial = document.getElementById('listaHistorialAlertas');
-        const mensajeNoHistorial = document.getElementById('mensaje-no-historial');
+      // Obtener TODAS las alertas emitidas desde la API (sin filtro de fecha)
+      const response = await fetch(`${API_BASE_URL}/api/alertas/emitidas`);
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
-        if (!listaHistorial) {
-            console.warn('📚 [APP-LOADER] Elemento listaHistorialAlertas no encontrado');
-            return;
+      const todasAlertasEmitidas = await response.json();
+
+      console.log(
+        `📚 Historial completo desde BD:`,
+        todasAlertasEmitidas.length
+      );
+
+      if (todasAlertasEmitidas.length === 0) {
+        listaHistorial.style.display = 'none';
+        if (mensajeNoHistorial) mensajeNoHistorial.style.display = 'block';
+        return;
+      }
+
+      listaHistorial.style.display = 'block';
+      if (mensajeNoHistorial) mensajeNoHistorial.style.display = 'none';
+
+      listaHistorial.innerHTML = '';
+
+      // Process alerts with common space names from dictionary
+      const todasAlertasProcessadas = todasAlertasEmitidas.map((alerta) => {
+        const isEspacioComun =
+          alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
+        const nombreEspacioComun = isEspacioComun
+          ? diccNombresEspaciosPorId[alerta.espacio_comun_id]
+          : null;
+
+        return {
+          ...alerta,
+          nombreEspacioComun,
+          isEspacioComun,
+        };
+      });
+
+      // ordenar por fechaAlerta y hora mas reciente aunque cuarto id sea null (espaço comun)
+      todasAlertasProcessadas.sort((a, b) => {
+        const fechaA = new Date(a.dia_alerta);
+        const fechaB = new Date(b.dia_alerta);
+        if (fechaA.getTime() === fechaB.getTime()) {
+          return new Date(b.hora) - new Date(a.hora);
         }
+        return fechaB.getTime() - fechaA.getTime();
+      });
 
-        // LIMPIAR MENSAJE DE CARGANDO INMEDIATAMENTE
-        const mensajeCargandoInicial = listaHistorial.querySelector('.mensaje-cargando');
-        if (mensajeCargandoInicial) {
-            console.log('📚 [APP-LOADER] Removiendo mensaje "Cargando historial..." inicial');
-            mensajeCargandoInicial.remove();
-        }
+      todasAlertasProcessadas.forEach((alerta) => {
+        const nombreCuarto = alerta.isEspacioComun
+          ? alerta.nombreEspacioComun
+          : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
 
-        try {
-            console.log(`📚 [APP-LOADER] Cargando historial completo de alertas emitidas desde BD...`);
+        // Extraer fecha de dia_alerta
+        const fechaAlerta = alerta.dia_alerta?.includes('T')
+          ? alerta.dia_alerta.split('T')[0]
+          : alerta.dia_alerta;
 
-            // Obtener TODAS las alertas emitidas desde la API (sin filtro de fecha)
-            const response = await fetch(`${API_BASE_URL}/api/alertas/emitidas`);
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
+        // Determinar clase de prioridad
+        const prioridadClass = alerta.prioridad
+          ? `prioridad-${alerta.prioridad}`
+          : 'prioridad-media';
 
-            const todasAlertasEmitidas = await response.json();
-
-            console.log(`📚 Historial completo desde BD:`, todasAlertasEmitidas.length);
-
-            if (todasAlertasEmitidas.length === 0) {
-                listaHistorial.style.display = 'none';
-                if (mensajeNoHistorial) mensajeNoHistorial.style.display = 'block';
-                return;
-            }
-
-            listaHistorial.style.display = 'block';
-            if (mensajeNoHistorial) mensajeNoHistorial.style.display = 'none';
-
-            listaHistorial.innerHTML = '';
-
-            // Process alerts with common space names from dictionary
-            const todasAlertasProcessadas = todasAlertasEmitidas.map((alerta) => {
-                const isEspacioComun = alerta.cuarto_id === null && alerta.espacio_comun_id !== null;
-                const nombreEspacioComun = isEspacioComun ? diccNombresEspaciosPorId[alerta.espacio_comun_id] : null;
-
-                return {
-                    ...alerta,
-                    nombreEspacioComun,
-                    isEspacioComun
-                };
-            });
-
-            // ordenar por fechaAlerta y hora mas reciente aunque cuarto id sea null (espaço comun)
-            todasAlertasProcessadas.sort((a, b) => {
-                const fechaA = new Date(a.dia_alerta);
-                const fechaB = new Date(b.dia_alerta);
-                if (fechaA.getTime() === fechaB.getTime()) {
-                    return new Date(b.hora) - new Date(a.hora);
-                }
-                return fechaB.getTime() - fechaA.getTime();
-            });
-
-            todasAlertasProcessadas.forEach(alerta => {
-                const nombreCuarto = alerta.isEspacioComun ? alerta.nombreEspacioComun : alerta.cuarto_numero || `Cuarto ${alerta.cuarto_id}`;
-
-                // Extraer fecha de dia_alerta
-                const fechaAlerta = alerta.dia_alerta?.includes('T') ? alerta.dia_alerta.split('T')[0] : alerta.dia_alerta;
-
-                // Determinar clase de prioridad
-                const prioridadClass = alerta.prioridad ? `prioridad-${alerta.prioridad}` : 'prioridad-media';
-
-                const li = document.createElement('li');
-                li.dataset.alertaId = alerta.id;
-                li.className = `alerta-emitida-item ${prioridadClass}`;
-                li.innerHTML = `
+        const li = document.createElement('li');
+        li.dataset.alertaId = alerta.id;
+        li.className = `alerta-emitida-item ${prioridadClass}`;
+        li.innerHTML = `
                 <div class="alerta-cuarto">${escapeHtml(nombreCuarto)}</div>
                 <div class="alerta-descripcion">${escapeHtml(alerta.descripcion)}</div>
                 <div class="alerta-hora">${formatearHora(alerta.hora) || '--:--'}</div>
@@ -1486,531 +1815,597 @@
                     <div class="fecha-registro">Fecha: ${fechaAlerta ? formatearDiaAlerta(fechaAlerta) : 'N/A'}</div>
                 </div>
             `;
-                listaHistorial.appendChild(li);
-            });
+        listaHistorial.appendChild(li);
+      });
 
-            listaHistorial.addEventListener('click', (e) => abrirModalDetalleServicioEnLista(e, "alerta-emitida-item"));
+      listaHistorial.addEventListener('click', (e) =>
+        abrirModalDetalleServicioEnLista(e, 'alerta-emitida-item')
+      );
 
-            console.log(`✅ Mostradas ${todasAlertasEmitidas.length} alertas en historial`);
-
-        } catch (error) {
-            console.error('❌ Error cargando historial de alertas:', error);
-            if (mensajeNoHistorial) {
-                mensajeNoHistorial.textContent = 'Error cargando historial';
-                mensajeNoHistorial.style.display = 'block';
-            }
-            listaHistorial.style.display = 'none';
-        }
+      console.log(
+        `✅ Mostradas ${todasAlertasEmitidas.length} alertas en historial`
+      );
+    } catch (error) {
+      console.error('❌ Error cargando historial de alertas:', error);
+      if (mensajeNoHistorial) {
+        mensajeNoHistorial.textContent = 'Error cargando historial';
+        mensajeNoHistorial.style.display = 'block';
+      }
+      listaHistorial.style.display = 'none';
     }
+  }
 
-    /**
-     * Marcar automáticamente como emitidas las alertas cuya fecha/hora ya pasó
-     * Se ejecuta al inicio de la app y periódicamente
-     */
-    async function marcarAlertasPasadasComoEmitidas() {
-        try {
-            // Obtener hora actual de Los Cabos para logging
-            const ahora = new Date();
-            const horaLosCabos = ahora.toLocaleString('es-MX', { timeZone: 'America/Mazatlan' });
-            console.log(`🔄 Verificando alertas pasadas... (Hora Los Cabos: ${horaLosCabos})`);
+  /**
+   * Marcar automáticamente como emitidas las alertas cuya fecha/hora ya pasó
+   * Se ejecuta al inicio de la app y periódicamente
+   */
+  async function marcarAlertasPasadasComoEmitidas() {
+    try {
+      // Obtener hora actual de Los Cabos para logging
+      const ahora = new Date();
+      const horaLosCabos = ahora.toLocaleString('es-MX', {
+        timeZone: 'America/Mazatlan',
+      });
+      console.log(
+        `🔄 Verificando alertas pasadas... (Hora Los Cabos: ${horaLosCabos})`
+      );
 
-            const response = await fetch(`${API_BASE_URL}/api/alertas/marcar-pasadas`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error HTTP: ${response.status}`);
-            }
-
-            const result = await response.json();
-
-            if (result.count > 0) {
-                console.log(`✅ ${result.count} alertas pasadas marcadas como emitidas`);
-                // Refrescar la UI de alertas para reflejar los cambios
-                if (typeof mostrarAlertasYRecientes === 'function') {
-                    console.log('🔄 Refrescando UI de alertas...');
-                    mostrarAlertasYRecientes();
-                }
-                // También refrescar alertas de espacios comunes
-                if (window.recargarMantenimientosEspacios) {
-                    await window.recargarMantenimientosEspacios();
-                }
-                if (window.cargarAlertasEspacios) {
-                    await window.cargarAlertasEspacios();
-                }
-            } else {
-                console.log('ℹ️ No hay alertas pasadas pendientes de marcar (según backend)');
-                // Verificar en frontend como fallback
-                await verificarYEmitirAlertasPasadasFrontend();
-            }
-
-            return result.count;
-
-        } catch (error) {
-            console.error('❌ Error marcando alertas pasadas:', error);
-            // Intentar verificación en frontend como fallback
-            await verificarYEmitirAlertasPasadasFrontend();
-            return 0;
+      const response = await fetch(
+        `${API_BASE_URL}/api/alertas/marcar-pasadas`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
         }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (result.count > 0) {
+        console.log(
+          `✅ ${result.count} alertas pasadas marcadas como emitidas`
+        );
+        // Refrescar la UI de alertas para reflejar los cambios
+        if (typeof mostrarAlertasYRecientes === 'function') {
+          console.log('🔄 Refrescando UI de alertas...');
+          mostrarAlertasYRecientes();
+        }
+        // También refrescar alertas de espacios comunes
+        if (window.recargarMantenimientosEspacios) {
+          await window.recargarMantenimientosEspacios();
+        }
+        if (window.cargarAlertasEspacios) {
+          await window.cargarAlertasEspacios();
+        }
+      } else {
+        console.log(
+          'ℹ️ No hay alertas pasadas pendientes de marcar (según backend)'
+        );
+        // Verificar en frontend como fallback
+        await verificarYEmitirAlertasPasadasFrontend();
+      }
+
+      return result.count;
+    } catch (error) {
+      console.error('❌ Error marcando alertas pasadas:', error);
+      // Intentar verificación en frontend como fallback
+      await verificarYEmitirAlertasPasadasFrontend();
+      return 0;
     }
+  }
 
-    /**
-     * Verificar y emitir alertas pasadas desde el frontend
-     * Fallback cuando el backend no detecta correctamente las alertas pasadas
-     */
-    async function verificarYEmitirAlertasPasadasFrontend() {
-        try {
-            console.log('🔍 [FRONTEND] Verificando alertas pasadas localmente...');
+  /**
+   * Verificar y emitir alertas pasadas desde el frontend
+   * Fallback cuando el backend no detecta correctamente las alertas pasadas
+   */
+  async function verificarYEmitirAlertasPasadasFrontend() {
+    try {
+      console.log('🔍 [FRONTEND] Verificando alertas pasadas localmente...');
 
-            // Obtener fecha/hora actual de Los Cabos
-            const ahora = new Date();
-            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-            const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
+      // Obtener fecha/hora actual de Los Cabos
+      const ahora = new Date();
+      const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+      const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
 
-            console.log(`🕐 [FRONTEND] Fecha actual: ${fechaActual}, Hora actual: ${horaActual}`);
+      console.log(
+        `🕐 [FRONTEND] Fecha actual: ${fechaActual}, Hora actual: ${horaActual}`
+      );
 
-            // Filtrar rutinas que ya deberían haberse emitido
-            const rutinas = mantenimientos.filter(m => m.tipo === 'rutina');
-            console.log(`📋 [FRONTEND] Total rutinas: ${rutinas.length}`);
+      // Filtrar rutinas que ya deberían haberse emitido
+      const rutinas = mantenimientos.filter((m) => m.tipo === 'rutina');
+      console.log(`📋 [FRONTEND] Total rutinas: ${rutinas.length}`);
 
-            const alertasPasadas = rutinas.filter(m => {
-                if (!m.dia_alerta || !m.hora) return false;
-                if (m.alerta_emitida || alertasEmitidas.has(m.id)) return false;
+      const alertasPasadas = rutinas.filter((m) => {
+        if (!m.dia_alerta || !m.hora) return false;
+        if (m.alerta_emitida || alertasEmitidas.has(m.id)) return false;
 
-                // Extraer fecha de dia_alerta
-                const fechaAlerta = m.dia_alerta.includes('T') ? m.dia_alerta.split('T')[0] : m.dia_alerta;
-                const horaAlerta = m.hora.slice(0, 5);
+        // Extraer fecha de dia_alerta
+        const fechaAlerta = m.dia_alerta.includes('T')
+          ? m.dia_alerta.split('T')[0]
+          : m.dia_alerta;
+        const horaAlerta = m.hora.slice(0, 5);
 
-                // Verificar si la alerta ya pasó
-                const fechaPasada = fechaAlerta < fechaActual;
-                const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
-                const esPasada = fechaPasada || mismaFechaHoraPasada;
+        // Verificar si la alerta ya pasó
+        const fechaPasada = fechaAlerta < fechaActual;
+        const mismaFechaHoraPasada =
+          fechaAlerta === fechaActual && horaAlerta <= horaActual;
+        const esPasada = fechaPasada || mismaFechaHoraPasada;
 
-                if (esPasada) {
-                    console.log(`⏰ [FRONTEND] Alerta ID ${m.id} debió emitirse: ${fechaAlerta} ${horaAlerta} <= ${fechaActual} ${horaActual}`);
-                }
-
-                return esPasada;
-            });
-
-            console.log(`🚨 [FRONTEND] Alertas pasadas sin emitir: ${alertasPasadas.length}`);
-
-            // Emitir cada alerta pasada
-            for (const alerta of alertasPasadas) {
-                console.log(`📢 [FRONTEND] Emitiendo alerta pasada ID ${alerta.id}...`);
-                await emitirNotificacionAlerta(alerta);
-            }
-
-            if (alertasPasadas.length > 0) {
-                // Refrescar UI
-                mostrarAlertasYRecientes();
-            }
-
-        } catch (error) {
-            console.error('❌ [FRONTEND] Error verificando alertas pasadas:', error);
-        }
-    }
-
-    /**
-     * Manejar el envío del formulario de agregar mantenimiento
-     */
-    async function manejarAgregarMantenimiento(event) {
-        event.preventDefault();
-
-        const formData = new FormData(event.target);
-        const datos = {
-            cuarto_id: formData.get('cuarto_id'),
-            tipo: formData.get('tipo'),
-            descripcion: formData.get('descripcion'),
-            hora: formData.get('hora'),
-            dia_alerta: formData.get('dia_alerta'),
-            prioridad: formData.get('prioridad'), // Cambiado de nivel_alerta a prioridad
-            estado_cuarto: formData.get('estado_cuarto')
-        };
-
-        console.log('📝 Enviando datos de mantenimiento:', datos);
-
-        // Validaciones básicas en frontend
-        if (!datos.cuarto_id) {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor selecciona un cuarto', 'error');
-            return;
+        if (esPasada) {
+          console.log(
+            `⏰ [FRONTEND] Alerta ID ${m.id} debió emitirse: ${fechaAlerta} ${horaAlerta} <= ${fechaActual} ${horaActual}`
+          );
         }
 
-        if (!datos.descripcion || datos.descripcion.trim() === '') {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
-            return;
-        }
+        return esPasada;
+      });
 
-        if (datos.tipo === 'rutina') {
-            if (!datos.hora) {
-                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La hora es obligatoria para alertas', 'error');
-                return;
-            }
-            if (!datos.dia_alerta) {
-                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('El día es obligatorio para alertas', 'error');
-                return;
-            }
-        }
+      console.log(
+        `🚨 [FRONTEND] Alertas pasadas sin emitir: ${alertasPasadas.length}`
+      );
 
-        // ⚡ ACTUALIZACIÓN OPTIMISTA: Crear servicio temporal y actualizar UI inmediatamente
-        const servicioTemporal = {
-            id: Date.now(), // ID temporal
-            cuarto_id: parseInt(datos.cuarto_id),
-            tipo: datos.tipo,
-            descripcion: datos.descripcion,
-            hora: datos.hora,
-            dia_alerta: datos.dia_alerta,
-            prioridad: datos.prioridad,
-            fecha_registro: new Date().toISOString(),
-            _temporal: true // Marcar como temporal
-        };
+      // Emitir cada alerta pasada
+      for (const alerta of alertasPasadas) {
+        console.log(`📢 [FRONTEND] Emitiendo alerta pasada ID ${alerta.id}...`);
+        await emitirNotificacionAlerta(alerta);
+      }
 
-        // Agregar a array local inmediatamente
-        mantenimientos.push(servicioTemporal);
-
-        // Actualizar UI inmediatamente
-        const cuartoId = parseInt(datos.cuarto_id);
-        actualizarCardCuartoEnUI(cuartoId);
+      if (alertasPasadas.length > 0) {
+        // Refrescar UI
         mostrarAlertasYRecientes();
+      }
+    } catch (error) {
+      console.error('❌ [FRONTEND] Error verificando alertas pasadas:', error);
+    }
+  }
 
-        // Limpiar formulario inmediatamente
-        event.target.reset();
-        const tipoHidden = document.getElementById('tipoHiddenLateral');
-        const tipoSwitch = document.getElementById('tipoMantenimientoSwitchLateral');
-        if (tipoHidden) tipoHidden.value = 'normal';
-        if (tipoSwitch) tipoSwitch.checked = false;
-        const alertaFieldsContainer = document.getElementById('alertaFieldsContainer');
-        if (alertaFieldsContainer) alertaFieldsContainer.style.display = 'none';
-        const estadoSelector = document.getElementById('estadoCuartoSelector');
-        if (estadoSelector) estadoSelector.value = '';
-        const pills = document.querySelectorAll('.estado-pill');
-        pills.forEach(pill => pill.classList.remove('activo'));
+  /**
+   * Manejar el envío del formulario de agregar mantenimiento
+   */
+  async function manejarAgregarMantenimiento(event) {
+    event.preventDefault();
 
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio agregado', 'success');
+    const formData = new FormData(event.target);
+    const datos = {
+      cuarto_id: formData.get('cuarto_id'),
+      tipo: formData.get('tipo'),
+      descripcion: formData.get('descripcion'),
+      hora: formData.get('hora'),
+      dia_alerta: formData.get('dia_alerta'),
+      prioridad: formData.get('prioridad'), // Cambiado de nivel_alerta a prioridad
+      estado_cuarto: formData.get('estado_cuarto'),
+    };
 
-        try {
-            console.log('🌐 Enviando request a:', `${API_BASE_URL}/api/mantenimientos`);
+    console.log('📝 Enviando datos de mantenimiento:', datos);
 
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(datos)
-            });
-
-            console.log('📡 Response status:', response.status);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Error response:', errorText);
-                throw new Error(`Error ${response.status}: ${errorText}`);
-            }
-
-            const resultado = await response.json();
-            console.log('✅ Mantenimiento registrado exitosamente:', resultado);
-
-            // Reemplazar servicio temporal con el real
-            const index = mantenimientos.findIndex(m => m.id === servicioTemporal.id);
-            if (index !== -1) {
-                mantenimientos[index] = resultado;
-            }
-
-            // Actualizar UI con datos reales (silenciosamente)
-            actualizarCardCuartoEnUI(cuartoId);
-            mostrarAlertasYRecientes();
-
-            if (datos.tipo === 'rutina') {
-                setTimeout(() => verificarYEmitirAlertas(), 500);
-            }
-
-        } catch (error) {
-            console.error('❌ Error al registrar mantenimiento:', error);
-
-            // ⚡ ROLLBACK: Remover servicio temporal si falla
-            const index = mantenimientos.findIndex(m => m.id === servicioTemporal.id);
-            if (index !== -1) {
-                mantenimientos.splice(index, 1);
-            }
-
-            // Actualizar UI para reflejar el rollback
-            actualizarCardCuartoEnUI(cuartoId);
-            mostrarAlertasYRecientes();
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`❌ Error al registrar: ${error.message}`, 'error');
-        }
+    // Validaciones básicas en frontend
+    if (!datos.cuarto_id) {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('Por favor selecciona un cuarto', 'error');
+      return;
     }
 
-    /**
-     * Formatear fecha para mostrar
-     */
-    function formatearFecha(fecha) {
-        if (!fecha) return '';
+    if (!datos.descripcion || datos.descripcion.trim() === '') {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
+      return;
+    }
 
-        // Si es formato YYYY-MM-DD, parsearlo manualmente para evitar problemas de zona horaria
-        if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
-            const [year, month, day] = fecha.split('-').map(Number);
-            const fechaLocal = new Date(year, month - 1, day);
-            return fechaLocal.toLocaleDateString('es-ES', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-            });
+    if (datos.tipo === 'rutina') {
+      if (!datos.hora) {
+        if (window.mostrarAlertaBlur)
+          window.mostrarAlertaBlur(
+            'La hora es obligatoria para alertas',
+            'error'
+          );
+        return;
+      }
+      if (!datos.dia_alerta) {
+        if (window.mostrarAlertaBlur)
+          window.mostrarAlertaBlur(
+            'El día es obligatorio para alertas',
+            'error'
+          );
+        return;
+      }
+    }
+
+    // ⚡ ACTUALIZACIÓN OPTIMISTA: Crear servicio temporal y actualizar UI inmediatamente
+    const servicioTemporal = {
+      id: Date.now(), // ID temporal
+      cuarto_id: parseInt(datos.cuarto_id),
+      tipo: datos.tipo,
+      descripcion: datos.descripcion,
+      hora: datos.hora,
+      dia_alerta: datos.dia_alerta,
+      prioridad: datos.prioridad,
+      fecha_registro: new Date().toISOString(),
+      _temporal: true, // Marcar como temporal
+    };
+
+    // Agregar a array local inmediatamente
+    mantenimientos.push(servicioTemporal);
+
+    // Actualizar UI inmediatamente
+    const cuartoId = parseInt(datos.cuarto_id);
+    actualizarCardCuartoEnUI(cuartoId);
+    mostrarAlertasYRecientes();
+
+    // Limpiar formulario inmediatamente
+    event.target.reset();
+    const tipoHidden = document.getElementById('tipoHiddenLateral');
+    const tipoSwitch = document.getElementById(
+      'tipoMantenimientoSwitchLateral'
+    );
+    if (tipoHidden) tipoHidden.value = 'normal';
+    if (tipoSwitch) tipoSwitch.checked = false;
+    const alertaFieldsContainer = document.getElementById(
+      'alertaFieldsContainer'
+    );
+    if (alertaFieldsContainer) alertaFieldsContainer.style.display = 'none';
+    const estadoSelector = document.getElementById('estadoCuartoSelector');
+    if (estadoSelector) estadoSelector.value = '';
+    const pills = document.querySelectorAll('.estado-pill');
+    pills.forEach((pill) => pill.classList.remove('activo'));
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('✨ Servicio agregado', 'success');
+
+    try {
+      console.log(
+        '🌐 Enviando request a:',
+        `${API_BASE_URL}/api/mantenimientos`
+      );
+
+      const response = await fetch(`${API_BASE_URL}/api/mantenimientos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(datos),
+      });
+
+      console.log('📡 Response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Error response:', errorText);
+        throw new Error(`Error ${response.status}: ${errorText}`);
+      }
+
+      const resultado = await response.json();
+      console.log('✅ Mantenimiento registrado exitosamente:', resultado);
+
+      // Reemplazar servicio temporal con el real
+      const index = mantenimientos.findIndex(
+        (m) => m.id === servicioTemporal.id
+      );
+      if (index !== -1) {
+        mantenimientos[index] = resultado;
+      }
+
+      // Actualizar UI con datos reales (silenciosamente)
+      actualizarCardCuartoEnUI(cuartoId);
+      mostrarAlertasYRecientes();
+
+      if (datos.tipo === 'rutina') {
+        setTimeout(() => verificarYEmitirAlertas(), 500);
+      }
+    } catch (error) {
+      console.error('❌ Error al registrar mantenimiento:', error);
+
+      // ⚡ ROLLBACK: Remover servicio temporal si falla
+      const index = mantenimientos.findIndex(
+        (m) => m.id === servicioTemporal.id
+      );
+      if (index !== -1) {
+        mantenimientos.splice(index, 1);
+      }
+
+      // Actualizar UI para reflejar el rollback
+      actualizarCardCuartoEnUI(cuartoId);
+      mostrarAlertasYRecientes();
+
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          `❌ Error al registrar: ${error.message}`,
+          'error'
+        );
+    }
+  }
+
+  /**
+   * Formatear fecha para mostrar
+   */
+  function formatearFecha(fecha) {
+    if (!fecha) return '';
+
+    // Si es formato YYYY-MM-DD, parsearlo manualmente para evitar problemas de zona horaria
+    if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      const [year, month, day] = fecha.split('-').map(Number);
+      const fechaLocal = new Date(year, month - 1, day);
+      return fechaLocal.toLocaleDateString('es-ES', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      });
+    }
+
+    return new Date(fecha).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  }
+
+  /**
+   * Formatear fecha completa con hora
+   */
+  function formatearFechaCompleta(fecha) {
+    if (!fecha) return '';
+    return new Date(fecha).toLocaleDateString('es-ES', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    });
+  }
+
+  /**
+   * Formatear fecha corta (dd/mm)
+   * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
+   */
+  function formatearFechaCorta(fecha) {
+    if (!fecha) return '';
+
+    try {
+      let year, month, day;
+      const fechaStr = String(fecha);
+
+      // Formato YYYY-MM-DD (simple)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        [year, month, day] = fechaStr.split('-').map(Number);
+      }
+      // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
+      else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+        const fechaPart = fechaStr.split('T')[0];
+        [year, month, day] = fechaPart.split('-').map(Number);
+      }
+      // Otros formatos
+      else {
+        const fechaObj = new Date(fechaStr);
+        if (!isNaN(fechaObj.getTime())) {
+          // Usar UTC para evitar problemas de zona horaria
+          day = fechaObj.getUTCDate();
+          month = fechaObj.getUTCMonth() + 1;
+        } else {
+          return '';
         }
+      }
 
-        return new Date(fecha).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
+      // Formatear como d/M
+      return `${day}/${month}`;
+    } catch (error) {
+      console.error('Error formateando fecha corta:', error, fecha);
+      return '';
+    }
+  }
+
+  /**
+   * Formatear hora
+   */
+  function formatearHora(hora) {
+    if (!hora) return '';
+
+    // Si es un timestamp completo (ISO string), extraer solo la hora
+    if (hora.includes('T') || hora.includes('-')) {
+      try {
+        const fecha = new Date(hora);
+        if (isNaN(fecha.getTime())) {
+          return 'Hora inválida';
+        }
+        return fecha.toLocaleTimeString('es-ES', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: true,
         });
+      } catch (error) {
+        console.error('Error formateando timestamp:', error, hora);
+        return 'Hora inválida';
+      }
     }
 
-    /**
-     * Formatear fecha completa con hora
-     */
-    function formatearFechaCompleta(fecha) {
-        if (!fecha) return '';
-        return new Date(fecha).toLocaleDateString('es-ES', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true
-        });
+    // Si es solo hora (formato HH:mm), usar el comportamiento original
+    try {
+      return new Date('1970-01-01 ' + hora).toLocaleTimeString('es-ES', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+    } catch (error) {
+      console.error('Error formateando hora:', error, hora);
+      return 'Hora inválida';
+    }
+  }
+
+  /**
+   * Formatear día de alerta (fecha en formato "día de mes")
+   * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
+   */
+  function formatearDiaAlerta(fecha) {
+    if (!fecha) return '';
+
+    // Si es un número (día del mes), crear una fecha para el mes actual
+    if (
+      typeof fecha === 'number' ||
+      (!isNaN(parseInt(fecha)) && !String(fecha).includes('-'))
+    ) {
+      const diaNum = parseInt(fecha);
+      const hoy = new Date();
+      const fechaAlerta = new Date(hoy.getFullYear(), hoy.getMonth(), diaNum);
+      const dia = fechaAlerta.getDate();
+      const mes = fechaAlerta.toLocaleDateString('es-ES', { month: 'long' });
+      return `${dia} de ${mes}`;
     }
 
-    /**
-     * Formatear fecha corta (dd/mm)
-     * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
-     */
-    function formatearFechaCorta(fecha) {
-        if (!fecha) return '';
+    // Si es una fecha completa (YYYY-MM-DD, ISO timestamp, etc.)
+    try {
+      let year, month, day;
+      const fechaStr = String(fecha);
 
-        try {
-            let year, month, day;
-            const fechaStr = String(fecha);
-
-            // Formato YYYY-MM-DD (simple)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-                [year, month, day] = fechaStr.split('-').map(Number);
-            }
-            // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
-            else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
-                const fechaPart = fechaStr.split('T')[0];
-                [year, month, day] = fechaPart.split('-').map(Number);
-            }
-            // Otros formatos
-            else {
-                const fechaObj = new Date(fechaStr);
-                if (!isNaN(fechaObj.getTime())) {
-                    // Usar UTC para evitar problemas de zona horaria
-                    day = fechaObj.getUTCDate();
-                    month = fechaObj.getUTCMonth() + 1;
-                } else {
-                    return '';
-                }
-            }
-
-            // Formatear como d/M
-            return `${day}/${month}`;
-        } catch (error) {
-            console.error('Error formateando fecha corta:', error, fecha);
-            return '';
+      // Formato YYYY-MM-DD (simple)
+      if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+        [year, month, day] = fechaStr.split('-').map(Number);
+      }
+      // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
+      else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+        // Extraer solo la parte de fecha ANTES de convertir
+        const fechaPart = fechaStr.split('T')[0];
+        [year, month, day] = fechaPart.split('-').map(Number);
+      }
+      // Otros formatos
+      else {
+        const fechaObj = new Date(fechaStr);
+        if (!isNaN(fechaObj.getTime())) {
+          // Usar UTC para evitar problemas de zona horaria
+          day = fechaObj.getUTCDate();
+          month = fechaObj.getUTCMonth() + 1;
+          year = fechaObj.getUTCFullYear();
+        } else {
+          console.warn('⚠️ formatearDiaAlerta - formato no reconocido:', fecha);
+          return fecha;
         }
+      }
+
+      // Crear fecha local (sin problemas de zona horaria)
+      const fechaLocal = new Date(year, month - 1, day);
+      const diaFormateado = fechaLocal.getDate();
+      const mesFormateado = fechaLocal.toLocaleDateString('es-ES', {
+        month: 'long',
+      });
+
+      return `${diaFormateado} de ${mesFormateado}`;
+    } catch (error) {
+      console.error('❌ Error formateando fecha de alerta:', error, fecha);
     }
 
-    /**
-     * Formatear hora
-     */
-    function formatearHora(hora) {
-        if (!hora) return '';
+    return fecha;
+  }
 
-        // Si es un timestamp completo (ISO string), extraer solo la hora
-        if (hora.includes('T') || hora.includes('-')) {
-            try {
-                const fecha = new Date(hora);
-                if (isNaN(fecha.getTime())) {
-                    return 'Hora inválida';
-                }
-                return fecha.toLocaleTimeString('es-ES', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                });
-            } catch (error) {
-                console.error('Error formateando timestamp:', error, hora);
-                return 'Hora inválida';
-            }
-        }
+  /**
+   * Escapar HTML
+   */
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
-        // Si es solo hora (formato HH:mm), usar el comportamiento original
-        try {
-            return new Date('1970-01-01 ' + hora).toLocaleTimeString('es-ES', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-        } catch (error) {
-            console.error('Error formateando hora:', error, hora);
-            return 'Hora inválida';
+  /**
+   * Mostrar edición inline
+   */
+  window.mostrarEdicionInline = function (mantenimientoId) {
+    const mantenimiento = document.getElementById(
+      `mantenimiento-${mantenimientoId}`
+    );
+    if (!mantenimiento) return;
+
+    const vista = mantenimiento.querySelector('.vista-mantenimiento');
+    const edicion = mantenimiento.querySelector(
+      '.edicion-inline-mantenimiento'
+    );
+
+    vista.style.display = 'none';
+    edicion.style.display = 'block';
+  };
+
+  /**
+   * Ocultar edición inline
+   */
+  window.ocultarEdicionInline = function (mantenimientoId) {
+    const mantenimiento = document.getElementById(
+      `mantenimiento-${mantenimientoId}`
+    );
+    if (!mantenimiento) return;
+
+    const vista = mantenimiento.querySelector('.vista-mantenimiento');
+    const edicion = mantenimiento.querySelector(
+      '.edicion-inline-mantenimiento'
+    );
+
+    vista.style.display = 'block';
+    edicion.style.display = 'none';
+  };
+
+  /**
+   * Guardar mantenimiento inline
+   */
+  window.guardarMantenimientoInline = async function (mantenimientoId) {
+    const mantenimiento = document.getElementById(
+      `mantenimiento-${mantenimientoId}`
+    );
+    if (!mantenimiento) return;
+
+    const descripcion = mantenimiento.querySelector(
+      '.input-editar-descripcion'
+    ).value;
+    const dia = mantenimiento.querySelector('.input-editar-dia')?.value;
+    const hora = mantenimiento.querySelector('.input-editar-hora')?.value;
+
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            descripcion,
+            dia_alerta: dia,
+            hora,
+          }),
         }
+      );
+
+      if (!response.ok) throw new Error('Error al actualizar');
+
+      console.log('✅ Mantenimiento actualizado en BD');
+
+      // Marcar alertas pasadas como emitidas (por si la nueva fecha/hora ya pasó)
+      await marcarAlertasPasadasComoEmitidas();
+
+      // Recargar datos y actualizar vista
+      await cargarDatos();
+      renderHabitacionesUI('mantenimiento-actualizado');
+
+      // Actualizar paneles de alertas emitidas
+      await mostrarAlertasEmitidas();
+      await mostrarHistorialAlertas();
+
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('Mantenimiento actualizado', 'success');
+    } catch (error) {
+      console.error('Error:', error);
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('Error al actualizar mantenimiento', 'error');
     }
+  };
 
-    /**
-     * Formatear día de alerta (fecha en formato "día de mes")
-     * IMPORTANTE: Maneja correctamente la zona horaria para evitar que se reste un día
-     */
-    function formatearDiaAlerta(fecha) {
-        if (!fecha) return '';
-
-        // Si es un número (día del mes), crear una fecha para el mes actual
-        if (typeof fecha === 'number' || (!isNaN(parseInt(fecha)) && !String(fecha).includes('-'))) {
-            const diaNum = parseInt(fecha);
-            const hoy = new Date();
-            const fechaAlerta = new Date(hoy.getFullYear(), hoy.getMonth(), diaNum);
-            const dia = fechaAlerta.getDate();
-            const mes = fechaAlerta.toLocaleDateString('es-ES', { month: 'long' });
-            return `${dia} de ${mes}`;
-        }
-
-        // Si es una fecha completa (YYYY-MM-DD, ISO timestamp, etc.)
-        try {
-            let year, month, day;
-            const fechaStr = String(fecha);
-
-            // Formato YYYY-MM-DD (simple)
-            if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-                [year, month, day] = fechaStr.split('-').map(Number);
-            }
-            // Formato ISO con timestamp (2025-12-02T00:00:00.000Z)
-            else if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
-                // Extraer solo la parte de fecha ANTES de convertir
-                const fechaPart = fechaStr.split('T')[0];
-                [year, month, day] = fechaPart.split('-').map(Number);
-            }
-            // Otros formatos
-            else {
-                const fechaObj = new Date(fechaStr);
-                if (!isNaN(fechaObj.getTime())) {
-                    // Usar UTC para evitar problemas de zona horaria
-                    day = fechaObj.getUTCDate();
-                    month = fechaObj.getUTCMonth() + 1;
-                    year = fechaObj.getUTCFullYear();
-                } else {
-                    console.warn('⚠️ formatearDiaAlerta - formato no reconocido:', fecha);
-                    return fecha;
-                }
-            }
-
-            // Crear fecha local (sin problemas de zona horaria)
-            const fechaLocal = new Date(year, month - 1, day);
-            const diaFormateado = fechaLocal.getDate();
-            const mesFormateado = fechaLocal.toLocaleDateString('es-ES', { month: 'long' });
-
-            return `${diaFormateado} de ${mesFormateado}`;
-
-        } catch (error) {
-            console.error('❌ Error formateando fecha de alerta:', error, fecha);
-        }
-
-        return fecha;
-    }
-
-    /**
-     * Escapar HTML
-     */
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    /**
-     * Mostrar edición inline
-     */
-    window.mostrarEdicionInline = function (mantenimientoId) {
-        const mantenimiento = document.getElementById(`mantenimiento-${mantenimientoId}`);
-        if (!mantenimiento) return;
-
-        const vista = mantenimiento.querySelector('.vista-mantenimiento');
-        const edicion = mantenimiento.querySelector('.edicion-inline-mantenimiento');
-
-        vista.style.display = 'none';
-        edicion.style.display = 'block';
-    };
-
-    /**
-     * Ocultar edición inline
-     */
-    window.ocultarEdicionInline = function (mantenimientoId) {
-        const mantenimiento = document.getElementById(`mantenimiento-${mantenimientoId}`);
-        if (!mantenimiento) return;
-
-        const vista = mantenimiento.querySelector('.vista-mantenimiento');
-        const edicion = mantenimiento.querySelector('.edicion-inline-mantenimiento');
-
-        vista.style.display = 'block';
-        edicion.style.display = 'none';
-    };
-
-    /**
-     * Guardar mantenimiento inline
-     */
-    window.guardarMantenimientoInline = async function (mantenimientoId) {
-        const mantenimiento = document.getElementById(`mantenimiento-${mantenimientoId}`);
-        if (!mantenimiento) return;
-
-        const descripcion = mantenimiento.querySelector('.input-editar-descripcion').value;
-        const dia = mantenimiento.querySelector('.input-editar-dia')?.value;
-        const hora = mantenimiento.querySelector('.input-editar-hora')?.value;
-
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    descripcion,
-                    dia_alerta: dia,
-                    hora
-                })
-            });
-
-            if (!response.ok) throw new Error('Error al actualizar');
-
-            console.log('✅ Mantenimiento actualizado en BD');
-
-            // Marcar alertas pasadas como emitidas (por si la nueva fecha/hora ya pasó)
-            await marcarAlertasPasadasComoEmitidas();
-
-            // Recargar datos y actualizar vista
-            await cargarDatos();
-            renderHabitacionesUI('mantenimiento-actualizado');
-
-            // Actualizar paneles de alertas emitidas
-            await mostrarAlertasEmitidas();
-            await mostrarHistorialAlertas();
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Mantenimiento actualizado', 'success');
-
-        } catch (error) {
-            console.error('Error:', error);
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar mantenimiento', 'error');
-        }
-    };
-
-    /**
-     * Mostrar mensaje al usuario
-     */
-    function mostrarMensaje(mensaje, tipo = 'info') {
-        // Crear elemento de mensaje
-        const div = document.createElement('div');
-        div.className = `mensaje mensaje-${tipo}`;
-        div.textContent = mensaje;
-        div.style.cssText = `
+  /**
+   * Mostrar mensaje al usuario
+   */
+  function mostrarMensaje(mensaje, tipo = 'info') {
+    // Crear elemento de mensaje
+    const div = document.createElement('div');
+    div.className = `mensaje mensaje-${tipo}`;
+    div.textContent = mensaje;
+    div.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
@@ -2021,21 +2416,21 @@
         background-color: ${tipo === 'success' ? '#4CAF50' : tipo === 'error' ? '#f44336' : '#2196F3'};
     `;
 
-        document.body.appendChild(div);
+    document.body.appendChild(div);
 
-        // Eliminar después de 3 segundos
-        setTimeout(() => {
-            div.remove();
-        }, 3000);
-    }
+    // Eliminar después de 3 segundos
+    setTimeout(() => {
+      div.remove();
+    }, 3000);
+  }
 
-    /**
-     * Mostrar error crítico
-     */
-    function mostrarError(mensaje) {
-        const contenedor = document.querySelector('.contenedor');
-        if (contenedor) {
-            contenedor.innerHTML = `
+  /**
+   * Mostrar error crítico
+   */
+  function mostrarError(mensaje) {
+    const contenedor = document.querySelector('.contenedor');
+    if (contenedor) {
+      contenedor.innerHTML = `
             <div class="error-critico" style="text-align: center; padding: 50px; color: #f44336;">
                 <h2>Error de Conexión</h2>
                 <p>${mensaje}</p>
@@ -2044,317 +2439,350 @@
                 </button>
             </div>
         `;
-        }
+    }
+  }
+
+  /**
+   * Función global para manejar el cambio del switch de tipo de mantenimiento
+   * (debe estar disponible globalmente para el HTML)
+   * Esta función es un respaldo, pero la principal está en index.html
+   */
+  window.handleTipoSwitchChange = function (switchElement) {
+    const tipoHidden = document.getElementById('tipoHiddenLateral');
+    const alertaFields = document.getElementById('alertaFieldsContainer');
+
+    if (!alertaFields) {
+      console.warn(
+        '⚠️ alertaFieldsContainer no encontrado, usando función de respaldo'
+      );
+      return;
     }
 
-    /**
-     * Función global para manejar el cambio del switch de tipo de mantenimiento
-     * (debe estar disponible globalmente para el HTML)
-     * Esta función es un respaldo, pero la principal está en index.html
-     */
-    window.handleTipoSwitchChange = function (switchElement) {
-        const tipoHidden = document.getElementById('tipoHiddenLateral');
-        const alertaFields = document.getElementById('alertaFieldsContainer');
+    if (switchElement.checked) {
+      // Modo ALERTA - MOSTRAR campos
+      if (tipoHidden) tipoHidden.value = 'rutina';
+      alertaFields.classList.add('show');
+      alertaFields.style.display = 'block';
 
-        if (!alertaFields) {
-            console.warn('⚠️ alertaFieldsContainer no encontrado, usando función de respaldo');
-            return;
+      // Hacer los campos requeridos cuando es alerta
+      const horaInput = document.getElementById('horaRutinaLateral');
+      const fechaInput = document.getElementById('diaAlertaLateral');
+      if (horaInput) horaInput.setAttribute('required', 'required');
+      if (fechaInput) fechaInput.setAttribute('required', 'required');
+    } else {
+      // Modo AVERÍA - OCULTAR campos
+      if (tipoHidden) tipoHidden.value = 'normal';
+      alertaFields.classList.remove('show');
+      alertaFields.style.display = 'none';
+
+      // Remover atributo required cuando es avería
+      const horaInput = document.getElementById('horaRutinaLateral');
+      const fechaInput = document.getElementById('diaAlertaLateral');
+      if (horaInput) horaInput.removeAttribute('required');
+      if (fechaInput) fechaInput.removeAttribute('required');
+    }
+  };
+
+  // Hacer algunas funciones disponibles globalmente para debugging
+  window.appDebug = {
+    cuartos: () => cuartos,
+    mantenimientos: () => mantenimientos,
+    edificios: () => edificios,
+    seleccionarCuarto: seleccionarCuarto,
+    recargarDatos: async () => {
+      console.log('🔄 Recargando datos manualmente...');
+      await cargarDatos();
+      renderHabitacionesUI('recarga-manual');
+      console.log('✅ Datos recargados');
+    },
+    verificarAlertas: () => verificarYEmitirAlertas(),
+    alertasEmitidas: () => Array.from(alertasEmitidas),
+  };
+
+  // Exponer funciones utilizadas por atributos inline
+  window.seleccionarCuarto = seleccionarCuarto;
+  window.seleccionarCuartoDesdeSelect = seleccionarCuartoDesdeSelect;
+
+  function scrollToElement(id, isEspacio) {
+    if (isEspacio) {
+      const tabButton = document.querySelector(`button[data-tab="espacios"]`);
+      if (tabButton) {
+        tabButton.click();
+        setTimeout(() => {
+          const elemento = document.querySelector(`[data-espacio-id="${id}"]`);
+          if (elemento) {
+            elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            elemento.classList.add('highlight');
+            setTimeout(() => elemento.classList.remove('highlight'), 2000);
+          }
+        }, 200); // give time for the tab to switch
+      }
+    } else {
+      // scrollToCuarto is defined in app-loader-habitaciones.js and attached to window
+      if (window.scrollToCuarto) {
+        window.scrollToCuarto(id);
+      }
+    }
+  }
+  window.scrollToElement = scrollToElement;
+
+  /**
+   * SISTEMA DE NOTIFICACIONES AUTOMÁTICAS
+   */
+
+  /**
+   * Iniciar el sistema de notificaciones automáticas
+   */
+  function iniciarSistemaNotificaciones() {
+    console.log('🔔 Iniciando sistema de notificaciones automáticas');
+
+    // Solicitar permisos de notificación
+    solicitarPermisosNotificacion();
+
+    // Verificar alertas cada 30 segundos
+    if (intervalosNotificaciones) {
+      clearInterval(intervalosNotificaciones);
+    }
+
+    intervalosNotificaciones = setInterval(() => {
+      verificarYEmitirAlertas();
+    }, 30000); // 30 segundos
+
+    // Verificar inmediatamente
+    setTimeout(() => verificarYEmitirAlertas(), 2000);
+
+    console.log('✅ Sistema de notificaciones iniciado');
+  }
+
+  /**
+   * Solicitar permisos de notificación del navegador
+   */
+  async function solicitarPermisosNotificacion() {
+    try {
+      if ('Notification' in window) {
+        if (Notification.permission === 'default') {
+          const permission = await Notification.requestPermission();
+          console.log('Permisos de notificación:', permission);
+        }
+      }
+    } catch (error) {
+      console.warn('Error solicitando permisos de notificación:', error);
+    }
+  }
+
+  /**
+   * Verificar alertas pendientes y emitir notificaciones
+   */
+  async function verificarYEmitirAlertas() {
+    try {
+      const ahora = new Date();
+      const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
+      // Usar fecha local en lugar de UTC
+      const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+
+      console.log(`🕒 Verificando alertas - ${fechaActual} ${horaActual}`);
+
+      // Debug: mostrar todas las rutinas disponibles
+      const todasLasRutinas = mantenimientos.filter((m) => m.tipo === 'rutina');
+      console.log(
+        `📅 Total rutinas: ${todasLasRutinas.length}`,
+        todasLasRutinas.map((r) => {
+          const fechaAlerta = r.dia_alerta?.includes('T')
+            ? r.dia_alerta.split('T')[0]
+            : r.dia_alerta;
+          return `ID${r.id}(${fechaAlerta} ${r.hora})`;
+        })
+      );
+
+      // Filtrar alertas que deben notificarse ahora
+      const alertasPorNotificar = mantenimientos.filter((m) => {
+        if (m.tipo !== 'rutina' || !m.dia_alerta || !m.hora) {
+          return false;
         }
 
-        if (switchElement.checked) {
-            // Modo ALERTA - MOSTRAR campos
-            if (tipoHidden) tipoHidden.value = 'rutina';
-            alertaFields.classList.add('show');
-            alertaFields.style.display = 'block';
+        // Verificar si ya fue emitida
+        if (m.alerta_emitida || alertasEmitidas.has(m.id)) {
+          return false;
+        }
 
-            // Hacer los campos requeridos cuando es alerta
-            const horaInput = document.getElementById('horaRutinaLateral');
-            const fechaInput = document.getElementById('diaAlertaLateral');
-            if (horaInput) horaInput.setAttribute('required', 'required');
-            if (fechaInput) fechaInput.setAttribute('required', 'required');
+        // Extraer solo la fecha de dia_alerta (puede venir como timestamp o como fecha)
+        const fechaAlerta = m.dia_alerta.includes('T')
+          ? m.dia_alerta.split('T')[0]
+          : m.dia_alerta;
+
+        // Verificar si es el día correcto
+        if (fechaAlerta !== fechaActual) {
+          return false;
+        }
+
+        // Verificar si es la hora correcta (comparar solo HH:MM sin segundos)
+        const horaAlerta = m.hora.slice(0, 5); // Extraer solo HH:MM
+        const coincide = horaAlerta === horaActual;
+
+        if (coincide) {
+          console.log(
+            `✅ Alerta ID${m.id} coincide: ${fechaAlerta} ${horaAlerta} === ${fechaActual} ${horaActual}`
+          );
+        }
+
+        return coincide;
+      });
+
+      console.log(`📢 Alertas por notificar: ${alertasPorNotificar.length}`);
+
+      // Emitir notificaciones para cada alerta
+      for (const alerta of alertasPorNotificar) {
+        await emitirNotificacionAlerta(alerta);
+      }
+    } catch (error) {
+      console.error('Error verificando alertas:', error);
+    }
+  }
+
+  /**
+   * Emitir notificación para una alerta específica
+   */
+  async function emitirNotificacionAlerta(alerta) {
+    try {
+      console.log(`🚨 Emitiendo alerta para:`, alerta);
+
+      // Marcar inmediatamente en memoria para evitar duplicados
+      alertasEmitidas.add(alerta.id);
+
+      // Marcar como emitida en la base de datos usando PATCH /emitir
+      try {
+        const response = await fetch(
+          `${API_BASE_URL}/api/mantenimientos/${alerta.id}/emitir`,
+          {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error(
+            `❌ Error marcando alerta ${alerta.id} como emitida:`,
+            response.status
+          );
         } else {
-            // Modo AVERÍA - OCULTAR campos
-            if (tipoHidden) tipoHidden.value = 'normal';
-            alertaFields.classList.remove('show');
-            alertaFields.style.display = 'none';
-
-            // Remover atributo required cuando es avería
-            const horaInput = document.getElementById('horaRutinaLateral');
-            const fechaInput = document.getElementById('diaAlertaLateral');
-            if (horaInput) horaInput.removeAttribute('required');
-            if (fechaInput) fechaInput.removeAttribute('required');
+          console.log(`✅ Alerta ${alerta.id} marcada como emitida en BD`);
         }
-    };
+      } catch (error) {
+        console.error(`❌ Error actualizando alerta ${alerta.id}:`, error);
+      }
 
-    // Hacer algunas funciones disponibles globalmente para debugging
-    window.appDebug = {
-        cuartos: () => cuartos,
-        mantenimientos: () => mantenimientos,
-        edificios: () => edificios,
-        seleccionarCuarto: seleccionarCuarto,
-        recargarDatos: async () => {
-            console.log('🔄 Recargando datos manualmente...');
-            await cargarDatos();
-            renderHabitacionesUI('recarga-manual');
-            console.log('✅ Datos recargados');
-        },
-        verificarAlertas: () => verificarYEmitirAlertas(),
-        alertasEmitidas: () => Array.from(alertasEmitidas)
-    };
+      // Obtener información de la ubicación (cuarto o espacio)
+      const isEspacioComun = !!alerta.espacio_comun_id;
+      const ubicacionId = isEspacioComun
+        ? alerta.espacio_comun_id
+        : alerta.cuarto_id;
+      let nombreUbicacion, edificio, nombreEdificio;
 
-    // Exponer funciones utilizadas por atributos inline
-    window.seleccionarCuarto = seleccionarCuarto;
-    window.seleccionarCuartoDesdeSelect = seleccionarCuartoDesdeSelect;
+      if (isEspacioComun) {
+        const espacio = window.appLoaderState.espaciosComunes.find(
+          (e) => e.id === ubicacionId
+        );
+        nombreUbicacion = espacio ? espacio.nombre : `Espacio ${ubicacionId}`;
+        edificio = espacio
+          ? edificios.find((e) => e.id === espacio.edificio_id)
+          : null;
+        nombreEdificio = edificio ? edificio.nombre : '';
+      } else {
+        const cuarto = cuartos.find((c) => c.id === ubicacionId);
+        nombreUbicacion = cuarto
+          ? cuarto.nombre || cuarto.numero
+          : `Cuarto ${ubicacionId}`;
+        edificio = cuarto
+          ? edificios.find((e) => e.id === cuarto.edificio_id)
+          : null;
+        nombreEdificio = edificio ? edificio.nombre : '';
+      }
 
-    function scrollToElement(id, isEspacio) {
-        if (isEspacio) {
-            const tabButton = document.querySelector(`button[data-tab="espacios"]`);
-            if (tabButton) {
-                tabButton.click();
-                setTimeout(() => {
-                    const elemento = document.querySelector(`[data-espacio-id="${id}"]`);
-                    if (elemento) {
-                        elemento.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        elemento.classList.add('highlight');
-                        setTimeout(() => elemento.classList.remove('highlight'), 2000);
-                    }
-                }, 200); // give time for the tab to switch
-            }
-        } else {
-            // scrollToCuarto is defined in app-loader-habitaciones.js and attached to window
-            if (window.scrollToCuarto) {
-                window.scrollToCuarto(id);
-            }
-        }
+      const titulo = `🔔 Alerta de Mantenimiento`;
+      const mensaje = `${nombreUbicacion}${nombreEdificio ? ` (${nombreEdificio})` : ''}\n${alerta.descripcion}`;
+
+      // Reproducir sonido (con manejo de restricciones)
+      reproducirSonidoAlerta();
+
+      // Mostrar notificación del navegador
+      mostrarNotificacionNavegador(titulo, mensaje, alerta);
+
+      // Actualizar inmediatamente la interfaz
+      mostrarAlertasEmitidas();
+      mostrarHistorialAlertas();
+
+      // Recargar datos después de un momento para reflejar cambios de BD
+      setTimeout(async () => {
+        await cargarDatos();
+        mostrarAlertasEmitidas();
+        mostrarHistorialAlertas();
+      }, 1000);
+
+      console.log(
+        `✅ Alerta emitida correctamente para ${nombreCuarto} (ID: ${alerta.id})`
+      );
+    } catch (error) {
+      console.error('Error emitiendo notificación:', error);
     }
-    window.scrollToElement = scrollToElement;
+  }
 
-    /**
-     * SISTEMA DE NOTIFICACIONES AUTOMÁTICAS
-     */
+  /**
+   * Reproducir sonido de alerta
+   */
+  function reproducirSonidoAlerta() {
+    try {
+      console.log('🔊 Intentando reproducir sonido de alerta...');
+      const audio = new Audio('sounds/alert.mp3');
+      audio.volume = 0.7;
 
-    /**
-     * Iniciar el sistema de notificaciones automáticas
-     */
-    function iniciarSistemaNotificaciones() {
-        console.log('🔔 Iniciando sistema de notificaciones automáticas');
+      // Log cuando el archivo carga
+      audio.addEventListener('canplaythrough', () => {
+        console.log('✅ Archivo de audio cargado correctamente');
+      });
 
-        // Solicitar permisos de notificación
-        solicitarPermisosNotificacion();
+      audio.addEventListener('error', (e) => {
+        console.error('❌ Error cargando archivo de audio:', e);
+        console.error('Ruta intentada: sounds/alert.mp3');
+      });
 
-        // Verificar alertas cada 30 segundos
-        if (intervalosNotificaciones) {
-            clearInterval(intervalosNotificaciones);
-        }
+      // Intentar reproducir con manejo mejorado de errores
+      const playPromise = audio.play();
 
-        intervalosNotificaciones = setInterval(() => {
-            verificarYEmitirAlertas();
-        }, 30000); // 30 segundos
-
-        // Verificar inmediatamente
-        setTimeout(() => verificarYEmitirAlertas(), 2000);
-
-        console.log('✅ Sistema de notificaciones iniciado');
-    }
-
-    /**
-     * Solicitar permisos de notificación del navegador
-     */
-    async function solicitarPermisosNotificacion() {
-        try {
-            if ('Notification' in window) {
-                if (Notification.permission === 'default') {
-                    const permission = await Notification.requestPermission();
-                    console.log('Permisos de notificación:', permission);
-                }
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('🔊 Sonido de alerta reproducido correctamente');
+            // Marcar que ya hubo interacción de audio exitosa
+            window.audioInteractionEnabled = true;
+          })
+          .catch((error) => {
+            console.warn(
+              '⚠️ No se pudo reproducir el sonido automáticamente:',
+              error.message
+            );
+            console.warn('Tipo de error:', error.name);
+            // Solo mostrar el mensaje visual si es por restricción de autoplay
+            if (error.name === 'NotAllowedError') {
+              mostrarMensajeAudioBloqueado();
             }
-        } catch (error) {
-            console.warn('Error solicitando permisos de notificación:', error);
-        }
+          });
+      }
+    } catch (error) {
+      console.error('❌ Error reproduciendo sonido:', error);
     }
+  }
 
-    /**
-     * Verificar alertas pendientes y emitir notificaciones
-     */
-    async function verificarYEmitirAlertas() {
-        try {
-            const ahora = new Date();
-            const horaActual = ahora.toTimeString().slice(0, 5); // HH:MM
-            // Usar fecha local en lugar de UTC
-            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-
-            console.log(`🕒 Verificando alertas - ${fechaActual} ${horaActual}`);
-
-            // Debug: mostrar todas las rutinas disponibles
-            const todasLasRutinas = mantenimientos.filter(m => m.tipo === 'rutina');
-            console.log(`📅 Total rutinas: ${todasLasRutinas.length}`, todasLasRutinas.map(r => {
-                const fechaAlerta = r.dia_alerta?.includes('T') ? r.dia_alerta.split('T')[0] : r.dia_alerta;
-                return `ID${r.id}(${fechaAlerta} ${r.hora})`;
-            }));
-
-            // Filtrar alertas que deben notificarse ahora
-            const alertasPorNotificar = mantenimientos.filter(m => {
-                if (m.tipo !== 'rutina' || !m.dia_alerta || !m.hora) {
-                    return false;
-                }
-
-                // Verificar si ya fue emitida
-                if (m.alerta_emitida || alertasEmitidas.has(m.id)) {
-                    return false;
-                }
-
-                // Extraer solo la fecha de dia_alerta (puede venir como timestamp o como fecha)
-                const fechaAlerta = m.dia_alerta.includes('T') ? m.dia_alerta.split('T')[0] : m.dia_alerta;
-
-                // Verificar si es el día correcto
-                if (fechaAlerta !== fechaActual) {
-                    return false;
-                }
-
-                // Verificar si es la hora correcta (comparar solo HH:MM sin segundos)
-                const horaAlerta = m.hora.slice(0, 5); // Extraer solo HH:MM
-                const coincide = horaAlerta === horaActual;
-
-                if (coincide) {
-                    console.log(`✅ Alerta ID${m.id} coincide: ${fechaAlerta} ${horaAlerta} === ${fechaActual} ${horaActual}`);
-                }
-
-                return coincide;
-            });
-
-            console.log(`📢 Alertas por notificar: ${alertasPorNotificar.length}`);
-
-            // Emitir notificaciones para cada alerta
-            for (const alerta of alertasPorNotificar) {
-                await emitirNotificacionAlerta(alerta);
-            }
-
-        } catch (error) {
-            console.error('Error verificando alertas:', error);
-        }
-    }
-
-    /**
-     * Emitir notificación para una alerta específica
-     */
-    async function emitirNotificacionAlerta(alerta) {
-        try {
-            console.log(`🚨 Emitiendo alerta para:`, alerta);
-
-            // Marcar inmediatamente en memoria para evitar duplicados
-            alertasEmitidas.add(alerta.id);
-
-            // Marcar como emitida en la base de datos usando PATCH /emitir
-            try {
-                const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${alerta.id}/emitir`, {
-                    method: 'PATCH',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) {
-                    console.error(`❌ Error marcando alerta ${alerta.id} como emitida:`, response.status);
-                } else {
-                    console.log(`✅ Alerta ${alerta.id} marcada como emitida en BD`);
-                }
-            } catch (error) {
-                console.error(`❌ Error actualizando alerta ${alerta.id}:`, error);
-            }
-
-            // Obtener información de la ubicación (cuarto o espacio)
-            const isEspacioComun = !!alerta.espacio_comun_id;
-            const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
-            let nombreUbicacion, edificio, nombreEdificio;
-
-            if (isEspacioComun) {
-                const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === ubicacionId);
-                nombreUbicacion = espacio ? espacio.nombre : `Espacio ${ubicacionId}`;
-                edificio = espacio ? edificios.find(e => e.id === espacio.edificio_id) : null;
-                nombreEdificio = edificio ? edificio.nombre : '';
-            } else {
-                const cuarto = cuartos.find(c => c.id === ubicacionId);
-                nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${ubicacionId}`;
-                edificio = cuarto ? edificios.find(e => e.id === cuarto.edificio_id) : null;
-                nombreEdificio = edificio ? edificio.nombre : '';
-            }
-
-            const titulo = `🔔 Alerta de Mantenimiento`;
-            const mensaje = `${nombreUbicacion}${nombreEdificio ? ` (${nombreEdificio})` : ''}\n${alerta.descripcion}`;
-
-            // Reproducir sonido (con manejo de restricciones)
-            reproducirSonidoAlerta();
-
-            // Mostrar notificación del navegador
-            mostrarNotificacionNavegador(titulo, mensaje, alerta);
-
-            // Actualizar inmediatamente la interfaz
-            mostrarAlertasEmitidas();
-            mostrarHistorialAlertas();
-
-            // Recargar datos después de un momento para reflejar cambios de BD
-            setTimeout(async () => {
-                await cargarDatos();
-                mostrarAlertasEmitidas();
-                mostrarHistorialAlertas();
-            }, 1000);
-
-            console.log(`✅ Alerta emitida correctamente para ${nombreCuarto} (ID: ${alerta.id})`);
-
-        } catch (error) {
-            console.error('Error emitiendo notificación:', error);
-        }
-    }
-
-    /**
-     * Reproducir sonido de alerta
-     */
-    function reproducirSonidoAlerta() {
-        try {
-            console.log('🔊 Intentando reproducir sonido de alerta...');
-            const audio = new Audio('sounds/alert.mp3');
-            audio.volume = 0.7;
-
-            // Log cuando el archivo carga
-            audio.addEventListener('canplaythrough', () => {
-                console.log('✅ Archivo de audio cargado correctamente');
-            });
-
-            audio.addEventListener('error', (e) => {
-                console.error('❌ Error cargando archivo de audio:', e);
-                console.error('Ruta intentada: sounds/alert.mp3');
-            });
-
-            // Intentar reproducir con manejo mejorado de errores
-            const playPromise = audio.play();
-
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    console.log('🔊 Sonido de alerta reproducido correctamente');
-                    // Marcar que ya hubo interacción de audio exitosa
-                    window.audioInteractionEnabled = true;
-                }).catch(error => {
-                    console.warn('⚠️ No se pudo reproducir el sonido automáticamente:', error.message);
-                    console.warn('Tipo de error:', error.name);
-                    // Solo mostrar el mensaje visual si es por restricción de autoplay
-                    if (error.name === 'NotAllowedError') {
-                        mostrarMensajeAudioBloqueado();
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('❌ Error reproduciendo sonido:', error);
-        }
-    }
-
-    /**
-     * Mostrar mensaje cuando el audio está bloqueado
-     */
-    function mostrarMensajeAudioBloqueado() {
-        // Crear un elemento visual temporal para indicar que hay una alerta
-        const alertaBloqueada = document.createElement('div');
-        alertaBloqueada.innerHTML = '🔊 ¡ALERTA DE MANTENIMIENTO! (Click para activar sonido)';
-        alertaBloqueada.style.cssText = `
+  /**
+   * Mostrar mensaje cuando el audio está bloqueado
+   */
+  function mostrarMensajeAudioBloqueado() {
+    // Crear un elemento visual temporal para indicar que hay una alerta
+    const alertaBloqueada = document.createElement('div');
+    alertaBloqueada.innerHTML =
+      '🔊 ¡ALERTA DE MANTENIMIENTO! (Click para activar sonido)';
+    alertaBloqueada.style.cssText = `
         position: fixed;
         top: 70px;
         right: 20px;
@@ -2370,178 +2798,197 @@
         font-size: 14px;
     `;
 
-        // Añadir animación CSS
-        if (!document.getElementById('alertAnimationCSS')) {
-            const style = document.createElement('style');
-            style.id = 'alertAnimationCSS';
-            style.textContent = `
+    // Añadir animación CSS
+    if (!document.getElementById('alertAnimationCSS')) {
+      const style = document.createElement('style');
+      style.id = 'alertAnimationCSS';
+      style.textContent = `
             @keyframes pulseAlert {
                 0% { transform: scale(1); opacity: 0.9; }
                 50% { transform: scale(1.05); opacity: 1; }
                 100% { transform: scale(1); opacity: 0.9; }
             }
         `;
-            document.head.appendChild(style);
-        }
+      document.head.appendChild(style);
+    }
 
-        // Al hacer click, activar audio y cerrar mensaje
-        alertaBloqueada.addEventListener('click', () => {
-            const audio = new Audio('sounds/alert.mp3');
-            audio.volume = 0.7;
-            audio.play().then(() => {
-                console.log('🔊 Audio activado por interacción del usuario');
-            }).catch(console.warn);
-            alertaBloqueada.remove();
+    // Al hacer click, activar audio y cerrar mensaje
+    alertaBloqueada.addEventListener('click', () => {
+      const audio = new Audio('sounds/alert.mp3');
+      audio.volume = 0.7;
+      audio
+        .play()
+        .then(() => {
+          console.log('🔊 Audio activado por interacción del usuario');
+        })
+        .catch(console.warn);
+      alertaBloqueada.remove();
+    });
+
+    document.body.appendChild(alertaBloqueada);
+
+    // Auto-eliminar después de 8 segundos
+    setTimeout(() => {
+      if (alertaBloqueada.parentNode) {
+        alertaBloqueada.remove();
+      }
+    }, 8000);
+  }
+
+  /**
+   * Mostrar notificación del navegador
+   */
+  function mostrarNotificacionNavegador(titulo, mensaje, alerta) {
+    try {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        const notification = new Notification(titulo, {
+          body: mensaje,
+          icon: 'icons/icon-192x192.png',
+          badge: 'icons/icon-192x192.png',
+          requireInteraction: true,
+          tag: `alerta-${alerta.id}`, // Para evitar duplicados
         });
 
-        document.body.appendChild(alertaBloqueada);
+        notification.onclick = function () {
+          window.focus();
+          const isEspacioComun = !!alerta.espacio_comun_id;
+          const ubicacionId = isEspacioComun
+            ? alerta.espacio_comun_id
+            : alerta.cuarto_id;
+          //scrollToElement(ubicacionId, isEspacioComun);
+          notification.close();
+        };
 
-        // Auto-eliminar después de 8 segundos
+        // Auto-cerrar después de 10 segundos
         setTimeout(() => {
-            if (alertaBloqueada.parentNode) {
-                alertaBloqueada.remove();
-            }
-        }, 8000);
+          notification.close();
+        }, 10000);
+      } else {
+        // Fallback: mostrar alert del navegador
+        electronSafeAlert(`${titulo}\n\n${mensaje}`);
+      }
+    } catch (error) {
+      console.warn('Error mostrando notificación del navegador:', error);
+      // Fallback final
+      electronSafeAlert(`${titulo}\n\n${mensaje}`);
+    }
+  }
+
+  /**
+   * Marcar alerta como emitida en la base de datos
+   */
+  async function marcarAlertaComoEmitida(alertaId) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/mantenimientos/${alertaId}/emitir`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Error marcando alerta como emitida');
+      }
+
+      console.log(`✅ Alerta ${alertaId} marcada como emitida en BD`);
+
+      return true; // Indicar éxito
+    } catch (error) {
+      console.error(
+        `❌ Error marcando alerta ${alertaId} como emitida:`,
+        error
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Detener sistema de notificaciones (útil para debugging)
+   */
+  function detenerSistemaNotificaciones() {
+    if (intervalosNotificaciones) {
+      clearInterval(intervalosNotificaciones);
+      intervalosNotificaciones = null;
+      console.log('🔕 Sistema de notificaciones detenido');
+    }
+  }
+
+  // Exponer funciones de notificaciones para debugging
+  window.notificationDebug = {
+    iniciar: iniciarSistemaNotificaciones,
+    detener: detenerSistemaNotificaciones,
+    verificar: verificarYEmitirAlertas,
+    alertasEmitidas: () => Array.from(alertasEmitidas),
+  };
+
+  /**
+   * FUNCIONES PARA MODAL DE DETALLES DE SERVICIOS
+   */
+
+  function lockBodyScroll() {
+    document.body.classList.add('modal-open');
+  }
+
+  function unlockBodyScrollIfNoModal() {
+    const modalVisible = Array.from(
+      document.querySelectorAll('.modal-detalles')
+    ).some((modal) => window.getComputedStyle(modal).display !== 'none');
+
+    if (!modalVisible) {
+      document.body.classList.remove('modal-open');
+    }
+  }
+
+  /**
+   * Abrir modal de detalle de un servicio específico
+   */
+  window.abrirModalDetalleServicio = function (servicioId, desdeLista = false) {
+    let servicio = mantenimientos.find((m) => m.id === servicioId);
+
+    // Si no se encuentra en mantenimientos de cuartos, buscar en espacios comunes
+    if (
+      !servicio &&
+      typeof window.appLoaderState.mantenimientosEspacios !== 'undefined'
+    ) {
+      servicio = window.appLoaderState.mantenimientosEspacios.find(
+        (m) => m.id === servicioId
+      );
     }
 
-    /**
-     * Mostrar notificación del navegador
-     */
-    function mostrarNotificacionNavegador(titulo, mensaje, alerta) {
-        try {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                const notification = new Notification(titulo, {
-                    body: mensaje,
-                    icon: 'icons/icon-192x192.png',
-                    badge: 'icons/icon-192x192.png',
-                    requireInteraction: true,
-                    tag: `alerta-${alerta.id}` // Para evitar duplicados
-                });
-
-                notification.onclick = function () {
-                    window.focus();
-                    const isEspacioComun = !!alerta.espacio_comun_id;
-                    const ubicacionId = isEspacioComun ? alerta.espacio_comun_id : alerta.cuarto_id;
-                    //scrollToElement(ubicacionId, isEspacioComun);
-                    notification.close();
-                };
-
-                // Auto-cerrar después de 10 segundos
-                setTimeout(() => {
-                    notification.close();
-                }, 10000);
-
-            } else {
-                // Fallback: mostrar alert del navegador
-                electronSafeAlert(`${titulo}\n\n${mensaje}`);
-            }
-        } catch (error) {
-            console.warn('Error mostrando notificación del navegador:', error);
-            // Fallback final
-            electronSafeAlert(`${titulo}\n\n${mensaje}`);
-        }
+    if (!servicio) {
+      console.error('Servicio no encontrado:', servicioId);
+      return;
     }
 
-    /**
-     * Marcar alerta como emitida en la base de datos
-     */
-    async function marcarAlertaComoEmitida(alertaId) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${alertaId}/emitir`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
+    let nombreUbicacion = '';
+    let labelUbicacion = 'Habitación';
+    let iconUbicacion = 'fa-door-closed';
 
-            if (!response.ok) {
-                throw new Error('Error marcando alerta como emitida');
-            }
-
-            console.log(`✅ Alerta ${alertaId} marcada como emitida en BD`);
-
-            return true; // Indicar éxito
-
-        } catch (error) {
-            console.error(`❌ Error marcando alerta ${alertaId} como emitida:`, error);
-            throw error;
-        }
+    if (servicio.espacio_comun_id) {
+      const nombreEspacioComun =
+        diccNombresEspaciosPorId[servicio.espacio_comun_id];
+      nombreUbicacion =
+        nombreEspacioComun || `Espacio ${servicio.espacio_comun_id}`;
+      labelUbicacion = 'Espacio Común';
+      iconUbicacion = 'fa-building';
+    } else {
+      const cuarto = cuartos.find((c) => c.id === servicio.cuarto_id);
+      nombreUbicacion = cuarto
+        ? cuarto.nombre || cuarto.numero
+        : `Cuarto ${servicio.cuarto_id}`;
     }
 
-    /**
-     * Detener sistema de notificaciones (útil para debugging)
-     */
-    function detenerSistemaNotificaciones() {
-        if (intervalosNotificaciones) {
-            clearInterval(intervalosNotificaciones);
-            intervalosNotificaciones = null;
-            console.log('🔕 Sistema de notificaciones detenido');
-        }
-    }
+    const modal = document.getElementById('modalDetallesServicio');
+    const titulo = document.getElementById('modalDetallesTitulo');
+    const body = document.getElementById('modalDetallesBody');
 
-    // Exponer funciones de notificaciones para debugging
-    window.notificationDebug = {
-        iniciar: iniciarSistemaNotificaciones,
-        detener: detenerSistemaNotificaciones,
-        verificar: verificarYEmitirAlertas,
-        alertasEmitidas: () => Array.from(alertasEmitidas)
-    };
+    const esAlerta = servicio.tipo === 'rutina';
 
-    /**
-     * FUNCIONES PARA MODAL DE DETALLES DE SERVICIOS
-     */
-
-    function lockBodyScroll() {
-        document.body.classList.add('modal-open');
-    }
-
-    function unlockBodyScrollIfNoModal() {
-        const modalVisible = Array.from(document.querySelectorAll('.modal-detalles'))
-            .some(modal => window.getComputedStyle(modal).display !== 'none');
-
-        if (!modalVisible) {
-            document.body.classList.remove('modal-open');
-        }
-    }
-
-    /**
-     * Abrir modal de detalle de un servicio específico
-     */
-    window.abrirModalDetalleServicio = function (servicioId, desdeLista = false) {
-        let servicio = mantenimientos.find(m => m.id === servicioId);
-
-        // Si no se encuentra en mantenimientos de cuartos, buscar en espacios comunes
-        if (!servicio && typeof window.appLoaderState.mantenimientosEspacios !== 'undefined') {
-            servicio = window.appLoaderState.mantenimientosEspacios.find(m => m.id === servicioId);
-        }
-
-        if (!servicio) {
-            console.error('Servicio no encontrado:', servicioId);
-            return;
-        }
-
-        let nombreUbicacion = '';
-        let labelUbicacion = 'Habitación';
-        let iconUbicacion = 'fa-door-closed';
-
-        if (servicio.espacio_comun_id) {
-            const nombreEspacioComun = diccNombresEspaciosPorId[servicio.espacio_comun_id];
-            nombreUbicacion = nombreEspacioComun || `Espacio ${servicio.espacio_comun_id}`;
-            labelUbicacion = 'Espacio Común';
-            iconUbicacion = 'fa-building';
-        } else {
-            const cuarto = cuartos.find(c => c.id === servicio.cuarto_id);
-            nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${servicio.cuarto_id}`;
-        }
-
-        const modal = document.getElementById('modalDetallesServicio');
-        const titulo = document.getElementById('modalDetallesTitulo');
-        const body = document.getElementById('modalDetallesBody');
-
-        const esAlerta = servicio.tipo === 'rutina';
-
-        // Generar contenido del modal
-        let contenido = `
+    // Generar contenido del modal
+    let contenido = `
         <div class="detalle-item">
             <div class="detalle-label"><i class="fas ${iconUbicacion}"></i> ${labelUbicacion}</div>
             <div class="detalle-valor">${escapeHtml(nombreUbicacion)}</div>
@@ -2558,9 +3005,9 @@
         </div>
     `;
 
-        // Mostrar estado si existe (con dropdown editable)
-        if (servicio.estado) {
-            contenido += `
+    // Mostrar estado si existe (con dropdown editable)
+    if (servicio.estado) {
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-tasks"></i> Estado</div>
                 <div class="detalle-valor">
@@ -2580,72 +3027,81 @@
                 </div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar usuario creador si existe
-        if (servicio.usuario_creador_id) {
-            const usuarioCreador = usuarios.find(u => u.id === servicio.usuario_creador_id);
-            const nombreCreador = usuarioCreador ? usuarioCreador.nombre : `Usuario #${servicio.usuario_creador_id}`;
-            contenido += `
+    // Mostrar usuario creador si existe
+    if (servicio.usuario_creador_id) {
+      const usuarioCreador = usuarios.find(
+        (u) => u.id === servicio.usuario_creador_id
+      );
+      const nombreCreador = usuarioCreador
+        ? usuarioCreador.nombre
+        : `Usuario #${servicio.usuario_creador_id}`;
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-user-plus"></i> Registrado por</div>
                 <div class="detalle-valor">${escapeHtml(nombreCreador)}</div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar usuario asignado si existe
-        if (servicio.usuario_asignado_id) {
-            const usuarioAsignado = usuarios.find(u => u.id === servicio.usuario_asignado_id);
-            const nombreAsignado = usuarioAsignado ? `${usuarioAsignado.nombre} (${usuarioAsignado.rol_nombre || 'Usuario'})` : `Usuario #${servicio.usuario_asignado_id}`;
-            contenido += `
+    // Mostrar usuario asignado si existe
+    if (servicio.usuario_asignado_id) {
+      const usuarioAsignado = usuarios.find(
+        (u) => u.id === servicio.usuario_asignado_id
+      );
+      const nombreAsignado = usuarioAsignado
+        ? `${usuarioAsignado.nombre} (${usuarioAsignado.rol_nombre || 'Usuario'})`
+        : `Usuario #${servicio.usuario_asignado_id}`;
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-user-tag"></i> Personal Asignado</div>
                 <div class="detalle-valor">${escapeHtml(nombreAsignado)}</div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar notas si existen
-        if (servicio.notas && servicio.notas.trim()) {
-            contenido += `
+    // Mostrar notas si existen
+    if (servicio.notas && servicio.notas.trim()) {
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-sticky-note"></i> Notas Adicionales</div>
                 <div class="detalle-valor" style="white-space: pre-wrap;">${escapeHtml(servicio.notas)}</div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar fecha de creación
-        if (servicio.fecha_creacion) {
-            contenido += `
+    // Mostrar fecha de creación
+    if (servicio.fecha_creacion) {
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-calendar-plus"></i> Fecha de Creación</div>
                 <div class="detalle-valor">${formatearFechaCompleta(servicio.fecha_creacion)}</div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar fecha de finalización si existe
-        if (servicio.fecha_finalizacion) {
-            contenido += `
+    // Mostrar fecha de finalización si existe
+    if (servicio.fecha_finalizacion) {
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-check-circle"></i> Finalizado el</div>
                 <div class="detalle-valor">${formatearFechaCompleta(servicio.fecha_finalizacion)}</div>
             </div>
         `;
-        }
+    }
 
-        // Mostrar prioridad si existe (para todos los tipos de servicio)
-        if (servicio.prioridad) {
-            const prioridadTexto = {
-                'baja': 'Baja',
-                'media': 'Media',
-                'alta': 'Alta',
-                'urgente': 'Urgente'
-            }[servicio.prioridad] || 'Media';
+    // Mostrar prioridad si existe (para todos los tipos de servicio)
+    if (servicio.prioridad) {
+      const prioridadTexto =
+        {
+          baja: 'Baja',
+          media: 'Media',
+          alta: 'Alta',
+          urgente: 'Urgente',
+        }[servicio.prioridad] || 'Media';
 
-            contenido += `
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="fas fa-traffic-light"></i> Prioridad</div>
                 <div class="detalle-valor">
@@ -2656,56 +3112,65 @@
                 </div>
             </div>
         `;
-        }
+    }
 
-        // Si es alerta, mostrar fecha y hora
-        if (esAlerta) {
-            if (servicio.dia_alerta || servicio.hora) {
-                contenido += `
+    // Si es alerta, mostrar fecha y hora
+    if (esAlerta) {
+      if (servicio.dia_alerta || servicio.hora) {
+        contenido += `
                 <div class="detalle-fecha-hora">
-                    ${servicio.dia_alerta ? `
+                    ${
+                      servicio.dia_alerta
+                        ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-calendar-alt"></i> Día de Alerta</div>
                             <div class="detalle-valor">${formatearDiaAlerta(servicio.dia_alerta)}</div>
                         </div>
-                    ` : ''}
-                    ${servicio.hora ? `
+                    `
+                        : ''
+                    }
+                    ${
+                      servicio.hora
+                        ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-clock"></i> Hora de Alerta</div>
                             <div class="detalle-valor">${formatearHora(servicio.hora)}</div>
                         </div>
-                    ` : ''}
+                    `
+                        : ''
+                    }
                 </div>
             `;
-            }
-        }
+      }
+    }
 
-        // Fecha de registro
-        if (servicio.fecha_registro) {
-            contenido += `
+    // Fecha de registro
+    if (servicio.fecha_registro) {
+      contenido += `
             <div class="detalle-item">
                 <div class="detalle-label"><i class="far fa-calendar-plus"></i> Registrado el</div>
                 <div class="detalle-valor">${formatearFechaCompleta(servicio.fecha_registro)}</div>
             </div>
         `;
-        }
+    }
 
-        // Si viene desde la lista, agregar botón de volver
-        let botonVolver = '';
-        if (desdeLista) {
-            const idVolver = servicio.espacio_comun_id || servicio.cuarto_id;
-            const esEspacioVolver = !!servicio.espacio_comun_id;
-            botonVolver = `
+    // Si viene desde la lista, agregar botón de volver
+    let botonVolver = '';
+    if (desdeLista) {
+      const idVolver = servicio.espacio_comun_id || servicio.cuarto_id;
+      const esEspacioVolver = !!servicio.espacio_comun_id;
+      botonVolver = `
             <button class="btn-volver-lista" onclick="verDetallesServicios(${idVolver}, ${esEspacioVolver})">
                 <i class="fas fa-arrow-left"></i>
             </button>
         `;
-        }
+    }
 
-        // Generar ID hexadecimal del servicio (serv-XXX)
-        const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+    // Generar ID hexadecimal del servicio (serv-XXX)
+    const servicioHexId =
+      'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
 
-        titulo.innerHTML = `
+    titulo.innerHTML = `
         <div class="header-with-id">
             ${botonVolver}
             <span class="header-title-text">
@@ -2716,56 +3181,64 @@
             </span>
         </div>
     `;
-        body.innerHTML = contenido;
-        modal.style.display = 'flex';
-        lockBodyScroll();
+    body.innerHTML = contenido;
+    modal.style.display = 'flex';
+    lockBodyScroll();
 
-        // Animar entrada
-        setTimeout(() => {
-            modal.querySelector('.modal-detalles-contenido').style.opacity = '1';
-        }, 10);
-    };
+    // Animar entrada
+    setTimeout(() => {
+      modal.querySelector('.modal-detalles-contenido').style.opacity = '1';
+    }, 10);
+  };
 
-    /**
-     * Ver detalles de todos los servicios de una habitación o espacio
-     */
-    window.verDetallesServicios = function (id, esEspacio = false) {
-        let nombreUbicacion = '';
-        let serviciosUbicacion = [];
-        let iconUbicacion = 'fa-door-closed';
+  /**
+   * Ver detalles de todos los servicios de una habitación o espacio
+   */
+  window.verDetallesServicios = function (id, esEspacio = false) {
+    let nombreUbicacion = '';
+    let serviciosUbicacion = [];
+    let iconUbicacion = 'fa-door-closed';
 
-        if (esEspacio) {
-            const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === id);
-            nombreUbicacion = espacio ? espacio.nombre : `Espacio ${id}`;
-            serviciosUbicacion = window.appLoaderState.mantenimientosEspacios.filter(m => m.espacio_comun_id === id);
-            iconUbicacion = 'fa-building';
-        } else {
-            const cuarto = cuartos.find(c => c.id === id);
-            nombreUbicacion = cuarto ? (cuarto.nombre || cuarto.numero) : `Cuarto ${id}`;
-            serviciosUbicacion = mantenimientos.filter(m => m.cuarto_id === id);
-        }
+    if (esEspacio) {
+      const espacio = window.appLoaderState.espaciosComunes.find(
+        (e) => e.id === id
+      );
+      nombreUbicacion = espacio ? espacio.nombre : `Espacio ${id}`;
+      serviciosUbicacion = window.appLoaderState.mantenimientosEspacios.filter(
+        (m) => m.espacio_comun_id === id
+      );
+      iconUbicacion = 'fa-building';
+    } else {
+      const cuarto = cuartos.find((c) => c.id === id);
+      nombreUbicacion = cuarto
+        ? cuarto.nombre || cuarto.numero
+        : `Cuarto ${id}`;
+      serviciosUbicacion = mantenimientos.filter((m) => m.cuarto_id === id);
+    }
 
-        const modal = document.getElementById('modalDetallesServicio');
-        const titulo = document.getElementById('modalDetallesTitulo');
-        const body = document.getElementById('modalDetallesBody');
+    const modal = document.getElementById('modalDetallesServicio');
+    const titulo = document.getElementById('modalDetallesTitulo');
+    const body = document.getElementById('modalDetallesBody');
 
-        if (serviciosUbicacion.length === 0) {
-            titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> ${escapeHtml(nombreUbicacion)}`;
-            body.innerHTML = `
+    if (serviciosUbicacion.length === 0) {
+      titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> ${escapeHtml(nombreUbicacion)}`;
+      body.innerHTML = `
             <div style="padding: 2rem; text-align: center; color: var(--texto-secundario);">
                 <i class="fas fa-inbox" style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.3;"></i>
                 <p style="font-size: 1.1rem; font-weight: 600;">No hay servicios registrados</p>
                 <p style="font-size: 0.9rem; margin-top: 0.5rem;">Esta ubicación no tiene servicios activos.</p>
             </div>
         `;
-            modal.style.display = 'flex';
-            return;
-        }
+      modal.style.display = 'flex';
+      return;
+    }
 
-        // Generar lista de todos los servicios con opción de editar y eliminar
-        let contenido = serviciosUbicacion.map(servicio => {
-            const esAlerta = servicio.tipo === 'rutina';
-            const prioridadIndicador = servicio.prioridad ? `
+    // Generar lista de todos los servicios con opción de editar y eliminar
+    let contenido = serviciosUbicacion
+      .map((servicio) => {
+        const esAlerta = servicio.tipo === 'rutina';
+        const prioridadIndicador = servicio.prioridad
+          ? `
             <span class="semaforo-indicator" style="
                 display: inline-block;
                 width: 12px;
@@ -2776,12 +3249,14 @@
                 border: 2px solid var(--negro-carbon);
                 margin-left: 0.5rem;
             "></span>
-        ` : '';
+        `
+          : '';
 
-            // Generar ID hexadecimal del servicio
-            const servicioHexId = 'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+        // Generar ID hexadecimal del servicio
+        const servicioHexId =
+          'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
 
-            return `
+        return `
             <div class="detalle-item-editable">
                 <div class="detalle-item-contenido" onclick="abrirModalDetalleServicio(${servicio.id}, true)">
                     <div class="detalle-label-modal">
@@ -2794,12 +3269,16 @@
                     </div>
                     <div class="detalle-valor-modal">
                         ${escapeHtml(servicio.descripcion)}
-                        ${servicio.dia_alerta || servicio.hora ? `
+                        ${
+                          servicio.dia_alerta || servicio.hora
+                            ? `
                             <div style="font-size: 0.85rem; color: var(--texto-secundario); margin-top: 0.3rem;">
                                 ${servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : ''} 
                                 ${servicio.hora ? formatearHora(servicio.hora) : ''}
                             </div>
-                        ` : ''}
+                        `
+                            : ''
+                        }
                     </div>
                     <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 0.9rem;"></i>
                 </div>
@@ -2813,151 +3292,209 @@
                 </div>
             </div>
         `;
-        }).join('');
+      })
+      .join('');
 
-        titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> Servicios de ${escapeHtml(nombreUbicacion)}`;
-        body.innerHTML = contenido;
-        modal.style.display = 'flex';
-        lockBodyScroll();
-    };
+    titulo.innerHTML = `<i class="fas ${iconUbicacion}"></i> Servicios de ${escapeHtml(nombreUbicacion)}`;
+    body.innerHTML = contenido;
+    modal.style.display = 'flex';
+    lockBodyScroll();
+  };
 
-    /**
-     * Eliminar servicio desde el modal
-     */
-    window.eliminarServicioDesdeModal = async function (servicioId, id, esEspacio = false) {
-        if (!window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')) {
-            return;
+  /**
+   * Eliminar servicio desde el modal
+   */
+  window.eliminarServicioDesdeModal = async function (
+    servicioId,
+    id,
+    esEspacio = false
+  ) {
+    if (
+      !window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')
+    ) {
+      return;
+    }
+
+    const listaMantenimientos = esEspacio
+      ? window.appLoaderState.mantenimientosEspacios
+      : mantenimientos;
+
+    // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
+    const servicioIndex = listaMantenimientos.findIndex(
+      (m) => m.id === servicioId
+    );
+    if (servicioIndex === -1) return;
+
+    const servicioEliminado = listaMantenimientos[servicioIndex];
+
+    // Eliminar del array local inmediatamente
+    listaMantenimientos.splice(servicioIndex, 1);
+
+    // Si es un servicio de espacio, también eliminarlo del array mantenimientos
+    if (esEspacio) {
+      const indexEnMantenimientos = mantenimientos.findIndex(
+        (m) => m.id === servicioId
+      );
+      if (indexEnMantenimientos !== -1) {
+        mantenimientos.splice(indexEnMantenimientos, 1);
+      }
+    }
+
+    // Actualizar modal inmediatamente
+    verDetallesServicios(id, esEspacio);
+
+    // Actualizar card en el fondo
+    if (esEspacio) {
+      renderizarServiciosEspacio(id);
+    } else {
+      const contenedorServicios = document.getElementById(`servicios-${id}`);
+      if (contenedorServicios) {
+        const serviciosUbicacion = listaMantenimientos.filter(
+          (m) => m.cuarto_id === id
+        );
+        contenedorServicios.innerHTML = generarServiciosHTML(
+          serviciosUbicacion,
+          id,
+          false,
+          false
+        );
+      }
+    }
+    mostrarAlertasYRecientes();
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
+
+    try {
+      console.log('🗑️ Eliminando servicio desde modal:', servicioId);
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/mantenimientos/${servicioId}`,
+        {
+          method: 'DELETE',
         }
+      );
 
-        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
 
-        // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
-        const servicioIndex = listaMantenimientos.findIndex(m => m.id === servicioId);
-        if (servicioIndex === -1) return;
+      console.log('✅ Servicio eliminado correctamente en servidor');
+    } catch (error) {
+      console.error('❌ Error eliminando servicio:', error);
 
-        const servicioEliminado = listaMantenimientos[servicioIndex];
+      // ⚡ ROLLBACK: Restaurar servicio eliminado
+      listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
 
-        // Eliminar del array local inmediatamente
-        listaMantenimientos.splice(servicioIndex, 1);
-
-        // Si es un servicio de espacio, también eliminarlo del array mantenimientos
-        if (esEspacio) {
-            const indexEnMantenimientos = mantenimientos.findIndex(m => m.id === servicioId);
-            if (indexEnMantenimientos !== -1) {
-                mantenimientos.splice(indexEnMantenimientos, 1);
-            }
+      // Si es un servicio de espacio, también restaurarlo en el array mantenimientos
+      if (esEspacio) {
+        const indexEnMantenimientos = mantenimientos.findIndex(
+          (m) => m.id === servicioId
+        );
+        if (indexEnMantenimientos === -1) {
+          // Si no existe, agregarlo
+          mantenimientos.push(servicioEliminado);
         }
+      }
 
-        // Actualizar modal inmediatamente
-        verDetallesServicios(id, esEspacio);
+      // Actualizar UI para reflejar el rollback
+      verDetallesServicios(id, esEspacio);
+      if (esEspacio) {
+        renderizarServiciosEspacio(id);
+      } else {
+        if (contenedorServicios) {
+          const serviciosUbicacion = listaMantenimientos.filter(
+            (m) => m.cuarto_id === id
+          );
+          contenedorServicios.innerHTML = generarServiciosHTML(
+            serviciosUbicacion,
+            id,
+            false,
+            false
+          );
+        }
+      }
+      mostrarAlertasYRecientes();
 
-        // Actualizar card en el fondo
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          '❌ Error al eliminar: ' + error.message,
+          'error'
+        );
+    }
+  };
+
+  /**
+   * Editar servicio desde el modal
+   */
+  window.editarServicioDesdeModal = function (
+    servicioId,
+    id,
+    esEspacio = false
+  ) {
+    console.log('✏️ Editando servicio desde modal:', servicioId, 'ID:', id);
+
+    // Cerrar el modal
+    cerrarModalDetalles();
+
+    // Esperar a que el modal se cierre antes de activar la edición
+    setTimeout(() => {
+      // Activar modo edición en la card
+      const botonEditar = document.getElementById(
+        esEspacio ? `btn-editar-espacio-${id}` : `btn-editar-${id}`
+      );
+      if (
+        botonEditar &&
+        !botonEditar.classList.contains('modo-edicion-activo')
+      ) {
+        // Si no está en modo edición, activarlo
         if (esEspacio) {
-            renderizarServiciosEspacio(id);
+          toggleModoEdicionEspacio(id);
         } else {
-            const contenedorServicios = document.getElementById(`servicios-${id}`);
-            if (contenedorServicios) {
-                const serviciosUbicacion = listaMantenimientos.filter(m => m.cuarto_id === id);
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosUbicacion, id, false, false);
-            }
+          toggleModoEdicion(id);
         }
-        mostrarAlertasYRecientes();
+      }
 
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
+      // Esperar un poco más para que se renderice el modo edición
+      setTimeout(() => {
+        // IMPORTANTE: Expandir TODOS los servicios en modo edición
+        if (esEspacio) {
+          // Para espacios: generar TODOS los servicios expandidos (sin límite de 2)
+          const contenedorServiciosEspacio = document.getElementById(
+            `servicios-espacio-${id}`
+          );
+          if (contenedorServiciosEspacio) {
+            const serviciosEspacio =
+              window.appLoaderState.mantenimientosEspacios.filter(
+                (m) => m.espacio_comun_id === id
+              );
 
-        try {
-            console.log('🗑️ Eliminando servicio desde modal:', servicioId);
+            // Regenerar con TODOS los servicios (sin límite de 2)
+            let htmlEspacio = serviciosEspacio
+              .map((servicio) => {
+                const esAlerta = servicio.tipo === 'rutina';
+                const esAlertaEmitida =
+                  esAlerta && servicio.alerta_emitida === true;
+                const tipoServicioTexto = esAlerta
+                  ? esAlertaEmitida
+                    ? 'Emitida'
+                    : 'Alerta'
+                  : 'Avería';
 
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}`);
-            }
-
-            console.log('✅ Servicio eliminado correctamente en servidor');
-
-        } catch (error) {
-            console.error('❌ Error eliminando servicio:', error);
-
-            // ⚡ ROLLBACK: Restaurar servicio eliminado
-            listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
-
-            // Si es un servicio de espacio, también restaurarlo en el array mantenimientos
-            if (esEspacio) {
-                const indexEnMantenimientos = mantenimientos.findIndex(m => m.id === servicioId);
-                if (indexEnMantenimientos === -1) {
-                    // Si no existe, agregarlo
-                    mantenimientos.push(servicioEliminado);
+                let fechaHoraMostrar = '';
+                if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
+                  const diaAlerta = servicio.dia_alerta
+                    ? formatearDiaAlerta(servicio.dia_alerta)
+                    : '';
+                  const horaAlerta = servicio.hora
+                    ? formatearHora(servicio.hora)
+                    : '';
+                  fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
+                } else if (servicio.fecha_registro) {
+                  fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
                 }
-            }
 
-            // Actualizar UI para reflejar el rollback
-            verDetallesServicios(id, esEspacio);
-            if (esEspacio) {
-                renderizarServiciosEspacio(id);
-            } else {
-                if (contenedorServicios) {
-                    const serviciosUbicacion = listaMantenimientos.filter(m => m.cuarto_id === id);
-                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosUbicacion, id, false, false);
-                }
-            }
-            mostrarAlertasYRecientes();
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al eliminar: ' + error.message, 'error');
-        }
-    };
-
-    /**
-     * Editar servicio desde el modal
-     */
-    window.editarServicioDesdeModal = function (servicioId, id, esEspacio = false) {
-        console.log('✏️ Editando servicio desde modal:', servicioId, 'ID:', id);
-
-        // Cerrar el modal
-        cerrarModalDetalles();
-
-        // Esperar a que el modal se cierre antes de activar la edición
-        setTimeout(() => {
-            // Activar modo edición en la card
-            const botonEditar = document.getElementById(esEspacio ? `btn-editar-espacio-${id}` : `btn-editar-${id}`);
-            if (botonEditar && !botonEditar.classList.contains('modo-edicion-activo')) {
-                // Si no está en modo edición, activarlo
-                if (esEspacio) {
-                    toggleModoEdicionEspacio(id);
-                } else {
-                    toggleModoEdicion(id);
-                }
-            }
-
-            // Esperar un poco más para que se renderice el modo edición
-            setTimeout(() => {
-                // IMPORTANTE: Expandir TODOS los servicios en modo edición
-                if (esEspacio) {
-                    // Para espacios: generar TODOS los servicios expandidos (sin límite de 2)
-                    const contenedorServiciosEspacio = document.getElementById(`servicios-espacio-${id}`);
-                    if (contenedorServiciosEspacio) {
-                        const serviciosEspacio = window.appLoaderState.mantenimientosEspacios.filter(m => m.espacio_comun_id === id);
-
-                        // Regenerar con TODOS los servicios (sin límite de 2)
-                        let htmlEspacio = serviciosEspacio.map(servicio => {
-                            const esAlerta = servicio.tipo === 'rutina';
-                            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
-                            const tipoServicioTexto = esAlerta
-                                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
-                                : 'Avería';
-
-                            let fechaHoraMostrar = '';
-                            if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
-                                const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
-                                const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
-                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
-                            } else if (servicio.fecha_registro) {
-                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
-                            }
-
-                            return `
+                return `
                             <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
                                 <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${id}, true)" style="cursor: pointer;">
                                     <div class="servicio-info">
@@ -2977,39 +3514,54 @@
                                 </button>
                             </div>
                         `;
-                        }).join('');
+              })
+              .join('');
 
-                        contenedorServiciosEspacio.innerHTML = htmlEspacio;
+            contenedorServiciosEspacio.innerHTML = htmlEspacio;
 
-                        // Activar edición del servicio específico
-                        setTimeout(() => {
-                            activarEdicionServicio(servicioId, id, esEspacio);
-                        }, 100);
-                    }
-                } else {
-                    const contenedorServicios = document.getElementById(`servicios-${id}`);
-                    if (contenedorServicios) {
-                        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
-                        const serviciosUbicacion = listaMantenimientos.filter(m => esEspacio ? m.espacio_comun_id === id : m.cuarto_id === id);
+            // Activar edición del servicio específico
+            setTimeout(() => {
+              activarEdicionServicio(servicioId, id, esEspacio);
+            }, 100);
+          }
+        } else {
+          const contenedorServicios = document.getElementById(
+            `servicios-${id}`
+          );
+          if (contenedorServicios) {
+            const listaMantenimientos = esEspacio
+              ? window.appLoaderState.mantenimientosEspacios
+              : mantenimientos;
+            const serviciosUbicacion = listaMantenimientos.filter((m) =>
+              esEspacio ? m.espacio_comun_id === id : m.cuarto_id === id
+            );
 
-                        // Regenerar con TODOS los servicios (sin límite de 2)
-                        let html = serviciosUbicacion.map(servicio => {
-                            const esAlerta = servicio.tipo === 'rutina';
-                            const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
-                            const tipoServicioTexto = esAlerta
-                                ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
-                                : 'Avería';
+            // Regenerar con TODOS los servicios (sin límite de 2)
+            let html = serviciosUbicacion
+              .map((servicio) => {
+                const esAlerta = servicio.tipo === 'rutina';
+                const esAlertaEmitida =
+                  esAlerta && servicio.alerta_emitida === true;
+                const tipoServicioTexto = esAlerta
+                  ? esAlertaEmitida
+                    ? 'Emitida'
+                    : 'Alerta'
+                  : 'Avería';
 
-                            let fechaHoraMostrar = '';
-                            if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
-                                const diaAlerta = servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : '';
-                                const horaAlerta = servicio.hora ? formatearHora(servicio.hora) : '';
-                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
-                            } else if (servicio.fecha_registro) {
-                                fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
-                            }
+                let fechaHoraMostrar = '';
+                if (esAlerta && (servicio.dia_alerta || servicio.hora)) {
+                  const diaAlerta = servicio.dia_alerta
+                    ? formatearDiaAlerta(servicio.dia_alerta)
+                    : '';
+                  const horaAlerta = servicio.hora
+                    ? formatearHora(servicio.hora)
+                    : '';
+                  fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${diaAlerta} ${horaAlerta}</span>`;
+                } else if (servicio.fecha_registro) {
+                  fechaHoraMostrar = `<span><i class="far fa-clock"></i> ${formatearFechaCorta(servicio.fecha_registro)}</span>`;
+                }
 
-                            return `
+                return `
                             <div class="servicio-item-wrapper modo-edicion" data-servicio-id="${servicio.id}">
                                 <div class="servicio-item ${esAlerta ? 'servicio-alerta' : ''}" onclick="activarEdicionServicio(${servicio.id}, ${id})" style="cursor: pointer;">
                                     <div class="servicio-info">
@@ -3029,353 +3581,421 @@
                                 </button>
                             </div>
                         `;
-                        }).join('');
+              })
+              .join('');
 
-                        contenedorServicios.innerHTML = html;
+            contenedorServicios.innerHTML = html;
 
-                        // Activar edición del servicio específico
-                        setTimeout(() => {
-                            activarEdicionServicio(servicioId, id);
-                        }, 100);
-                    }
-                }
-
-                // Hacer scroll a la card
-                const selector = esEspacio ? `[data-espacio-id="${id}"]` : `[data-cuarto-id="${id}"]`;
-                const card = document.querySelector(selector);
-                if (card) {
-                    card.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
-
-                    card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
-                    setTimeout(() => {
-                        card.style.boxShadow = '';
-                    }, 1500);
-                }
-            }, 300);
-        }, 200);
-    };
-
-    /**
-     * Cambiar estado de un servicio desde el dropdown inline en las cards
-     */
-    window.cambiarEstadoServicioInline = async function (selectElement, event) {
-        event.stopPropagation();
-
-        const servicioId = selectElement.dataset.servicioId;
-        const cuartoId = selectElement.dataset.cuartoId;
-        const esEspacio = selectElement.dataset.esEspacio === 'true';
-        const nuevoEstado = selectElement.value;
-
-        console.log(`🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`);
-
-        // Obtener estado anterior de las clases actuales del elemento
-        const clasesActuales = Array.from(selectElement.classList);
-        const claseEstadoActual = clasesActuales.find(c => c.startsWith('estado-') && c !== 'estado-badge-select');
-        const estadoAnterior = claseEstadoActual ? claseEstadoActual.replace('estado-', '') : 'pendiente';
-
-        // Si es el mismo estado, no hacer nada
-        if (estadoAnterior === nuevoEstado) return;
-
-        console.log(`   Estado anterior: ${estadoAnterior} → Nuevo: ${nuevoEstado}`);
-
-        // Actualizar clase visual inmediatamente (optimistic update)
-        // Remover clase de estado anterior y agregar la nueva, preservando estado-badge-select
-        if (claseEstadoActual) {
-            selectElement.classList.remove(claseEstadoActual);
+            // Activar edición del servicio específico
+            setTimeout(() => {
+              activarEdicionServicio(servicioId, id);
+            }, 100);
+          }
         }
-        selectElement.classList.add(`estado-${nuevoEstado}`);
 
-        try {
-            const response = await fetchWithAuth(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ estado: nuevoEstado })
-            });
+        // Hacer scroll a la card
+        const selector = esEspacio
+          ? `[data-espacio-id="${id}"]`
+          : `[data-cuarto-id="${id}"]`;
+        const card = document.querySelector(selector);
+        if (card) {
+          card.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
 
-            if (!response.ok) {
-                throw new Error('Error al actualizar estado del servicio');
-            }
-
-            console.log(`✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`);
-
-            // Actualizar en el array local de mantenimientos
-            const servicio = mantenimientos.find(m => m.id == servicioId);
-            if (servicio) {
-                servicio.estado = nuevoEstado;
-                // Si se completó o canceló, agregar fecha de finalización
-                if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-                    servicio.fecha_finalizacion = new Date().toISOString();
-                }
-            }
-
-            // También actualizar en mantenimientosEspacios si aplica
-            if (esEspacio) {
-                const servicioEspacio = window.appLoaderState?.mantenimientosEspacios?.find(m => m.id == servicioId);
-                if (servicioEspacio) {
-                    servicioEspacio.estado = nuevoEstado;
-                    if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-                        servicioEspacio.fecha_finalizacion = new Date().toISOString();
-                    }
-                }
-            }
-
-            // Actualizar también en todosLosServiciosCache (usado por panel de servicios en Tareas)
-            if (typeof todosLosServiciosCache !== 'undefined' && Array.isArray(todosLosServiciosCache)) {
-                const servicioCache = todosLosServiciosCache.find(m => m.id == servicioId);
-                if (servicioCache) {
-                    servicioCache.estado = nuevoEstado;
-                    if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-                        servicioCache.fecha_finalizacion = new Date().toISOString();
-                    }
-                }
-            }
-
-            // Sincronizar TODOS los selectores de estado de este servicio (modal y cards)
-            const todosSelectores = document.querySelectorAll(`.estado-badge-select[data-servicio-id="${servicioId}"]`);
-            todosSelectores.forEach(otroSelect => {
-                if (otroSelect !== selectElement) {
-                    // Actualizar valor
-                    otroSelect.value = nuevoEstado;
-                    // Actualizar clases de color
-                    const clasesOtro = Array.from(otroSelect.classList);
-                    const claseEstadoOtro = clasesOtro.find(c => c.startsWith('estado-') && c !== 'estado-badge-select');
-                    if (claseEstadoOtro) {
-                        otroSelect.classList.remove(claseEstadoOtro);
-                    }
-                    otroSelect.classList.add(`estado-${nuevoEstado}`);
-                }
-            });
-
-            // Mostrar notificación de éxito
-            if (window.mostrarAlertaBlur) {
-                window.mostrarAlertaBlur(`Estado actualizado a "${nuevoEstado.replace('_', ' ')}"`, 'success');
-            }
-
-            // Actualizar el panel de servicios en Tareas si existe la función
-            if (typeof window.actualizarPanelServiciosTareas === 'function') {
-                window.actualizarPanelServiciosTareas();
-            }
-
-        } catch (error) {
-            console.error('Error al cambiar estado del servicio:', error);
-
-            // Revertir al estado anterior
-            selectElement.value = estadoAnterior;
-            selectElement.classList.remove(`estado-${nuevoEstado}`);
-            selectElement.classList.add(`estado-${estadoAnterior}`);
-
-            if (window.mostrarAlertaBlur) {
-                window.mostrarAlertaBlur('Error al actualizar el estado', 'error');
-            }
+          card.style.boxShadow = '0 0 20px rgba(255, 215, 0, 0.6)';
+          setTimeout(() => {
+            card.style.boxShadow = '';
+          }, 1500);
         }
-    };
+      }, 300);
+    }, 200);
+  };
 
-    /**
-     * Copiar ID de servicio al portapapeles
-     */
-    window.copiarIdServicio = function (hexId, event) {
-        event.stopPropagation();
+  /**
+   * Cambiar estado de un servicio desde el dropdown inline en las cards
+   */
+  window.cambiarEstadoServicioInline = async function (selectElement, event) {
+    event.stopPropagation();
 
-        navigator.clipboard.writeText(hexId).then(() => {
-            if (window.mostrarAlertaBlur) {
-                window.mostrarAlertaBlur(`ID copiado: ${hexId}`, 'success');
-            }
-        }).catch(err => {
-            console.error('Error copiando ID:', err);
-            // Fallback: seleccionar el texto
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(event.target.closest('.servicio-id-badge'));
-            selection.removeAllRanges();
-            selection.addRange(range);
-        });
-    };
+    const servicioId = selectElement.dataset.servicioId;
+    const cuartoId = selectElement.dataset.cuartoId;
+    const esEspacio = selectElement.dataset.esEspacio === 'true';
+    const nuevoEstado = selectElement.value;
 
-    /**
-     * Cerrar modal de detalles
-     */
-    window.cerrarModalDetalles = function () {
-        const modal = document.getElementById('modalDetallesServicio');
-        const contenido = modal.querySelector('.modal-detalles-contenido');
+    console.log(
+      `🔄 Cambiando estado del servicio ${servicioId} a ${nuevoEstado}`
+    );
 
-        // Animar salida
-        contenido.style.opacity = '0';
-        contenido.style.transform = 'translateY(30px)';
+    // Obtener estado anterior de las clases actuales del elemento
+    const clasesActuales = Array.from(selectElement.classList);
+    const claseEstadoActual = clasesActuales.find(
+      (c) => c.startsWith('estado-') && c !== 'estado-badge-select'
+    );
+    const estadoAnterior = claseEstadoActual
+      ? claseEstadoActual.replace('estado-', '')
+      : 'pendiente';
 
-        setTimeout(() => {
-            modal.style.display = 'none';
-            contenido.style.opacity = '1';
-            contenido.style.transform = 'translateY(0)';
-            unlockBodyScrollIfNoModal();
-        }, 200);
-    };
+    // Si es el mismo estado, no hacer nada
+    if (estadoAnterior === nuevoEstado) return;
 
-    // Cerrar modal con tecla Escape
-    document.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape') {
-            // Cerrar formulario de edición inline de servicio (prioridad alta)
-            const formEdicionInline = document.querySelector('.servicio-form-inline');
-            if (formEdicionInline) {
-                const wrapper = formEdicionInline.closest('.servicio-item-wrapper');
-                if (wrapper) {
-                    const servicioId = parseInt(wrapper.dataset.servicioId);
+    console.log(
+      `   Estado anterior: ${estadoAnterior} → Nuevo: ${nuevoEstado}`
+    );
 
-                    // Detectar si es espacio o cuarto buscando el contenedor padre
-                    const contenedorEspacio = wrapper.closest('[id^="servicios-espacio-"]');
-                    const contenedorCuarto = wrapper.closest('[id^="servicios-"]:not([id^="servicios-espacio-"])');
+    // Actualizar clase visual inmediatamente (optimistic update)
+    // Remover clase de estado anterior y agregar la nueva, preservando estado-badge-select
+    if (claseEstadoActual) {
+      selectElement.classList.remove(claseEstadoActual);
+    }
+    selectElement.classList.add(`estado-${nuevoEstado}`);
 
-                    let ubicacionId;
-                    let esEspacio;
-
-                    if (contenedorEspacio) {
-                        // Es un espacio común
-                        esEspacio = true;
-                        ubicacionId = parseInt(contenedorEspacio.id.replace('servicios-espacio-', ''));
-                    } else if (contenedorCuarto) {
-                        // Es un cuarto
-                        esEspacio = false;
-                        ubicacionId = parseInt(contenedorCuarto.id.replace('servicios-', ''));
-                    }
-
-                    if (ubicacionId && typeof cancelarEdicionServicio === 'function') {
-                        cancelarEdicionServicio(servicioId, ubicacionId, esEspacio);
-                    }
-                }
-                return;
-            }
-
-            // Cerrar formulario de registro inline de servicio (cuartos y espacios comunes)
-            const formRegistroInline = document.querySelector('.form-servicio-inline');
-            if (formRegistroInline) {
-                // Verificar si es un espacio común
-                const espacioId = parseInt(formRegistroInline.dataset.espacioId);
-                if (espacioId && typeof cerrarFormularioInlineEspacio === 'function') {
-                    cerrarFormularioInlineEspacio(espacioId);
-                    return;
-                }
-                // Si no es espacio, es cuarto
-                const cuartoId = parseInt(formRegistroInline.dataset.cuartoId);
-                if (cuartoId && typeof cerrarFormularioInline === 'function') {
-                    cerrarFormularioInline(cuartoId);
-                }
-                return;
-            }
-
-            // Cerrar modal de detalles de servicio
-            const modalServicio = document.getElementById('modalDetallesServicio');
-            if (modalServicio && modalServicio.style.display === 'flex') {
-                cerrarModalDetalles();
-                return;
-            }
-
-            // Cerrar modal de detalles de checklist
-            const modalChecklist = document.getElementById('checklist-details-modal');
-            if (modalChecklist && modalChecklist.style.display !== 'none') {
-                if (typeof closeChecklistDetailsModal === 'function') {
-                    closeChecklistDetailsModal();
-                } else {
-                    modalChecklist.style.display = 'none';
-                    document.body.classList.remove('modal-open');
-                }
-                return;
-            }
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/mantenimientos/${servicioId}`,
+        {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ estado: nuevoEstado }),
         }
-    });
+      );
 
-    /**
-     * FUNCIONES PARA EDICIÓN INLINE DE SERVICIOS
-     */
+      if (!response.ok) {
+        throw new Error('Error al actualizar estado del servicio');
+      }
 
-    /**
-     * Alternar modo de edición para una habitación
-     */
-    window.toggleModoEdicion = function (cuartoId) {
-        const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-        const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
-        const contenedorEditarEstadoInline = document.getElementById(`estado-selector-inline-id-${cuartoId}`)
+      console.log(
+        `✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`
+      );
 
-        if (!contenedorServicios || !botonEditar) return;
+      // Actualizar en el array local de mantenimientos
+      const servicio = mantenimientos.find((m) => m.id == servicioId);
+      if (servicio) {
+        servicio.estado = nuevoEstado;
+        // Si se completó o canceló, agregar fecha de finalización
+        if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+          servicio.fecha_finalizacion = new Date().toISOString();
+        }
+      }
 
-        // Verificar si ya está en modo edición
-        const enModoEdicion = botonEditar.classList.contains('modo-edicion-activo');
+      // También actualizar en mantenimientosEspacios si aplica
+      if (esEspacio) {
+        const servicioEspacio =
+          window.appLoaderState?.mantenimientosEspacios?.find(
+            (m) => m.id == servicioId
+          );
+        if (servicioEspacio) {
+          servicioEspacio.estado = nuevoEstado;
+          if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+            servicioEspacio.fecha_finalizacion = new Date().toISOString();
+          }
+        }
+      }
 
-        if (enModoEdicion) {
-            // Desactivar modo edición
-            contenedorEditarEstadoInline.style.display = "none"
-            botonEditar.classList.remove('modo-edicion-activo');
-            botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+      // Actualizar también en todosLosServiciosCache (usado por panel de servicios en Tareas)
+      if (
+        typeof todosLosServiciosCache !== 'undefined' &&
+        Array.isArray(todosLosServiciosCache)
+      ) {
+        const servicioCache = todosLosServiciosCache.find(
+          (m) => m.id == servicioId
+        );
+        if (servicioCache) {
+          servicioCache.estado = nuevoEstado;
+          if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+            servicioCache.fecha_finalizacion = new Date().toISOString();
+          }
+        }
+      }
 
-            // Regenerar servicios en modo normal
-            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, false);
+      // Sincronizar TODOS los selectores de estado de este servicio (modal y cards)
+      const todosSelectores = document.querySelectorAll(
+        `.estado-badge-select[data-servicio-id="${servicioId}"]`
+      );
+      todosSelectores.forEach((otroSelect) => {
+        if (otroSelect !== selectElement) {
+          // Actualizar valor
+          otroSelect.value = nuevoEstado;
+          // Actualizar clases de color
+          const clasesOtro = Array.from(otroSelect.classList);
+          const claseEstadoOtro = clasesOtro.find(
+            (c) => c.startsWith('estado-') && c !== 'estado-badge-select'
+          );
+          if (claseEstadoOtro) {
+            otroSelect.classList.remove(claseEstadoOtro);
+          }
+          otroSelect.classList.add(`estado-${nuevoEstado}`);
+        }
+      });
+
+      // Mostrar notificación de éxito
+      if (window.mostrarAlertaBlur) {
+        window.mostrarAlertaBlur(
+          `Estado actualizado a "${nuevoEstado.replace('_', ' ')}"`,
+          'success'
+        );
+      }
+
+      // Actualizar el panel de servicios en Tareas si existe la función
+      if (typeof window.actualizarPanelServiciosTareas === 'function') {
+        window.actualizarPanelServiciosTareas();
+      }
+    } catch (error) {
+      console.error('Error al cambiar estado del servicio:', error);
+
+      // Revertir al estado anterior
+      selectElement.value = estadoAnterior;
+      selectElement.classList.remove(`estado-${nuevoEstado}`);
+      selectElement.classList.add(`estado-${estadoAnterior}`);
+
+      if (window.mostrarAlertaBlur) {
+        window.mostrarAlertaBlur('Error al actualizar el estado', 'error');
+      }
+    }
+  };
+
+  /**
+   * Copiar ID de servicio al portapapeles
+   */
+  window.copiarIdServicio = function (hexId, event) {
+    event.stopPropagation();
+
+    navigator.clipboard
+      .writeText(hexId)
+      .then(() => {
+        if (window.mostrarAlertaBlur) {
+          window.mostrarAlertaBlur(`ID copiado: ${hexId}`, 'success');
+        }
+      })
+      .catch((err) => {
+        console.error('Error copiando ID:', err);
+        // Fallback: seleccionar el texto
+        const selection = window.getSelection();
+        const range = document.createRange();
+        range.selectNodeContents(event.target.closest('.servicio-id-badge'));
+        selection.removeAllRanges();
+        selection.addRange(range);
+      });
+  };
+
+  /**
+   * Cerrar modal de detalles
+   */
+  window.cerrarModalDetalles = function () {
+    const modal = document.getElementById('modalDetallesServicio');
+    const contenido = modal.querySelector('.modal-detalles-contenido');
+
+    // Animar salida
+    contenido.style.opacity = '0';
+    contenido.style.transform = 'translateY(30px)';
+
+    setTimeout(() => {
+      modal.style.display = 'none';
+      contenido.style.opacity = '1';
+      contenido.style.transform = 'translateY(0)';
+      unlockBodyScrollIfNoModal();
+    }, 200);
+  };
+
+  // Cerrar modal con tecla Escape
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+      // Cerrar formulario de edición inline de servicio (prioridad alta)
+      const formEdicionInline = document.querySelector('.servicio-form-inline');
+      if (formEdicionInline) {
+        const wrapper = formEdicionInline.closest('.servicio-item-wrapper');
+        if (wrapper) {
+          const servicioId = parseInt(wrapper.dataset.servicioId);
+
+          // Detectar si es espacio o cuarto buscando el contenedor padre
+          const contenedorEspacio = wrapper.closest(
+            '[id^="servicios-espacio-"]'
+          );
+          const contenedorCuarto = wrapper.closest(
+            '[id^="servicios-"]:not([id^="servicios-espacio-"])'
+          );
+
+          let ubicacionId;
+          let esEspacio;
+
+          if (contenedorEspacio) {
+            // Es un espacio común
+            esEspacio = true;
+            ubicacionId = parseInt(
+              contenedorEspacio.id.replace('servicios-espacio-', '')
+            );
+          } else if (contenedorCuarto) {
+            // Es un cuarto
+            esEspacio = false;
+            ubicacionId = parseInt(
+              contenedorCuarto.id.replace('servicios-', '')
+            );
+          }
+
+          if (ubicacionId && typeof cancelarEdicionServicio === 'function') {
+            cancelarEdicionServicio(servicioId, ubicacionId, esEspacio);
+          }
+        }
+        return;
+      }
+
+      // Cerrar formulario de registro inline de servicio (cuartos y espacios comunes)
+      const formRegistroInline = document.querySelector(
+        '.form-servicio-inline'
+      );
+      if (formRegistroInline) {
+        // Verificar si es un espacio común
+        const espacioId = parseInt(formRegistroInline.dataset.espacioId);
+        if (espacioId && typeof cerrarFormularioInlineEspacio === 'function') {
+          cerrarFormularioInlineEspacio(espacioId);
+          return;
+        }
+        // Si no es espacio, es cuarto
+        const cuartoId = parseInt(formRegistroInline.dataset.cuartoId);
+        if (cuartoId && typeof cerrarFormularioInline === 'function') {
+          cerrarFormularioInline(cuartoId);
+        }
+        return;
+      }
+
+      // Cerrar modal de detalles de servicio
+      const modalServicio = document.getElementById('modalDetallesServicio');
+      if (modalServicio && modalServicio.style.display === 'flex') {
+        cerrarModalDetalles();
+        return;
+      }
+
+      // Cerrar modal de detalles de checklist
+      const modalChecklist = document.getElementById('checklist-details-modal');
+      if (modalChecklist && modalChecklist.style.display !== 'none') {
+        if (typeof closeChecklistDetailsModal === 'function') {
+          closeChecklistDetailsModal();
         } else {
-            // Activar modo edición
-            contenedorEditarEstadoInline.style.display = "block"
-            botonEditar.classList.add('modo-edicion-activo');
-            botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
-
-            // Regenerar servicios en modo edición
-            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === cuartoId);
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, cuartoId, true);
+          modalChecklist.style.display = 'none';
+          document.body.classList.remove('modal-open');
         }
-    };
+        return;
+      }
+    }
+  });
 
-    /**
-     * Activar edición de un servicio específico inline
-     */
-    window.activarEdicionServicio = function (servicioId, id, esEspacio = false) {
-        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
-        const servicio = listaMantenimientos.find(m => m.id === servicioId);
-        if (!servicio) return;
+  /**
+   * FUNCIONES PARA EDICIÓN INLINE DE SERVICIOS
+   */
 
-        const wrapper = document.querySelector(`.servicio-item-wrapper[data-servicio-id="${servicioId}"]`);
-        if (!wrapper) return;
+  /**
+   * Alternar modo de edición para una habitación
+   */
+  window.toggleModoEdicion = function (cuartoId) {
+    const contenedorServicios = document.getElementById(
+      `servicios-${cuartoId}`
+    );
+    const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
+    const contenedorEditarEstadoInline = document.getElementById(
+      `estado-selector-inline-id-${cuartoId}`
+    );
 
-        const esAlerta = servicio.tipo === 'rutina';
-        const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
-        const tipoServicioTexto = esAlerta
-            ? (esAlertaEmitida ? 'Emitida' : 'Alerta')
-            : 'Avería';
+    if (!contenedorServicios || !botonEditar) return;
 
-        // Normalizar formato de fecha para el input date (YYYY-MM-DD)
-        // Evitar problemas de timezone extrayendo la fecha directamente del string ISO
-        let diaAlertaFormatted = '';
-        if (servicio.dia_alerta) {
-            try {
-                const fechaStr = String(servicio.dia_alerta);
-                // Si es formato ISO con timestamp (2025-12-02T00:00:00.000Z), extraer solo la fecha
-                if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
-                    diaAlertaFormatted = fechaStr.split('T')[0];
-                }
-                // Si ya es YYYY-MM-DD, usarlo directamente
-                else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
-                    diaAlertaFormatted = fechaStr;
-                }
-                // Otros formatos, parsear con cuidado usando UTC
-                else {
-                    const fecha = new Date(fechaStr);
-                    if (!isNaN(fecha.getTime())) {
-                        const year = fecha.getUTCFullYear();
-                        const month = String(fecha.getUTCMonth() + 1).padStart(2, '0');
-                        const day = String(fecha.getUTCDate()).padStart(2, '0');
-                        diaAlertaFormatted = `${year}-${month}-${day}`;
-                    }
-                }
-            } catch (e) {
-                console.error('Error formateando dia_alerta:', e);
-            }
+    // Verificar si ya está en modo edición
+    const enModoEdicion = botonEditar.classList.contains('modo-edicion-activo');
+
+    if (enModoEdicion) {
+      // Desactivar modo edición
+      contenedorEditarEstadoInline.style.display = 'none';
+      botonEditar.classList.remove('modo-edicion-activo');
+      botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+      // Regenerar servicios en modo normal
+      const serviciosCuarto = mantenimientos.filter(
+        (m) => m.cuarto_id === cuartoId
+      );
+      contenedorServicios.innerHTML = generarServiciosHTML(
+        serviciosCuarto,
+        cuartoId,
+        false
+      );
+    } else {
+      // Activar modo edición
+      contenedorEditarEstadoInline.style.display = 'block';
+      botonEditar.classList.add('modo-edicion-activo');
+      botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
+
+      // Regenerar servicios en modo edición
+      const serviciosCuarto = mantenimientos.filter(
+        (m) => m.cuarto_id === cuartoId
+      );
+      contenedorServicios.innerHTML = generarServiciosHTML(
+        serviciosCuarto,
+        cuartoId,
+        true
+      );
+    }
+  };
+
+  /**
+   * Activar edición de un servicio específico inline
+   */
+  window.activarEdicionServicio = function (servicioId, id, esEspacio = false) {
+    const listaMantenimientos = esEspacio
+      ? window.appLoaderState.mantenimientosEspacios
+      : mantenimientos;
+    const servicio = listaMantenimientos.find((m) => m.id === servicioId);
+    if (!servicio) return;
+
+    const wrapper = document.querySelector(
+      `.servicio-item-wrapper[data-servicio-id="${servicioId}"]`
+    );
+    if (!wrapper) return;
+
+    const esAlerta = servicio.tipo === 'rutina';
+    const esAlertaEmitida = esAlerta && servicio.alerta_emitida === true;
+    const tipoServicioTexto = esAlerta
+      ? esAlertaEmitida
+        ? 'Emitida'
+        : 'Alerta'
+      : 'Avería';
+
+    // Normalizar formato de fecha para el input date (YYYY-MM-DD)
+    // Evitar problemas de timezone extrayendo la fecha directamente del string ISO
+    let diaAlertaFormatted = '';
+    if (servicio.dia_alerta) {
+      try {
+        const fechaStr = String(servicio.dia_alerta);
+        // Si es formato ISO con timestamp (2025-12-02T00:00:00.000Z), extraer solo la fecha
+        if (/^\d{4}-\d{2}-\d{2}T/.test(fechaStr)) {
+          diaAlertaFormatted = fechaStr.split('T')[0];
         }
+        // Si ya es YYYY-MM-DD, usarlo directamente
+        else if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) {
+          diaAlertaFormatted = fechaStr;
+        }
+        // Otros formatos, parsear con cuidado usando UTC
+        else {
+          const fecha = new Date(fechaStr);
+          if (!isNaN(fecha.getTime())) {
+            const year = fecha.getUTCFullYear();
+            const month = String(fecha.getUTCMonth() + 1).padStart(2, '0');
+            const day = String(fecha.getUTCDate()).padStart(2, '0');
+            diaAlertaFormatted = `${year}-${month}-${day}`;
+          }
+        }
+      } catch (e) {
+        console.error('Error formateando dia_alerta:', e);
+      }
+    }
 
-        // Generar opciones de usuarios
-        const opcionesUsuarios = usuarios.map(u =>
-            `<option value="${u.id}" ${servicio.usuario_asignado_id === u.id ? 'selected' : ''}>${u.nombre}${u.rol_nombre ? ` (${u.rol_nombre})` : ''}</option>`
-        ).join('');
+    // Generar opciones de usuarios
+    const opcionesUsuarios = usuarios
+      .map(
+        (u) =>
+          `<option value="${u.id}" ${servicio.usuario_asignado_id === u.id ? 'selected' : ''}>${u.nombre}${u.rol_nombre ? ` (${u.rol_nombre})` : ''}</option>`
+      )
+      .join('');
 
-        // Generar formulario de edición inline
-        wrapper.innerHTML = `
+    // Generar formulario de edición inline
+    wrapper.innerHTML = `
         <div class="servicio-form-inline ${esAlerta ? 'servicio-alerta' : ''}">
             <div class="form-inline-header">
                 <span class="servicio-tipo-badge">
@@ -3392,7 +4012,9 @@
                 placeholder="Descripción"
             />
             
-            ${esAlerta ? `
+            ${
+              esAlerta
+                ? `
                 <div class="form-inline-row">
                     <input 
                         type="date" 
@@ -3407,7 +4029,9 @@
                         value="${servicio.hora || ''}"
                     />
                 </div>
-            ` : ''}
+            `
+                : ''
+            }
             
             <select class="input-edicion-inline" id="edit-estado-${servicioId}">
                 <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
@@ -3471,504 +4095,635 @@
         </div>
     `;
 
-        /**
-        * Poder enviar edicion con enter en el input descripcion
-        */
+    /**
+     * Poder enviar edicion con enter en el input descripcion
+     */
 
-        document.getElementById(`edit-desc-${servicioId}`).addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') {
-                guardarEdicionServicio(servicioId, id, esEspacio);
-            }
+    document
+      .getElementById(`edit-desc-${servicioId}`)
+      .addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          guardarEdicionServicio(servicioId, id, esEspacio);
+        }
+      });
+  };
+
+  /**
+   * Cancelar edición de servicio
+   */
+  window.cancelarEdicionServicio = function (
+    servicioId,
+    id,
+    esEspacio = false
+  ) {
+    if (esEspacio) {
+      renderizarServiciosEspacio(id);
+    } else {
+      // Regenerar la vista respetando el estado del botón de edición
+      const contenedorServicios = document.getElementById(`servicios-${id}`);
+      const serviciosCuarto = mantenimientos.filter((m) => m.cuarto_id === id);
+      // Verificar si el botón de edición está activo antes de renderizar
+      const botonEditar = document.getElementById(`btn-editar-${id}`);
+      const enModoEdicion =
+        botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+      contenedorServicios.innerHTML = generarServiciosHTML(
+        serviciosCuarto,
+        id,
+        enModoEdicion
+      );
+    }
+  };
+
+  /**
+   * Guardar edición de servicio
+   */
+  window.guardarEdicionServicio = async function (
+    servicioId,
+    id,
+    esEspacio = false
+  ) {
+    const listaMantenimientos = esEspacio
+      ? window.appLoaderState.mantenimientosEspacios
+      : mantenimientos;
+    const servicio = listaMantenimientos.find((m) => m.id === servicioId);
+    if (!servicio) return;
+
+    const esAlerta = servicio.tipo === 'rutina';
+
+    // Obtener valores del formulario
+    const descripcion = document
+      .getElementById(`edit-desc-${servicioId}`)
+      .value.trim();
+
+    if (!descripcion) {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          'La descripción no puede estar vacía',
+          'error'
+        );
+      return;
+    }
+
+    const datosActualizados = {
+      descripcion: descripcion,
+    };
+
+    // Obtener prioridad (para todos los servicios)
+    const prioridadSeleccionada = document.querySelector(
+      `input[name="prioridad-${servicioId}"]:checked`
+    );
+    if (prioridadSeleccionada) {
+      datosActualizados.prioridad = prioridadSeleccionada.value;
+    }
+
+    // Obtener estado del mantenimiento
+    const estadoInput = document.getElementById(`edit-estado-${servicioId}`);
+    if (estadoInput) {
+      datosActualizados.estado = estadoInput.value;
+    }
+
+    // Obtener usuario asignado
+    const usuarioInput = document.getElementById(`edit-usuario-${servicioId}`);
+    if (usuarioInput) {
+      datosActualizados.usuario_asignado_id = usuarioInput.value || null;
+    }
+
+    // Obtener notas
+    const notasInput = document.getElementById(`edit-notas-${servicioId}`);
+    if (notasInput) {
+      datosActualizados.notas = notasInput.value.trim() || null;
+    }
+
+    // Obtener tarea asignada
+    const tareaSelector = document.querySelector(
+      `select[name="tarea_asignada_edit-${servicioId}"]`
+    );
+    if (tareaSelector) {
+      datosActualizados.tarea_id = tareaSelector.value || null;
+    }
+
+    // Si es alerta, incluir campos adicionales
+    if (esAlerta) {
+      const diaInput = document.getElementById(`edit-dia-${servicioId}`);
+      const horaInput = document.getElementById(`edit-hora-${servicioId}`);
+
+      const fecha = diaInput ? diaInput.value : '';
+      const hora = horaInput ? horaInput.value : '';
+
+      if (!fecha || !hora) {
+        if (window.mostrarAlertaBlur)
+          window.mostrarAlertaBlur(
+            'Fecha y hora son obligatorios para alertas',
+            'error'
+          );
+        return;
+      }
+
+      datosActualizados.dia_alerta = fecha;
+      datosActualizados.hora = hora;
+
+      // Verificar si la fecha/hora cambió y determinar si debe estar emitida o no
+      const ahora = new Date();
+      const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+      const horaActual = ahora.toTimeString().slice(0, 5);
+
+      const fechaPasada = fecha < fechaActual;
+      const mismaFechaHoraPasada =
+        fecha === fechaActual && hora.slice(0, 5) <= horaActual;
+      const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
+
+      // Si la fecha/hora cambió a futuro, resetear alerta_emitida
+      // Si la fecha/hora cambió a pasado, marcar como emitida
+      if (alertaYaPaso) {
+        datosActualizados.alerta_emitida = true;
+      } else {
+        // Si la nueva fecha es futura, resetear la emisión
+        datosActualizados.alerta_emitida = false;
+      }
+    }
+
+    // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar datos originales para rollback
+    const datosOriginales = { ...servicio };
+
+    // Actualizar objeto local inmediatamente
+    Object.assign(servicio, datosActualizados);
+
+    // Actualizar UI inmediatamente
+    if (esEspacio) {
+      renderizarServiciosEspacio(id);
+    } else {
+      const contenedorServicios = document.getElementById(`servicios-${id}`);
+      if (contenedorServicios) {
+        const serviciosCuarto = mantenimientos.filter(
+          (m) => m.cuarto_id === id
+        );
+        // Verificar si el botón de edición está activo antes de renderizar
+        const botonEditar = document.getElementById(`btn-editar-${id}`);
+        const enModoEdicion =
+          botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+        contenedorServicios.innerHTML = generarServiciosHTML(
+          serviciosCuarto,
+          id,
+          enModoEdicion
+        );
+
+        // Actualizar selectores de tareas para todos los servicios del cuarto
+        serviciosCuarto.forEach((servicio) => {
+          const selectorId = `tarea_asignada_edit-${servicio.id}`;
+          if (window.cargarTareasEnSelector) {
+            window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
+          }
         });
-    };
+      }
+    }
+    mostrarAlertasYRecientes();
 
-    /**
-     * Cancelar edición de servicio
-     */
-    window.cancelarEdicionServicio = function (servicioId, id, esEspacio = false) {
-        if (esEspacio) {
-            renderizarServiciosEspacio(id);
-        } else {
-            // Regenerar la vista respetando el estado del botón de edición
-            const contenedorServicios = document.getElementById(`servicios-${id}`);
-            const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-            // Verificar si el botón de edición está activo antes de renderizar
-            const botonEditar = document.getElementById(`btn-editar-${id}`);
-            const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
-            contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('✨ Servicio actualizado', 'success');
+
+    try {
+      console.log(
+        '💾 Guardando cambios del servicio:',
+        servicioId,
+        datosActualizados
+      );
+
+      // Obtener headers con autenticación (await porque es async)
+      const headers = await obtenerHeadersConAuth();
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/mantenimientos/${servicioId}`,
+        {
+          method: 'PUT',
+          headers: headers,
+          body: JSON.stringify(datosActualizados),
         }
-    };
+      );
 
-    /**
-     * Guardar edición de servicio
-     */
-    window.guardarEdicionServicio = async function (servicioId, id, esEspacio = false) {
-        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
-        const servicio = listaMantenimientos.find(m => m.id === servicioId);
-        if (!servicio) return;
-
-        const esAlerta = servicio.tipo === 'rutina';
-
-        // Obtener valores del formulario
-        const descripcion = document.getElementById(`edit-desc-${servicioId}`).value.trim();
-
-        if (!descripcion) {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La descripción no puede estar vacía', 'error');
-            return;
-        }
-
-        const datosActualizados = {
-            descripcion: descripcion
-        };
-
-        // Obtener prioridad (para todos los servicios)
-        const prioridadSeleccionada = document.querySelector(`input[name="prioridad-${servicioId}"]:checked`);
-        if (prioridadSeleccionada) {
-            datosActualizados.prioridad = prioridadSeleccionada.value;
-        }
-
-        // Obtener estado del mantenimiento
-        const estadoInput = document.getElementById(`edit-estado-${servicioId}`);
-        if (estadoInput) {
-            datosActualizados.estado = estadoInput.value;
-        }
-
-        // Obtener usuario asignado
-        const usuarioInput = document.getElementById(`edit-usuario-${servicioId}`);
-        if (usuarioInput) {
-            datosActualizados.usuario_asignado_id = usuarioInput.value || null;
-        }
-
-        // Obtener notas
-        const notasInput = document.getElementById(`edit-notas-${servicioId}`);
-        if (notasInput) {
-            datosActualizados.notas = notasInput.value.trim() || null;
-        }
-
-        // Obtener tarea asignada
-        const tareaSelector = document.querySelector(`select[name="tarea_asignada_edit-${servicioId}"]`);
-        if (tareaSelector) {
-            datosActualizados.tarea_id = tareaSelector.value || null;
-        }
-
-        // Si es alerta, incluir campos adicionales
-        if (esAlerta) {
-            const diaInput = document.getElementById(`edit-dia-${servicioId}`);
-            const horaInput = document.getElementById(`edit-hora-${servicioId}`);
-
-            const fecha = diaInput ? diaInput.value : '';
-            const hora = horaInput ? horaInput.value : '';
-
-            if (!fecha || !hora) {
-                if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Fecha y hora son obligatorios para alertas', 'error');
-                return;
-            }
-
-            datosActualizados.dia_alerta = fecha;
-            datosActualizados.hora = hora;
-
-            // Verificar si la fecha/hora cambió y determinar si debe estar emitida o no
-            const ahora = new Date();
-            const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-            const horaActual = ahora.toTimeString().slice(0, 5);
-
-            const fechaPasada = fecha < fechaActual;
-            const mismaFechaHoraPasada = fecha === fechaActual && hora.slice(0, 5) <= horaActual;
-            const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
-
-            // Si la fecha/hora cambió a futuro, resetear alerta_emitida
-            // Si la fecha/hora cambió a pasado, marcar como emitida
-            if (alertaYaPaso) {
-                datosActualizados.alerta_emitida = true;
-            } else {
-                // Si la nueva fecha es futura, resetear la emisión
-                datosActualizados.alerta_emitida = false;
-            }
-        }
-
-        // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar datos originales para rollback
-        const datosOriginales = { ...servicio };
-
-        // Actualizar objeto local inmediatamente
-        Object.assign(servicio, datosActualizados);
-
-        // Actualizar UI inmediatamente
-        if (esEspacio) {
-            renderizarServiciosEspacio(id);
-        } else {
-            const contenedorServicios = document.getElementById(`servicios-${id}`);
-            if (contenedorServicios) {
-                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                // Verificar si el botón de edición está activo antes de renderizar
-                const botonEditar = document.getElementById(`btn-editar-${id}`);
-                const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
-
-                // Actualizar selectores de tareas para todos los servicios del cuarto
-                serviciosCuarto.forEach(servicio => {
-                    const selectorId = `tarea_asignada_edit-${servicio.id}`;
-                    if (window.cargarTareasEnSelector) {
-                        window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
-                    }
-                });
-            }
-        }
-        mostrarAlertasYRecientes();
-
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio actualizado', 'success');
-
+      if (!response.ok) {
+        let errorDetails = `Error ${response.status}`;
         try {
-            console.log('💾 Guardando cambios del servicio:', servicioId, datosActualizados);
-
-            // Obtener headers con autenticación (await porque es async)
-            const headers = await obtenerHeadersConAuth();
-
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
-                method: 'PUT',
-                headers: headers,
-                body: JSON.stringify(datosActualizados)
-            });
-
-            if (!response.ok) {
-                let errorDetails = `Error ${response.status}`;
-                try {
-                    const errorData = await response.json();
-                    errorDetails += `: ${errorData.error || errorData.details || JSON.stringify(errorData)}`;
-                } catch (e) {
-                    const errorText = await response.text();
-                    errorDetails += `: ${errorText}`;
-                }
-                throw new Error(errorDetails);
-            }
-
-            const resultado = await response.json();
-            console.log('✅ Servicio actualizado correctamente en servidor');
-
-            // Recargar datos completos desde la API para obtener nombres de usuarios
-            if (esEspacio) {
-                // Para espacios, recargar y sincronizar datos
-                await window.recargarMantenimientosEspacios();
-                // Actualizar UI con datos frescos
-                renderizarServiciosEspacio(id);
-            } else {
-                // Para cuartos, recargar datos generales
-                await cargarDatos();
-
-                // Actualizar UI con datos frescos
-                const contenedorServiciosActualizado = document.getElementById(`servicios-${id}`);
-                if (contenedorServiciosActualizado) {
-                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                    // Verificar si el botón de edición está activo antes de renderizar
-                    const botonEditar = document.getElementById(`btn-editar-${id}`);
-                    const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
-                    contenedorServiciosActualizado.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
-
-                    // Actualizar selectores de tareas para todos los servicios del cuarto
-                    serviciosCuarto.forEach(servicio => {
-                        const selectorId = `tarea_asignada_edit-${servicio.id}`;
-                        if (window.cargarTareasEnSelector) {
-                            window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
-                        }
-                    });
-                }
-            }
-            mostrarAlertasYRecientes();
-
-            // Actualizar paneles de alertas
-            await mostrarAlertasEmitidas();
-            await mostrarHistorialAlertas();
-
-            // Si es espacio común, actualizar también el panel de alertas de espacios
-            if (esEspacio) {
-                if (window.cargarAlertasEspacios) {
-                    await window.cargarAlertasEspacios();
-                }
-
-                // Si es alerta, verificar si debe emitirse automáticamente
-                if (servicio.tipo === 'rutina' && datosActualizados.dia_alerta && datosActualizados.hora) {
-                    const ahora = new Date();
-                    const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
-                    const horaActual = ahora.toTimeString().slice(0, 5);
-
-                    const fechaAlerta = datosActualizados.dia_alerta;
-                    const horaAlerta = datosActualizados.hora.slice(0, 5);
-
-                    const fechaPasada = fechaAlerta < fechaActual;
-                    const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta <= horaActual;
-                    const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
-
-                    if (alertaYaPaso) {
-                        console.log('⏰ [ESPACIOS] La alerta editada ya pasó, emitiendo automáticamente...');
-                        if (window.marcarAlertasPasadasComoEmitidas) {
-                            await window.marcarAlertasPasadasComoEmitidas();
-                        }
-                        // Actualizar paneles después de marcar como emitida
-                        if (window.cargarAlertasEspacios) {
-                            await window.cargarAlertasEspacios();
-                        }
-                    }
-                }
-            }
-
-            // 🎯 NUEVO: Verificar y actualizar estado de tarea si el servicio está asignado a una
-            if (datosActualizados.tarea_id && typeof window.verificarYActualizarTareaIndividual === 'function') {
-                console.log(`🔄 Verificando tarea ${datosActualizados.tarea_id} después de actualizar servicio...`);
-                await window.verificarYActualizarTareaIndividual(datosActualizados.tarea_id);
-            }
-
-            // También verificar si se DESASIGNÓ de una tarea (tarea_id cambió de una tarea a otra o a null)
-            if (datosOriginales.tarea_id && datosOriginales.tarea_id !== datosActualizados.tarea_id) {
-                if (typeof window.verificarYActualizarTareaIndividual === 'function') {
-                    console.log(`🔄 Verificando tarea anterior ${datosOriginales.tarea_id} después de reasignar servicio...`);
-                    await window.verificarYActualizarTareaIndividual(datosOriginales.tarea_id);
-                }
-            }
-
-        } catch (error) {
-            console.error('❌ Error actualizando servicio:', error);
-
-            // ⚡ ROLLBACK: Restaurar datos originales
-            Object.assign(servicio, datosOriginales);
-
-            // Actualizar UI para reflejar el rollback
-            if (esEspacio) {
-                renderizarServiciosEspacio(id);
-            } else {
-                if (contenedorServicios) {
-                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                    // Verificar si el botón de edición está activo antes de renderizar
-                    const botonEditar = document.getElementById(`btn-editar-${id}`);
-                    const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
-                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
-                }
-            }
-            mostrarAlertasYRecientes();
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al actualizar: ' + error.message, 'error');
+          const errorData = await response.json();
+          errorDetails += `: ${errorData.error || errorData.details || JSON.stringify(errorData)}`;
+        } catch (e) {
+          const errorText = await response.text();
+          errorDetails += `: ${errorText}`;
         }
-    };
+        throw new Error(errorDetails);
+      }
 
-    /**
-     * Eliminar servicio inline (desde la vista de edición)
-     */
-    window.eliminarServicioInline = async function (servicioId, id, esEspacio = false) {
-        if (!window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')) {
-            return;
+      const resultado = await response.json();
+      console.log('✅ Servicio actualizado correctamente en servidor');
+
+      // Recargar datos completos desde la API para obtener nombres de usuarios
+      if (esEspacio) {
+        // Para espacios, recargar y sincronizar datos
+        await window.recargarMantenimientosEspacios();
+        // Actualizar UI con datos frescos
+        renderizarServiciosEspacio(id);
+      } else {
+        // Para cuartos, recargar datos generales
+        await cargarDatos();
+
+        // Actualizar UI con datos frescos
+        const contenedorServiciosActualizado = document.getElementById(
+          `servicios-${id}`
+        );
+        if (contenedorServiciosActualizado) {
+          const serviciosCuarto = mantenimientos.filter(
+            (m) => m.cuarto_id === id
+          );
+          // Verificar si el botón de edición está activo antes de renderizar
+          const botonEditar = document.getElementById(`btn-editar-${id}`);
+          const enModoEdicion =
+            botonEditar &&
+            botonEditar.classList.contains('modo-edicion-activo');
+          contenedorServiciosActualizado.innerHTML = generarServiciosHTML(
+            serviciosCuarto,
+            id,
+            enModoEdicion
+          );
+
+          // Actualizar selectores de tareas para todos los servicios del cuarto
+          serviciosCuarto.forEach((servicio) => {
+            const selectorId = `tarea_asignada_edit-${servicio.id}`;
+            if (window.cargarTareasEnSelector) {
+              window.cargarTareasEnSelector(selectorId, servicio.tarea_id);
+            }
+          });
+        }
+      }
+      mostrarAlertasYRecientes();
+
+      // Actualizar paneles de alertas
+      await mostrarAlertasEmitidas();
+      await mostrarHistorialAlertas();
+
+      // Si es espacio común, actualizar también el panel de alertas de espacios
+      if (esEspacio) {
+        if (window.cargarAlertasEspacios) {
+          await window.cargarAlertasEspacios();
         }
 
-        const listaMantenimientos = esEspacio ? window.appLoaderState.mantenimientosEspacios : mantenimientos;
+        // Si es alerta, verificar si debe emitirse automáticamente
+        if (
+          servicio.tipo === 'rutina' &&
+          datosActualizados.dia_alerta &&
+          datosActualizados.hora
+        ) {
+          const ahora = new Date();
+          const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+          const horaActual = ahora.toTimeString().slice(0, 5);
 
-        // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
-        const servicioIndex = listaMantenimientos.findIndex(m => m.id === servicioId);
-        if (servicioIndex === -1) return;
+          const fechaAlerta = datosActualizados.dia_alerta;
+          const horaAlerta = datosActualizados.hora.slice(0, 5);
 
-        const servicioEliminado = listaMantenimientos[servicioIndex];
+          const fechaPasada = fechaAlerta < fechaActual;
+          const mismaFechaHoraPasada =
+            fechaAlerta === fechaActual && horaAlerta <= horaActual;
+          const alertaYaPaso = fechaPasada || mismaFechaHoraPasada;
 
-        // Eliminar del array local inmediatamente
-        listaMantenimientos.splice(servicioIndex, 1);
-
-        // Actualizar UI inmediatamente
-        if (esEspacio) {
-            renderizarServiciosEspacio(id);
-        } else {
-            const contenedorServicios = document.getElementById(`servicios-${id}`);
-            const botonEditar = document.getElementById(`btn-editar-${id}`);
-            const enModoEdicion = botonEditar && botonEditar.classList.contains('modo-edicion-activo');
-
-            if (contenedorServicios) {
-                const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
-
-                if (serviciosCuarto.length === 0 && botonEditar) {
-                    // Salir del modo edición
-                    botonEditar.classList.remove('modo-edicion-activo');
-                    botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
-
-                    // Ocultar el selector de estado
-                    const contenedorEditarEstadoInline = document.getElementById(`estado-selector-inline-id-${id}`);
-                    if (contenedorEditarEstadoInline) {
-                        contenedorEditarEstadoInline.style.display = "none";
-                    }
-                }
-            }
-        }
-        mostrarAlertasYRecientes();
-
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
-
-        try {
-            console.log('🗑️ Eliminando servicio inline:', servicioId);
-
-            const response = await fetch(`${API_BASE_URL}/api/mantenimientos/${servicioId}`, {
-                method: 'DELETE'
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}`);
-            }
-
-            console.log('✅ Servicio eliminado correctamente en servidor');
-
-        } catch (error) {
-            console.error('❌ Error eliminando servicio:', error);
-
-            // ⚡ ROLLBACK: Restaurar servicio eliminado
-            listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
-
-            // Actualizar UI para reflejar el rollback
-            if (esEspacio) {
-                renderizarServiciosEspacio(id);
-            } else {
-                if (contenedorServicios) {
-                    const serviciosCuarto = mantenimientos.filter(m => m.cuarto_id === id);
-                    contenedorServicios.innerHTML = generarServiciosHTML(serviciosCuarto, id, enModoEdicion);
-                }
-            }
-            mostrarAlertasYRecientes();
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('❌ Error al eliminar: ' + error.message, 'error');
-        }
-    };
-
-
-
-    /**
-     * Seleccionar estado usando pills (función global llamada desde el HTML)
-     */
-    window.seleccionarEstadoPill = async function (pillElement, nuevoEstado) {
-        const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
-        const cuartoId = selectCuarto ? parseInt(selectCuarto.value) : null;
-
-        if (!cuartoId) {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('⚠️ Selecciona primero un cuarto', 'warning');
-            return;
-        }
-
-        try {
-            console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
-
-            const response = await fetch(`${API_BASE_URL}/api/cuartos/${cuartoId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ estado: nuevoEstado })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Error ${response.status}: ${response.statusText}`);
-            }
-
-            const resultado = await response.json();
-            console.log('✅ Estado actualizado:', resultado);
-
-            // Actualizar el cuarto en el array local
-            const cuarto = cuartos.find(c => c.id === cuartoId);
-            if (cuarto) {
-                cuarto.estado = nuevoEstado;
-            }
-
-            // Actualizar hidden input
-            const estadoSelector = document.getElementById('estadoCuartoSelector');
-            if (estadoSelector) {
-                estadoSelector.value = nuevoEstado;
-            }
-
-            // Actualizar UI de los pills
-            const pills = document.querySelectorAll('.estado-pill');
-            pills.forEach(pill => pill.classList.remove('activo'));
-            pillElement.classList.add('activo');
-
-            // Actualizar solo el badge de estado de la card específica
-            if (window.actualizarEstadoBadgeCard) {
-                window.actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
-            } else {
-                // Fallback: recargar todas las cards si la función no está disponible
-                renderHabitacionesUI('estado-actualizado');
-            }
-
-            // Mapeo de estados a emojis para el mensaje
-            const estadoEmojis = {
-                'disponible': '🟢',
-                'ocupado': '🔵',
-                'mantenimiento': '🟡',
-                'fuera_servicio': '🔴'
-            };
-
-            const estadoLabels = {
-                'disponible': 'Disponible',
-                'ocupado': 'Ocupado',
-                'mantenimiento': 'Mantenimiento',
-                'fuera_servicio': 'Fuera de servicio'
-            };
-
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(
-                `${estadoEmojis[nuevoEstado]} Estado actualizado: ${estadoLabels[nuevoEstado]}`,
-                'success'
+          if (alertaYaPaso) {
+            console.log(
+              '⏰ [ESPACIOS] La alerta editada ya pasó, emitiendo automáticamente...'
             );
-
-        } catch (error) {
-            console.error('❌ Error actualizando estado:', error);
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Error al actualizar estado: ' + error.message, 'error');
-
-            // Revertir el selector al estado anterior
-            actualizarSelectorEstado(cuartoId);
+            if (window.marcarAlertasPasadasComoEmitidas) {
+              await window.marcarAlertasPasadasComoEmitidas();
+            }
+            // Actualizar paneles después de marcar como emitida
+            if (window.cargarAlertasEspacios) {
+              await window.cargarAlertasEspacios();
+            }
+          }
         }
-    };
+      }
 
-    /**
-     * Actualizar estado del cuarto (compatibilidad con select tradicional si se usa)
-     */
-    window.actualizarEstadoCuarto = async function (selectElement) {
-        const nuevoEstado = selectElement.value;
-        if (!nuevoEstado) return;
+      // 🎯 NUEVO: Verificar y actualizar estado de tarea si el servicio está asignado a una
+      if (
+        datosActualizados.tarea_id &&
+        typeof window.verificarYActualizarTareaIndividual === 'function'
+      ) {
+        console.log(
+          `🔄 Verificando tarea ${datosActualizados.tarea_id} después de actualizar servicio...`
+        );
+        await window.verificarYActualizarTareaIndividual(
+          datosActualizados.tarea_id
+        );
+      }
 
-        // Buscar el pill correspondiente y simular click
-        const pill = document.querySelector(`.estado-pill[data-estado="${nuevoEstado}"]`);
-        if (pill) {
-            await window.seleccionarEstadoPill(pill, nuevoEstado);
+      // También verificar si se DESASIGNÓ de una tarea (tarea_id cambió de una tarea a otra o a null)
+      if (
+        datosOriginales.tarea_id &&
+        datosOriginales.tarea_id !== datosActualizados.tarea_id
+      ) {
+        if (typeof window.verificarYActualizarTareaIndividual === 'function') {
+          console.log(
+            `🔄 Verificando tarea anterior ${datosOriginales.tarea_id} después de reasignar servicio...`
+          );
+          await window.verificarYActualizarTareaIndividual(
+            datosOriginales.tarea_id
+          );
         }
-    };
+      }
+    } catch (error) {
+      console.error('❌ Error actualizando servicio:', error);
 
-    /**
-     * ========================================
-     * FUNCIONES PARA ESPACIOS COMUNES
-     * ========================================
-     */
+      // ⚡ ROLLBACK: Restaurar datos originales
+      Object.assign(servicio, datosOriginales);
 
-    // Funciones cargo desde el archivo app-loader-espacios-comunes.js
-    // Exponer funciones necesarias para app-loader-espacios-comunes.js
+      // Actualizar UI para reflejar el rollback
+      if (esEspacio) {
+        renderizarServiciosEspacio(id);
+      } else {
+        if (contenedorServicios) {
+          const serviciosCuarto = mantenimientos.filter(
+            (m) => m.cuarto_id === id
+          );
+          // Verificar si el botón de edición está activo antes de renderizar
+          const botonEditar = document.getElementById(`btn-editar-${id}`);
+          const enModoEdicion =
+            botonEditar &&
+            botonEditar.classList.contains('modo-edicion-activo');
+          contenedorServicios.innerHTML = generarServiciosHTML(
+            serviciosCuarto,
+            id,
+            enModoEdicion
+          );
+        }
+      }
+      mostrarAlertasYRecientes();
 
-    /**
-     * ========================================
-     * FIN FUNCIONES ESPACIOS COMUNES
-     * ========================================
-     */
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          '❌ Error al actualizar: ' + error.message,
+          'error'
+        );
+    }
+  };
 
-    // Exponer funciones necesarias para app-loader-habitaciones.js
-    window.API_BASE_URL = API_BASE_URL;
-    window.generarServiciosHTML = generarServiciosHTML;
-    window.escapeHtml = escapeHtml;
-    window.obtenerHeadersConAuth = obtenerHeadersConAuth;
-    window.formatearFecha = formatearFecha;
-    window.formatearFechaCompleta = formatearFechaCompleta;
-    window.formatearFechaCorta = formatearFechaCorta;
-    window.formatearHora = formatearHora;
-    window.formatearDiaAlerta = formatearDiaAlerta;
-    window.mostrarMensaje = mostrarMensaje;
-    window.cargarDatos = cargarDatos;
-    window.mostrarAlertasYRecientes = mostrarAlertasYRecientes;
-    window.marcarAlertasPasadasComoEmitidas = marcarAlertasPasadasComoEmitidas;
-    window.verificarYEmitirAlertasPasadasFrontend = verificarYEmitirAlertasPasadasFrontend;
-    window.cargarCuartosEnSelect = cargarCuartosEnSelect;
-    window.renderHabitacionesUI = renderHabitacionesUI;
-    window.mostrarAlertasEmitidas = mostrarAlertasEmitidas;
-    window.mostrarHistorialAlertas = mostrarHistorialAlertas;
-    window.verificarYEmitirAlertas = verificarYEmitirAlertas;
-    window.actualizarSelectorEstado = actualizarSelectorEstado;
-    console.log('✅ Funciones auxiliares exportadas a window para módulos externos');
+  /**
+   * Eliminar servicio inline (desde la vista de edición)
+   */
+  window.eliminarServicioInline = async function (
+    servicioId,
+    id,
+    esEspacio = false
+  ) {
+    if (
+      !window.electronSafeConfirm('¿Está seguro de eliminar este servicio?')
+    ) {
+      return;
+    }
 
-    console.log('App Loader cargado - JW Mantto v1.3 con Edición Inline Completa Modular completo pendiente');
+    const listaMantenimientos = esEspacio
+      ? window.appLoaderState.mantenimientosEspacios
+      : mantenimientos;
 
+    // ⚡ ACTUALIZACIÓN OPTIMISTA: Guardar referencia para rollback
+    const servicioIndex = listaMantenimientos.findIndex(
+      (m) => m.id === servicioId
+    );
+    if (servicioIndex === -1) return;
+
+    const servicioEliminado = listaMantenimientos[servicioIndex];
+
+    // Eliminar del array local inmediatamente
+    listaMantenimientos.splice(servicioIndex, 1);
+
+    // Actualizar UI inmediatamente
+    if (esEspacio) {
+      renderizarServiciosEspacio(id);
+    } else {
+      const contenedorServicios = document.getElementById(`servicios-${id}`);
+      const botonEditar = document.getElementById(`btn-editar-${id}`);
+      const enModoEdicion =
+        botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+
+      if (contenedorServicios) {
+        const serviciosCuarto = mantenimientos.filter(
+          (m) => m.cuarto_id === id
+        );
+        contenedorServicios.innerHTML = generarServiciosHTML(
+          serviciosCuarto,
+          id,
+          enModoEdicion
+        );
+
+        if (serviciosCuarto.length === 0 && botonEditar) {
+          // Salir del modo edición
+          botonEditar.classList.remove('modo-edicion-activo');
+          botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+          // Ocultar el selector de estado
+          const contenedorEditarEstadoInline = document.getElementById(
+            `estado-selector-inline-id-${id}`
+          );
+          if (contenedorEditarEstadoInline) {
+            contenedorEditarEstadoInline.style.display = 'none';
+          }
+        }
+      }
+    }
+    mostrarAlertasYRecientes();
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('✨ Servicio eliminado', 'success');
+
+    try {
+      console.log('🗑️ Eliminando servicio inline:', servicioId);
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/mantenimientos/${servicioId}`,
+        {
+          method: 'DELETE',
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}`);
+      }
+
+      console.log('✅ Servicio eliminado correctamente en servidor');
+    } catch (error) {
+      console.error('❌ Error eliminando servicio:', error);
+
+      // ⚡ ROLLBACK: Restaurar servicio eliminado
+      listaMantenimientos.splice(servicioIndex, 0, servicioEliminado);
+
+      // Actualizar UI para reflejar el rollback
+      if (esEspacio) {
+        renderizarServiciosEspacio(id);
+      } else {
+        if (contenedorServicios) {
+          const serviciosCuarto = mantenimientos.filter(
+            (m) => m.cuarto_id === id
+          );
+          contenedorServicios.innerHTML = generarServiciosHTML(
+            serviciosCuarto,
+            id,
+            enModoEdicion
+          );
+        }
+      }
+      mostrarAlertasYRecientes();
+
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          '❌ Error al eliminar: ' + error.message,
+          'error'
+        );
+    }
+  };
+
+  /**
+   * Seleccionar estado usando pills (función global llamada desde el HTML)
+   */
+  window.seleccionarEstadoPill = async function (pillElement, nuevoEstado) {
+    const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
+    const cuartoId = selectCuarto ? parseInt(selectCuarto.value) : null;
+
+    if (!cuartoId) {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('⚠️ Selecciona primero un cuarto', 'warning');
+      return;
+    }
+
+    try {
+      console.log(
+        `🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`
+      );
+
+      const response = await fetch(`${API_BASE_URL}/api/cuartos/${cuartoId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ estado: nuevoEstado }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+
+      const resultado = await response.json();
+      console.log('✅ Estado actualizado:', resultado);
+
+      // Actualizar el cuarto en el array local
+      const cuarto = cuartos.find((c) => c.id === cuartoId);
+      if (cuarto) {
+        cuarto.estado = nuevoEstado;
+      }
+
+      // Actualizar hidden input
+      const estadoSelector = document.getElementById('estadoCuartoSelector');
+      if (estadoSelector) {
+        estadoSelector.value = nuevoEstado;
+      }
+
+      // Actualizar UI de los pills
+      const pills = document.querySelectorAll('.estado-pill');
+      pills.forEach((pill) => pill.classList.remove('activo'));
+      pillElement.classList.add('activo');
+
+      // Actualizar solo el badge de estado de la card específica
+      if (window.actualizarEstadoBadgeCard) {
+        window.actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
+      } else {
+        // Fallback: recargar todas las cards si la función no está disponible
+        renderHabitacionesUI('estado-actualizado');
+      }
+
+      // Mapeo de estados a emojis para el mensaje
+      const estadoEmojis = {
+        disponible: '🟢',
+        ocupado: '🔵',
+        mantenimiento: '🟡',
+        fuera_servicio: '🔴',
+      };
+
+      const estadoLabels = {
+        disponible: 'Disponible',
+        ocupado: 'Ocupado',
+        mantenimiento: 'Mantenimiento',
+        fuera_servicio: 'Fuera de servicio',
+      };
+
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          `${estadoEmojis[nuevoEstado]} Estado actualizado: ${estadoLabels[nuevoEstado]}`,
+          'success'
+        );
+    } catch (error) {
+      console.error('❌ Error actualizando estado:', error);
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          'Error al actualizar estado: ' + error.message,
+          'error'
+        );
+
+      // Revertir el selector al estado anterior
+      actualizarSelectorEstado(cuartoId);
+    }
+  };
+
+  /**
+   * Actualizar estado del cuarto (compatibilidad con select tradicional si se usa)
+   */
+  window.actualizarEstadoCuarto = async function (selectElement) {
+    const nuevoEstado = selectElement.value;
+    if (!nuevoEstado) return;
+
+    // Buscar el pill correspondiente y simular click
+    const pill = document.querySelector(
+      `.estado-pill[data-estado="${nuevoEstado}"]`
+    );
+    if (pill) {
+      await window.seleccionarEstadoPill(pill, nuevoEstado);
+    }
+  };
+
+  /**
+   * ========================================
+   * FUNCIONES PARA ESPACIOS COMUNES
+   * ========================================
+   */
+
+  // Funciones cargo desde el archivo app-loader-espacios-comunes.js
+  // Exponer funciones necesarias para app-loader-espacios-comunes.js
+
+  /**
+   * ========================================
+   * FIN FUNCIONES ESPACIOS COMUNES
+   * ========================================
+   */
+
+  // Exponer funciones necesarias para app-loader-habitaciones.js
+  window.API_BASE_URL = API_BASE_URL;
+  window.generarServiciosHTML = generarServiciosHTML;
+  window.escapeHtml = escapeHtml;
+  window.obtenerHeadersConAuth = obtenerHeadersConAuth;
+  window.formatearFecha = formatearFecha;
+  window.formatearFechaCompleta = formatearFechaCompleta;
+  window.formatearFechaCorta = formatearFechaCorta;
+  window.formatearHora = formatearHora;
+  window.formatearDiaAlerta = formatearDiaAlerta;
+  window.mostrarMensaje = mostrarMensaje;
+  window.cargarDatos = cargarDatos;
+  window.mostrarAlertasYRecientes = mostrarAlertasYRecientes;
+  window.marcarAlertasPasadasComoEmitidas = marcarAlertasPasadasComoEmitidas;
+  window.verificarYEmitirAlertasPasadasFrontend =
+    verificarYEmitirAlertasPasadasFrontend;
+  window.cargarCuartosEnSelect = cargarCuartosEnSelect;
+  window.renderHabitacionesUI = renderHabitacionesUI;
+  window.mostrarAlertasEmitidas = mostrarAlertasEmitidas;
+  window.mostrarHistorialAlertas = mostrarHistorialAlertas;
+  window.verificarYEmitirAlertas = verificarYEmitirAlertas;
+  window.actualizarSelectorEstado = actualizarSelectorEstado;
+  console.log(
+    '✅ Funciones auxiliares exportadas a window para módulos externos'
+  );
+
+  console.log(
+    'App Loader cargado - JW Mantto v1.3 con Edición Inline Completa Modular completo pendiente'
+  );
 })();
-

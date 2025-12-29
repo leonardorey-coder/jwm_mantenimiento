@@ -139,30 +139,30 @@ USUARIO REGISTRA MANTENIMIENTO
 
 ### Mantenimientos
 
-| Método | Endpoint | Frontend | API | BD Method |
-|--------|----------|----------|-----|-----------|
-| 🔍 GET | `/api/mantenimientos` | `fetch()` | `router.get('/')` | `getMantenimientos()` |
-| 🔍 GET | `/api/mantenimientos/:id` | `fetch()` | `router.get('/:id')` | `getMantenimientoById()` |
-| ➕ POST | `/api/mantenimientos` | `fetch({method:'POST'})` | `router.post('/')` | `insertMantenimiento()` |
-| ✏️ PUT | `/api/mantenimientos/:id` | `fetch({method:'PUT'})` | `router.put('/:id')` | `updateMantenimiento()` |
-| 🔔 PATCH | `/api/mantenimientos/:id/emitir` | `fetch({method:'PATCH'})` | `router.patch('/:id/emitir')` | `marcarAlertaEmitida()` |
-| 🗑️ DELETE | `/api/mantenimientos/:id` | `fetch({method:'DELETE'})` | `router.delete('/:id')` | `deleteMantenimiento()` |
+| Método    | Endpoint                         | Frontend                   | API                           | BD Method                |
+| --------- | -------------------------------- | -------------------------- | ----------------------------- | ------------------------ |
+| 🔍 GET    | `/api/mantenimientos`            | `fetch()`                  | `router.get('/')`             | `getMantenimientos()`    |
+| 🔍 GET    | `/api/mantenimientos/:id`        | `fetch()`                  | `router.get('/:id')`          | `getMantenimientoById()` |
+| ➕ POST   | `/api/mantenimientos`            | `fetch({method:'POST'})`   | `router.post('/')`            | `insertMantenimiento()`  |
+| ✏️ PUT    | `/api/mantenimientos/:id`        | `fetch({method:'PUT'})`    | `router.put('/:id')`          | `updateMantenimiento()`  |
+| 🔔 PATCH  | `/api/mantenimientos/:id/emitir` | `fetch({method:'PATCH'})`  | `router.patch('/:id/emitir')` | `marcarAlertaEmitida()`  |
+| 🗑️ DELETE | `/api/mantenimientos/:id`        | `fetch({method:'DELETE'})` | `router.delete('/:id')`       | `deleteMantenimiento()`  |
 
 ### Cuartos
 
-| Método | Endpoint | BD Method |
-|--------|----------|-----------|
-| 🔍 GET | `/api/cuartos` | `getCuartos()` |
-| 🔍 GET | `/api/cuartos/:id` | `getCuartoById()` |
-| ➕ POST | `/api/cuartos` | `createCuarto()` |
-| ✏️ PUT | `/api/cuartos/:id` | `updateCuarto()` |
-| 🗑️ DELETE | `/api/cuartos/:id` | `deleteCuarto()` |
+| Método    | Endpoint           | BD Method         |
+| --------- | ------------------ | ----------------- |
+| 🔍 GET    | `/api/cuartos`     | `getCuartos()`    |
+| 🔍 GET    | `/api/cuartos/:id` | `getCuartoById()` |
+| ➕ POST   | `/api/cuartos`     | `createCuarto()`  |
+| ✏️ PUT    | `/api/cuartos/:id` | `updateCuarto()`  |
+| 🗑️ DELETE | `/api/cuartos/:id` | `deleteCuarto()`  |
 
 ### Edificios
 
-| Método | Endpoint | BD Method |
-|--------|----------|-----------|
-| 🔍 GET | `/api/edificios` | `getEdificios()` |
+| Método | Endpoint             | BD Method           |
+| ------ | -------------------- | ------------------- |
+| 🔍 GET | `/api/edificios`     | `getEdificios()`    |
 | 🔍 GET | `/api/edificios/:id` | `getEdificioById()` |
 
 ---
@@ -186,15 +186,15 @@ await pool.query(query, values);
 ```javascript
 // En api/mantenimientos.js
 if (!cuarto_id || !descripcion) {
-    return res.status(400).json({ 
-        error: 'Faltan campos obligatorios' 
-    });
+  return res.status(400).json({
+    error: 'Faltan campos obligatorios',
+  });
 }
 
 if (tipo === 'rutina' && !hora) {
-    return res.status(400).json({ 
-        error: 'La hora es obligatoria para rutinas' 
-    });
+  return res.status(400).json({
+    error: 'La hora es obligatoria para rutinas',
+  });
 }
 ```
 
@@ -311,38 +311,43 @@ Fácil de mantener ✅
 ## 🎓 Conceptos Clave Aplicados
 
 ### 1. Arquitectura en Capas (Layered Architecture)
+
 - ✅ Presentación (Frontend)
 - ✅ Lógica de Negocio (APIs)
 - ✅ Acceso a Datos (Database Manager)
 - ✅ Persistencia (PostgreSQL)
 
 ### 2. REST API Principles
+
 - ✅ Recursos identificados por URLs
 - ✅ Métodos HTTP estándar (GET, POST, PUT, DELETE)
 - ✅ Respuestas con códigos de estado apropiados
 - ✅ Formato JSON para datos
 
 ### 3. Separación de Responsabilidades (SoC)
+
 - ✅ Cada módulo tiene un propósito único
 - ✅ Bajo acoplamiento entre capas
 - ✅ Alta cohesión dentro de módulos
 
 ### 4. Inyección de Dependencias
+
 ```javascript
 // La API recibe dbManager como parámetro
 module.exports = (dbManager) => {
-    router.post('/', async (req, res) => {
-        await dbManager.insertMantenimiento(data);
-    });
+  router.post('/', async (req, res) => {
+    await dbManager.insertMantenimiento(data);
+  });
 };
 ```
 
 ### 5. Async/Await Pattern
+
 ```javascript
 // Código síncrono en apariencia, asíncrono en ejecución
 async function crear() {
-    const resultado = await dbManager.insert(data);
-    return resultado;
+  const resultado = await dbManager.insert(data);
+  return resultado;
 }
 ```
 
@@ -362,13 +367,13 @@ async function crearMantenimiento() {
         descripcion: "Reparar aire acondicionado",
         tipo: "normal"
     };
-    
+
     const response = await fetch('http://localhost:3001/api/mantenimientos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(datos)
     });
-    
+
     const nuevo = await response.json();
     console.log('Creado:', nuevo);
     return nuevo;
@@ -379,22 +384,22 @@ async function crearMantenimiento() {
 // ========================================
 router.post('/', async (req, res) => {
     const { cuarto_id, descripcion, tipo } = req.body;
-    
+
     // Validar
     if (!cuarto_id || !descripcion) {
         return res.status(400).json({ error: 'Faltan campos' });
     }
-    
+
     // Preparar
     const data = {
         cuarto_id: parseInt(cuarto_id),
         descripcion,
         tipo: tipo || 'normal'
     };
-    
+
     // Insertar
     const nuevo = await dbManager.insertMantenimiento(data);
-    
+
     // Responder
     res.status(201).json(nuevo);
 });
@@ -408,11 +413,11 @@ async insertMantenimiento(data) {
         VALUES ($1, $2, $3)
         RETURNING *
     `;
-    
+
     const values = [data.cuarto_id, data.descripcion, data.tipo];
-    
+
     const result = await this.pool.query(query, values);
-    
+
     return result.rows[0];
 }
 
@@ -448,21 +453,22 @@ RETURNING *;
 ## 🚀 Resultado Final
 
 ### Antes
+
 ❌ Código monolítico  
 ❌ Todo en un archivo  
 ❌ Difícil de mantener  
-❌ Difícil de escalar  
+❌ Difícil de escalar
 
 ### Después
+
 ✅ Arquitectura modular  
 ✅ Separación por recursos  
 ✅ Fácil de mantener  
 ✅ Fácil de escalar  
-✅ Preparado para crecimiento  
+✅ Preparado para crecimiento
 
 ---
 
 **Documento creado para fines académicos**  
 **Proyecto:** JW Mantto - Sistema de Mantenimiento Hotelero  
 **Fecha:** Noviembre 2025
-

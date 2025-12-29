@@ -5,6 +5,7 @@
 El módulo de **Login** gestiona la autenticación de usuarios en el sistema SGSOM (Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y Espacios Comunes) del JW Marriott Los Cabos.
 
 ### Características principales:
+
 - Autenticación JWT (JSON Web Tokens)
 - Manejo de sesiones con refresh tokens
 - Protección contra intentos fallidos (bloqueo después de 5 intentos)
@@ -53,18 +54,22 @@ graph TD
 ## 4. API Endpoints
 
 ### 4.1 Login
+
 ```
 POST /api/auth/login
 ```
+
 **Request Body:**
+
 ```json
 {
-    "email": "usuario@jwmarriott.com",
-    "password": "contraseña123"
+  "email": "usuario@jwmarriott.com",
+  "password": "contraseña123"
 }
 ```
 
 **Response (200 OK):**
+
 ```json
 {
     "success": true,
@@ -91,76 +96,91 @@ POST /api/auth/login
 ```
 
 ### 4.2 Logout
+
 ```
 POST /api/auth/logout
 Authorization: Bearer <token>
 ```
 
 ### 4.3 Refresh Token
+
 ```
 POST /api/auth/refresh
 ```
+
 **Request Body:**
+
 ```json
 {
-    "refreshToken": "abc123..."
+  "refreshToken": "abc123..."
 }
 ```
 
 ### 4.4 Información del Usuario
+
 ```
 GET /api/auth/me
 Authorization: Bearer <token>
 ```
 
 ### 4.5 Contacto del Administrador
+
 ```
 GET /api/auth/contacto-admin
 ```
 
 ### 4.6 Solicitar Acceso
+
 ```
 POST /api/auth/solicitar-acceso
 ```
+
 **Request Body:**
+
 ```json
 {
-    "nombre": "Nombre Completo",
-    "email": "correo@ejemplo.com",
-    "telefono": "+52 624 XXX XXXX",
-    "departamento": "Departamento",
-    "motivo": "Descripción del motivo"
+  "nombre": "Nombre Completo",
+  "email": "correo@ejemplo.com",
+  "telefono": "+52 624 XXX XXXX",
+  "departamento": "Departamento",
+  "motivo": "Descripción del motivo"
 }
 ```
 
 ### 4.7 Cambio de Contraseña Obligatorio
+
 ```
 POST /api/auth/cambiar-password-obligatorio
 Authorization: Bearer <token>
 ```
+
 **Request Body:**
+
 ```json
 {
-    "passwordActual": "contraseña123",
-    "nuevoPassword": "nuevaContraseña456",
-    "confirmarPassword": "nuevaContraseña456"
+  "passwordActual": "contraseña123",
+  "nuevoPassword": "nuevaContraseña456",
+  "confirmarPassword": "nuevaContraseña456"
 }
 ```
 
 ## 5. Componentes Frontend
 
 ### 5.1 Formulario de Login
+
 - Campo email con validación
 - Campo contraseña con toggle de visibilidad
 - Checkbox "Recordarme" (usa localStorage vs sessionStorage)
 - Link "¿Olvidaste tu contraseña?"
 
 ### 5.2 Modal de Recuperación de Contraseña
+
 - Formulario para solicitar acceso al administrador
 - Campos: nombre, correo, teléfono (opcional), comentarios
 - Muestra información de contacto del administrador
 
 ### 5.3 Modal de Cambio de Contraseña Obligatorio
+
 - Se muestra cuando `requiere_cambio_password = true`
 - Campos: contraseña actual, nueva contraseña, confirmar contraseña
 - Validación de mínimo 8 caracteres
@@ -169,6 +189,7 @@ Authorization: Bearer <token>
 ## 6. Seguridad
 
 ### 6.1 Configuración JWT
+
 ```javascript
 const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRATION = '8h';
@@ -176,6 +197,7 @@ const REFRESH_TOKEN_EXPIRATION = '7d';
 ```
 
 ### 6.2 Protecciones Implementadas
+
 - **Hash de contraseñas**: Función `hashear_password()` en PostgreSQL
 - **Verificación**: Función `verificar_password()` en PostgreSQL
 - **Intentos fallidos**: Máximo 5 intentos antes de bloqueo
@@ -184,6 +206,7 @@ const REFRESH_TOKEN_EXPIRATION = '7d';
 - **Sesiones**: Registro en tabla `sesiones_usuarios` con información del dispositivo
 
 ### 6.3 Información del Dispositivo Capturada
+
 - IP del cliente
 - User-Agent
 - Tipo de dispositivo (Desktop/Mobile/Tablet)
@@ -193,12 +216,15 @@ const REFRESH_TOKEN_EXPIRATION = '7d';
 ## 7. Almacenamiento de Datos
 
 ### 7.1 IndexedDB (Primary)
+
 - Tokens de acceso y refresh
 - Información del usuario
 - Configuración de sesión
 
 ### 7.2 localStorage/sessionStorage (Fallback)
+
 Claves utilizadas:
+
 - `accessToken`
 - `refreshToken`
 - `tokenExpiration`
@@ -210,27 +236,30 @@ Claves utilizadas:
 ## 8. Roles y Permisos
 
 ### 8.1 Roles del Sistema
-| Rol | Descripción |
-|-----|-------------|
-| ADMIN | Acceso completo al sistema |
+
+| Rol        | Descripción                           |
+| ---------- | ------------------------------------- |
+| ADMIN      | Acceso completo al sistema            |
 | SUPERVISOR | Supervisión de operaciones y personal |
-| TECNICO | Operaciones de mantenimiento |
+| TECNICO    | Operaciones de mantenimiento          |
 
 ### 8.2 Middleware de Autorización
+
 ```javascript
 // Verificar autenticación
-verificarAutenticacion(req, res, next)
+verificarAutenticacion(req, res, next);
 
 // Solo administradores
-verificarAdmin(req, res, next)
+verificarAdmin(req, res, next);
 
 // Supervisores y administradores
-verificarSupervisor(req, res, next)
+verificarSupervisor(req, res, next);
 ```
 
 ## 9. Base de Datos
 
 ### 9.1 Tablas Relacionadas
+
 - `usuarios`: Información de usuarios
 - `roles`: Definición de roles y permisos
 - `sesiones_usuarios`: Control de sesiones activas
@@ -238,6 +267,7 @@ verificarSupervisor(req, res, next)
 - `historial_passwords`: Historial de contraseñas
 
 ### 9.2 Campos de Usuario Relevantes
+
 ```sql
 usuarios (
     id SERIAL PRIMARY KEY,
@@ -260,15 +290,17 @@ usuarios (
 ## 10. Manejo de Errores
 
 ### 10.1 Códigos de Error HTTP
-| Código | Descripción |
-|--------|-------------|
-| 400 | Datos incompletos o inválidos |
-| 401 | Credenciales inválidas o token expirado |
-| 403 | Usuario inactivo o bloqueado |
-| 404 | Usuario no encontrado |
-| 500 | Error interno del servidor |
+
+| Código | Descripción                             |
+| ------ | --------------------------------------- |
+| 400    | Datos incompletos o inválidos           |
+| 401    | Credenciales inválidas o token expirado |
+| 403    | Usuario inactivo o bloqueado            |
+| 404    | Usuario no encontrado                   |
+| 500    | Error interno del servidor              |
 
 ### 10.2 Mensajes de Error
+
 - "Email y contraseña son requeridos"
 - "Email o contraseña incorrectos"
 - "Usuario bloqueado por múltiples intentos fallidos"
@@ -279,38 +311,48 @@ usuarios (
 ## 11. Funciones Principales (Frontend)
 
 ### 11.1 Inicialización
+
 ```javascript
 async function initializeAuth()
 ```
+
 Verifica tokens existentes y redirige al dashboard si son válidos.
 
 ### 11.2 Peticiones Autenticadas
+
 ```javascript
 async function fetchWithAuth(url, options = {})
 ```
+
 Añade automáticamente el token JWT a las peticiones.
 
 ### 11.3 Refresh de Token
+
 ```javascript
 async function refreshAccessToken()
 ```
+
 Renueva el access token usando el refresh token.
 
 ### 11.4 Limpiar Datos de Autenticación
+
 ```javascript
 function clearAuthData()
 ```
+
 Elimina todos los datos de sesión de storage.
 
 ## 12. Dependencias
 
 ### Backend
+
 - `express`: Framework web
 - `jsonwebtoken`: Manejo de JWT
 - `pg`: Cliente PostgreSQL
 - `cors`: Manejo de CORS
 
 ### Frontend
+
 - Font Awesome 6.5.1 (iconos)
 - IndexedDB API
 - Web Storage API

@@ -107,9 +107,9 @@ psql -U leonardocruz -d jwmantto -f db/backup_jwmantto_2025-11-20_21-47-11.sql
 
 ### Espacios Comunes Actuales
 
-| ID | Nombre | Tipo | Edificio | Capacidad | Horario |
-|----|--------|------|----------|-----------|---------|
-| 6 | Restaurante | Restaurante | Alfa | 100 | 07:00 - 23:00 |
+| ID  | Nombre      | Tipo        | Edificio | Capacidad | Horario       |
+| --- | ----------- | ----------- | -------- | --------- | ------------- |
+| 6   | Restaurante | Restaurante | Alfa     | 100       | 07:00 - 23:00 |
 
 ## 🚀 Comandos Útiles
 
@@ -122,8 +122,8 @@ SELECT id, nombre FROM edificios ORDER BY id;
 ### Listar todos los espacios comunes
 
 ```sql
-SELECT id, nombre, tipo, edificio_id, estado, capacidad 
-FROM espacios_comunes 
+SELECT id, nombre, tipo, edificio_id, estado, capacidad
+FROM espacios_comunes
 ORDER BY id;
 ```
 

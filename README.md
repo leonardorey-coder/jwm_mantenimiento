@@ -121,6 +121,7 @@ Accede en `http://localhost:3001` (o `http://localhost:3000` con Vercel dev). Ve
 ## 📐 Requerimientos del Sistema
 
 ### Funcionales
+
 - CRUD de edificios (nombre único), habitaciones, espacios comunes y mantenimientos.
 - Estados de la habitación y espacios comunes: disponible, ocupado, mantenimiento, fuera de servicio.
 - Tipos de mantenimiento: normal (correctivo) y rutina (preventivo); estados y prioridades.
@@ -128,6 +129,7 @@ Accede en `http://localhost:3001` (o `http://localhost:3000` con Vercel dev). Ve
 - Búsqueda, filtrado y actualización dinámica desde la UI.
 
 ### No funcionales
+
 - PWA instalable con Service Worker (caching, actualización en segundo plano).
 - Operación offline-first con IndexedDB y cola de sincronización.
 - API REST sobre Node.js/Express con CORS y validaciones.
@@ -166,6 +168,7 @@ jwm_mant_cuartos/
 ## 🛠️ Tecnologías
 
 ### Backend
+
 - **Node.js** - Runtime de JavaScript
 - **Express** - Framework web
 - **pg (node-postgres)** - Conector PostgreSQL
@@ -173,6 +176,7 @@ jwm_mant_cuartos/
 - **CORS** - Control de acceso entre orígenes
 
 ### Frontend
+
 - **HTML5 + CSS3 + JavaScript** - Interfaz nativa
 - **Service Worker** - Funcionalidad offline
 - **Cache Storage** - Recursos estáticos
@@ -267,6 +271,7 @@ ngrok http 3001
 - **[Manual Técnico JW Mantto](./Manual%20T%C3%A9cnico%20JW%20Mantto.md)** - Guía completa por módulos (arquitectura, BD, API, offline).
 
 ### 📊 Base de Datos
+
 - **[Esquema BD Completo](./docs/ESQUEMA_BD_COMPLETO.md)** - Documentación detallada del esquema completo v2.0
 - **[Diagrama BD Completo](./docs/DIAGRAMA_BD_COMPLETO.md)** - Diagrama visual de relaciones y estructura
 - **[Diagrama de Clases](./docs/DIAGRAMA_CLASES.md)** - Diseño orientado a objetos del sistema
@@ -275,6 +280,7 @@ ngrok http 3001
 - [Migración IndexedDB](./docs/MIGRACION_INDEXEDDB.md) y [GUIA_RAPIDA_INDEXEDDB](./docs/GUIA_RAPIDA_INDEXEDDB.md) - Detalles de la base local offline
 
 ### 🌐 APIs y Arquitectura
+
 - **[Arquitectura API](./docs/ARQUITECTURA_API.md)** - Documentación de la arquitectura modular
 - **[API Gestión de Estados](./docs/API_GESTION_ESTADOS.md)** - Sistema de estados con colores
 - [Ejemplos Dashboard Colores](./docs/EJEMPLOS_DASHBOARD_COLORES.md) - Ejemplos visuales de dashboard
@@ -307,11 +313,13 @@ lsof -ti:3001 | xargs kill -9
 ## 📝 Changelog
 
 ### v2.0.0 (9 de noviembre de 2025)
+
 - ✅ Migración a **PWA + PostgreSQL**
 - ✅ Modo **offline-first** con **BD local (IndexedDB)** y sincronización diferida
 - ✅ Documentación de setup y migración a PostgreSQL
 
 ### v1.1.0 (26 de octubre de 2025)
+
 - ✅ Migración completa de PHP/MySQL a Node.js/SQLite
 - ✅ API REST completa implementada
 - ✅ Eliminados archivos PHP legacy
@@ -319,6 +327,7 @@ lsof -ti:3001 | xargs kill -9
 - ✅ Modo offline funcional (inicial)
 
 ### v1.0.0
+
 - 🎉 Versión inicial con PHP/MySQL
 
 ## 👥 Contribuir

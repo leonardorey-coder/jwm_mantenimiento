@@ -3,21 +3,23 @@
  * Las variables ahora son referencias directas al estado compartido
  */
 const getState = () => {
-    if (!window.appLoaderState) {
-        console.warn('⚠️ appLoaderState no está disponible, inicializando estado temporal');
-        window.appLoaderState = {
-            cuartos: [],
-            mantenimientos: [],
-            edificios: [],
-            usuarios: [],
-            cuartosFiltradosActual: [],
-            paginaActualCuartos: 1,
-            totalPaginasCuartos: 1,
-            CUARTOS_POR_PAGINA: 10,
-            filtroServicioActual: null // Filtro de búsqueda para servicio específico
-        };
-    }
-    return window.appLoaderState;
+  if (!window.appLoaderState) {
+    console.warn(
+      '⚠️ appLoaderState no está disponible, inicializando estado temporal'
+    );
+    window.appLoaderState = {
+      cuartos: [],
+      mantenimientos: [],
+      edificios: [],
+      usuarios: [],
+      cuartosFiltradosActual: [],
+      paginaActualCuartos: 1,
+      totalPaginasCuartos: 1,
+      CUARTOS_POR_PAGINA: 10,
+      filtroServicioActual: null, // Filtro de búsqueda para servicio específico
+    };
+  }
+  return window.appLoaderState;
 };
 
 /**
@@ -26,8 +28,8 @@ const getState = () => {
  * Desktop (>768px): 10 items por página (2 columnas)
  */
 function getCuartosPorPagina() {
-    const isMobile = window.innerWidth <= 768;
-    return isMobile ? 5 : 10;
+  const isMobile = window.innerWidth <= 768;
+  return isMobile ? 5 : 10;
 }
 
 // Template HTML para skeleton loading
@@ -57,162 +59,171 @@ const SKELETON_TEMPLATE = `
  * Optimizado con Document Fragment para evitar múltiples reflows
  */
 function mostrarSkeletonsIniciales() {
-    const listaCuartos = document.getElementById('listaCuartos');
-    if (!listaCuartos) return;
+  const listaCuartos = document.getElementById('listaCuartos');
+  if (!listaCuartos) return;
 
-    // Usar requestAnimationFrame para optimizar el rendering
-    requestAnimationFrame(() => {
-        listaCuartos.style.display = 'grid';
-        listaCuartos.innerHTML = '';
+  // Usar requestAnimationFrame para optimizar el rendering
+  requestAnimationFrame(() => {
+    listaCuartos.style.display = 'grid';
+    listaCuartos.innerHTML = '';
 
-        // Document Fragment para batch DOM updates (evita reflows múltiples)
-        const fragment = document.createDocumentFragment();
+    // Document Fragment para batch DOM updates (evita reflows múltiples)
+    const fragment = document.createDocumentFragment();
 
-        // Crear solo 4 skeletons para una carga más rápida (mejor percepción de velocidad)
-        for (let i = 0; i < 4; i++) {
-            const li = document.createElement('li');
-            li.className = 'cuarto cuarto-lazy';
-            li.innerHTML = SKELETON_TEMPLATE;
-            fragment.appendChild(li);
-        }
+    // Crear solo 4 skeletons para una carga más rápida (mejor percepción de velocidad)
+    for (let i = 0; i < 4; i++) {
+      const li = document.createElement('li');
+      li.className = 'cuarto cuarto-lazy';
+      li.innerHTML = SKELETON_TEMPLATE;
+      fragment.appendChild(li);
+    }
 
-        // Un solo append = un solo reflow
-        listaCuartos.appendChild(fragment);
-    });
+    // Un solo append = un solo reflow
+    listaCuartos.appendChild(fragment);
+  });
 }
 
 /**
  * Mostrar cuartos en la lista principal con la misma estructura que index.php
  */
 function mostrarCuartos() {
-    console.log('🏠 [HABITACIONES] === MOSTRANDO CUARTOS ===');
-    console.log('🏠 [HABITACIONES] Timestamp:', new Date().toISOString());
+  console.log('🏠 [HABITACIONES] === MOSTRANDO CUARTOS ===');
+  console.log('🏠 [HABITACIONES] Timestamp:', new Date().toISOString());
 
-    // Usar referencias directas al estado compartido
-    const s = getState();
-    const cuartos = s.cuartos;
-    const cuartosFiltradosActual = s.cuartosFiltradosActual;
-    const paginaActualCuartos = s.paginaActualCuartos;
-    const totalPaginasCuartos = s.totalPaginasCuartos;
-    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation based on screen size
-    const mantenimientos = s.mantenimientos;
+  // Usar referencias directas al estado compartido
+  const s = getState();
+  const cuartos = s.cuartos;
+  const cuartosFiltradosActual = s.cuartosFiltradosActual;
+  const paginaActualCuartos = s.paginaActualCuartos;
+  const totalPaginasCuartos = s.totalPaginasCuartos;
+  const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation based on screen size
+  const mantenimientos = s.mantenimientos;
 
-    console.log('🏠 [HABITACIONES] Estado inicial:', {
-        cuartos: cuartos?.length || 0,
-        cuartosFiltradosActual: cuartosFiltradosActual?.length || 0,
-        paginaActualCuartos,
-        CUARTOS_POR_PAGINA
-    });
+  console.log('🏠 [HABITACIONES] Estado inicial:', {
+    cuartos: cuartos?.length || 0,
+    cuartosFiltradosActual: cuartosFiltradosActual?.length || 0,
+    paginaActualCuartos,
+    CUARTOS_POR_PAGINA,
+  });
 
-    const listaCuartos = document.getElementById('listaCuartos');
-    const mensajeNoResultados = document.getElementById('mensajeNoResultados');
+  const listaCuartos = document.getElementById('listaCuartos');
+  const mensajeNoResultados = document.getElementById('mensajeNoResultados');
 
-    if (!listaCuartos) {
-        console.error('Elemento listaCuartos no encontrado');
-        return;
+  if (!listaCuartos) {
+    console.error('Elemento listaCuartos no encontrado');
+    return;
+  }
+
+  if (mensajeNoResultados) {
+    mensajeNoResultados.style.display = 'none';
+  }
+
+  if (
+    (!s.cuartosFiltradosActual || s.cuartosFiltradosActual.length === 0) &&
+    cuartos.length > 0
+  ) {
+    s.cuartosFiltradosActual = [...cuartos];
+  }
+
+  const totalCuartos = s.cuartosFiltradosActual.length;
+
+  if (totalCuartos === 0) {
+    const datosCargados = !!s.datosHabitacionesCargados;
+
+    if (!datosCargados || cuartos.length === 0) {
+      // Mantener los skeletons en pantalla mientras llegan los datos reales.
+      // Si esta rama se ejecuta repetidamente sin datos, el observer y el fallback no dibujarán cards.
+      // Para evitar quedar en blanco, forzamos al menos los skeletons iniciales.
+      if (typeof window.mostrarSkeletonsIniciales === 'function') {
+        window.mostrarSkeletonsIniciales();
+      }
+      return;
     }
 
-    if (mensajeNoResultados) {
-        mensajeNoResultados.style.display = 'none';
-    }
-
-    if ((!s.cuartosFiltradosActual || s.cuartosFiltradosActual.length === 0) && cuartos.length > 0) {
-        s.cuartosFiltradosActual = [...cuartos];
-    }
-
-    const totalCuartos = s.cuartosFiltradosActual.length;
-
-
-    if (totalCuartos === 0) {
-        const datosCargados = !!s.datosHabitacionesCargados;
-
-        if (!datosCargados || cuartos.length === 0) {
-            // Mantener los skeletons en pantalla mientras llegan los datos reales.
-            // Si esta rama se ejecuta repetidamente sin datos, el observer y el fallback no dibujarán cards.
-            // Para evitar quedar en blanco, forzamos al menos los skeletons iniciales.
-            if (typeof window.mostrarSkeletonsIniciales === 'function') {
-                window.mostrarSkeletonsIniciales();
-            }
-            return;
-        }
-
-        console.warn('No hay cuartos para mostrar');
-        listaCuartos.style.display = 'grid';
-        listaCuartos.innerHTML = '<li class="mensaje-no-cuartos">No hay cuartos registrados en el sistema.</li>';
-        renderizarPaginacionCuartos(0);
-        return;
-    }
-
-    s.totalPaginasCuartos = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
-
-    if (s.paginaActualCuartos > s.totalPaginasCuartos) {
-        s.paginaActualCuartos = s.totalPaginasCuartos;
-    }
-    if (s.paginaActualCuartos < 1) {
-        s.paginaActualCuartos = 1;
-    }
-
-    const inicio = (s.paginaActualCuartos - 1) * CUARTOS_POR_PAGINA;
-    const fin = Math.min(inicio + CUARTOS_POR_PAGINA, totalCuartos);
-    const cuartosPagina = s.cuartosFiltradosActual.slice(inicio, fin);
-
-    console.log(`Cuartos disponibles: ${totalCuartos} | Página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}`);
-
+    console.warn('No hay cuartos para mostrar');
     listaCuartos.style.display = 'grid';
-    listaCuartos.innerHTML = '';
-    let procesados = 0;
+    listaCuartos.innerHTML =
+      '<li class="mensaje-no-cuartos">No hay cuartos registrados en el sistema.</li>';
+    renderizarPaginacionCuartos(0);
+    return;
+  }
 
-    const renderCardContent = (li) => {
-        if (!li) {
-            console.warn('🏠 [HABITACIONES] renderCardContent: li es null');
-            return;
-        }
-        if (li.dataset.loaded) {
-            return;
-        }
+  s.totalPaginasCuartos = Math.max(
+    1,
+    Math.ceil(totalCuartos / CUARTOS_POR_PAGINA)
+  );
 
-        li.dataset.loading = '1';
+  if (s.paginaActualCuartos > s.totalPaginasCuartos) {
+    s.paginaActualCuartos = s.totalPaginasCuartos;
+  }
+  if (s.paginaActualCuartos < 1) {
+    s.paginaActualCuartos = 1;
+  }
 
-        const cuartoId = parseInt(li.dataset.cuartoId, 10);
-        const nombreCuarto = li.dataset.nombreCuarto;
-        const edificioNombre = li.dataset.edificioNombre;
-        const descripcion = li.dataset.descripcion;
-        const cuartoCompleto = cuartos.find(c => c.id === cuartoId);
-        const mantenimientosCuarto = window.mantenimientosPorCuarto.get(cuartoId) || [];
+  const inicio = (s.paginaActualCuartos - 1) * CUARTOS_POR_PAGINA;
+  const fin = Math.min(inicio + CUARTOS_POR_PAGINA, totalCuartos);
+  const cuartosPagina = s.cuartosFiltradosActual.slice(inicio, fin);
 
-        const estadoCuarto = cuartoCompleto?.estado || 'vacio';
-        let estadoBadgeClass = 'estado-vacio';
-        let estadoIcon = 'fa-check-circle';
-        let estadoText = 'Vacío';
+  console.log(
+    `Cuartos disponibles: ${totalCuartos} | Página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}`
+  );
 
-        switch (estadoCuarto.toLowerCase()) {
-            case 'ocupado':
-                estadoBadgeClass = 'estado-ocupado';
-                estadoIcon = 'fa-user';
-                estadoText = 'Ocupado';
-                break;
-            case 'en mantenimiento':
-            case 'mantenimiento':
-                estadoBadgeClass = 'estado-mantenimiento';
-                estadoIcon = 'fa-tools';
-                estadoText = 'En Mantenimiento';
-                break;
-            case 'fuera de servicio':
-            case 'fuera_servicio':
-                estadoBadgeClass = 'estado-fuera-servicio';
-                estadoIcon = 'fa-ban';
-                estadoText = 'Fuera de Servicio';
-                break;
-            default:
-                estadoBadgeClass = 'estado-disponible';
-                estadoIcon = 'fa-check-circle';
-                estadoText = 'Disponible';
-        }
+  listaCuartos.style.display = 'grid';
+  listaCuartos.innerHTML = '';
+  let procesados = 0;
 
-        requestAnimationFrame(() => {
-            li.className = 'habitacion-card';
-            // Removido: data-aos='fade-up' para evitar animación lenta
-            li.innerHTML = `
+  const renderCardContent = (li) => {
+    if (!li) {
+      console.warn('🏠 [HABITACIONES] renderCardContent: li es null');
+      return;
+    }
+    if (li.dataset.loaded) {
+      return;
+    }
+
+    li.dataset.loading = '1';
+
+    const cuartoId = parseInt(li.dataset.cuartoId, 10);
+    const nombreCuarto = li.dataset.nombreCuarto;
+    const edificioNombre = li.dataset.edificioNombre;
+    const descripcion = li.dataset.descripcion;
+    const cuartoCompleto = cuartos.find((c) => c.id === cuartoId);
+    const mantenimientosCuarto =
+      window.mantenimientosPorCuarto.get(cuartoId) || [];
+
+    const estadoCuarto = cuartoCompleto?.estado || 'vacio';
+    let estadoBadgeClass = 'estado-vacio';
+    let estadoIcon = 'fa-check-circle';
+    let estadoText = 'Vacío';
+
+    switch (estadoCuarto.toLowerCase()) {
+      case 'ocupado':
+        estadoBadgeClass = 'estado-ocupado';
+        estadoIcon = 'fa-user';
+        estadoText = 'Ocupado';
+        break;
+      case 'en mantenimiento':
+      case 'mantenimiento':
+        estadoBadgeClass = 'estado-mantenimiento';
+        estadoIcon = 'fa-tools';
+        estadoText = 'En Mantenimiento';
+        break;
+      case 'fuera de servicio':
+      case 'fuera_servicio':
+        estadoBadgeClass = 'estado-fuera-servicio';
+        estadoIcon = 'fa-ban';
+        estadoText = 'Fuera de Servicio';
+        break;
+      default:
+        estadoBadgeClass = 'estado-disponible';
+        estadoIcon = 'fa-check-circle';
+        estadoText = 'Disponible';
+    }
+
+    requestAnimationFrame(() => {
+      li.className = 'habitacion-card';
+      // Removido: data-aos='fade-up' para evitar animación lenta
+      li.innerHTML = `
                         <div class="habitacion-header">
                             <div class="habitacion-titulo">
                                 <i class="habitacion-icon fas fa-door-closed"></i>
@@ -234,19 +245,19 @@ function mostrarCuartos() {
                         <div class="estado-selector-inline" style="display: none"  id="estado-selector-inline-id-${cuartoId}">
                             <label class="estado-label-inline">Estado de Habitación</label>
                             <div class="estado-pills-inline">
-                                <button type="button" ${estadoText === "Disponible" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Disponible" ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
+                                <button type="button" ${estadoText === 'Disponible' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Disponible' ? 'estado-pill-inline-activo' : ''} disponible" data-estado="disponible" onclick="seleccionarEstadoInline(${cuartoId}, 'disponible', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Disp.</span>
                                 </button>
-                                <button type="button" ${estadoText === "Ocupado" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Ocupado" ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
+                                <button type="button" ${estadoText === 'Ocupado' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Ocup.</span>
                                 </button>
-                                <button type="button" ${estadoText === "En Mantenimiento" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "En Mantenimiento" ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
+                                <button type="button" ${estadoText === 'En Mantenimiento' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'En Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Mant.</span>
                                 </button>
-                                <button type="button" ${estadoText === "Fuera de Servicio" ? 'disabled' : ''} class="estado-pill-inline ${estadoText === "Fuera de Servicio" ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
+                                <button type="button" ${estadoText === 'Fuera de Servicio' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Fuera de Servicio' ? 'estado-pill-inline-activo' : ''} fuera-servicio" data-estado="fuera_servicio" onclick="seleccionarEstadoInline(${cuartoId}, 'fuera_servicio', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Fuera</span>
                                 </button>
@@ -262,34 +273,36 @@ function mostrarCuartos() {
                         </div>
                     `;
 
-            li.dataset.loaded = '1';
+      li.dataset.loaded = '1';
 
-            // Limpiar clase lazy inmediatamente (sin animación)
-            li.classList.remove('cuarto-lazy');
-        });
-    };
+      // Limpiar clase lazy inmediatamente (sin animación)
+      li.classList.remove('cuarto-lazy');
+    });
+  };
 
-    // Lazy loading: crear cards vacías y cargar contenido solo cuando entran al viewport
-    cuartosPagina.forEach((cuarto, index) => {
-        try {
-            const li = document.createElement('li');
-            li.className = 'cuarto cuarto-lazy';
-            li.id = `cuarto-${cuarto.id}`;
-            li.setAttribute('loading', 'lazy'); // Lazy loading nativo del navegador
+  // Lazy loading: crear cards vacías y cargar contenido solo cuando entran al viewport
+  cuartosPagina.forEach((cuarto, index) => {
+    try {
+      const li = document.createElement('li');
+      li.className = 'cuarto cuarto-lazy';
+      li.id = `cuarto-${cuarto.id}`;
+      li.setAttribute('loading', 'lazy'); // Lazy loading nativo del navegador
 
-            const nombreCuarto = cuarto.nombre || cuarto.numero || `Cuarto ${cuarto.id}`;
-            const edificioNombre = cuarto.edificio_nombre || `Edificio ${cuarto.edificio_id}`;
+      const nombreCuarto =
+        cuarto.nombre || cuarto.numero || `Cuarto ${cuarto.id}`;
+      const edificioNombre =
+        cuarto.edificio_nombre || `Edificio ${cuarto.edificio_id}`;
 
-            // Guardar los datos necesarios en dataset para cargar luego
-            li.dataset.nombreCuarto = nombreCuarto;
-            li.dataset.edificioNombre = edificioNombre;
-            li.dataset.descripcion = cuarto.descripcion || '';
-            li.dataset.cuartoId = cuarto.id;
-            li.dataset.edificioId = cuarto.edificio_id;
-            li.dataset.index = inicio + index;
+      // Guardar los datos necesarios en dataset para cargar luego
+      li.dataset.nombreCuarto = nombreCuarto;
+      li.dataset.edificioNombre = edificioNombre;
+      li.dataset.descripcion = cuarto.descripcion || '';
+      li.dataset.cuartoId = cuarto.id;
+      li.dataset.edificioId = cuarto.edificio_id;
+      li.dataset.index = inicio + index;
 
-            // Card placeholder mejorado con skeleton loading
-            li.innerHTML = `
+      // Card placeholder mejorado con skeleton loading
+      li.innerHTML = `
             <div class="card-placeholder skeleton-card">
                 <div class="skeleton-header">
                     <div class="skeleton-icon"></div>
@@ -310,162 +323,185 @@ function mostrarCuartos() {
             </div>
         `;
 
-            listaCuartos.appendChild(li);
-            procesados++;
-        } catch (error) {
-            console.error(`Error procesando cuarto ${index}:`, error, cuarto);
-        }
-    });
-
-    // Reconstruir caché de mantenimientos por cuarto (siempre actualizado)
-    window.mantenimientosPorCuarto = new Map();
-    if (mantenimientos && mantenimientos.length > 0) {
-        mantenimientos.forEach(m => {
-            if (!window.mantenimientosPorCuarto.has(m.cuarto_id)) {
-                window.mantenimientosPorCuarto.set(m.cuarto_id, []);
-            }
-            window.mantenimientosPorCuarto.get(m.cuarto_id).push(m);
-        });
-        console.log(`📦 Caché de mantenimientos reconstruida: ${window.mantenimientosPorCuarto.size} cuartos con servicios`);
+      listaCuartos.appendChild(li);
+      procesados++;
+    } catch (error) {
+      console.error(`Error procesando cuarto ${index}:`, error, cuarto);
     }
+  });
 
-    // IntersectionObserver para cargar el contenido real cuando la card entra al viewport
-    if (window.cuartoObserver) {
-        window.cuartoObserver.disconnect();
-    }
-
-    window.cuartoObserver = new IntersectionObserver((entries, observer) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                const li = entry.target;
-                if (!li.dataset.loaded) {
-                    // Marcar como cargando para evitar cargas duplicadas
-                    li.dataset.loading = '1';
-
-                    // Usar requestIdleCallback si está disponible, sino setTimeout
-                    // Calcular delay diagonal basado en la posición (índice)
-                    const cardIndex = parseInt(li.dataset.index || '0', 10);
-                    const delay = (cardIndex % CUARTOS_POR_PAGINA) * 5; // 5ms entre cada card (muy rápido)
-
-                    // Usar requestIdleCallback si está disponible, sino setTimeout
-                    const scheduleRender = window.requestIdleCallback || ((cb) => setTimeout(cb, delay));
-
-                    // Aplicar delay antes de mostrar la card
-                    scheduleRender(() => {
-                        renderCardContent(li);
-                    }, { timeout: delay });
-                }
-                observer.unobserve(li);
-            }
-        });
-    }, {
-        rootMargin: '100px', // Cargar 100px antes de entrar al viewport (aumentado)
-        threshold: 0 // Detectar tan pronto como sea visible
+  // Reconstruir caché de mantenimientos por cuarto (siempre actualizado)
+  window.mantenimientosPorCuarto = new Map();
+  if (mantenimientos && mantenimientos.length > 0) {
+    mantenimientos.forEach((m) => {
+      if (!window.mantenimientosPorCuarto.has(m.cuarto_id)) {
+        window.mantenimientosPorCuarto.set(m.cuarto_id, []);
+      }
+      window.mantenimientosPorCuarto.get(m.cuarto_id).push(m);
     });
+    console.log(
+      `📦 Caché de mantenimientos reconstruida: ${window.mantenimientosPorCuarto.size} cuartos con servicios`
+    );
+  }
 
-    // Observar todas las cards después de renderizarlas
-    requestAnimationFrame(() => {
-        const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
-        cards.forEach(li => window.cuartoObserver.observe(li));
-    });
+  // IntersectionObserver para cargar el contenido real cuando la card entra al viewport
+  if (window.cuartoObserver) {
+    window.cuartoObserver.disconnect();
+  }
 
-    // Función de fallback para renderizar cards pendientes
-    const renderizarCardsPendientes = (intento) => {
-        // Buscar cards con skeleton que aún no se hayan cargado
-        const cardsSkeleton = listaCuartos.querySelectorAll('.cuarto-lazy');
-        const cardsPendientes = Array.from(cardsSkeleton).filter(li => !li.dataset.loaded || li.dataset.loaded !== '1');
+  window.cuartoObserver = new IntersectionObserver(
+    (entries, observer) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          const li = entry.target;
+          if (!li.dataset.loaded) {
+            // Marcar como cargando para evitar cargas duplicadas
+            li.dataset.loading = '1';
 
-        if (cardsPendientes.length > 0) {
-            cardsPendientes.forEach((li, index) => {
+            // Usar requestIdleCallback si está disponible, sino setTimeout
+            // Calcular delay diagonal basado en la posición (índice)
+            const cardIndex = parseInt(li.dataset.index || '0', 10);
+            const delay = (cardIndex % CUARTOS_POR_PAGINA) * 5; // 5ms entre cada card (muy rápido)
+
+            // Usar requestIdleCallback si está disponible, sino setTimeout
+            const scheduleRender =
+              window.requestIdleCallback || ((cb) => setTimeout(cb, delay));
+
+            // Aplicar delay antes de mostrar la card
+            scheduleRender(
+              () => {
                 renderCardContent(li);
-            });
+              },
+              { timeout: delay }
+            );
+          }
+          observer.unobserve(li);
         }
-    };
+      });
+    },
+    {
+      rootMargin: '100px', // Cargar 100px antes de entrar al viewport (aumentado)
+      threshold: 0, // Detectar tan pronto como sea visible
+    }
+  );
 
-    // Ejecutar fallback en 3 tiempos para garantizar renderizado
-    setTimeout(() => renderizarCardsPendientes(1), 100);
-    setTimeout(() => renderizarCardsPendientes(2), 300);
-    setTimeout(() => renderizarCardsPendientes(3), 600);
+  // Observar todas las cards después de renderizarlas
+  requestAnimationFrame(() => {
+    const cards = listaCuartos.querySelectorAll('.cuarto-lazy');
+    cards.forEach((li) => window.cuartoObserver.observe(li));
+  });
 
-    console.log(`🏠 [HABITACIONES] Se procesaron ${procesados} cuartos (página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}) de ${totalCuartos} total (lazy)`);
-    console.log('🏠 [HABITACIONES] === FIN MOSTRANDO CUARTOS ===');
+  // Función de fallback para renderizar cards pendientes
+  const renderizarCardsPendientes = (intento) => {
+    // Buscar cards con skeleton que aún no se hayan cargado
+    const cardsSkeleton = listaCuartos.querySelectorAll('.cuarto-lazy');
+    const cardsPendientes = Array.from(cardsSkeleton).filter(
+      (li) => !li.dataset.loaded || li.dataset.loaded !== '1'
+    );
 
-    renderizarPaginacionCuartos(totalCuartos);
+    if (cardsPendientes.length > 0) {
+      cardsPendientes.forEach((li, index) => {
+        renderCardContent(li);
+      });
+    }
+  };
+
+  // Ejecutar fallback en 3 tiempos para garantizar renderizado
+  setTimeout(() => renderizarCardsPendientes(1), 100);
+  setTimeout(() => renderizarCardsPendientes(2), 300);
+  setTimeout(() => renderizarCardsPendientes(3), 600);
+
+  console.log(
+    `🏠 [HABITACIONES] Se procesaron ${procesados} cuartos (página ${s.paginaActualCuartos}/${s.totalPaginasCuartos}) de ${totalCuartos} total (lazy)`
+  );
+  console.log('🏠 [HABITACIONES] === FIN MOSTRANDO CUARTOS ===');
+
+  renderizarPaginacionCuartos(totalCuartos);
 }
 
 // Listener para recalcular paginación al cambiar tamaño de pantalla
 let resizeTimer;
 window.addEventListener('resize', () => {
-    clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(() => {
-        const s = getState();
-        if (s.cuartos && s.cuartos.length > 0) {
-            // Recalcular paginación con el nuevo tamaño
-            const anteriorItemsPorPagina = s.totalPaginasCuartos > 0
-                ? Math.ceil(s.cuartosFiltradosActual.length / s.totalPaginasCuartos)
-                : 10;
-            const nuevoItemsPorPagina = getCuartosPorPagina();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const s = getState();
+    if (s.cuartos && s.cuartos.length > 0) {
+      // Recalcular paginación con el nuevo tamaño
+      const anteriorItemsPorPagina =
+        s.totalPaginasCuartos > 0
+          ? Math.ceil(s.cuartosFiltradosActual.length / s.totalPaginasCuartos)
+          : 10;
+      const nuevoItemsPorPagina = getCuartosPorPagina();
 
-            // Solo actualizar si cambió el número de items por página
-            if (anteriorItemsPorPagina !== nuevoItemsPorPagina) {
-                console.log(`📱 Cambio de tamaño detectado: ${anteriorItemsPorPagina} → ${nuevoItemsPorPagina} items/página`);
-                // Mantener al usuario en una página similar (no saltar al inicio)
-                sincronizarCuartosFiltrados(true);
-                mostrarCuartos();
-            }
-        }
-    }, 250); // Debounce de 250ms
+      // Solo actualizar si cambió el número de items por página
+      if (anteriorItemsPorPagina !== nuevoItemsPorPagina) {
+        console.log(
+          `📱 Cambio de tamaño detectado: ${anteriorItemsPorPagina} → ${nuevoItemsPorPagina} items/página`
+        );
+        // Mantener al usuario en una página similar (no saltar al inicio)
+        sincronizarCuartosFiltrados(true);
+        mostrarCuartos();
+      }
+    }
+  }, 250); // Debounce de 250ms
 });
 
 /**
  * Sincronizar estado base de cuartos filtrados y paginación
  */
 function sincronizarCuartosFiltrados(mantenerPagina = false) {
-    const s = getState();
-    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
-    s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
-    s.totalPaginasCuartos = s.cuartosFiltradosActual.length > 0
-        ? Math.ceil(s.cuartosFiltradosActual.length / CUARTOS_POR_PAGINA)
-        : 1;
+  const s = getState();
+  const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
+  s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
+  s.totalPaginasCuartos =
+    s.cuartosFiltradosActual.length > 0
+      ? Math.ceil(s.cuartosFiltradosActual.length / CUARTOS_POR_PAGINA)
+      : 1;
 
-    if (!mantenerPagina || s.paginaActualCuartos > s.totalPaginasCuartos) {
-        s.paginaActualCuartos = s.cuartosFiltradosActual.length > 0 ? 1 : 1;
-    }
+  if (!mantenerPagina || s.paginaActualCuartos > s.totalPaginasCuartos) {
+    s.paginaActualCuartos = s.cuartosFiltradosActual.length > 0 ? 1 : 1;
+  }
 }
 
 /**
  * Renderizar controles de paginación para las habitaciones
  */
 function renderizarPaginacionCuartos(totalCuartos) {
-    const s = getState();
-    const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
-    const contenedorPaginacion = document.getElementById('habitacionesPagination');
-    if (!contenedorPaginacion) {
-        return;
-    }
+  const s = getState();
+  const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
+  const contenedorPaginacion = document.getElementById(
+    'habitacionesPagination'
+  );
+  if (!contenedorPaginacion) {
+    return;
+  }
 
-    if (!totalCuartos || totalCuartos <= CUARTOS_POR_PAGINA) {
-        contenedorPaginacion.innerHTML = '';
-        contenedorPaginacion.style.display = 'none';
-        return;
-    }
+  if (!totalCuartos || totalCuartos <= CUARTOS_POR_PAGINA) {
+    contenedorPaginacion.innerHTML = '';
+    contenedorPaginacion.style.display = 'none';
+    return;
+  }
 
-    const totalPaginasCalculadas = Math.max(1, Math.ceil(totalCuartos / CUARTOS_POR_PAGINA));
-    s.totalPaginasCuartos = totalPaginasCalculadas;
-    if (s.paginaActualCuartos > s.totalPaginasCuartos) {
-        s.paginaActualCuartos = s.totalPaginasCuartos;
-    }
+  const totalPaginasCalculadas = Math.max(
+    1,
+    Math.ceil(totalCuartos / CUARTOS_POR_PAGINA)
+  );
+  s.totalPaginasCuartos = totalPaginasCalculadas;
+  if (s.paginaActualCuartos > s.totalPaginasCuartos) {
+    s.paginaActualCuartos = s.totalPaginasCuartos;
+  }
 
-    const opciones = Array.from({ length: totalPaginasCalculadas }, (_, idx) => {
-        const pagina = idx + 1;
-        const seleccionado = pagina === s.paginaActualCuartos ? ' selected' : '';
-        return `<option value="${pagina}"${seleccionado}>${pagina}</option>`;
-    }).join('');
+  const opciones = Array.from({ length: totalPaginasCalculadas }, (_, idx) => {
+    const pagina = idx + 1;
+    const seleccionado = pagina === s.paginaActualCuartos ? ' selected' : '';
+    return `<option value="${pagina}"${seleccionado}>${pagina}</option>`;
+  }).join('');
 
-    const totalLabel = totalCuartos === 1 ? '1 habitación' : `${totalCuartos} habitaciones`;
+  const totalLabel =
+    totalCuartos === 1 ? '1 habitación' : `${totalCuartos} habitaciones`;
 
-    contenedorPaginacion.style.display = 'flex';
-    contenedorPaginacion.innerHTML = `
+  contenedorPaginacion.style.display = 'flex';
+  contenedorPaginacion.innerHTML = `
     <button class="pagination-btn" data-action="prev" ${s.paginaActualCuartos === 1 ? 'disabled' : ''} aria-label="Página anterior de habitaciones">
         <i class="fas fa-chevron-left"></i>
         <span>Anterior</span>
@@ -484,426 +520,489 @@ function renderizarPaginacionCuartos(totalCuartos) {
     <span class="pagination-total">${totalLabel}</span>
 `;
 
-    const botonAnterior = contenedorPaginacion.querySelector('[data-action="prev"]');
-    const botonSiguiente = contenedorPaginacion.querySelector('[data-action="next"]');
-    const selectorPaginas = contenedorPaginacion.querySelector('#habitacionesPaginationSelect');
+  const botonAnterior = contenedorPaginacion.querySelector(
+    '[data-action="prev"]'
+  );
+  const botonSiguiente = contenedorPaginacion.querySelector(
+    '[data-action="next"]'
+  );
+  const selectorPaginas = contenedorPaginacion.querySelector(
+    '#habitacionesPaginationSelect'
+  );
 
-    if (botonAnterior) {
-        botonAnterior.addEventListener('click', () => {
-            if (window.appLoaderState.paginaActualCuartos > 1) {
-                window.appLoaderState.paginaActualCuartos -= 1;
-                mostrarCuartos();
-                // Esperar a que el DOM se actualice antes de hacer scroll
-                setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-            }
-        });
-    }
+  if (botonAnterior) {
+    botonAnterior.addEventListener('click', () => {
+      if (window.appLoaderState.paginaActualCuartos > 1) {
+        window.appLoaderState.paginaActualCuartos -= 1;
+        mostrarCuartos();
+        // Esperar a que el DOM se actualice antes de hacer scroll
+        setTimeout(() => desplazarListaCuartosAlInicio(), 100);
+      }
+    });
+  }
 
-    if (botonSiguiente) {
-        botonSiguiente.addEventListener('click', () => {
-            if (window.appLoaderState.paginaActualCuartos < window.appLoaderState.totalPaginasCuartos) {
-                window.appLoaderState.paginaActualCuartos += 1;
-                mostrarCuartos();
-                // Esperar a que el DOM se actualice antes de hacer scroll
-                setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-            }
-        });
-    }
+  if (botonSiguiente) {
+    botonSiguiente.addEventListener('click', () => {
+      if (
+        window.appLoaderState.paginaActualCuartos <
+        window.appLoaderState.totalPaginasCuartos
+      ) {
+        window.appLoaderState.paginaActualCuartos += 1;
+        mostrarCuartos();
+        // Esperar a que el DOM se actualice antes de hacer scroll
+        setTimeout(() => desplazarListaCuartosAlInicio(), 100);
+      }
+    });
+  }
 
-    if (selectorPaginas) {
-        selectorPaginas.addEventListener('change', (event) => {
-            const nuevaPagina = parseInt(event.target.value, 10);
-            if (!Number.isNaN(nuevaPagina) && nuevaPagina >= 1 && nuevaPagina <= totalPaginasCalculadas) {
-                s.paginaActualCuartos = nuevaPagina;
-                mostrarCuartos();
-                // Esperar a que el DOM se actualice antes de hacer scroll
-                setTimeout(() => desplazarListaCuartosAlInicio(), 100);
-            }
-        });
-    }
+  if (selectorPaginas) {
+    selectorPaginas.addEventListener('change', (event) => {
+      const nuevaPagina = parseInt(event.target.value, 10);
+      if (
+        !Number.isNaN(nuevaPagina) &&
+        nuevaPagina >= 1 &&
+        nuevaPagina <= totalPaginasCalculadas
+      ) {
+        s.paginaActualCuartos = nuevaPagina;
+        mostrarCuartos();
+        // Esperar a que el DOM se actualice antes de hacer scroll
+        setTimeout(() => desplazarListaCuartosAlInicio(), 100);
+      }
+    });
+  }
 }
 
 /**
  * Desplazar la vista de habitaciones al inicio después de cambiar de página
  */
 function desplazarListaCuartosAlInicio() {
-    // Intentar hacer scroll al tab de habitaciones primero
-    const tabHabitaciones = document.getElementById('tab-habitaciones');
-    if (tabHabitaciones) {
-        const rect = tabHabitaciones.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop;
+  // Intentar hacer scroll al tab de habitaciones primero
+  const tabHabitaciones = document.getElementById('tab-habitaciones');
+  if (tabHabitaciones) {
+    const rect = tabHabitaciones.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = rect.top + scrollTop;
 
-        // Ajustar para el header fijo (aproximadamente 72px en móviles, 0 en desktop)
-        const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-        const finalY = Math.max(0, targetY - headerOffset);
+    // Ajustar para el header fijo (aproximadamente 72px en móviles, 0 en desktop)
+    const headerOffset = window.innerWidth <= 768 ? 72 : 0;
+    const finalY = Math.max(0, targetY - headerOffset);
 
-        window.scrollTo({
-            top: finalY,
-            behavior: 'smooth'
-        });
-        return;
-    }
+    window.scrollTo({
+      top: finalY,
+      behavior: 'smooth',
+    });
+    return;
+  }
 
-    // Fallback: hacer scroll al panel de filtros
-    const panelFiltros = document.querySelector('.panel-filtros');
-    if (panelFiltros) {
-        const rect = panelFiltros.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop;
+  // Fallback: hacer scroll al panel de filtros
+  const panelFiltros = document.querySelector('.panel-filtros');
+  if (panelFiltros) {
+    const rect = panelFiltros.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = rect.top + scrollTop;
 
-        // Ajustar para el header fijo
-        const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-        const finalY = Math.max(0, targetY - headerOffset);
+    // Ajustar para el header fijo
+    const headerOffset = window.innerWidth <= 768 ? 72 : 0;
+    const finalY = Math.max(0, targetY - headerOffset);
 
-        window.scrollTo({
-            top: finalY,
-            behavior: 'smooth'
-        });
-        return;
-    }
+    window.scrollTo({
+      top: finalY,
+      behavior: 'smooth',
+    });
+    return;
+  }
 
-    // Último fallback: hacer scroll a la lista de cuartos
-    const listaCuartos = document.getElementById('listaCuartos');
-    if (listaCuartos) {
-        const rect = listaCuartos.getBoundingClientRect();
-        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        const targetY = rect.top + scrollTop;
+  // Último fallback: hacer scroll a la lista de cuartos
+  const listaCuartos = document.getElementById('listaCuartos');
+  if (listaCuartos) {
+    const rect = listaCuartos.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const targetY = rect.top + scrollTop;
 
-        // Ajustar para el header fijo
-        const headerOffset = window.innerWidth <= 768 ? 72 : 0;
-        const finalY = Math.max(0, targetY - headerOffset);
+    // Ajustar para el header fijo
+    const headerOffset = window.innerWidth <= 768 ? 72 : 0;
+    const finalY = Math.max(0, targetY - headerOffset);
 
-        window.scrollTo({
-            top: finalY,
-            behavior: 'smooth'
-        });
-    }
+    window.scrollTo({
+      top: finalY,
+      behavior: 'smooth',
+    });
+  }
 }
 
 /**
  * Filtrar cuartos según los criterios de búsqueda
  */
 function filtrarCuartos() {
-    const s = getState();
-    const buscarCuarto = document.getElementById('buscarCuarto').value.toLowerCase();
-    const buscarAveria = document.getElementById('buscarAveria').value.toLowerCase();
-    const filtroEdificio = document.getElementById('filtroEdificio').value;
-    const filtroPrioridad = document.getElementById('filtroPrioridad')?.value || '';
-    const filtroEstado = document.getElementById('filtroEstado')?.value || '';
+  const s = getState();
+  const buscarCuarto = document
+    .getElementById('buscarCuarto')
+    .value.toLowerCase();
+  const buscarAveria = document
+    .getElementById('buscarAveria')
+    .value.toLowerCase();
+  const filtroEdificio = document.getElementById('filtroEdificio').value;
+  const filtroPrioridad =
+    document.getElementById('filtroPrioridad')?.value || '';
+  const filtroEstado = document.getElementById('filtroEstado')?.value || '';
 
-    const cuartosFiltrados = s.cuartos.filter(cuarto => {
-        // Filtro por nombre de cuarto
-        const coincideNombre = (cuarto.nombre || cuarto.numero || '').toString().toLowerCase().includes(buscarCuarto);
+  const cuartosFiltrados = s.cuartos.filter((cuarto) => {
+    // Filtro por nombre de cuarto
+    const coincideNombre = (cuarto.nombre || cuarto.numero || '')
+      .toString()
+      .toLowerCase()
+      .includes(buscarCuarto);
 
-        // Filtro por avería en mantenimientos (por descripción O por ID hexadecimal)
-        const coincideAveria = buscarAveria === '' ||
-            (s.mantenimientos && s.mantenimientos.some(m => {
-                if (m.cuarto_id !== cuarto.id) return false;
+    // Filtro por avería en mantenimientos (por descripción O por ID hexadecimal)
+    const coincideAveria =
+      buscarAveria === '' ||
+      (s.mantenimientos &&
+        s.mantenimientos.some((m) => {
+          if (m.cuarto_id !== cuarto.id) return false;
 
-                // Buscar por descripción
-                if (m.descripcion.toLowerCase().includes(buscarAveria)) return true;
+          // Buscar por descripción
+          if (m.descripcion.toLowerCase().includes(buscarAveria)) return true;
 
-                // Buscar por ID hexadecimal (serv-XXX)
-                const servicioHexId = 'serv-' + m.id.toString(16).padStart(3, '0').toLowerCase();
-                if (servicioHexId.includes(buscarAveria)) return true;
+          // Buscar por ID hexadecimal (serv-XXX)
+          const servicioHexId =
+            'serv-' + m.id.toString(16).padStart(3, '0').toLowerCase();
+          if (servicioHexId.includes(buscarAveria)) return true;
 
-                // Buscar solo el número hex sin prefijo
-                const hexSinPrefijo = m.id.toString(16).padStart(3, '0').toLowerCase();
-                if (buscarAveria.includes(hexSinPrefijo)) return true;
+          // Buscar solo el número hex sin prefijo
+          const hexSinPrefijo = m.id
+            .toString(16)
+            .padStart(3, '0')
+            .toLowerCase();
+          if (buscarAveria.includes(hexSinPrefijo)) return true;
 
-                return false;
-            }));
+          return false;
+        }));
 
-        // Filtro por edificio
-        const coincideEdificio = filtroEdificio === '' || cuarto.edificio_id.toString() === filtroEdificio;
+    // Filtro por edificio
+    const coincideEdificio =
+      filtroEdificio === '' || cuarto.edificio_id.toString() === filtroEdificio;
 
-        // Filtro por prioridad (solo si el cuarto tiene mantenimientos con esa prioridad)
-        const coincidePrioridad = filtroPrioridad === '' ||
-            (s.mantenimientos && s.mantenimientos.some(m =>
-                m.cuarto_id === cuarto.id && m.prioridad === filtroPrioridad
-            ));
+    // Filtro por prioridad (solo si el cuarto tiene mantenimientos con esa prioridad)
+    const coincidePrioridad =
+      filtroPrioridad === '' ||
+      (s.mantenimientos &&
+        s.mantenimientos.some(
+          (m) => m.cuarto_id === cuarto.id && m.prioridad === filtroPrioridad
+        ));
 
-        // Filtro por estado
-        const coincideEstado = filtroEstado === '' || cuarto.estado === filtroEstado;
+    // Filtro por estado
+    const coincideEstado =
+      filtroEstado === '' || cuarto.estado === filtroEstado;
 
-        return coincideNombre && coincideAveria && coincideEdificio && coincidePrioridad && coincideEstado;
-    });
+    return (
+      coincideNombre &&
+      coincideAveria &&
+      coincideEdificio &&
+      coincidePrioridad &&
+      coincideEstado
+    );
+  });
 
-    // Almacenar el término de búsqueda para filtrar servicios específicos en las cards
-    s.filtroServicioActual = buscarAveria.trim() !== '' ? buscarAveria : null;
+  // Almacenar el término de búsqueda para filtrar servicios específicos en las cards
+  s.filtroServicioActual = buscarAveria.trim() !== '' ? buscarAveria : null;
 
-    mostrarCuartosFiltrados(cuartosFiltrados);
+  mostrarCuartosFiltrados(cuartosFiltrados);
 }
 
 /**
  * Mostrar cuartos filtrados
  */
 function mostrarCuartosFiltrados(cuartosFiltrados) {
-    const s = getState();
-    const listaCuartos = document.getElementById('listaCuartos');
-    const mensajeNoResultados = document.getElementById('mensajeNoResultados');
+  const s = getState();
+  const listaCuartos = document.getElementById('listaCuartos');
+  const mensajeNoResultados = document.getElementById('mensajeNoResultados');
 
-    if (!listaCuartos || !mensajeNoResultados) {
-        return;
-    }
+  if (!listaCuartos || !mensajeNoResultados) {
+    return;
+  }
 
-    if (!cuartosFiltrados || cuartosFiltrados.length === 0) {
-        listaCuartos.innerHTML = '';
-        listaCuartos.style.display = 'none';
-        mensajeNoResultados.style.display = 'block';
-        s.cuartosFiltradosActual = [];
-        s.paginaActualCuartos = 1;
-        renderizarPaginacionCuartos(0);
-        return;
-    }
+  if (!cuartosFiltrados || cuartosFiltrados.length === 0) {
+    listaCuartos.innerHTML = '';
+    listaCuartos.style.display = 'none';
+    mensajeNoResultados.style.display = 'block';
+    s.cuartosFiltradosActual = [];
+    s.paginaActualCuartos = 1;
+    renderizarPaginacionCuartos(0);
+    return;
+  }
 
-    listaCuartos.style.display = 'grid'; // Mantener grid para 2 columnas
-    mensajeNoResultados.style.display = 'none';
+  listaCuartos.style.display = 'grid'; // Mantener grid para 2 columnas
+  mensajeNoResultados.style.display = 'none';
 
-    // Guardar cuarto seleccionado actual si existe
-    const cuartoActualSeleccionado = document.querySelector('.cuarto-seleccionado');
-    const idCuartoSeleccionado = cuartoActualSeleccionado ?
-        cuartoActualSeleccionado.id.replace('cuarto-', '') : null;
+  // Guardar cuarto seleccionado actual si existe
+  const cuartoActualSeleccionado = document.querySelector(
+    '.cuarto-seleccionado'
+  );
+  const idCuartoSeleccionado = cuartoActualSeleccionado
+    ? cuartoActualSeleccionado.id.replace('cuarto-', '')
+    : null;
 
-    s.cuartosFiltradosActual = [...cuartosFiltrados];
+  s.cuartosFiltradosActual = [...cuartosFiltrados];
 
-    if (idCuartoSeleccionado) {
-        const indiceSeleccionado = s.cuartosFiltradosActual.findIndex(c => c.id.toString() === idCuartoSeleccionado);
-        if (indiceSeleccionado >= 0) {
-            const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
-            s.paginaActualCuartos = Math.floor(indiceSeleccionado / CUARTOS_POR_PAGINA) + 1;
-        } else {
-            s.paginaActualCuartos = 1;
-        }
+  if (idCuartoSeleccionado) {
+    const indiceSeleccionado = s.cuartosFiltradosActual.findIndex(
+      (c) => c.id.toString() === idCuartoSeleccionado
+    );
+    if (indiceSeleccionado >= 0) {
+      const CUARTOS_POR_PAGINA = getCuartosPorPagina(); // Dynamic calculation
+      s.paginaActualCuartos =
+        Math.floor(indiceSeleccionado / CUARTOS_POR_PAGINA) + 1;
     } else {
-        s.paginaActualCuartos = 1;
+      s.paginaActualCuartos = 1;
     }
+  } else {
+    s.paginaActualCuartos = 1;
+  }
 
-    mostrarCuartos();
+  mostrarCuartos();
 
-    // Restaurar selección si el cuarto filtrado sigue visible
-    if (idCuartoSeleccionado &&
-        cuartosFiltrados.some(c => c.id.toString() === idCuartoSeleccionado)) {
-        setTimeout(() => seleccionarCuarto(parseInt(idCuartoSeleccionado)), 200);
-    }
+  // Restaurar selección si el cuarto filtrado sigue visible
+  if (
+    idCuartoSeleccionado &&
+    cuartosFiltrados.some((c) => c.id.toString() === idCuartoSeleccionado)
+  ) {
+    setTimeout(() => seleccionarCuarto(parseInt(idCuartoSeleccionado)), 200);
+  }
 }
 
 /**
  * Actualizar solo el badge de estado de una card específica
  */
 function actualizarEstadoBadgeCard(cuartoId, nuevoEstado) {
-    const cardElement = document.getElementById(`cuarto-${cuartoId}`);
-    if (!cardElement) {
-        return;
-    }
+  const cardElement = document.getElementById(`cuarto-${cuartoId}`);
+  if (!cardElement) {
+    return;
+  }
 
-    const estadoBadge = cardElement.querySelector('.habitacion-estado-badge');
-    if (!estadoBadge) {
-        return;
-    }
+  const estadoBadge = cardElement.querySelector('.habitacion-estado-badge');
+  if (!estadoBadge) {
+    return;
+  }
 
-    let estadoBadgeClass = 'estado-vacio';
-    let estadoIcon = 'fa-check-circle';
-    let estadoText = 'Vacío';
+  let estadoBadgeClass = 'estado-vacio';
+  let estadoIcon = 'fa-check-circle';
+  let estadoText = 'Vacío';
 
-    switch (nuevoEstado.toLowerCase()) {
-        case 'disponible':
-        case 'vacio':
-            estadoBadgeClass = 'estado-disponible';
-            estadoIcon = 'fa-check-circle';
-            estadoText = 'Disponible';
-            break;
-        case 'ocupado':
-            estadoBadgeClass = 'estado-ocupado';
-            estadoIcon = 'fa-user';
-            estadoText = 'Ocupado';
-            break;
-        case 'en mantenimiento':
-        case 'mantenimiento':
-            estadoBadgeClass = 'estado-mantenimiento';
-            estadoIcon = 'fa-tools';
-            estadoText = 'En Mantenimiento';
-            break;
-        case 'fuera de servicio':
-        case 'fuera_servicio':
-            estadoBadgeClass = 'estado-fuera-servicio';
-            estadoIcon = 'fa-ban';
-            estadoText = 'Fuera de Servicio';
-            break;
-        default:
-            estadoBadgeClass = 'estado-vacio';
-            estadoIcon = 'fa-check-circle';
-            estadoText = 'Disponible';
-    }
+  switch (nuevoEstado.toLowerCase()) {
+    case 'disponible':
+    case 'vacio':
+      estadoBadgeClass = 'estado-disponible';
+      estadoIcon = 'fa-check-circle';
+      estadoText = 'Disponible';
+      break;
+    case 'ocupado':
+      estadoBadgeClass = 'estado-ocupado';
+      estadoIcon = 'fa-user';
+      estadoText = 'Ocupado';
+      break;
+    case 'en mantenimiento':
+    case 'mantenimiento':
+      estadoBadgeClass = 'estado-mantenimiento';
+      estadoIcon = 'fa-tools';
+      estadoText = 'En Mantenimiento';
+      break;
+    case 'fuera de servicio':
+    case 'fuera_servicio':
+      estadoBadgeClass = 'estado-fuera-servicio';
+      estadoIcon = 'fa-ban';
+      estadoText = 'Fuera de Servicio';
+      break;
+    default:
+      estadoBadgeClass = 'estado-vacio';
+      estadoIcon = 'fa-check-circle';
+      estadoText = 'Disponible';
+  }
 
-    estadoBadge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
-    estadoBadge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
+  estadoBadge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
+  estadoBadge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
 
-    const estadoSelector = cardElement.querySelector('.estado-selector-inline');
-    if (estadoSelector) {
-        const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
-        const estadoNormalizado = nuevoEstado.toLowerCase();
-        const estadoMapeado = estadoNormalizado === 'vacio' ? 'disponible' :
-            estadoNormalizado === 'en mantenimiento' ? 'mantenimiento' :
-                estadoNormalizado === 'fuera de servicio' ? 'fuera_servicio' :
-                    estadoNormalizado;
+  const estadoSelector = cardElement.querySelector('.estado-selector-inline');
+  if (estadoSelector) {
+    const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
+    const estadoNormalizado = nuevoEstado.toLowerCase();
+    const estadoMapeado =
+      estadoNormalizado === 'vacio'
+        ? 'disponible'
+        : estadoNormalizado === 'en mantenimiento'
+          ? 'mantenimiento'
+          : estadoNormalizado === 'fuera de servicio'
+            ? 'fuera_servicio'
+            : estadoNormalizado;
 
-        pills.forEach(pill => {
-            const estadoPill = pill.getAttribute('data-estado');
-            const isActive = estadoPill === estadoMapeado;
-            pill.classList.toggle('estado-pill-inline-activo', isActive);
-            pill.disabled = isActive;
-        });
-    }
+    pills.forEach((pill) => {
+      const estadoPill = pill.getAttribute('data-estado');
+      const isActive = estadoPill === estadoMapeado;
+      pill.classList.toggle('estado-pill-inline-activo', isActive);
+      pill.disabled = isActive;
+    });
+  }
 }
 
 /**
  * Actualizar contenido de una card específica si está visible en el DOM (OPTIMIZADO)
  */
 function actualizarCardCuartoEnUI(cuartoId) {
-    const s = getState();
-    // Actualizar caché de mantenimientos primero
-    window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
-    const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
-    // Ordenar por fecha de creación descendente (más recientes primero)
-    mantenimientosCuarto.sort((a, b) => {
-        const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
-        const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
-        return fechaB - fechaA;
-    });
-    window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
+  const s = getState();
+  // Actualizar caché de mantenimientos primero
+  window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
+  const mantenimientosCuarto = s.mantenimientos.filter(
+    (m) => m.cuarto_id === cuartoId
+  );
+  // Ordenar por fecha de creación descendente (más recientes primero)
+  mantenimientosCuarto.sort((a, b) => {
+    const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+    const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+    return fechaB - fechaA;
+  });
+  window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
 
-    const cardElement = document.getElementById(`cuarto-${cuartoId}`);
+  const cardElement = document.getElementById(`cuarto-${cuartoId}`);
 
-    if (!cardElement) {
-        console.log(`⚠️ Card cuarto-${cuartoId} no está en el DOM`);
-        return;
-    }
+  if (!cardElement) {
+    console.log(`⚠️ Card cuarto-${cuartoId} no está en el DOM`);
+    return;
+  }
 
-    // ⚡ OPTIMIZACIÓN: Solo actualizar el contenedor de servicios
-    const serviciosContainer = document.getElementById(`servicios-${cuartoId}`);
+  // ⚡ OPTIMIZACIÓN: Solo actualizar el contenedor de servicios
+  const serviciosContainer = document.getElementById(`servicios-${cuartoId}`);
 
-    if (serviciosContainer) {
-        // Verificar si está en modo edición
-        const btnEditar = document.getElementById(`btn-editar-${cuartoId}`);
-        const enModoEdicion = btnEditar && btnEditar.classList.contains('modo-edicion-activo');
+  if (serviciosContainer) {
+    // Verificar si está en modo edición
+    const btnEditar = document.getElementById(`btn-editar-${cuartoId}`);
+    const enModoEdicion =
+      btnEditar && btnEditar.classList.contains('modo-edicion-activo');
 
-        // Actualizar inmediatamente sin animaciones
-        serviciosContainer.innerHTML = generarServiciosHTML(mantenimientosCuarto, cuartoId, enModoEdicion);
+    // Actualizar inmediatamente sin animaciones
+    serviciosContainer.innerHTML = generarServiciosHTML(
+      mantenimientosCuarto,
+      cuartoId,
+      enModoEdicion
+    );
 
-        // El botón de editar siempre debe estar visible, incluso sin servicios
-        // (removida la lógica que lo ocultaba cuando no había servicios)
-    }
+    // El botón de editar siempre debe estar visible, incluso sin servicios
+    // (removida la lógica que lo ocultaba cuando no había servicios)
+  }
 }
 
 /**
  * Seleccionar un cuarto único (remover selección de otros)
  */
 function seleccionarCuarto(cuartoId) {
-    // Verificar si ya hay un formulario inline abierto en esta card
-    const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-    if (!contenedorServicios) return;
+  // Verificar si ya hay un formulario inline abierto en esta card
+  const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+  if (!contenedorServicios) return;
 
-    const formExistente = contenedorServicios.querySelector('.form-servicio-inline');
-    if (formExistente) {
-        // Si ya existe, hacer scroll hasta él
-        formExistente.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        return;
+  const formExistente = contenedorServicios.querySelector(
+    '.form-servicio-inline'
+  );
+  if (formExistente) {
+    // Si ya existe, hacer scroll hasta él
+    formExistente.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    return;
+  }
+
+  // Remover selección de todos los cuartos
+  const todosLosCuartos = document.querySelectorAll('.cuarto');
+  todosLosCuartos.forEach((cuarto) => {
+    cuarto.classList.remove('cuarto-seleccionado');
+  });
+
+  // Seleccionar el cuarto clickeado
+  const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
+  if (cuartoSeleccionado) {
+    cuartoSeleccionado.classList.add('cuarto-seleccionado');
+
+    // Auto-seleccionar en el formulario lateral si existe
+    const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
+    if (selectCuarto) {
+      selectCuarto.value = cuartoId;
     }
 
-    // Remover selección de todos los cuartos
-    const todosLosCuartos = document.querySelectorAll('.cuarto');
-    todosLosCuartos.forEach(cuarto => {
-        cuarto.classList.remove('cuarto-seleccionado');
-    });
+    // Actualizar el selector de estado con el estado actual del cuarto
+    actualizarSelectorEstado(cuartoId);
 
-    // Seleccionar el cuarto clickeado
-    const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
-    if (cuartoSeleccionado) {
-        cuartoSeleccionado.classList.add('cuarto-seleccionado');
+    // Mostrar formulario inline en la card
+    mostrarFormularioInline(cuartoId);
 
-        // Auto-seleccionar en el formulario lateral si existe
-        const selectCuarto = document.getElementById('cuartoMantenimientoLateral');
-        if (selectCuarto) {
-            selectCuarto.value = cuartoId;
-        }
-
-        // Actualizar el selector de estado con el estado actual del cuarto
-        actualizarSelectorEstado(cuartoId);
-
-        // Mostrar formulario inline en la card
-        mostrarFormularioInline(cuartoId);
-
-        console.log(`Cuarto ${cuartoId} seleccionado con formulario inline`);
-    }
+    console.log(`Cuarto ${cuartoId} seleccionado con formulario inline`);
+  }
 }
 
 /**
-     * Actualizar selector de estado con el estado actual del cuarto
-     */
+ * Actualizar selector de estado con el estado actual del cuarto
+ */
 function actualizarSelectorEstado(cuartoId) {
-    const estadoSelector = document.getElementById('estadoCuartoSelector');
-    if (!estadoSelector) return;
+  const estadoSelector = document.getElementById('estadoCuartoSelector');
+  if (!estadoSelector) return;
 
-    // Buscar el cuarto en el array
-    const s = getState();
-    const cuarto = s.cuartos.find(c => c.id === cuartoId);
+  // Buscar el cuarto en el array
+  const s = getState();
+  const cuarto = s.cuartos.find((c) => c.id === cuartoId);
 
-    // Remover clase activo de todos los pills
-    const pills = document.querySelectorAll('.estado-pill');
-    pills.forEach(pill => pill.classList.remove('activo'));
+  // Remover clase activo de todos los pills
+  const pills = document.querySelectorAll('.estado-pill');
+  pills.forEach((pill) => pill.classList.remove('activo'));
 
-    if (cuarto && cuarto.estado) {
-        estadoSelector.value = cuarto.estado;
+  if (cuarto && cuarto.estado) {
+    estadoSelector.value = cuarto.estado;
 
-        // Activar el pill correspondiente
-        const pillActivo = document.querySelector(`.estado-pill[data-estado="${cuarto.estado}"]`);
-        if (pillActivo) {
-            pillActivo.classList.add('activo');
-        }
-    } else {
-        estadoSelector.value = '';
+    // Activar el pill correspondiente
+    const pillActivo = document.querySelector(
+      `.estado-pill[data-estado="${cuarto.estado}"]`
+    );
+    if (pillActivo) {
+      pillActivo.classList.add('activo');
     }
+  } else {
+    estadoSelector.value = '';
+  }
 }
 
 /**
  * Seleccionar cuarto desde el select (sin scroll automático)
  */
 function seleccionarCuartoDesdeSelect(cuartoId) {
-    // Remover selección de todos los cuartos
-    const todosLosCuartos = document.querySelectorAll('.cuarto');
-    todosLosCuartos.forEach(cuarto => {
-        cuarto.classList.remove('cuarto-seleccionado');
-    });
+  // Remover selección de todos los cuartos
+  const todosLosCuartos = document.querySelectorAll('.cuarto');
+  todosLosCuartos.forEach((cuarto) => {
+    cuarto.classList.remove('cuarto-seleccionado');
+  });
 
-    // Seleccionar el cuarto sin hacer scroll
-    const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
-    if (cuartoSeleccionado) {
-        cuartoSeleccionado.classList.add('cuarto-seleccionado');
-        console.log(`Cuarto ${cuartoId} seleccionado desde select`);
-    }
+  // Seleccionar el cuarto sin hacer scroll
+  const cuartoSeleccionado = document.getElementById(`cuarto-${cuartoId}`);
+  if (cuartoSeleccionado) {
+    cuartoSeleccionado.classList.add('cuarto-seleccionado');
+    console.log(`Cuarto ${cuartoId} seleccionado desde select`);
+  }
 }
 
 /**
  * Mostrar formulario inline en la card de habitación
  */
 function mostrarFormularioInline(cuartoId) {
-    const s = getState();
-    const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-    if (!contenedorServicios) return;
+  const s = getState();
+  const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+  if (!contenedorServicios) return;
 
-    // Obtener cuarto para información de estado
-    const cuarto = s.cuartos.find(c => c.id === cuartoId);
-    const estadoCuarto = cuarto ? cuarto.estado : '';
+  // Obtener cuarto para información de estado
+  const cuarto = s.cuartos.find((c) => c.id === cuartoId);
+  const estadoCuarto = cuarto ? cuarto.estado : '';
 
-    // Generar opciones de usuarios
-    const opcionesUsuarios = s.usuarios.map(u =>
+  // Generar opciones de usuarios
+  const opcionesUsuarios = s.usuarios
+    .map(
+      (u) =>
         `<option value="${u.id}">${u.nombre}${u.departamento ? ` (${u.departamento})` : ''}</option>`
-    ).join('');
+    )
+    .join('');
 
-    // Crear el formulario inline
-    const formHTML = `
+  // Crear el formulario inline
+  const formHTML = `
     <div class="form-servicio-inline" data-cuarto-id="${cuartoId}">
         <div class="form-inline-header">
             <i class="fas fa-plus-circle"></i>
@@ -1026,463 +1125,527 @@ function mostrarFormularioInline(cuartoId) {
     </div>
 `;
 
-    // Insertar el formulario al inicio del contenedor
-    contenedorServicios.insertAdjacentHTML('afterbegin', formHTML);
+  // Insertar el formulario al inicio del contenedor
+  contenedorServicios.insertAdjacentHTML('afterbegin', formHTML);
 
-    // Preseleccionar el estado actual del cuarto
-    if (estadoCuarto) {
-        const btnEstado = contenedorServicios.querySelector(`.estado-pill-inline[data-estado="${estadoCuarto}"]`);
-        if (btnEstado) {
-            btnEstado.classList.add('activo');
-        }
+  // Preseleccionar el estado actual del cuarto
+  if (estadoCuarto) {
+    const btnEstado = contenedorServicios.querySelector(
+      `.estado-pill-inline[data-estado="${estadoCuarto}"]`
+    );
+    if (btnEstado) {
+      btnEstado.classList.add('activo');
     }
+  }
 
-    // Reorganizar servicios existentes (mostrar máximo 1 servicio después del formulario)
-    reorganizarServiciosConForm(cuartoId);
+  // Reorganizar servicios existentes (mostrar máximo 1 servicio después del formulario)
+  reorganizarServiciosConForm(cuartoId);
 
-    // Poblar selector de tareas con las tareas disponibles
-    const selectorTareas = document.getElementById(`tareaAsignadaInline-${cuartoId}`);
-    if (selectorTareas && typeof window.cargarTareasEnSelector === 'function') {
-        window.cargarTareasEnSelector(`tareaAsignadaInline-${cuartoId}`);
+  // Poblar selector de tareas con las tareas disponibles
+  const selectorTareas = document.getElementById(
+    `tareaAsignadaInline-${cuartoId}`
+  );
+  if (selectorTareas && typeof window.cargarTareasEnSelector === 'function') {
+    window.cargarTareasEnSelector(`tareaAsignadaInline-${cuartoId}`);
+  }
+
+  // Focus en el input de descripción
+  setTimeout(() => {
+    const input = contenedorServicios.querySelector(
+      '.input-inline[name="descripcion"]'
+    );
+    if (input) {
+      // Asegurar que el input esté habilitado
+      input.readOnly = false;
+      input.disabled = false;
+      input.removeAttribute('readonly');
+      input.removeAttribute('disabled');
+
+      // Dar focus al input
+      input.focus();
     }
-
-    // Focus en el input de descripción
-    setTimeout(() => {
-        const input = contenedorServicios.querySelector('.input-inline[name="descripcion"]');
-        if (input) {
-            // Asegurar que el input esté habilitado
-            input.readOnly = false;
-            input.disabled = false;
-            input.removeAttribute('readonly');
-            input.removeAttribute('disabled');
-
-            // Dar focus al input
-            input.focus();
-        }
-    }, 100);
+  }, 100);
 }
 
 /**
  * Reorganizar servicios cuando se muestra el formulario inline
  */
 function reorganizarServiciosConForm(cuartoId) {
-    const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-    if (!contenedorServicios) return;
+  const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+  if (!contenedorServicios) return;
 
-    const servicios = contenedorServicios.querySelectorAll('.servicio-item');
+  const servicios = contenedorServicios.querySelectorAll('.servicio-item');
 
-    // Ocultar todos excepto el primero
-    servicios.forEach((servicio, index) => {
-        if (index === 0) {
-            servicio.style.display = 'flex';
-        } else {
-            servicio.style.display = 'none';
-        }
-    });
-
-    // Ocultar el botón "Ver más" si existe
-    const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
-    if (verMas) {
-        verMas.style.display = 'none';
+  // Ocultar todos excepto el primero
+  servicios.forEach((servicio, index) => {
+    if (index === 0) {
+      servicio.style.display = 'flex';
+    } else {
+      servicio.style.display = 'none';
     }
+  });
+
+  // Ocultar el botón "Ver más" si existe
+  const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
+  if (verMas) {
+    verMas.style.display = 'none';
+  }
 }
 
 /**
  * Cerrar formulario inline
  */
 function cerrarFormularioInline(cuartoId) {
-    const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-    if (!contenedorServicios) return;
+  const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+  if (!contenedorServicios) return;
 
-    const form = contenedorServicios.querySelector('.form-servicio-inline');
-    if (form) {
-        form.remove();
+  const form = contenedorServicios.querySelector('.form-servicio-inline');
+  if (form) {
+    form.remove();
+  }
+
+  // Restaurar visualización de servicios
+  const servicios = contenedorServicios.querySelectorAll('.servicio-item');
+  servicios.forEach((servicio, index) => {
+    if (index < 2) {
+      servicio.style.display = 'flex';
     }
+  });
 
-    // Restaurar visualización de servicios
-    const servicios = contenedorServicios.querySelectorAll('.servicio-item');
-    servicios.forEach((servicio, index) => {
-        if (index < 2) {
-            servicio.style.display = 'flex';
-        }
-    });
-
-    // Restaurar botón "Ver más" si existe
-    const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
-    if (verMas) {
-        verMas.style.display = 'flex';
-    }
-};
+  // Restaurar botón "Ver más" si existe
+  const verMas = contenedorServicios.querySelector('.ver-mas-servicios');
+  if (verMas) {
+    verMas.style.display = 'flex';
+  }
+}
 window.cerrarFormularioInline = cerrarFormularioInline;
 
 /**
  * Toggle tipo de servicio en formulario inline
  */
 function toggleTipoServicioInline(cuartoId) {
-    const checkbox = document.getElementById(`tipoToggle-${cuartoId}`);
-    const camposAlerta = document.getElementById(`camposAlerta-${cuartoId}`);
-    const form = checkbox.closest('form');
-    const inputTipo = form.querySelector('input[name="tipo"]');
+  const checkbox = document.getElementById(`tipoToggle-${cuartoId}`);
+  const camposAlerta = document.getElementById(`camposAlerta-${cuartoId}`);
+  const form = checkbox.closest('form');
+  const inputTipo = form.querySelector('input[name="tipo"]');
 
-    if (checkbox.checked) {
-        // Es alerta
-        camposAlerta.style.display = 'flex';
-        inputTipo.value = 'rutina';
-    } else {
-        // Es avería
-        camposAlerta.style.display = 'none';
-        inputTipo.value = 'normal';
-    }
-};
+  if (checkbox.checked) {
+    // Es alerta
+    camposAlerta.style.display = 'flex';
+    inputTipo.value = 'rutina';
+  } else {
+    // Es avería
+    camposAlerta.style.display = 'none';
+    inputTipo.value = 'normal';
+  }
+}
 window.toggleTipoServicioInline = toggleTipoServicioInline;
 
 /**
  * Seleccionar estado en formulario inline
  */
 async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
-    const s = getState();
-    try {
-        console.log(`🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
+  const s = getState();
+  try {
+    console.log(
+      `🔄 Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`
+    );
 
-        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/cuartos/${cuartoId}`, {
-            method: 'PUT',
-            body: JSON.stringify({ estado: nuevoEstado })
-        });
+    const response = await window.fetchWithAuth(
+      `${window.API_BASE_URL}/api/cuartos/${cuartoId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ estado: nuevoEstado }),
+      }
+    );
 
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const resultado = await response.json();
-        console.log('Estado actualizado:', resultado);
-
-        // Actualizar el cuarto en el array local
-        const cuarto = s.cuartos.find(c => c.id === cuartoId);
-        if (cuarto) {
-            cuarto.estado = nuevoEstado;
-        }
-
-        // Remover clase activo de todos los botones de estado de este contenedor
-        const contenedorPills = boton.closest('.estado-pills-inline');
-        if (contenedorPills) {
-            const todosLosBotones = contenedorPills.querySelectorAll('.estado-pill-inline');
-            todosLosBotones.forEach(btn => btn.classList.remove('activo'));
-        }
-
-        // Agregar clase activo al botón seleccionado
-        boton.classList.add('activo');
-
-        // Actualizar el input hidden
-        const inputEstado = document.getElementById(`estadoCuartoInline-${cuartoId}`);
-        if (inputEstado) {
-            inputEstado.value = nuevoEstado;
-        }
-
-        // Actualizar solo el badge de estado de la card específica
-        actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
-
-        const estadoLabels = {
-            'disponible': 'Disponible',
-            'ocupado': 'Ocupado',
-            'mantenimiento': 'En Mantenimiento',
-            'fuera_servicio': 'Fuera de Servicio'
-        };
-
-        const label = estadoLabels[nuevoEstado] || nuevoEstado;
-
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
-
-    } catch (error) {
-        console.error('❌ Error al actualizar estado:', error);
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
     }
-};
+
+    const resultado = await response.json();
+    console.log('Estado actualizado:', resultado);
+
+    // Actualizar el cuarto en el array local
+    const cuarto = s.cuartos.find((c) => c.id === cuartoId);
+    if (cuarto) {
+      cuarto.estado = nuevoEstado;
+    }
+
+    // Remover clase activo de todos los botones de estado de este contenedor
+    const contenedorPills = boton.closest('.estado-pills-inline');
+    if (contenedorPills) {
+      const todosLosBotones = contenedorPills.querySelectorAll(
+        '.estado-pill-inline'
+      );
+      todosLosBotones.forEach((btn) => btn.classList.remove('activo'));
+    }
+
+    // Agregar clase activo al botón seleccionado
+    boton.classList.add('activo');
+
+    // Actualizar el input hidden
+    const inputEstado = document.getElementById(
+      `estadoCuartoInline-${cuartoId}`
+    );
+    if (inputEstado) {
+      inputEstado.value = nuevoEstado;
+    }
+
+    // Actualizar solo el badge de estado de la card específica
+    actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
+
+    const estadoLabels = {
+      disponible: 'Disponible',
+      ocupado: 'Ocupado',
+      mantenimiento: 'En Mantenimiento',
+      fuera_servicio: 'Fuera de Servicio',
+    };
+
+    const label = estadoLabels[nuevoEstado] || nuevoEstado;
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
+  } catch (error) {
+    console.error('❌ Error al actualizar estado:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(
+        `Error al actualizar estado: ${error.message}`,
+        'error'
+      );
+  }
+}
 window.seleccionarEstadoInline = seleccionarEstadoInline;
 
 function formularioEdicionInlineLleno(cuartoId) {
-    const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
-    if (!contenedorServicios) return false;
+  const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+  if (!contenedorServicios) return false;
 
-    const form = contenedorServicios.querySelector('.form-servicio-inline');
-    if (!form) return false;
+  const form = contenedorServicios.querySelector('.form-servicio-inline');
+  if (!form) return false;
 
-    const descripcion = form.querySelector('input[name="descripcion"]').value.trim();
-    const tipo = form.querySelector('input[name="tipo"]').value;
+  const descripcion = form
+    .querySelector('input[name="descripcion"]')
+    .value.trim();
+  const tipo = form.querySelector('input[name="tipo"]').value;
 
-    if (!descripcion) return false;
+  if (!descripcion) return false;
 
-    if (tipo === 'rutina') {
-        const hora = form.querySelector('input[name="hora"]').value;
-        const dia_alerta = form.querySelector('input[name="dia_alerta"]').value;
-        if (!hora || !dia_alerta) return false;
-    }
+  if (tipo === 'rutina') {
+    const hora = form.querySelector('input[name="hora"]').value;
+    const dia_alerta = form.querySelector('input[name="dia_alerta"]').value;
+    if (!hora || !dia_alerta) return false;
+  }
 
-    return true;
+  return true;
 }
 
 function deshabilitarBotonGuardarInline(cuartoId, deshabilitar) {
-    const botonGuardar = document.getElementById(`btn-guardar-${cuartoId}`);
-    if (!botonGuardar) return;
+  const botonGuardar = document.getElementById(`btn-guardar-${cuartoId}`);
+  if (!botonGuardar) return;
 
-    // Guardar HTML original para poder restaurarlo
-    if (!botonGuardar.dataset.origHtml) {
-        botonGuardar.dataset.origHtml = botonGuardar.innerHTML;
-    }
+  // Guardar HTML original para poder restaurarlo
+  if (!botonGuardar.dataset.origHtml) {
+    botonGuardar.dataset.origHtml = botonGuardar.innerHTML;
+  }
 
-    if (deshabilitar && formularioEdicionInlineLleno(cuartoId)) {
-        botonGuardar.disabled = true;
-        botonGuardar.setAttribute('aria-busy', 'true');
-        botonGuardar.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Guardando...`;
+  if (deshabilitar && formularioEdicionInlineLleno(cuartoId)) {
+    botonGuardar.disabled = true;
+    botonGuardar.setAttribute('aria-busy', 'true');
+    botonGuardar.innerHTML = `<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Guardando...`;
 
-        // Intentar submit manual del formulario contenedor (solo una vez)
-        try {
-            const form = botonGuardar.closest('form');
-            if (form && !botonGuardar.dataset.submitted) {
-                botonGuardar.dataset.submitted = '1';
-                // Dejar que el DOM actualice el botón antes de enviar
-                setTimeout(() => {
-                    try {
-                        if (typeof form.requestSubmit === 'function') {
-                            form.requestSubmit();
-                        } else {
-                            form.submit();
-                        }
-                    } catch (e) {
-                        console.warn('Error enviando el formulario automáticamente:', e);
-                    }
-                }, 10);
+    // Intentar submit manual del formulario contenedor (solo una vez)
+    try {
+      const form = botonGuardar.closest('form');
+      if (form && !botonGuardar.dataset.submitted) {
+        botonGuardar.dataset.submitted = '1';
+        // Dejar que el DOM actualice el botón antes de enviar
+        setTimeout(() => {
+          try {
+            if (typeof form.requestSubmit === 'function') {
+              form.requestSubmit();
+            } else {
+              form.submit();
             }
-        } catch (e) {
-            console.warn('No se pudo realizar submit automático:', e);
-        }
-    } else {
-        botonGuardar.disabled = false;
-        botonGuardar.removeAttribute('aria-busy');
-        botonGuardar.innerHTML = botonGuardar.dataset.origHtml || 'Guardar';
-        delete botonGuardar.dataset.submitted;
+          } catch (e) {
+            console.warn('Error enviando el formulario automáticamente:', e);
+          }
+        }, 10);
+      }
+    } catch (e) {
+      console.warn('No se pudo realizar submit automático:', e);
     }
-};
+  } else {
+    botonGuardar.disabled = false;
+    botonGuardar.removeAttribute('aria-busy');
+    botonGuardar.innerHTML = botonGuardar.dataset.origHtml || 'Guardar';
+    delete botonGuardar.dataset.submitted;
+  }
+}
 window.deshabilitarBotonGuardarInline = deshabilitarBotonGuardarInline;
 
 /**
  * Guardar servicio desde formulario inline
  */
 async function guardarServicioInline(event, cuartoId) {
-    event.preventDefault();
+  event.preventDefault();
 
-    const form = event.target;
-    const formData = new FormData(form);
+  const form = event.target;
+  const formData = new FormData(form);
 
-    // Obtener prioridad del radio button
-    const prioridadRadio = form.querySelector(`input[name="prioridad-${cuartoId}"]:checked`);
+  // Obtener prioridad del radio button
+  const prioridadRadio = form.querySelector(
+    `input[name="prioridad-${cuartoId}"]:checked`
+  );
 
+  const datos = {
+    cuarto_id: cuartoId,
+    tipo: formData.get('tipo'),
+    descripcion: formData.get('descripcion'),
+    hora: formData.get('hora'),
+    dia_alerta: formData.get('dia_alerta'),
+    prioridad: prioridadRadio ? prioridadRadio.value : 'media',
+    estado_cuarto: formData.get('estado_cuarto'),
+    estado: formData.get('estado_mantenimiento') || 'pendiente',
+    usuario_asignado_id: formData.get('usuario_asignado_id') || null,
+    tarea_id: formData.get('tarea_asignada_id') || null, // Asignar tarea al servicio
+    notas: formData.get('notas') || null,
+  };
 
-    const datos = {
-        cuarto_id: cuartoId,
-        tipo: formData.get('tipo'),
-        descripcion: formData.get('descripcion'),
-        hora: formData.get('hora'),
-        dia_alerta: formData.get('dia_alerta'),
-        prioridad: prioridadRadio ? prioridadRadio.value : 'media',
-        estado_cuarto: formData.get('estado_cuarto'),
-        estado: formData.get('estado_mantenimiento') || 'pendiente',
-        usuario_asignado_id: formData.get('usuario_asignado_id') || null,
-        tarea_id: formData.get('tarea_asignada_id') || null,  // Asignar tarea al servicio
-        notas: formData.get('notas') || null
-    };
+  // Nota: usuario_creador_id no se envía, el backend lo obtiene del JWT
 
-    // Nota: usuario_creador_id no se envía, el backend lo obtiene del JWT
+  console.log('📝 Enviando datos de servicio inline:', datos);
 
-    console.log('📝 Enviando datos de servicio inline:', datos);
+  // Validaciones básicas
+  if (!datos.descripcion || datos.descripcion.trim() === '') {
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
+    return;
+  }
 
-    // Validaciones básicas
-    if (!datos.descripcion || datos.descripcion.trim() === '') {
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Por favor ingresa una descripción', 'error');
-        return;
+  if (datos.tipo === 'rutina') {
+    if (!datos.hora) {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur(
+          'La hora es obligatoria para alertas',
+          'error'
+        );
+      return;
+    }
+    if (!datos.dia_alerta) {
+      if (window.mostrarAlertaBlur)
+        window.mostrarAlertaBlur('El día es obligatorio para alertas', 'error');
+      return;
+    }
+  }
+
+  try {
+    console.log(
+      '🌐 Enviando request a:',
+      `${window.API_BASE_URL}/api/mantenimientos`
+    );
+
+    // Usar fetchWithAuth para manejo automático de refresh de token
+    const response = await window.fetchWithAuth(
+      `${window.API_BASE_URL}/api/mantenimientos`,
+      {
+        method: 'POST',
+        body: JSON.stringify(datos),
+      }
+    );
+
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      deshabilitarBotonGuardarInline(cuartoId, false);
+      console.error('❌ Error response:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
     }
 
+    const resultado = await response.json();
+    console.log('✅ Servicio registrado exitosamente:', resultado);
+
+    // Cerrar formulario
+    cerrarFormularioInline(cuartoId);
+
+    // Actualizar array de mantenimientos localmente
+    const s = getState();
+    if (s.mantenimientos && Array.isArray(s.mantenimientos)) {
+      // Agregar el nuevo servicio al principio del array
+      s.mantenimientos.unshift(resultado);
+
+      // Ordenar por fecha de creación descendente (más recientes primero)
+      s.mantenimientos.sort((a, b) => {
+        const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+        const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+        return fechaB - fechaA;
+      });
+
+      // Actualizar caché de mantenimientos por cuarto
+      window.mantenimientosPorCuarto =
+        window.mantenimientosPorCuarto || new Map();
+      const mantenimientosCuarto = s.mantenimientos.filter(
+        (m) => m.cuarto_id === cuartoId
+      );
+      // Ordenar también la caché
+      mantenimientosCuarto.sort((a, b) => {
+        const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
+        const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
+        return fechaB - fechaA;
+      });
+      window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
+    }
+
+    // Actualizar solo el contenedor de servicios de esta habitación
+    actualizarCardCuartoEnUI(cuartoId);
+
+    // Marcar automáticamente las alertas pasadas (por si la nueva alerta ya pasó)
+    await window.marcarAlertasPasadasComoEmitidas();
+
+    // Actualizar selectores y alertas sin recargar todas las cards
+    window.cargarCuartosEnSelect();
+    window.mostrarAlertasYRecientes();
+
+    // Actualizar paneles de alertas emitidas
+    await window.mostrarAlertasEmitidas();
+    await window.mostrarHistorialAlertas();
+
+    // Forzar actualización del sistema de notificaciones si es una rutina
     if (datos.tipo === 'rutina') {
-        if (!datos.hora) {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La hora es obligatoria para alertas', 'error');
-            return;
-        }
-        if (!datos.dia_alerta) {
-            if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('El día es obligatorio para alertas', 'error');
-            return;
-        }
+      console.log(
+        '🔄 Nueva rutina agregada, verificando sistema de notificaciones...'
+      );
+      setTimeout(() => {
+        window.verificarYEmitirAlertas();
+      }, 1500);
     }
 
-    try {
-        console.log('🌐 Enviando request a:', `${window.API_BASE_URL}/api/mantenimientos`);
-
-        // Usar fetchWithAuth para manejo automático de refresh de token
-        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/mantenimientos`, {
-            method: 'POST',
-            body: JSON.stringify(datos)
-        });
-
-        console.log('📡 Response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            deshabilitarBotonGuardarInline(cuartoId, false);
-            console.error('❌ Error response:', errorText);
-            throw new Error(`Error ${response.status}: ${errorText}`);
-        }
-
-        const resultado = await response.json();
-        console.log('✅ Servicio registrado exitosamente:', resultado);
-
-        // Cerrar formulario
-        cerrarFormularioInline(cuartoId);
-
-        // Actualizar array de mantenimientos localmente
-        const s = getState();
-        if (s.mantenimientos && Array.isArray(s.mantenimientos)) {
-            // Agregar el nuevo servicio al principio del array
-            s.mantenimientos.unshift(resultado);
-
-            // Ordenar por fecha de creación descendente (más recientes primero)
-            s.mantenimientos.sort((a, b) => {
-                const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
-                const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
-                return fechaB - fechaA;
-            });
-
-            // Actualizar caché de mantenimientos por cuarto
-            window.mantenimientosPorCuarto = window.mantenimientosPorCuarto || new Map();
-            const mantenimientosCuarto = s.mantenimientos.filter(m => m.cuarto_id === cuartoId);
-            // Ordenar también la caché
-            mantenimientosCuarto.sort((a, b) => {
-                const fechaA = new Date(a.fecha_creacion || a.fecha_registro || 0);
-                const fechaB = new Date(b.fecha_creacion || b.fecha_registro || 0);
-                return fechaB - fechaA;
-            });
-            window.mantenimientosPorCuarto.set(cuartoId, mantenimientosCuarto);
-        }
-
-        // Actualizar solo el contenedor de servicios de esta habitación
-        actualizarCardCuartoEnUI(cuartoId);
-
-        // Marcar automáticamente las alertas pasadas (por si la nueva alerta ya pasó)
-        await window.marcarAlertasPasadasComoEmitidas();
-
-        // Actualizar selectores y alertas sin recargar todas las cards
-        window.cargarCuartosEnSelect();
-        window.mostrarAlertasYRecientes();
-
-        // Actualizar paneles de alertas emitidas
-        await window.mostrarAlertasEmitidas();
-        await window.mostrarHistorialAlertas();
-
-        // Forzar actualización del sistema de notificaciones si es una rutina
-        if (datos.tipo === 'rutina') {
-            console.log('🔄 Nueva rutina agregada, verificando sistema de notificaciones...');
-            setTimeout(() => {
-                window.verificarYEmitirAlertas();
-            }, 1500);
-        }
-
-        // Verificar progreso de la tarea asociada (si aplica)
-        if (resultado.tarea_id && typeof window.verificarYActualizarTareaIndividual === 'function') {
-            await window.verificarYActualizarTareaIndividual(resultado.tarea_id);
-        }
-
-        // Mostrar mensaje de éxito
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Servicio registrado exitosamente', 'success');
-
-    } catch (error) {
-        console.error('❌ Error al registrar servicio:', error);
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al registrar servicio: ${error.message}`, 'error');
+    // Verificar progreso de la tarea asociada (si aplica)
+    if (
+      resultado.tarea_id &&
+      typeof window.verificarYActualizarTareaIndividual === 'function'
+    ) {
+      await window.verificarYActualizarTareaIndividual(resultado.tarea_id);
     }
-};
+
+    // Mostrar mensaje de éxito
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('Servicio registrado exitosamente', 'success');
+  } catch (error) {
+    console.error('❌ Error al registrar servicio:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(
+        `Error al registrar servicio: ${error.message}`,
+        'error'
+      );
+  }
+}
 window.guardarServicioInline = guardarServicioInline;
 
 /**
  * Toggle de mantenimientos (función esperada por los botones)
  */
 function toggleMantenimientos(cuartoId, button) {
-    const lista = document.getElementById(`mantenimientos-${cuartoId}`);
-    if (!lista) return;
+  const lista = document.getElementById(`mantenimientos-${cuartoId}`);
+  if (!lista) return;
 
-    if (lista.style.display === 'none') {
-        lista.style.display = 'block';
-        button.textContent = 'Ocultar Mantenimientos';
-    } else {
-        lista.style.display = 'none';
-        button.textContent = 'Mostrar Mantenimientos';
-    }
-};
+  if (lista.style.display === 'none') {
+    lista.style.display = 'block';
+    button.textContent = 'Ocultar Mantenimientos';
+  } else {
+    lista.style.display = 'none';
+    button.textContent = 'Mostrar Mantenimientos';
+  }
+}
 window.toggleMantenimientos = toggleMantenimientos;
 
 /**
  * Eliminar mantenimiento inline
  */
 async function eliminarMantenimientoInline(mantenimientoId, cuartoId) {
-    console.log('🗑️ Iniciando eliminación de mantenimiento:', { mantenimientoId, cuartoId });
+  console.log('🗑️ Iniciando eliminación de mantenimiento:', {
+    mantenimientoId,
+    cuartoId,
+  });
 
-    if (!window.electronSafeConfirm('¿Está seguro de eliminar este mantenimiento?')) {
-        console.log('❌ Eliminación cancelada por el usuario');
-        return;
+  if (
+    !window.electronSafeConfirm('¿Está seguro de eliminar este mantenimiento?')
+  ) {
+    console.log('❌ Eliminación cancelada por el usuario');
+    return;
+  }
+
+  try {
+    console.log(
+      '🌐 Enviando DELETE a:',
+      `${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`
+    );
+
+    // Usar fetchWithAuth para manejo automático de refresh de token
+    const response = await window.fetchWithAuth(
+      `${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`,
+      {
+        method: 'DELETE',
+      }
+    );
+
+    console.log('📡 Response status:', response.status);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('❌ Error response:', errorText);
+      throw new Error(`Error ${response.status}: ${errorText}`);
     }
 
-    try {
-        console.log('🌐 Enviando DELETE a:', `${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`);
+    const result = await response.json();
+    console.log('✅ Resultado eliminación:', result);
 
-        // Usar fetchWithAuth para manejo automático de refresh de token
-        const response = await window.fetchWithAuth(`${window.API_BASE_URL}/api/mantenimientos/${mantenimientoId}`, {
-            method: 'DELETE'
-        });
+    // Recargar datos y actualizar vista
+    console.log('🔄 Recargando datos después de eliminación...');
+    await window.cargarDatos();
+    mostrarCuartos();
+    window.mostrarAlertasYRecientes();
 
-        console.log('📡 Response status:', response.status);
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('❌ Error response:', errorText);
-            throw new Error(`Error ${response.status}: ${errorText}`);
-        }
-
-        const result = await response.json();
-        console.log('✅ Resultado eliminación:', result);
-
-        // Recargar datos y actualizar vista
-        console.log('🔄 Recargando datos después de eliminación...');
-        await window.cargarDatos();
-        mostrarCuartos();
-        window.mostrarAlertasYRecientes();
-
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('Mantenimiento eliminado exitosamente', 'success');
-        console.log('✅ Eliminación completada correctamente');
-
-    } catch (error) {
-        console.error('❌ Error eliminando mantenimiento:', error);
-        if (window.mostrarAlertaBlur) window.mostrarAlertaBlur(`Error al eliminar mantenimiento: ${error.message}`, 'error');
-    }
-};
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(
+        'Mantenimiento eliminado exitosamente',
+        'success'
+      );
+    console.log('✅ Eliminación completada correctamente');
+  } catch (error) {
+    console.error('❌ Error eliminando mantenimiento:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(
+        `Error al eliminar mantenimiento: ${error.message}`,
+        'error'
+      );
+  }
+}
 window.eliminarMantenimientoInline = eliminarMantenimientoInline;
 
 /**
  * Scroll a cuarto específico
  */
 function scrollToCuarto(cuartoId) {
-    const cuarto = document.getElementById(`cuarto-${cuartoId}`);
-    if (cuarto) {
-        // Solo hacer scroll a la card sin seleccionarla
-        cuarto.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  const cuarto = document.getElementById(`cuarto-${cuartoId}`);
+  if (cuarto) {
+    // Solo hacer scroll a la card sin seleccionarla
+    cuarto.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-        // Highlight temporal para identificar la card
+    // Highlight temporal para identificar la card
+    setTimeout(() => {
+      cuarto.style.transition = 'background-color 0.3s ease';
+      cuarto.style.backgroundColor = '#fffacd';
+      setTimeout(() => {
+        cuarto.style.backgroundColor = '';
         setTimeout(() => {
-            cuarto.style.transition = 'background-color 0.3s ease';
-            cuarto.style.backgroundColor = '#fffacd';
-            setTimeout(() => {
-                cuarto.style.backgroundColor = '';
-                setTimeout(() => {
-                    cuarto.style.transition = '';
-                }, 300);
-            }, 2000);
-        }, 500);
-    }
-};
+          cuarto.style.transition = '';
+        }, 300);
+      }, 2000);
+    }, 500);
+  }
+}
 window.scrollToCuarto = scrollToCuarto;
 
 // Exponer todas las funciones a window para acceso global
@@ -1511,63 +1674,62 @@ window.actualizarEstadoBadgeCard = actualizarEstadoBadgeCard;
 
 // Escuchar evento cuando los datos de habitaciones están listos y forzar render
 window.addEventListener('habitaciones:dataCargada', (event) => {
-    const s = getState();
-    s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
-    s.paginaActualCuartos = 1;
+  const s = getState();
+  s.cuartosFiltradosActual = Array.isArray(s.cuartos) ? [...s.cuartos] : [];
+  s.paginaActualCuartos = 1;
 
-
-    if (typeof window.mostrarCuartos === 'function') {
-        window.mostrarCuartos();
-    }
+  if (typeof window.mostrarCuartos === 'function') {
+    window.mostrarCuartos();
+  }
 });
 
 // Fallback: observar carga de datos y renderizar cuando existan cuartos
 (function iniciarWatcherDatosHabitaciones() {
-    let intentos = 0;
-    const maxIntentos = 40; // ~20s si interval es 500ms
-    const interval = setInterval(() => {
-        intentos += 1;
-        const s = getState();
-        const total = Array.isArray(s.cuartos) ? s.cuartos.length : 0;
-        if (total > 0) {
-            s.datosHabitacionesCargados = true;
-            s.cuartosFiltradosActual = [...s.cuartos];
+  let intentos = 0;
+  const maxIntentos = 40; // ~20s si interval es 500ms
+  const interval = setInterval(() => {
+    intentos += 1;
+    const s = getState();
+    const total = Array.isArray(s.cuartos) ? s.cuartos.length : 0;
+    if (total > 0) {
+      s.datosHabitacionesCargados = true;
+      s.cuartosFiltradosActual = [...s.cuartos];
 
-            if (typeof window.mostrarCuartos === 'function') {
-                window.mostrarCuartos();
-            }
-            clearInterval(interval);
-        } else if (intentos >= maxIntentos) {
-            clearInterval(interval);
-        }
-    }, 500);
+      if (typeof window.mostrarCuartos === 'function') {
+        window.mostrarCuartos();
+      }
+      clearInterval(interval);
+    } else if (intentos >= maxIntentos) {
+      clearInterval(interval);
+    }
+  }, 500);
 })();
 
 console.log('✅ [APP-LOADER-HABITACIONES] Funciones exportadas a window');
 
 // También exportar para compatibilidad con módulos ES6 (si se carga como módulo)
 export {
-    mostrarSkeletonsIniciales,
-    mostrarCuartos,
-    sincronizarCuartosFiltrados,
-    renderizarPaginacionCuartos,
-    desplazarListaCuartosAlInicio,
-    filtrarCuartos,
-    mostrarCuartosFiltrados,
-    actualizarCardCuartoEnUI,
-    seleccionarCuarto,
-    seleccionarCuartoDesdeSelect,
-    mostrarFormularioInline,
-    reorganizarServiciosConForm,
-    formularioEdicionInlineLleno,
-    cerrarFormularioInline,
-    toggleTipoServicioInline,
-    seleccionarEstadoInline,
-    deshabilitarBotonGuardarInline,
-    guardarServicioInline,
-    toggleMantenimientos,
-    eliminarMantenimientoInline,
-    scrollToCuarto,
-    actualizarSelectorEstado,
-    actualizarEstadoBadgeCard
+  mostrarSkeletonsIniciales,
+  mostrarCuartos,
+  sincronizarCuartosFiltrados,
+  renderizarPaginacionCuartos,
+  desplazarListaCuartosAlInicio,
+  filtrarCuartos,
+  mostrarCuartosFiltrados,
+  actualizarCardCuartoEnUI,
+  seleccionarCuarto,
+  seleccionarCuartoDesdeSelect,
+  mostrarFormularioInline,
+  reorganizarServiciosConForm,
+  formularioEdicionInlineLleno,
+  cerrarFormularioInline,
+  toggleTipoServicioInline,
+  seleccionarEstadoInline,
+  deshabilitarBotonGuardarInline,
+  guardarServicioInline,
+  toggleMantenimientos,
+  eliminarMantenimientoInline,
+  scrollToCuarto,
+  actualizarSelectorEstado,
+  actualizarEstadoBadgeCard,
 };

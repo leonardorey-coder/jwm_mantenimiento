@@ -357,7 +357,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   background: var(--verde-oliva);
 }
 
-
 /* Chip minimalista para categorías */
 .categoria-btn {
   display: inline-flex;
@@ -585,10 +584,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   opacity: 0.5;
 }
 
-
-
-
-
 /* Badge de estado profesional */
 .checklist-estado-badge {
   display: inline-flex;
@@ -686,7 +681,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   }
 }
 
-.checklist-modal[style*="display: flex"] {
+.checklist-modal[style*='display: flex'] {
   display: flex !important;
 }
 
@@ -774,7 +769,8 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   font-weight: 600;
 }
 
-.checklist-info-item span:not(.checklist-estado-badge):not(.checklist-estado-badge span) {
+.checklist-info-item
+  span:not(.checklist-estado-badge):not(.checklist-estado-badge span) {
   color: var(--texto-principal);
   font-size: 0.9rem;
   font-weight: 600;
@@ -895,7 +891,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   margin: 0;
 }
 
-.evidencias-upload-zone input[type="file"] {
+.evidencias-upload-zone input[type='file'] {
   display: none;
 }
 
@@ -1179,13 +1175,13 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 /* Dark mode para modal de checklist */
-:root[data-theme="dark"] .checklist-info-item,
-:root[data-theme="dark"] .checklist-stat-item,
-:root[data-theme="dark"] .history-item {
+:root[data-theme='dark'] .checklist-info-item,
+:root[data-theme='dark'] .checklist-stat-item,
+:root[data-theme='dark'] .history-item {
   background: rgba(255, 255, 255, 0.05);
 }
 
-:root[data-theme="dark"] .no-history {
+:root[data-theme='dark'] .no-history {
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1428,7 +1424,9 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   font-size: 1.4rem;
   font-weight: 900;
   color: var(--negro-carbon);
-  transition: transform 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
 }
 
 /* Animación cuando se actualiza un contador */
@@ -1619,30 +1617,30 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 /* Estado checked - Borde de color pero fondo blanco */
-.checklist-semaforo-option.bueno input:checked+.semaforo-visual {
+.checklist-semaforo-option.bueno input:checked + .semaforo-visual {
   border-color: var(--color-exito);
   background: var(--blanco);
   box-shadow: 4px 4px 0 rgba(16, 185, 129, 0.2);
 }
 
-.checklist-semaforo-option.regular input:checked+.semaforo-visual {
+.checklist-semaforo-option.regular input:checked + .semaforo-visual {
   border-color: var(--color-advertencia);
   background: var(--blanco);
   box-shadow: 4px 4px 0 rgba(245, 158, 11, 0.2);
 }
 
-.checklist-semaforo-option.malo input:checked+.semaforo-visual {
+.checklist-semaforo-option.malo input:checked + .semaforo-visual {
   border-color: var(--color-peligro);
   background: var(--blanco);
   box-shadow: 4px 4px 0 rgba(239, 68, 68, 0.2);
 }
 
-.checklist-semaforo-option input:checked+.semaforo-visual .semaforo-text {
+.checklist-semaforo-option input:checked + .semaforo-visual .semaforo-text {
   color: var(--negro-carbon);
   font-weight: 900;
 }
 
-.checklist-semaforo-option input:checked+.semaforo-visual .semaforo-dot {
+.checklist-semaforo-option input:checked + .semaforo-visual .semaforo-dot {
   box-shadow: 0 0 12px currentColor;
   transform: scale(1.15);
 }
@@ -1715,11 +1713,15 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   }
 
   /* Cuando el dropdown está cerrado - esconder todo */
-  .checklist-categorias-wrapper[data-mobile-open="false"] .checklist-categorias-filtro {
+  .checklist-categorias-wrapper[data-mobile-open='false']
+    .checklist-categorias-filtro {
     display: none;
   }
 
-  #tab-checklist .panel-filtros .checklist-categorias-wrapper[data-mobile-open="false"]~.busqueda-filtros {
+  #tab-checklist
+    .panel-filtros
+    .checklist-categorias-wrapper[data-mobile-open='false']
+    ~ .busqueda-filtros {
     display: none !important;
   }
 
@@ -1728,7 +1730,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     display: none;
   }
 
-  .checklist-categorias-wrapper[data-mobile-open="true"]~.busqueda-filtros {
+  .checklist-categorias-wrapper[data-mobile-open='true'] ~ .busqueda-filtros {
     display: grid !important;
     padding: 1rem;
     margin-top: 0;
@@ -1741,7 +1743,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   }
 
   /* Luego mostrar categorías debajo */
-  .checklist-categorias-wrapper[data-mobile-open="true"] {
+  .checklist-categorias-wrapper[data-mobile-open='true'] {
     border: 3px solid var(--border-color);
     border-top: none;
     border-bottom-left-radius: var(--radio-grande);
@@ -1752,7 +1754,8 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     overflow: hidden;
   }
 
-  .checklist-categorias-wrapper[data-mobile-open="true"] .checklist-categorias-filtro {
+  .checklist-categorias-wrapper[data-mobile-open='true']
+    .checklist-categorias-filtro {
     display: grid;
     border: none;
     border-radius: 0;
@@ -1834,7 +1837,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 
 /* Mobile optimizations: mejor disposición de cards y semáforos para pantallas pequeñas */
 @media (max-width: 600px) {
-
   /* Cards: hacerlas más compactas, alto automático y padding cómodo */
   .checklist-card {
     padding: 1rem;
@@ -1893,8 +1895,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     width: 100%;
     justify-content: center;
   }
-
-
 
   /* Stats: usar fila horizontal con scroll si es necesario */
   .checklist-card-stats {
@@ -1981,7 +1981,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
    Optimizaciones para pantallas muy pequeñas
    ======================================== */
 @media (max-width: 400px) {
-
   /* Items ultra compactos para pantallas muy pequeñas */
   .checklist-item {
     gap: 0.4rem;
@@ -2062,88 +2061,86 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 /* Modo oscuro para el buscador */
-:root[data-theme="dark"] .checklist-search-input {
+:root[data-theme='dark'] .checklist-search-input {
   background: var(--bg-principal);
   color: var(--texto-principal);
   border-color: var(--border-color);
 }
 
-:root[data-theme="dark"] .checklist-search-input::placeholder {
+:root[data-theme='dark'] .checklist-search-input::placeholder {
   color: var(--texto-secundario);
 }
 
-:root[data-theme="dark"] .checklist-search-input:focus {
+:root[data-theme='dark'] .checklist-search-input:focus {
   border-color: var(--verde-oliva);
   box-shadow: 3px 3px 0 rgba(110, 241, 195, 0.3);
 }
 
-:root[data-theme="dark"] .checklist-search-clear {
+:root[data-theme='dark'] .checklist-search-clear {
   background: var(--bg-principal);
   border-color: var(--border-color);
   color: var(--texto-secundario);
 }
 
-:root[data-theme="dark"] .checklist-search-clear:hover {
+:root[data-theme='dark'] .checklist-search-clear:hover {
   background: var(--color-peligro);
   border-color: var(--color-peligro);
   color: var(--blanco);
 }
 
 /* Badges de estado en modo oscuro */
-:root[data-theme="dark"] .checklist-room-number {
+:root[data-theme='dark'] .checklist-room-number {
   color: var(--texto-principal);
 }
 
-:root[data-theme="dark"] .checklist-meta-item {
+:root[data-theme='dark'] .checklist-meta-item {
   color: var(--texto-secundario);
 }
 
-:root[data-theme="dark"] .checklist-action-btn {
+:root[data-theme='dark'] .checklist-action-btn {
   background: var(--bg-principal);
   border-color: var(--border-color);
   color: var(--texto-secundario);
 }
 
-:root[data-theme="dark"] .checklist-action-btn:hover {
+:root[data-theme='dark'] .checklist-action-btn:hover {
   background: var(--texto-principal);
   color: var(--bg-principal);
   border-color: var(--texto-principal);
 }
 
-:root[data-theme="dark"] .checklist-estado-badge.estado-disponible {
+:root[data-theme='dark'] .checklist-estado-badge.estado-disponible {
   background: rgba(16, 185, 129, 0.2);
   border-color: rgba(16, 185, 129, 0.4);
   color: #6ee7b7;
 }
 
-:root[data-theme="dark"] .checklist-estado-badge.estado-ocupado {
+:root[data-theme='dark'] .checklist-estado-badge.estado-ocupado {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.4);
   color: #93c5fd;
 }
 
-:root[data-theme="dark"] .checklist-estado-badge.estado-mantenimiento {
+:root[data-theme='dark'] .checklist-estado-badge.estado-mantenimiento {
   background: rgba(245, 158, 11, 0.2);
   border-color: rgba(245, 158, 11, 0.4);
   color: #fbbf24;
 }
 
-:root[data-theme="dark"] .checklist-estado-badge.estado-fuera-servicio {
+:root[data-theme='dark'] .checklist-estado-badge.estado-fuera-servicio {
   background: rgba(239, 68, 68, 0.2);
   border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
 }
 
-:root[data-theme="dark"] .checklist-editor-tag {
+:root[data-theme='dark'] .checklist-editor-tag {
   background: rgba(110, 241, 195, 0.15);
   color: var(--verde-oliva);
 }
 
-:root[data-theme="dark"] .checklist-meta-divider {
+:root[data-theme='dark'] .checklist-meta-divider {
   background: var(--gris-oscuro);
 }
-
-
 
 .checklist-recientes-panel {
   padding: 1.5rem;
@@ -2300,19 +2297,25 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
   font-size: 0.9rem;
 }
 
-.checklist-semaforo-option.bueno input:checked+.semaforo-visual .semaforo-dot {
+.checklist-semaforo-option.bueno
+  input:checked
+  + .semaforo-visual
+  .semaforo-dot {
   color: var(--color-exito);
 }
 
-.checklist-semaforo-option.regular input:checked+.semaforo-visual .semaforo-dot {
+.checklist-semaforo-option.regular
+  input:checked
+  + .semaforo-visual
+  .semaforo-dot {
   color: var(--color-advertencia);
 }
 
-.checklist-semaforo-option.malo input:checked+.semaforo-visual .semaforo-dot {
+.checklist-semaforo-option.malo input:checked + .semaforo-visual .semaforo-dot {
   color: var(--color-peligro);
 }
 
-.checklist-semaforo-option input:checked+.semaforo-visual .semaforo-text {
+.checklist-semaforo-option input:checked + .semaforo-visual .semaforo-text {
   color: var(--negro-carbon);
 }
 
@@ -2386,7 +2389,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     padding: 0.6rem;
   }
 
-  .checkbox-wrapper-35 .switch+label {
+  .checkbox-wrapper-35 .switch + label {
     font-size: 11px;
   }
 
@@ -2394,7 +2397,7 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
     --switch-toggle-width: 75px;
   }
 
-  .checkbox-wrapper-35 .switch+label .switch-x-toggletext {
+  .checkbox-wrapper-35 .switch + label .switch-x-toggletext {
     font-size: 10px;
   }
 
@@ -2446,7 +2449,6 @@ INSPECCIONES - ACCIONES RÁPIDAS VERTICALES
 }
 
 @keyframes skeleton-pulse {
-
   0%,
   100% {
     opacity: 1;
