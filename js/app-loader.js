@@ -3122,6 +3122,17 @@
                 }
             }
 
+            // Actualizar también en todosLosServiciosCache (usado por panel de servicios en Tareas)
+            if (typeof todosLosServiciosCache !== 'undefined' && Array.isArray(todosLosServiciosCache)) {
+                const servicioCache = todosLosServiciosCache.find(m => m.id == servicioId);
+                if (servicioCache) {
+                    servicioCache.estado = nuevoEstado;
+                    if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+                        servicioCache.fecha_finalizacion = new Date().toISOString();
+                    }
+                }
+            }
+
             // Sincronizar TODOS los selectores de estado de este servicio (modal y cards)
             const todosSelectores = document.querySelectorAll(`.estado-badge-select[data-servicio-id="${servicioId}"]`);
             todosSelectores.forEach(otroSelect => {
@@ -3141,6 +3152,11 @@
             // Mostrar notificación de éxito
             if (window.mostrarAlertaBlur) {
                 window.mostrarAlertaBlur(`Estado actualizado a "${nuevoEstado.replace('_', ' ')}"`, 'success');
+            }
+
+            // Actualizar el panel de servicios en Tareas si existe la función
+            if (typeof window.actualizarPanelServiciosTareas === 'function') {
+                window.actualizarPanelServiciosTareas();
             }
 
         } catch (error) {

@@ -1898,6 +1898,254 @@ function actualizarResumenTareas() {
 
     // Actualizar también el texto del rol
     actualizarRolResumen();
+
+    // También actualizar el panel de servicios/alertas
+    actualizarPanelServiciosTareas();
+}
+
+/**
+ * Actualiza el panel de servicios/alertas en la columna lateral de tareas
+ * Muestra servicios de habitaciones y espacios comunes según el filtro de rol
+ * Solo muestra servicios con responsable asignado
+ */
+async function actualizarPanelServiciosTareas() {
+    const selectRol = document.getElementById('filtroRolTarea');
+    const listaServicios = document.getElementById('listaServiciosTareas');
+    const mensajeNoServicios = document.getElementById('mensajeNoServiciosTareas');
+    const totalServicios = document.getElementById('serviciosTareasTotal');
+    const labelRol = document.getElementById('serviciosResumenRol');
+
+    if (!listaServicios) return;
+
+    const rolFiltro = selectRol ? selectRol.value : 'para-mi';
+
+    // Actualizar etiqueta del filtro
+    const rolMap = {
+        'mi-rol': 'Mi Rol',
+        'para-mi': 'Para Mí',
+        'todos': 'Todos',
+        'admin': 'Admin',
+        'supervisor': 'Supervisor',
+        'tecnico': 'Técnico'
+    };
+    if (labelRol) {
+        labelRol.textContent = rolMap[rolFiltro] || 'Para Mí';
+    }
+
+    // Si el cache está vacío, cargar servicios desde la API
+    if (!todosLosServiciosCache || todosLosServiciosCache.length === 0) {
+        try {
+            console.log('📥 [SERVICIOS-PANEL] Cargando servicios desde API...');
+            const response = await fetch(`${API_URL}/mantenimientos`, { headers: obtenerHeadersConAuth() });
+            if (response.ok) {
+                todosLosServiciosCache = await response.json();
+                console.log(`✅ [SERVICIOS-PANEL] ${todosLosServiciosCache.length} servicios cargados`);
+            }
+        } catch (error) {
+            console.error('❌ [SERVICIOS-PANEL] Error cargando servicios:', error);
+        }
+    }
+
+    // Obtener servicios del cache
+    const todosServicios = todosLosServiciosCache || [];
+
+    // Cargar espaciosComunes si hay servicios de espacios y no están cargados
+    let espaciosComunesCache = window.AppState?.espaciosComunes || [];
+    const hayServiciosEspacios = todosServicios.some(s => s.espacio_comun_id);
+    if (hayServiciosEspacios && espaciosComunesCache.length === 0) {
+        try {
+            console.log('📥 [SERVICIOS-PANEL] Cargando espacios comunes...');
+            const response = await fetch(`${API_URL.replace('/api', '')}/api/espacios-comunes`, { headers: obtenerHeadersConAuth() });
+            if (response.ok) {
+                espaciosComunesCache = await response.json();
+                if (window.AppState) {
+                    window.AppState.espaciosComunes = espaciosComunesCache;
+                }
+                console.log(`✅ [SERVICIOS-PANEL] ${espaciosComunesCache.length} espacios cargados`);
+            }
+        } catch (error) {
+            console.warn('⚠️ [SERVICIOS-PANEL] No se pudieron cargar espacios comunes:', error);
+        }
+    }
+
+    // Helper para obtener nombre del espacio
+    const obtenerUbicacion = (servicio) => {
+        // Si es de habitación
+        if (servicio.cuarto_numero) {
+            return `Hab. ${servicio.cuarto_numero}`;
+        }
+        // Si es de espacio común
+        if (servicio.espacio_comun_id) {
+            // Primero intentar con el nombre del servicio
+            if (servicio.espacio_nombre) return servicio.espacio_nombre;
+            // Buscar en espaciosComunes
+            const espacio = espaciosComunesCache.find(e => e.id === servicio.espacio_comun_id);
+            if (espacio?.nombre) return espacio.nombre;
+        }
+        // Fallback
+        return servicio.edificio_nombre || 'Sin ubicación';
+    };
+
+    // Obtener datos del usuario actual
+    let usuarioIdActual = null;
+    let rolUsuarioActual = null;
+
+    if (window.AppState && window.AppState.currentUser) {
+        usuarioIdActual = window.AppState.currentUser.id;
+        rolUsuarioActual = window.AppState.currentUser.role || window.AppState.currentUser.rol;
+    }
+
+    if (!usuarioIdActual) {
+        try {
+            const storedUser = JSON.parse(localStorage.getItem('currentUser') || sessionStorage.getItem('currentUser') || 'null');
+            if (storedUser) {
+                usuarioIdActual = storedUser.id;
+                rolUsuarioActual = storedUser.role || storedUser.rol;
+            }
+        } catch (e) {
+            console.warn('Error obteniendo usuario de storage:', e);
+        }
+    }
+
+    // Filtrar servicios que tengan responsable asignado
+    let serviciosFiltrados = todosServicios.filter(servicio => {
+        // Solo mostrar servicios con responsable asignado
+        if (!servicio.usuario_asignado_id && !servicio.usuario_asignado) {
+            return false;
+        }
+
+        // Aplicar filtro de rol
+        if (rolFiltro === 'para-mi') {
+            // Mis servicios asignados
+            const asignadoA = servicio.usuario_asignado_id || servicio.usuario_asignado;
+            return asignadoA == usuarioIdActual;
+        } else if (rolFiltro === 'mi-rol') {
+            // Servicios del mismo rol
+            const rolServicio = servicio.usuario_asignado_rol_nombre;
+            if (!rolServicio || !rolUsuarioActual) return false;
+            return rolServicio.toUpperCase() === rolUsuarioActual.toUpperCase();
+        } else if (rolFiltro === 'todos') {
+            // Todos excepto ADMIN si soy supervisor
+            const userRole = rolUsuarioActual?.toLowerCase();
+            if (userRole === 'supervisor') {
+                const rolServicio = servicio.usuario_asignado_rol_nombre;
+                if (rolServicio === 'ADMIN') return false;
+            }
+            return true;
+        } else if (rolFiltro) {
+            // Filtro por rol específico (admin, supervisor, tecnico)
+            const rolServicio = servicio.usuario_asignado_rol_nombre;
+            return rolServicio && rolServicio.toLowerCase() === rolFiltro.toLowerCase();
+        }
+
+        return true;
+    });
+
+    // Ordenar primero por estado (pendiente -> en_proceso -> completado -> cancelado)
+    // Luego por prioridad (alta -> media -> baja) pero solo para estados activos
+    const estadoOrden = { 'pendiente': 0, 'en_proceso': 1, 'completado': 2, 'cancelado': 3 };
+    const prioridadOrden = { 'alta': 0, 'media': 1, 'baja': 2 };
+
+    serviciosFiltrados.sort((a, b) => {
+        const estadoA = estadoOrden[a.estado] ?? 1;
+        const estadoB = estadoOrden[b.estado] ?? 1;
+
+        // Primero ordenar por estado
+        if (estadoA !== estadoB) return estadoA - estadoB;
+
+        // Si tienen el mismo estado, ordenar por prioridad (solo aplica para estados activos)
+        const prioridadA = prioridadOrden[a.prioridad] ?? 1;
+        const prioridadB = prioridadOrden[b.prioridad] ?? 1;
+        return prioridadA - prioridadB;
+    });
+
+    // Actualizar total
+    if (totalServicios) {
+        totalServicios.textContent = serviciosFiltrados.length;
+    }
+
+    // Limpiar lista
+    listaServicios.innerHTML = '';
+
+    if (serviciosFiltrados.length === 0) {
+        if (mensajeNoServicios) mensajeNoServicios.style.display = 'block';
+        return;
+    }
+
+    if (mensajeNoServicios) mensajeNoServicios.style.display = 'none';
+
+    // Obtener IDs de servicios ya vistos (guardados en localStorage)
+    const serviciosVistos = JSON.parse(localStorage.getItem('serviciosVistos') || '[]');
+
+    // Renderizar cada servicio
+    serviciosFiltrados.forEach(servicio => {
+        const li = document.createElement('li');
+        li.className = 'alerta-espacio-item servicio-tarea-item';
+        li.setAttribute('data-servicio-id', servicio.id);
+        li.setAttribute('data-es-espacio', servicio.espacio_comun_id ? 'true' : 'false');
+
+        const esNuevo = !serviciosVistos.includes(servicio.id);
+        const tipoLabel = servicio.tipo === 'normal' ? 'Avería' :
+            (servicio.alerta_emitida ? 'Alerta emitida' : 'Alerta');
+        const ubicacion = obtenerUbicacion(servicio);
+        const responsable = servicio.usuario_asignado_nombre || 'Sin asignar';
+
+        // Determinar color de prioridad
+        const prioridadClass = servicio.prioridad === 'alta' ? 'nivel-alerta-alta' :
+            servicio.prioridad === 'media' ? 'nivel-alerta-media' :
+                'nivel-alerta-baja';
+
+        // Determinar color de estado
+        const estadoClass = servicio.estado === 'pendiente' ? 'estado-pendiente' :
+            servicio.estado === 'en_proceso' ? 'estado-en-proceso' :
+                servicio.estado === 'completado' ? 'estado-completada' : 'estado-cancelada';
+
+        const mapEstado = {
+            'pendiente': 'Pendiente',
+            'en_proceso': 'En Proceso',
+            'completado': 'Completado',
+            'cancelado': 'Cancelado'
+        };
+
+        li.innerHTML = `
+            <div class="servicio-tarea-card ${prioridadClass}">
+                <div class="servicio-tarea-header">
+                    <div class="servicio-tarea-tipo">
+                        ${esNuevo ? '<span class="servicio-nuevo-indicator" title="No visto"></span>' : ''}
+                        <span class="servicio-tipo-badge">${tipoLabel}</span>
+                    </div>
+                    <span class="servicio-tarea-estado ${estadoClass}">${mapEstado[servicio.estado]}</span>
+                </div>
+                <p class="servicio-tarea-descripcion">${servicio.descripcion || 'Sin descripción'}</p>
+                <div class="servicio-tarea-meta">
+                    <span class="servicio-ubicacion"><i class="fas fa-map-marker-alt"></i> ${ubicacion}</span>
+                    <span class="servicio-responsable"><i class="fas fa-user-check"></i> ${responsable}</span>
+                    ${servicio.usuario_creador_nombre ? `<span class="servicio-registrado" title="Registrado por"><i class="fas fa-user-edit"></i> ${servicio.usuario_creador_nombre}</span>` : ''}
+                </div>
+            </div>
+        `;
+
+        // Agregar evento click para ver detalles y marcar como visto
+        li.addEventListener('click', () => {
+            // Marcar como visto
+            if (!serviciosVistos.includes(servicio.id)) {
+                serviciosVistos.push(servicio.id);
+                localStorage.setItem('serviciosVistos', JSON.stringify(serviciosVistos));
+                // Eliminar indicador de nuevo
+                const indicator = li.querySelector('.servicio-nuevo-indicator');
+                if (indicator) indicator.remove();
+            }
+
+            // Abrir modal de detalles del servicio
+            if (typeof window.abrirModalDetalleServicio === 'function') {
+                window.abrirModalDetalleServicio(servicio.id);
+            } else {
+                console.warn('Modal de detalle de servicio no disponible');
+            }
+        });
+
+        listaServicios.appendChild(li);
+    });
 }
 
 /**
@@ -4102,6 +4350,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }, true); // Usar capture=true para interceptar antes que otros handlers
+
+    // Exponer funciones globalmente para uso desde otros módulos
+    window.actualizarPanelServiciosTareas = actualizarPanelServiciosTareas;
 });
 
 console.log('Módulo tareas-module.js cargado.');
