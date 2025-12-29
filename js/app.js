@@ -6,7 +6,7 @@
 // En Vercel: URL relativa. En Electron/localhost: usar origin (puerto dinámico)
 const API_BASE_URL =
   window.location.hostname.includes('vercel.app') ||
-  window.location.hostname.includes('vercel.com')
+    window.location.hostname.includes('vercel.com')
     ? ''
     : window.location.hostname === 'localhost'
       ? ''
@@ -76,6 +76,7 @@ const AppState = {
     edificio: '',
     estado: '',
     editor: '',
+    imagenes: '',
   },
   checklistPagination: {
     page: 1,
@@ -310,8 +311,8 @@ async function checkAuthentication() {
     sessionStorage.getItem('accessToken');
   const currentUser = JSON.parse(
     localStorage.getItem('currentUser') ||
-      sessionStorage.getItem('currentUser') ||
-      'null'
+    sessionStorage.getItem('currentUser') ||
+    'null'
   );
 
   console.log('🔐 [APP.JS] Datos de autenticación:', {
@@ -1893,8 +1894,8 @@ function generarSkeletonChecklist(count = 6) {
             </div>
             <div class="skeleton-items-list">
                 ${[0, 1, 2, 3, 4]
-                  .map(
-                    (i) => `
+      .map(
+        (i) => `
                     <div class="skeleton-item">
                         <div class="skeleton-item-name" style="width: ${itemWidths[i % itemWidths.length]}"></div>
                         <div class="skeleton-item-buttons">
@@ -1904,8 +1905,8 @@ function generarSkeletonChecklist(count = 6) {
                         </div>
                     </div>
                 `
-                  )
-                  .join('')}
+      )
+      .join('')}
             </div>
             <div class="skeleton-footer">
                 <div class="skeleton-editor"></div>
@@ -2030,8 +2031,8 @@ function poblarFiltroEditoresChecklist() {
     // Intentar desde localStorage
     usuarios = JSON.parse(
       localStorage.getItem('users') ||
-        localStorage.getItem('usuariosData') ||
-        '[]'
+      localStorage.getItem('usuariosData') ||
+      '[]'
     );
   }
 
@@ -2154,26 +2155,26 @@ function loadChecklistDataLocal() {
     AppState.cuartos.length > 0
       ? AppState.cuartos.slice(0, 20)
       : [
-          {
-            id: 1,
-            numero: 'S-A201',
-            edificio_nombre: 'Alfa',
-            estado: 'disponible',
-          },
-          {
-            id: 2,
-            numero: 'A204',
-            edificio_nombre: 'Alfa',
-            estado: 'disponible',
-          },
-          { id: 3, numero: 'A304', edificio_nombre: 'Alfa', estado: 'ocupado' },
-          {
-            id: 4,
-            numero: 'A306',
-            edificio_nombre: 'Alfa',
-            estado: 'mantenimiento',
-          },
-        ];
+        {
+          id: 1,
+          numero: 'S-A201',
+          edificio_nombre: 'Alfa',
+          estado: 'disponible',
+        },
+        {
+          id: 2,
+          numero: 'A204',
+          edificio_nombre: 'Alfa',
+          estado: 'disponible',
+        },
+        { id: 3, numero: 'A304', edificio_nombre: 'Alfa', estado: 'ocupado' },
+        {
+          id: 4,
+          numero: 'A306',
+          edificio_nombre: 'Alfa',
+          estado: 'mantenimiento',
+        },
+      ];
 
   // Función para generar estados aleatorios realistas
   const generarEstadoAleatorio = () => {
@@ -2366,16 +2367,15 @@ function renderChecklistGrid(data) {
                             <i class="fas fa-images"></i>
                             <span class="foto-count">-</span>
                         </span>
-                        ${
-                          ultimoEditor
-                            ? `
+                        ${ultimoEditor
+        ? `
                         <span class="checklist-meta-divider"></span>
                         <span class="checklist-meta-item checklist-editor-tag">
                             <i class="fas fa-user-edit"></i>
                             <span>${ultimoEditor}</span>
                         </span>`
-                            : ''
-                        }
+        : ''
+      }
                     </div>
                 </div>
             </div>
@@ -2765,9 +2765,26 @@ function applyChecklistFilters() {
     );
   }
 
+  // Filtrar por imágenes adjuntas (a nivel de habitación)
+  const imagenesActivo = AppState.checklistFilters.imagenes;
+  if (imagenesActivo) {
+    habitacionesFiltradas = habitacionesFiltradas.filter((hab) => {
+      const baseItems = Array.isArray(hab.items) ? hab.items : [];
+      const tieneAlgunItemConImagen = baseItems.some(
+        (item) => item.imagenes && item.imagenes.length > 0
+      );
+      if (imagenesActivo === 'con') {
+        return tieneAlgunItemConImagen;
+      } else if (imagenesActivo === 'sin') {
+        return !tieneAlgunItemConImagen;
+      }
+      return true;
+    });
+  }
+
   // Filtrar items dentro de cada habitación
   const requiereFiltradoItems = Boolean(
-    categoriaActiva || searchLower || estadoActivo
+    categoriaActiva || searchLower || estadoActivo || imagenesActivo
   );
   if (requiereFiltradoItems) {
     habitacionesFiltradas = habitacionesFiltradas
@@ -2782,7 +2799,14 @@ function applyChecklistFilters() {
           const cumpleBusqueda =
             !searchLower || nombreItem.includes(searchLower);
           const cumpleEstado = !estadoActivo || item.estado === estadoActivo;
-          return cumpleCategoria && cumpleBusqueda && cumpleEstado;
+          // Filtrar por imágenes
+          let cumpleImagenes = true;
+          if (imagenesActivo === 'con') {
+            cumpleImagenes = item.imagenes && item.imagenes.length > 0;
+          } else if (imagenesActivo === 'sin') {
+            cumpleImagenes = !item.imagenes || item.imagenes.length === 0;
+          }
+          return cumpleCategoria && cumpleBusqueda && cumpleEstado && cumpleImagenes;
         });
 
         return itemsFiltrados.length > 0
@@ -3165,10 +3189,9 @@ function openChecklistDetailsModal(cuartoId) {
                 </div>
             </div>
             <div class="checklist-modal-footer">
-                ${
-                  AppState.currentUser?.role === 'admin' ||
-                  AppState.currentUser?.role === 'supervisor'
-                    ? `
+                ${AppState.currentUser?.role === 'admin' ||
+      AppState.currentUser?.role === 'supervisor'
+      ? `
                 <button class="filtros-action-button excel btn-export btn-excel-filtrado" data-cuarto-id="${cuartoId}" title="Exportar según filtros aplicados">
                     <i class="fas fa-filter"></i>
                     <div><div class="filtros-action-button-title">Exportar Filtrado</div><div class="filtros-action-button-subtitle">Según filtros activos</div></div>
@@ -3178,8 +3201,8 @@ function openChecklistDetailsModal(cuartoId) {
                     <div><div class="filtros-action-button-title">Exportar Todo</div><div class="filtros-action-button-subtitle">Checklist completo</div></div>
                 </button>
                 `
-                    : ''
-                }
+      : ''
+    }
             </div>
         </div>
     `;
@@ -3806,6 +3829,16 @@ function initChecklistEventListeners() {
     });
   }
 
+  // Filtro por imágenes adjuntas
+  const filtroImagenes = document.getElementById('filtroImagenesChecklist');
+  if (filtroImagenes) {
+    filtroImagenes.addEventListener('change', (e) => {
+      AppState.checklistFilters.imagenes = e.target.value;
+      AppState.checklistPagination.page = 1;
+      applyChecklistFilters();
+    });
+  }
+
   // Búsqueda de inspecciones recientes
   const buscarInspeccion = document.getElementById('buscarInspeccionReciente');
   if (buscarInspeccion) {
@@ -3918,9 +3951,9 @@ async function handleNuevaSeccionSubmit(event) {
     const itemsRaw = (itemsInput?.value || '').trim();
     const itemsArray = itemsRaw
       ? itemsRaw
-          .split(/[,\n]+/)
-          .map((item) => item.trim())
-          .filter(Boolean)
+        .split(/[,\n]+/)
+        .map((item) => item.trim())
+        .filter(Boolean)
       : [];
 
     for (const itemNombre of itemsArray) {
@@ -4186,16 +4219,15 @@ function generarServiciosEspacioHTML(mantenimientos, espacioId) {
                     <span class="servicio-prioridad prioridad-${prioridadClass}">${m.prioridad || 'media'}</span>
                 </div>
                 <div class="servicio-descripcion">${escapeHtml(m.descripcion)}</div>
-                ${
-                  m.tipo === 'rutina' && m.dia_alerta
-                    ? `
+                ${m.tipo === 'rutina' && m.dia_alerta
+          ? `
                     <div class="servicio-fecha">
                         <i class="far fa-calendar-alt"></i> ${formatearFecha(m.dia_alerta)}
                         ${m.hora ? `<i class="far fa-clock"></i> ${m.hora}` : ''}
                     </div>
                 `
-                    : ''
-                }
+          : ''
+        }
                 <div class="servicio-acciones">
                     <button class="servicio-btn btn-editar" onclick="editarMantenimientoEspacio(${m.id})" title="Editar">
                         <i class="fas fa-edit"></i>
@@ -4736,9 +4768,8 @@ function renderUsuarioCard(usuario) {
                     <span class="badge-rol ${badgeClass}">${(usuario.rol_nombre || 'TÉCNICO').toUpperCase()}</span>
                 </div>
             </div>
-            ${
-              estaBloqueado
-                ? `
+            ${estaBloqueado
+      ? `
                 <div class="usuario-bloqueado-alerta">
                     <i class="fas fa-exclamation-triangle"></i>
                     <div>
@@ -4747,8 +4778,8 @@ function renderUsuarioCard(usuario) {
                     </div>
                 </div>
             `
-                : ''
-            }
+      : ''
+    }
             <div class="usuario-detalles">
                 <div class="detalle-item">
                     <i class="fas fa-envelope"></i>
@@ -4798,16 +4829,15 @@ function renderUsuarioCard(usuario) {
                     </div>
                 </div>
                 <div class="usuario-actions">
-                    ${
-                      estaBloqueado
-                        ? `
+                    ${estaBloqueado
+      ? `
                     <button class="btn-unlock-user" type="button" onclick="desbloquearUsuario(${usuario.id})">
                         <i class="fas fa-unlock"></i>
                         <span>Desbloquear</span>
                     </button>
                     `
-                        : ''
-                    }
+      : ''
+    }
                     <button class="btn-edit-user" type="button" onclick="editarUsuario(${usuario.id})">
                         <i class="fas fa-pen-to-square"></i>
                         <span>Editar</span>
@@ -5564,9 +5594,9 @@ function mostrarFotoCompletaChecklist(
 
   const fechaFormateada = fecha
     ? new Date(fecha).toLocaleString('es-MX', {
-        dateStyle: 'medium',
-        timeStyle: 'short',
-      })
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    })
     : 'Sin fecha';
 
   modal.innerHTML = `
@@ -5588,9 +5618,8 @@ function mostrarFotoCompletaChecklist(
                 <div class="checklist-foto-preview-image-container" style="max-height: 55vh;">
                     <img src="${fotoUrl}" alt="Foto completa" class="checklist-foto-preview-img">
                 </div>
-                ${
-                  notas
-                    ? `
+                ${notas
+      ? `
                 <div class="checklist-foto-form">
                     <div class="checklist-foto-form-group">
                         <label><i class="fas fa-sticky-note"></i> Notas / Observaciones</label>
@@ -5598,8 +5627,8 @@ function mostrarFotoCompletaChecklist(
                     </div>
                 </div>
                 `
-                    : ''
-                }
+      : ''
+    }
             </div>
             <div class="checklist-foto-preview-footer">
                 <button class="checklist-foto-btn-cancelar" onclick="cerrarModalFotoCompleta()">
