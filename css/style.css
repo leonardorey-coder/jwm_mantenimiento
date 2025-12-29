@@ -4018,10 +4018,9 @@ body.admin .tab-content.admin-only.active {
 
 /* Efecto de focus para accesibilidad al navegar con teclado */
 .filtros-table tbody tr:focus-within {
-  background: rgba(76, 84, 76, 0.1);
-  outline: 2px solid var(--verde-oliva);
-  outline-offset: -2px;
-  box-shadow: inset 4px 0 0 var(--verde-oliva);
+  background: inherit;
+  outline: none;
+  box-shadow: none;
 }
 
 .filtros-table td {
