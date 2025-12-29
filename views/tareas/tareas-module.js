@@ -14,6 +14,7 @@ let cuartoIdActual = null; // Almacena el ID del cuarto al crear una tarea
 let tareaIdActual = null; // Almacena el ID de la tarea al editar
 let archivosSeleccionados = []; // Almacena archivos seleccionados
 let todosLosServiciosCache = []; // Cache de servicios para calcular progreso de tareas
+let filtroResumenActual = ''; // Filtro aplicado desde las cards de resumen
 
 /**
  * Función auxiliar para mostrar notificaciones
@@ -137,6 +138,18 @@ function obtenerRolUsuarioActual() {
     }
 
     return null;
+}
+
+function esTareaUrgente(tarea) {
+    if (tarea.prioridad === 'alta') return true;
+    if (tarea.fecha_vencimiento) {
+        const fechaVenc = parsearFechaLocal(tarea.fecha_vencimiento);
+        const hoyLocal = new Date();
+        hoyLocal.setHours(0, 0, 0, 0);
+        fechaVenc.setHours(0, 0, 0, 0);
+        return fechaVenc < hoyLocal;
+    }
+    return false;
 }
 
 
@@ -1419,6 +1432,12 @@ async function actualizarTarjetaTarea(tareaId) {
                 tareasFiltradas[idxFiltrado] = tareaActualizada;
             }
         }
+        if (Array.isArray(tareasFiltradasBase)) {
+            const idxBase = tareasFiltradasBase.findIndex(t => t.id == tareaId);
+            if (idxBase !== -1) {
+                tareasFiltradasBase[idxBase] = tareaActualizada;
+            }
+        }
 
         // Buscar la tarjeta en el DOM
         const tarjetaExistente = document.querySelector(`li[data-tarea-id="${tareaId}"]`);
@@ -1452,6 +1471,7 @@ async function actualizarTarjetaTarea(tareaId) {
 // Variables para lazy loading de tareas
 let todasLasTareas = [];
 let tareasFiltradas = [];
+let tareasFiltradasBase = [];
 let tareasRenderizadas = 0;
 const TAREAS_POR_LOTE = 6;
 let observerTareas = null;
@@ -1607,7 +1627,7 @@ function aplicarFiltrosTareas() {
         }
     }
 
-    tareasFiltradas = todasLasTareas.filter(tarea => {
+    tareasFiltradasBase = todasLasTareas.filter(tarea => {
         // Filtro de búsqueda (título, descripción, ubicación, tags)
         if (terminoBusqueda) {
             const titulo = (tarea.titulo || '').toLowerCase();
@@ -1702,6 +1722,14 @@ function aplicarFiltrosTareas() {
         }
 
         return true;
+    });
+
+    tareasFiltradas = tareasFiltradasBase.filter((tarea) => {
+        if (!filtroResumenActual) return true;
+        if (filtroResumenActual === 'urgente') {
+            return esTareaUrgente(tarea);
+        }
+        return tarea.estado === filtroResumenActual;
     });
 
     // Reiniciar renderizado
@@ -1830,38 +1858,30 @@ function actualizarRolResumen() {
  * Actualiza el resumen de tareas en la columna lateral
  */
 function actualizarResumenTareas() {
-    // Asegurar que tareasFiltradas esté definida como array
-    if (!Array.isArray(tareasFiltradas)) {
-        tareasFiltradas = [];
+    // Asegurar que tareasFiltradasBase esté definida como array
+    if (!Array.isArray(tareasFiltradasBase)) {
+        tareasFiltradasBase = [];
     }
 
-    const pendientes = tareasFiltradas.filter(t => t.estado === 'pendiente').length;
-    const enProceso = tareasFiltradas.filter(t => t.estado === 'en_proceso').length;
-    const completadas = tareasFiltradas.filter(t => t.estado === 'completada').length;
-    const canceladas = tareasFiltradas.filter(t => t.estado === 'cancelada').length;
-    const urgentes = tareasFiltradas.filter(t => {
-        if (t.prioridad === 'alta') return true;
-        if (t.fecha_vencimiento) {
-            const fechaVenc = parsearFechaLocal(t.fecha_vencimiento);
-            const hoyLocal = new Date();
-            hoyLocal.setHours(0, 0, 0, 0);
-            fechaVenc.setHours(0, 0, 0, 0);
-            return fechaVenc < hoyLocal;
-        }
-        return false;
-    }).length;
-    const total = tareasFiltradas.length;
+    const pendientes = tareasFiltradasBase.filter(t => t.estado === 'pendiente').length;
+    const enProceso = tareasFiltradasBase.filter(t => t.estado === 'en_proceso').length;
+    const completadas = tareasFiltradasBase.filter(t => t.estado === 'completada').length;
+    const canceladas = tareasFiltradasBase.filter(t => t.estado === 'cancelada').length;
+    const urgentes = tareasFiltradasBase.filter(esTareaUrgente).length;
+    const total = tareasFiltradasBase.length;
     const totalActivas = total - canceladas;
 
     const elPendientes = document.getElementById('tareasResumenPendientes');
     const elEnProceso = document.getElementById('tareasResumenEnProceso');
     const elCompletadas = document.getElementById('tareasResumenCompletadas');
+    const elCanceladas = document.getElementById('tareasResumenCanceladas');
     const elUrgentes = document.getElementById('tareasResumenUrgentes');
     const elTotal = document.getElementById('tareasResumenTotal');
 
     if (elPendientes) elPendientes.textContent = pendientes;
     if (elEnProceso) elEnProceso.textContent = enProceso;
     if (elCompletadas) elCompletadas.textContent = completadas;
+    if (elCanceladas) elCanceladas.textContent = canceladas;
     if (elUrgentes) elUrgentes.textContent = urgentes;
     if (elTotal) elTotal.textContent = total;
 
@@ -1901,6 +1921,29 @@ function actualizarResumenTareas() {
 
     // También actualizar el panel de servicios/alertas
     actualizarPanelServiciosTareas();
+}
+
+function configurarFiltroResumenTareas() {
+    const listaResumen = document.getElementById('tareasResumenLista');
+    if (!listaResumen) return;
+
+    listaResumen.addEventListener('click', (event) => {
+        const item = event.target.closest('[data-resumen-filtro]');
+        if (!item || !listaResumen.contains(item)) return;
+
+        const filtro = item.dataset.resumenFiltro;
+        if (!filtro) return;
+
+        filtroResumenActual = filtroResumenActual === filtro ? '' : filtro;
+
+        listaResumen.querySelectorAll('[data-resumen-filtro]').forEach((el) => {
+            el.classList.toggle('is-selected', el.dataset.resumenFiltro === filtroResumenActual);
+        });
+
+        if (todasLasTareas.length > 0) {
+            aplicarFiltrosTareas();
+        }
+    });
 }
 
 /**
@@ -3210,6 +3253,8 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Inicializando módulo de tareas...');
+
+    configurarFiltroResumenTareas();
 
     // Asignar eventos a los formularios de los modales
     const formCrear = document.getElementById('formCrearTarea');

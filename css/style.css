@@ -10053,12 +10053,26 @@ tr[data-lazy="true"] {
   border-radius: var(--radio-medio);
   padding: 1rem;
   transition: var(--transicion-rapida);
+  cursor: pointer;
 }
 
 .resumen-tarea-item-mejorado:hover {
   transform: translateY(-2px);
   border-color: var(--negro-carbon);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.05);
+}
+
+.lista-resumen-sin-scroll {
+  perspective: 900px;
+}
+
+.resumen-tarea-item-mejorado.is-selected {
+  border-color: var(--negro-carbon);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.2);
+}
+
+.resumen-tarea-item-mejorado.is-selected .alerta-espacio-badge i {
+  color: var(--negro-carbon);
 }
 
 .badge-numero-simple {
@@ -10077,6 +10091,10 @@ tr[data-lazy="true"] {
 
 .badge-numero-simple.completada {
   color: var(--verde-oliva);
+}
+
+.badge-numero-simple.cancelada {
+  color: var(--rojo-vino);
 }
 
 .badge-numero-simple.urgente {
