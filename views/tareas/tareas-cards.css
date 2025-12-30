@@ -24,11 +24,9 @@
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--verde-oliva) 0%,
-    var(--rojo-vino) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--verde-oliva) 0%,
+      var(--rojo-vino) 100%);
 }
 
 .lista-cuartos .cuarto-item:hover {
@@ -40,6 +38,7 @@
 .cuarto-contenido {
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 /* Header section with badges */
@@ -71,11 +70,9 @@
 
 .tarea-progress-bar {
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    var(--verde-oliva) 0%,
-    var(--prioridad-baja) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--verde-oliva) 0%,
+      var(--prioridad-baja) 100%);
   transition: width 0.5s ease-in-out;
   position: relative;
 }
@@ -87,12 +84,10 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.3) 0%,
-    rgba(255, 255, 255, 0) 50%,
-    rgba(255, 255, 255, 0.3) 100%
-  );
+  background: linear-gradient(90deg,
+      rgba(255, 255, 255, 0.3) 0%,
+      rgba(255, 255, 255, 0) 50%,
+      rgba(255, 255, 255, 0.3) 100%);
   animation: shimmer 2s infinite;
 }
 
@@ -213,6 +208,7 @@
 .cuarto-info {
   padding: 1.5rem 1.5rem 1.25rem;
   border-bottom: 3px solid var(--border-color);
+  flex: 1;
 }
 
 .tarea-titulo {
@@ -292,6 +288,41 @@
   border: 2px solid var(--negro-carbon);
 }
 
+/* Pills de servicios - clickeables */
+.tarea-servicios-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+}
+
+.servicio-pill {
+  background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+  color: var(--verde-oliva);
+  padding: 0.35rem 0.75rem;
+  border-radius: 16px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  letter-spacing: 0.3px;
+  border: 2px solid var(--verde-oliva);
+  cursor: pointer;
+  transition: var(--transicion-rapida);
+  box-shadow: 2px 2px 0 var(--gris-oscuro);
+}
+
+.servicio-pill:hover {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--gris-oscuro);
+}
+
+.servicio-pill:active {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--gris-oscuro);
+}
+
 /* Chip de adjuntos - minimal */
 .tarea-adjuntos-chip {
   display: inline-flex;
@@ -322,6 +353,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 1.25rem 1.5rem;
+}
+
+/* En pantallas anchas, alinear footers de cards adyacentes */
+@media (min-width: 769px) {
+  .cuarto-acciones {
+    margin-top: auto;
+  }
 }
 
 .tarea-responsable {
@@ -465,15 +503,14 @@
   left: 0;
   width: 100%;
   height: 4px;
-  background: linear-gradient(
-    90deg,
-    var(--verde-oliva) 0%,
-    var(--rojo-vino) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--verde-oliva) 0%,
+      var(--rojo-vino) 100%);
   opacity: 0.5;
 }
 
 @keyframes skeleton-pulse {
+
   0%,
   100% {
     opacity: 0.8;
@@ -671,6 +708,18 @@ body.dark-mode .skeleton-button-task {
 body.dark-mode .skeleton-tarea-card {
   background: var(--bg-principal);
   border-color: var(--border-color);
+}
+
+/* Dark mode - Pills de servicios */
+body.dark-mode .servicio-pill {
+  background: linear-gradient(135deg, #2e5432 0%, #3d7043 100%);
+  color: #90ee90;
+  border-color: #4caf50;
+}
+
+body.dark-mode .servicio-pill:hover {
+  background: #4caf50;
+  color: #1a1a1a;
 }
 
 /* =================================

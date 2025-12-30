@@ -115,8 +115,8 @@ function obtenerRolUsuarioActual() {
     try {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser) {
         userRole = storedUser.role || storedUser.rol;
@@ -692,7 +692,7 @@ async function eliminarTarea(tareaId) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message ||
-          `Error al eliminar la tarea: ${response.statusText}`
+        `Error al eliminar la tarea: ${response.statusText}`
       );
     }
 
@@ -774,8 +774,8 @@ async function submitCrearTarea(event) {
     if (!usuarioCreadorId) {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser && storedUser.id) {
         usuarioCreadorId = storedUser.id;
@@ -982,7 +982,7 @@ async function submitEditarTarea(event) {
       const errorData = await response.json();
       throw new Error(
         errorData.message ||
-          `Error al actualizar la tarea: ${response.statusText}`
+        `Error al actualizar la tarea: ${response.statusText}`
       );
     }
 
@@ -1773,8 +1773,8 @@ function aplicarFiltrosTareas() {
       try {
         const storedUser = JSON.parse(
           localStorage.getItem('currentUser') ||
-            sessionStorage.getItem('currentUser') ||
-            'null'
+          sessionStorage.getItem('currentUser') ||
+          'null'
         );
         if (storedUser) {
           userRole = storedUser.role || storedUser.rol;
@@ -1856,8 +1856,8 @@ function aplicarFiltrosTareas() {
         try {
           const storedUser = JSON.parse(
             localStorage.getItem('currentUser') ||
-              sessionStorage.getItem('currentUser') ||
-              'null'
+            sessionStorage.getItem('currentUser') ||
+            'null'
           );
           if (storedUser && storedUser.id) {
             usuarioIdActual = storedUser.id;
@@ -2286,8 +2286,8 @@ async function actualizarPanelServiciosTareas() {
     try {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser) {
         usuarioIdActual = storedUser.id;
@@ -2935,16 +2935,15 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                 <span class="badge ${prioridadInfo.class}">${prioridadInfo.label}</span>
             </div>
             
-            ${
-              totalServicios > 0
-                ? `
+            ${totalServicios > 0
+      ? `
                 <div class="tarea-progress-container" title="${serviciosCompletados} de ${totalServicios} servicios completados">
                     <div class="tarea-progress-bar ${progresoCompleto ? 'completed' : ''}" style="width: ${porcentajeProgreso}%"></div>
                     <span class="tarea-progress-info">${serviciosCompletados}/${totalServicios} servicios</span>
                 </div>
             `
-                : ''
-            }
+      : ''
+    }
             
             <div class="cuarto-info">
                 <h3 class="tarea-titulo">${tarea.titulo}</h3>
@@ -2954,37 +2953,43 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <span>${tarea.ubicacion || 'Sin ubicación'}</span>
                 </div>
                 
-                ${
-                  diasVencimiento
-                    ? `
+                ${diasVencimiento
+      ? `
                     <div class="tarea-vencimiento ${vencimientoClass}">
                         <i class="fas fa-calendar"></i>
                         <span>${diasVencimiento}</span>
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
                 
-                ${
-                  tarea.tags && tarea.tags.length > 0
-                    ? `
+                ${tarea.tags && tarea.tags.length > 0
+      ? `
                     <div class="tarea-tags">
                         ${tarea.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
                 
-                ${
-                  parseInt(tarea.total_adjuntos) > 0
-                    ? `
+                ${serviciosAsignados.length > 0
+      ? `
+                    <div class="tarea-servicios-pills">
+                        ${serviciosAsignados.map((s) => `<span class="servicio-pill" onclick="event.stopPropagation(); if(typeof abrirModalDetalleServicio === 'function') abrirModalDetalleServicio(${s.id}); else if(typeof window.abrirModalDetalleServicio === 'function') window.abrirModalDetalleServicio(${s.id});" title="Ver detalle del servicio">serv-${s.id}</span>`).join('')}
+                    </div>
+                `
+      : ''
+    }
+                
+                ${parseInt(tarea.total_adjuntos) > 0
+      ? `
                     <div class="tarea-adjuntos-chip">
                         <i class="fas fa-paperclip"></i>
                         <span>${tarea.total_adjuntos}</span>
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
             </div>
 
             
@@ -3000,15 +3005,14 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <button class="btn-cuarto-action" onclick="verDetalleTarea(${tarea.id})" title="Ver detalles">
                         <i class="fas fa-eye"></i>
                     </button>
-                    ${
-                      puedeEditarTarea(tarea)
-                        ? `
+                    ${puedeEditarTarea(tarea)
+      ? `
                         <button class="btn-cuarto-action btn-edit" onclick="abrirModalEditarTarea(${tarea.id})" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
                     `
-                        : ''
-                    }
+      : ''
+    }
                 </div>
             </div>
         </div>
@@ -4206,8 +4210,8 @@ async function cargarProximosVencimientos() {
           try {
             const storedUser = JSON.parse(
               localStorage.getItem('currentUser') ||
-                sessionStorage.getItem('currentUser') ||
-                'null'
+              sessionStorage.getItem('currentUser') ||
+              'null'
             );
             if (storedUser && storedUser.id) {
               usuarioIdActual = storedUser.id;
