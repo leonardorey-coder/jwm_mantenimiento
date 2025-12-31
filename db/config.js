@@ -65,18 +65,22 @@ if (isLocal) {
       const { parse } = require('pg-connection-string');
       const parsed = parse(process.env.DATABASE_URL);
 
+      // Detectar si SSL es requerido basándose en:
+      // 1. parsed.sslmode === 'require' (de ?sslmode=require en URL)
+      // 2. parsed.ssl es un objeto (indica SSL habilitado)
+      // 3. El host contiene 'neon.tech' (Neon siempre requiere SSL)
+      const requireSSL =
+        parsed.sslmode === 'require' ||
+        (typeof parsed.ssl === 'object' && parsed.ssl !== null) ||
+        (parsed.host && parsed.host.includes('neon.tech'));
+
       dbConfig = {
         host: parsed.host,
         port: parseInt(parsed.port || '5432'),
         database: parsed.database,
         user: parsed.user,
         password: parsed.password,
-        ssl:
-          parsed.ssl === 'true' || parsed.sslmode === 'require'
-            ? {
-                rejectUnauthorized: false,
-              }
-            : false,
+        ssl: requireSSL ? { rejectUnauthorized: false } : false,
         max: parseInt(process.env.DB_POOL_MAX || '20'),
         min: parseInt(process.env.DB_POOL_MIN || '2'),
         idleTimeoutMillis: parseInt(process.env.DB_IDLE_TIMEOUT || '30000'),
@@ -84,6 +88,8 @@ if (isLocal) {
           process.env.DB_CONNECTION_TIMEOUT || '2000'
         ),
       };
+
+      console.log(`🔒 SSL habilitado: ${requireSSL}`);
 
       console.log('🔗 Usando DATABASE_URL para conexión');
     } catch (error) {
@@ -111,9 +117,9 @@ if (isLocal) {
       ssl:
         process.env.DB_SSL === 'true'
           ? {
-              rejectUnauthorized:
-                process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
-            }
+            rejectUnauthorized:
+              process.env.DB_SSL_REJECT_UNAUTHORIZED !== 'false',
+          }
           : false,
     };
   }
