@@ -3801,6 +3801,26 @@
   // Cerrar modal con tecla Escape
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
+      // IMPORTANTE: Verificar si hay modales de tareas abiertos
+      // Si hay un modal de tareas, no hacer nada aquí - el handler de tareas-module.js se encarga
+      const modalCrearTarea = document.getElementById('modalCrearTarea');
+      const modalEditarTarea = document.getElementById('modalEditarTarea');
+      const modalDetalleTarea = document.getElementById('modalDetalleTarea');
+      const modalAdvertenciaEdicion = document.getElementById(
+        'modalAdvertenciaEdicion'
+      );
+
+      if (
+        (modalCrearTarea && modalCrearTarea.style.display === 'flex') ||
+        (modalEditarTarea && modalEditarTarea.style.display === 'flex') ||
+        (modalDetalleTarea && modalDetalleTarea.style.display === 'flex') ||
+        (modalAdvertenciaEdicion &&
+          modalAdvertenciaEdicion.style.display === 'flex')
+      ) {
+        // Hay un modal de tareas abierto, no cerrar formularios inline
+        return;
+      }
+
       // Cerrar formulario de edición inline de servicio (prioridad alta)
       const formEdicionInline = document.querySelector('.servicio-form-inline');
       if (formEdicionInline) {
