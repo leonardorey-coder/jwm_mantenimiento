@@ -4776,7 +4776,7 @@ function renderUsuarioCard(usuario) {
     : null;
 
   return `
-        <div class="usuario-card gradient-card ${estaBloqueado ? 'usuario-bloqueado' : ''}" data-rol="${rol}" data-estado="${usuario.activo ? 'activo' : 'inactivo'}">
+        <div class="usuario-card gradient-card ${estaBloqueado ? 'usuario-bloqueado' : ''}" data-rol="${rol}" data-estado="${usuario.activo ? 'activo' : 'inactivo'}" onclick="abrirModalDetalleUsuario(${usuario.id})">
             <div class="usuario-header">
                 <div class="usuario-avatar">
                     <i class="fas ${avatarIcon}"></i>
@@ -4834,7 +4834,7 @@ function renderUsuarioCard(usuario) {
                         <span class="sesion-activas">${usuario.sesiones_activas || 0} activas</span>
                     </div>
                 </div>
-                <div class="usuario-switch-container">
+                <div class="usuario-switch-container" onclick="event.stopPropagation()">
                     <div class="checkbox-wrapper-35">
                         <input type="checkbox" class="switch usuario-toggle" id="toggle-${usuario.id}" ${usuario.activo ? 'checked' : ''} onchange="toggleUsuarioEstado(${usuario.id}, this.checked)">
                         <label for="toggle-${usuario.id}">
@@ -4846,7 +4846,7 @@ function renderUsuarioCard(usuario) {
                         </label>
                     </div>
                 </div>
-                <div class="usuario-actions">
+                <div class="usuario-actions" onclick="event.stopPropagation()">
                     ${estaBloqueado
       ? `
                     <button class="btn-unlock-user" type="button" onclick="desbloquearUsuario(${usuario.id})">
@@ -5245,6 +5245,212 @@ function mostrarModalNuevoUsuario() {
     ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   document.getElementById('usuarioNombre')?.focus();
 }
+
+// ==========================================
+// MODAL DETALLE USUARIO - Vista desde Card
+// ==========================================
+
+// Estado del usuario actualmente mostrado en el modal de detalles
+let usuarioDetalleActual = null;
+
+/**
+ * Abre el modal de detalles de usuario al hacer clic en una card
+ */
+function abrirModalDetalleUsuario(id) {
+  const usuario = AppState.usuarios.find((u) => u.id === id);
+  if (!usuario) {
+    console.error('Usuario no encontrado:', id);
+    return;
+  }
+
+  usuarioDetalleActual = usuario;
+  poblarModalDetalleUsuario(usuario);
+
+  const modal = document.getElementById('modalDetalleUsuario');
+  if (modal) {
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+/**
+ * Cierra el modal de detalles de usuario
+ */
+function cerrarModalDetalleUsuario() {
+  const modal = document.getElementById('modalDetalleUsuario');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  }
+  usuarioDetalleActual = null;
+}
+
+/**
+ * Pobla el modal de detalles con la información del usuario
+ */
+function poblarModalDetalleUsuario(usuario) {
+  const rol = (usuario.rol_nombre || 'tecnico').toLowerCase();
+
+  // Nombre en el header
+  const nombreEl = document.getElementById('detalleUsuarioNombre');
+  if (nombreEl) nombreEl.textContent = usuario.nombre || 'Sin nombre';
+
+  // Avatar con icono según rol
+  const avatarEl = document.getElementById('detalleUsuarioAvatar');
+  if (avatarEl) {
+    const avatarIcon =
+      rol === 'admin'
+        ? 'fa-user-shield'
+        : rol === 'supervisor'
+          ? 'fa-user-tie'
+          : 'fa-user';
+    avatarEl.innerHTML = `<i class="fas ${avatarIcon}"></i>`;
+  }
+
+  // Badge de rol
+  const rolBadgeEl = document.getElementById('detalleUsuarioRolBadge');
+  if (rolBadgeEl) {
+    rolBadgeEl.textContent = (usuario.rol_nombre || 'TÉCNICO').toUpperCase();
+    rolBadgeEl.className = 'badge-rol detalle-usuario-badge';
+    rolBadgeEl.classList.add(
+      rol === 'admin'
+        ? 'badge-admin'
+        : rol === 'supervisor'
+          ? 'badge-supervisor'
+          : 'badge-tecnico'
+    );
+  }
+
+  // Número de empleado
+  const empleadoEl = document.getElementById('detalleUsuarioEmpleado');
+  if (empleadoEl) empleadoEl.textContent = usuario.numero_empleado || 'Sin registro';
+
+  // Información de contacto
+  const emailEl = document.getElementById('detalleUsuarioEmail');
+  if (emailEl) emailEl.textContent = usuario.email || 'Sin correo';
+
+  const telefonoEl = document.getElementById('detalleUsuarioTelefono');
+  if (telefonoEl) telefonoEl.textContent = usuario.telefono || 'Sin registro';
+
+  const departamentoEl = document.getElementById('detalleUsuarioDepartamento');
+  if (departamentoEl) departamentoEl.textContent = usuario.departamento || 'Sin registro';
+
+  // Información de sesiones
+  const ultimoAccesoEl = document.getElementById('detalleUsuarioUltimoAcceso');
+  if (ultimoAccesoEl) ultimoAccesoEl.textContent = formatUsuarioFecha(usuario.ultimo_acceso);
+
+  const ultimaSesionEl = document.getElementById('detalleUsuarioUltimaSesion');
+  if (ultimaSesionEl) ultimaSesionEl.textContent = formatUsuarioFecha(usuario.ultima_sesion_login);
+
+  const sesionesTotalEl = document.getElementById('detalleUsuarioSesionesTotal');
+  if (sesionesTotalEl) sesionesTotalEl.textContent = usuario.total_sesiones || 0;
+
+  const sesionesActivasEl = document.getElementById('detalleUsuarioSesionesActivas');
+  if (sesionesActivasEl) sesionesActivasEl.textContent = usuario.sesiones_activas || 0;
+
+  // Estado del usuario (toggle)
+  const toggleEl = document.getElementById('detalleUsuarioToggle');
+  if (toggleEl) toggleEl.checked = usuario.activo;
+
+  const estadoTextoEl = document.getElementById('detalleUsuarioEstadoTexto');
+  if (estadoTextoEl) {
+    estadoTextoEl.textContent = usuario.activo ? 'Usuario Activo' : 'Usuario Inactivo';
+    estadoTextoEl.className = 'detalle-usuario-estado-texto';
+    if (!usuario.activo) estadoTextoEl.classList.add('inactivo');
+  }
+
+  // Notas administrativas
+  const notasSectionEl = document.getElementById('detalleUsuarioNotasSection');
+  const notasTextoEl = document.getElementById('detalleUsuarioNotas');
+  if (notasSectionEl && notasTextoEl) {
+    if (usuario.notas_admin && usuario.notas_admin.trim()) {
+      notasSectionEl.style.display = 'block';
+      notasTextoEl.textContent = usuario.notas_admin;
+    } else {
+      notasSectionEl.style.display = 'none';
+      notasTextoEl.textContent = '';
+    }
+  }
+
+  // Verificar si está bloqueado
+  const estaBloqueado =
+    usuario.bloqueado_hasta && new Date(usuario.bloqueado_hasta) > new Date();
+  const bloqueadoAlertEl = document.getElementById('detalleUsuarioBloqueadoAlert');
+  const btnDesbloquear = document.getElementById('btnDesbloquearDesdeDetalle');
+
+  if (bloqueadoAlertEl) {
+    bloqueadoAlertEl.style.display = estaBloqueado ? 'flex' : 'none';
+    if (estaBloqueado) {
+      const bloqueadoHastaEl = document.getElementById('detalleUsuarioBloqueadoHasta');
+      if (bloqueadoHastaEl) {
+        bloqueadoHastaEl.textContent = `Bloqueado hasta: ${formatUsuarioFecha(usuario.bloqueado_hasta)}`;
+      }
+    }
+  }
+
+  if (btnDesbloquear) {
+    btnDesbloquear.style.display = estaBloqueado ? 'inline-flex' : 'none';
+  }
+}
+
+/**
+ * Toggle del estado del usuario desde el modal de detalles
+ */
+async function toggleUsuarioEstadoDesdeModal() {
+  if (!usuarioDetalleActual) return;
+
+  const toggleEl = document.getElementById('detalleUsuarioToggle');
+  const activar = toggleEl?.checked;
+
+  try {
+    await toggleUsuarioEstado(usuarioDetalleActual.id, activar);
+    // Actualizar la referencia local
+    const usuarioActualizado = AppState.usuarios.find((u) => u.id === usuarioDetalleActual.id);
+    if (usuarioActualizado) {
+      usuarioDetalleActual = usuarioActualizado;
+      poblarModalDetalleUsuario(usuarioDetalleActual);
+    }
+  } catch (error) {
+    console.error('Error al cambiar estado desde modal:', error);
+    // Revertir el toggle si hubo error
+    if (toggleEl) toggleEl.checked = !activar;
+  }
+}
+
+/**
+ * Abrir modal de edición desde el modal de detalles
+ */
+function editarUsuarioDesdeModal() {
+  if (!usuarioDetalleActual) return;
+
+  cerrarModalDetalleUsuario();
+  editarUsuario(usuarioDetalleActual.id);
+}
+
+/**
+ * Desbloquear usuario desde el modal de detalles
+ */
+async function desbloquearUsuarioDesdeModal() {
+  if (!usuarioDetalleActual) return;
+
+  await desbloquearUsuario(usuarioDetalleActual.id);
+
+  // Actualizar el modal si sigue abierto
+  const usuarioActualizado = AppState.usuarios.find((u) => u.id === usuarioDetalleActual.id);
+  if (usuarioActualizado) {
+    usuarioDetalleActual = usuarioActualizado;
+    poblarModalDetalleUsuario(usuarioDetalleActual);
+  }
+}
+
+// Exponer funciones globalmente
+window.abrirModalDetalleUsuario = abrirModalDetalleUsuario;
+window.cerrarModalDetalleUsuario = cerrarModalDetalleUsuario;
+window.toggleUsuarioEstadoDesdeModal = toggleUsuarioEstadoDesdeModal;
+window.editarUsuarioDesdeModal = editarUsuarioDesdeModal;
+window.desbloquearUsuarioDesdeModal = desbloquearUsuarioDesdeModal;
 
 // ==========================================
 // CHECKLIST FOTOS - CAPTURA Y PREVIEW

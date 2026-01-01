@@ -6618,13 +6618,6 @@ body.admin a.admin-only {
   flex: 1;
 }
 
-/* Padding-top solo en móvil para compensar el indicador de arrastre */
-@media (max-width: 768px) {
-  .modal-detalles-header h3 {
-    padding-top: 8px;
-  }
-}
-
 .modal-detalles-header h3 i {
   color: var(--verde-oliva);
   font-size: 1rem;
@@ -6774,7 +6767,6 @@ body.admin a.admin-only {
   transition: var(--transicion-rapida);
   font-size: 0.9rem;
   flex-shrink: 0;
-  margin-top: 8px;
 }
 
 .modal-detalles-cerrar:hover {
@@ -8596,10 +8588,6 @@ body.dark-mode .skeleton-card {
 
   .modal-detalles-header {
     padding: 1rem 1.25rem;
-  }
-
-  .modal-detalles-header h3 {
-    font-size: 1.05rem;
   }
 
   .modal-detalles-body {

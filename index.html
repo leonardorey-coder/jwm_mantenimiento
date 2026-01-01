@@ -1425,6 +1425,128 @@
     </div>
   </div>
 
+  <!-- Modal Detalle Usuario (Vista desde Card) -->
+  <div id="modalDetalleUsuario" class="modal-detalles modal-detalle-usuario" style="display: none" aria-hidden="true">
+    <div class="modal-detalles-overlay" onclick="cerrarModalDetalleUsuario()"></div>
+    <div class="modal-detalles-contenido modal-usuario-detalle-content">
+      <div class="modal-detalles-header detalle-usuario-header">
+        <div class="detalle-usuario-avatar" id="detalleUsuarioAvatar">
+          <i class="fas fa-user"></i>
+        </div>
+        <div class="detalle-usuario-header-info">
+          <div class="detalle-usuario-header-top">
+            <h3 id="detalleUsuarioNombre">Nombre del Usuario</h3>
+            <span class="badge-rol detalle-usuario-badge" id="detalleUsuarioRolBadge">TÉCNICO</span>
+          </div>
+          <span class="detalle-usuario-empleado" id="detalleUsuarioEmpleado">EMP-00000</span>
+        </div>
+        <button class="modal-detalles-cerrar" onclick="cerrarModalDetalleUsuario()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="modal-detalles-body modal-usuario-detalle-body">
+        <!-- Información de contacto -->
+        <div class="detalle-usuario-seccion">
+          <h4 class="detalle-usuario-seccion-titulo"><i class="fas fa-address-card"></i> Información de Contacto</h4>
+          <div class="detalle-usuario-info-grid">
+            <div class="detalle-usuario-info-item">
+              <span class="detalle-usuario-label"><i class="fas fa-envelope"></i> Correo</span>
+              <span class="detalle-usuario-valor" id="detalleUsuarioEmail">usuario@example.com</span>
+            </div>
+            <div class="detalle-usuario-info-item">
+              <span class="detalle-usuario-label"><i class="fas fa-phone"></i> Teléfono</span>
+              <span class="detalle-usuario-valor" id="detalleUsuarioTelefono">Sin registro</span>
+            </div>
+            <div class="detalle-usuario-info-item">
+              <span class="detalle-usuario-label"><i class="fas fa-building"></i> Departamento</span>
+              <span class="detalle-usuario-valor" id="detalleUsuarioDepartamento">Sin registro</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Información de sesiones -->
+        <div class="detalle-usuario-seccion">
+          <h4 class="detalle-usuario-seccion-titulo"><i class="fas fa-clock"></i> Actividad de Sesiones</h4>
+          <div class="detalle-usuario-sesiones-grid">
+            <div class="detalle-usuario-sesion-item">
+              <span class="detalle-usuario-sesion-label">Último acceso</span>
+              <span class="detalle-usuario-sesion-valor" id="detalleUsuarioUltimoAcceso">Sin registro</span>
+            </div>
+            <div class="detalle-usuario-sesion-item">
+              <span class="detalle-usuario-sesion-label">Última sesión</span>
+              <span class="detalle-usuario-sesion-valor" id="detalleUsuarioUltimaSesion">Sin registro</span>
+            </div>
+          </div>
+          <div class="detalle-usuario-sesiones-resumen">
+            <div class="detalle-usuario-sesion-stat">
+              <i class="fas fa-history stat-icon"></i>
+              <div class="stat-content">
+                <span class="stat-numero" id="detalleUsuarioSesionesTotal">0</span>
+                <span class="stat-label">Sesiones registradas</span>
+              </div>
+            </div>
+            <div class="detalle-usuario-sesion-stat activas">
+              <i class="fas fa-bolt stat-icon"></i>
+              <div class="stat-content">
+                <span class="stat-numero" id="detalleUsuarioSesionesActivas">0</span>
+                <span class="stat-label">Sesiones activas</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notas administrativas (visible solo si hay notas) -->
+        <div class="detalle-usuario-seccion detalle-usuario-notas-section" id="detalleUsuarioNotasSection"
+          style="display: none;">
+          <h4 class="detalle-usuario-seccion-titulo"><i class="fas fa-sticky-note"></i> Notas Administrativas</h4>
+          <p class="detalle-usuario-notas-texto" id="detalleUsuarioNotas">Sin notas</p>
+        </div>
+
+        <!-- Estado del usuario (con switch editable) -->
+        <div class="detalle-usuario-seccion detalle-usuario-estado-section">
+          <h4 class="detalle-usuario-seccion-titulo"><i class="fas fa-toggle-on"></i> Estado del Usuario</h4>
+          <div class="detalle-usuario-estado-container">
+            <div class="checkbox-wrapper-35">
+              <input type="checkbox" class="switch usuario-toggle" id="detalleUsuarioToggle"
+                onchange="toggleUsuarioEstadoDesdeModal()">
+              <label for="detalleUsuarioToggle">
+                <span class="switch-x-text">Estado</span>
+                <span class="switch-x-toggletext">
+                  <span class="switch-x-unchecked"><span class="switch-x-hiddenlabel">Estado: </span>Desactivar</span>
+                  <span class="switch-x-checked"><span class="switch-x-hiddenlabel">Estado: </span>Activar</span>
+                </span>
+              </label>
+            </div>
+            <span class="detalle-usuario-estado-texto" id="detalleUsuarioEstadoTexto">Usuario Activo</span>
+          </div>
+        </div>
+
+        <!-- Alerta de bloqueo (visible solo si está bloqueado) -->
+        <div class="detalle-usuario-bloqueado-alert" id="detalleUsuarioBloqueadoAlert" style="display: none;">
+          <i class="fas fa-exclamation-triangle"></i>
+          <div>
+            <strong>Usuario bloqueado por múltiples intentos fallidos</strong>
+            <small id="detalleUsuarioBloqueadoHasta">Bloqueado hasta: --</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acciones del modal -->
+      <div class="modal-usuario-detalle-acciones">
+        <button type="button" class="btn-detalle-usuario btn-detalle-secundario" onclick="cerrarModalDetalleUsuario()">
+          <i class="fas fa-arrow-left"></i> Cerrar
+        </button>
+        <button type="button" class="btn-detalle-usuario btn-detalle-desbloquear" id="btnDesbloquearDesdeDetalle"
+          style="display: none;" onclick="desbloquearUsuarioDesdeModal()">
+          <i class="fas fa-unlock"></i> Desbloquear
+        </button>
+        <button type="button" class="btn-detalle-usuario btn-detalle-primario" onclick="editarUsuarioDesdeModal()">
+          <i class="fas fa-pen-to-square"></i> Editar
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Download Spinner - Dot Spinner (hidden by default) -->
   <div id="downloadSpinner" class="download-spinner-overlay" style="display: none">
     <div class="dot-spinner">
