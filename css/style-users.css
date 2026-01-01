@@ -1598,6 +1598,7 @@
 .detalle-usuario-badge {
   font-size: 0.6rem !important;
   padding: 0.2rem 0.5rem !important;
+  align-self: flex-start;
 }
 
 .detalle-usuario-empleado {
