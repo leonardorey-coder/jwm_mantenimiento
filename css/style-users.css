@@ -1510,6 +1510,8 @@
   color: var(--gris-oscuro, #666);
   padding: 0;
   flex-shrink: 0;
+  align-self: flex-start;
+  margin-top: 6px;
 }
 
 .modal-detalle-usuario .modal-detalles-cerrar i {
