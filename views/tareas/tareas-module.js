@@ -98,6 +98,18 @@ function parsearFechaLocal(fecha) {
 }
 
 /**
+ * Formatea un ID de tarea en hex para UI (task-XXX)
+ * @param {number|string} tareaId - ID de la tarea
+ * @returns {string} ID formateado en hex
+ */
+function formatearTareaHexId(tareaId) {
+  const idNum = Number(tareaId);
+  if (!Number.isFinite(idNum)) return 'task-000';
+  const hex = idNum.toString(16).padStart(3, '0').toUpperCase();
+  return `task-${hex}`;
+}
+
+/**
  * Obtiene el rol del usuario actual
  * @returns {string|null} El rol del usuario en formato normalizado (admin, supervisor, tecnico) o null
  */
@@ -2499,13 +2511,15 @@ function aplicarFiltrosTareas() {
         ? tarea.tags.join(' ').toLowerCase()
         : '';
       const asignado = (tarea.asignado_a_nombre || '').toLowerCase();
+      const tareaHexId = formatearTareaHexId(tarea.id).toLowerCase();
 
       const coincideBusqueda =
         titulo.includes(terminoBusqueda) ||
         descripcion.includes(terminoBusqueda) ||
         ubicacion.includes(terminoBusqueda) ||
         tags.includes(terminoBusqueda) ||
-        asignado.includes(terminoBusqueda);
+        asignado.includes(terminoBusqueda) ||
+        tareaHexId.includes(terminoBusqueda);
 
       if (!coincideBusqueda) return false;
     }
@@ -3848,8 +3862,9 @@ async function verDetalleTarea(tareaId) {
     console.log('📋 Tarea cargada:', tarea);
 
     // Poblar información básica
-    document.getElementById('tareaModalId').textContent =
-      `TASK-${String(tarea.id).padStart(3, '0')}`;
+    document.getElementById('tareaModalId').textContent = formatearTareaHexId(
+      tarea.id
+    );
     document.getElementById('tareaModalTitulo').textContent =
       tarea.titulo || 'Sin título';
     document.getElementById('tareaModalDescripcion').textContent =
