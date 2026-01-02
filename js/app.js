@@ -1189,9 +1189,15 @@ function setupUsuariosListeners() {
   // Cerrar modal de usuario con tecla Escape
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      const modal = document.getElementById('modalUsuario');
-      if (modal && modal.style.display !== 'none') {
+      const modalUsuario = document.getElementById('modalUsuario');
+      if (modalUsuario && modalUsuario.style.display !== 'none') {
         cerrarModalUsuario();
+        return;
+      }
+
+      const modalDetalle = document.getElementById('modalDetalleUsuario');
+      if (modalDetalle && modalDetalle.style.display !== 'none') {
+        cerrarModalDetalleUsuario();
       }
     }
   });
@@ -4740,6 +4746,7 @@ function renderUsuariosList() {
         usuario.departamento,
         usuario.numero_empleado,
         usuario.rol_nombre,
+        usuario.notas_admin,
       ]
         .filter(Boolean)
         .some((valor) => valor.toLowerCase().includes(textoBusqueda));
@@ -5458,8 +5465,9 @@ async function toggleUsuarioEstadoDesdeModal() {
 function editarUsuarioDesdeModal() {
   if (!usuarioDetalleActual) return;
 
+  const usuarioId = usuarioDetalleActual.id;
   cerrarModalDetalleUsuario();
-  editarUsuario(usuarioDetalleActual.id);
+  editarUsuario(usuarioId);
 }
 
 /**
