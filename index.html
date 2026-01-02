@@ -1661,6 +1661,15 @@
                 </select>
                 <i class="fas fa-chevron-down icono-select"></i>
               </div>
+              <div class="campo-busqueda premium-search">
+                <i class="fas fa-hashtag icono-busqueda"></i>
+                <input
+                  type="text"
+                  id="filtroSabanaId"
+                  placeholder="ID sábana (sab-001)"
+                  oninput="seleccionarSabanaPorId(this.value)"
+                />
+              </div>
               <div
                 class="select-container premium-select"
                 data-semaforo-wrapper="estadoServicio"
@@ -1691,12 +1700,33 @@
                 </select>
                 <i class="fas fa-chevron-down icono-select"></i>
               </div>
+              <div class="campo-busqueda premium-search">
+                <i class="fas fa-comment-dots icono-busqueda"></i>
+                <input
+                  type="text"
+                  id="filtroObservacionesSabana"
+                  placeholder="Filtrar observaciones..."
+                  oninput="filterSabana()"
+                />
+              </div>
             </div>
           </div>
 
           <!-- Bitácora de Servicios Card -->
           <div class="filtros-bitacora-card" data-aos="zoom-in">
             <div class="filtros-bitacora-header">
+              <button
+                class="sabana-id-tab"
+                id="sabanaIdTab"
+                type="button"
+                title="Copiar ID de sábana"
+              >
+                <i
+                  class="fas fa-folder-open sabana-id-icon"
+                  aria-hidden="true"
+                ></i>
+                <span id="sabanaIdValue">sab-000</span>
+              </button>
               <h2 class="filtros-bitacora-title">
                 <i class="fas fa-clipboard-list"></i>
                 <span id="tituloServicioActual">Cargando Sábana...</span>

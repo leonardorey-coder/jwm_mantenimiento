@@ -3751,7 +3751,7 @@ body.admin .tab-content.admin-only.active {
   box-shadow: 8px 8px 0 var(--gris-oscuro);
   padding: 0;
   margin-bottom: 2rem;
-  overflow: hidden;
+  overflow: visible;
   transition: var(--transicion-normal);
 }
 
@@ -12433,4 +12433,56 @@ tr[data-lazy='true'] {
 
 .sabana-notas-container span {
   word-break: break-word;
+}
+
+/* Tab de ID de Sábana (Hexadecimal) */
+.sabana-id-tab {
+  position: absolute;
+  top: -18px;
+  left: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--color-advertencia);
+  color: var(--negro-carbon);
+  border: 3px solid var(--negro-carbon);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 800;
+  font-size: 0.85rem;
+  letter-spacing: 0.6px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sabana-id-tab.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.sabana-id-tab .sabana-id-icon {
+  display: none;
+  font-size: 0.9rem;
+}
+
+.sabana-id-tab.is-archived .sabana-id-icon {
+  display: inline-flex;
+}
+
+.sabana-id-tab:focus,
+.sabana-id-tab:focus-visible {
+  outline: 3px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.sabana-id-tab:hover {
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+  background: #ffd27a;
 }

@@ -6,6 +6,7 @@ let currentSabanaId = null;
 let currentSabanaArchivada = false;
 let currentSabanaNombre = null;
 let currentSabanaItems = []; // Guardar los items actuales para filtrado
+let sabanasCache = []; // Cache para búsqueda rápida por ID
 let estoyCreandoSabana = false; // Flag para evitar dobles clicks
 let cerrarModalNuevaSabanaEscHandler = null;
 let cerrarModalHistorialEscHandler = null;
@@ -76,6 +77,8 @@ async function cargarListaSabanas() {
     const sabanas = await response.json();
     console.log('✅ Sábanas cargadas:', sabanas.length);
 
+    sabanasCache = sabanas;
+
     const selectServicio = document.getElementById('filtroServicioActual');
     if (selectServicio) {
       selectServicio.innerHTML =
@@ -104,6 +107,79 @@ async function cargarListaSabanas() {
   }
 }
 
+function parseSabanaIdInput(inputValue) {
+  if (!inputValue) return null;
+
+  const normalized = inputValue.trim().toLowerCase();
+  if (!normalized) return null;
+
+  if (normalized.startsWith('sab-')) {
+    const hexPart = normalized.slice(4);
+    if (!/^[0-9a-f]+$/.test(hexPart)) return null;
+    return Number.parseInt(hexPart, 16);
+  }
+
+  if (/^\d+$/.test(normalized)) {
+    return Number.parseInt(normalized, 10);
+  }
+
+  return null;
+}
+
+function configurarSabanaIdTab(sabanaIdHex, archivada = false) {
+  const tab = document.getElementById('sabanaIdTab');
+  const valueEl = document.getElementById('sabanaIdValue');
+  if (!tab || !valueEl) return;
+
+  if (!sabanaIdHex) {
+    tab.classList.remove('is-visible');
+    tab.classList.remove('is-archived');
+    tab.dataset.sabanaId = '';
+    valueEl.textContent = '';
+    return;
+  }
+
+  valueEl.textContent = sabanaIdHex;
+  tab.dataset.sabanaId = sabanaIdHex;
+  tab.classList.toggle('is-archived', archivada);
+  tab.classList.add('is-visible');
+  tab.onclick = () => copiarSabanaId(sabanaIdHex);
+}
+
+async function copiarSabanaId(sabanaIdHex) {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(sabanaIdHex);
+    } else {
+      throw new Error('Clipboard API no disponible');
+    }
+  } catch (error) {
+    const tempInput = document.createElement('input');
+    tempInput.value = sabanaIdHex;
+    document.body.appendChild(tempInput);
+    tempInput.select();
+    document.execCommand('copy');
+    document.body.removeChild(tempInput);
+  }
+
+  mostrarMensajeSabana(`ID copiado: ${sabanaIdHex}`, 'success');
+}
+
+function seleccionarSabanaPorId(inputValue) {
+  const sabanaId = parseSabanaIdInput(inputValue);
+  if (!sabanaId) return;
+
+  const sabana = sabanasCache.find((item) => Number(item.id) === sabanaId);
+  if (!sabana) return;
+
+  const selectServicio = document.getElementById('filtroServicioActual');
+  if (selectServicio) {
+    selectServicio.value = sabana.id;
+  }
+
+  cambiarServicioActual(sabana.id);
+}
+
 async function cambiarServicioActual(sabanaId) {
   try {
     console.log('🔄 Cambiando a sábana:', sabanaId);
@@ -116,6 +192,7 @@ async function cambiarServicioActual(sabanaId) {
       if (notasContainer) notasContainer.style.display = 'none';
       const creadorContainer = document.getElementById('sabanaCreadorInfo');
       if (creadorContainer) creadorContainer.style.display = 'none';
+      configurarSabanaIdTab(null);
       return;
     }
 
@@ -156,6 +233,12 @@ async function cambiarServicioActual(sabanaId) {
 
     const tituloEl = document.getElementById('tituloServicioActual');
     if (tituloEl) {
+      // Formatear ID a Hexadecimal (sab-XXX)
+      const sabanaIdHex = `sab-${parseInt(sabana.id)
+        .toString(16)
+        .toUpperCase()
+        .padStart(3, '0')}`;
+
       if (sabana.archivada) {
         tituloEl.innerHTML = `
                     <span class="sabana-placeholder-title">Sábana de ${sabana.nombre}</span>
@@ -165,8 +248,12 @@ async function cambiarServicioActual(sabanaId) {
                     </span>
                 `;
       } else {
-        tituloEl.innerHTML = `<span class="sabana-placeholder-title"> Sábana de ${sabana.nombre}</span>`;
+        tituloEl.innerHTML = `
+                    <span class="sabana-placeholder-title">Sábana de ${sabana.nombre}</span>
+                `;
       }
+
+      configurarSabanaIdTab(sabanaIdHex, sabana.archivada);
     }
 
     const periodoEl = document.getElementById('periodoActual');
@@ -611,6 +698,9 @@ function filterSabana() {
     document.getElementById('filtroEstadoServicio')?.value || '';
   const personalFiltro =
     document.getElementById('filtroPersonalSabana')?.value || '';
+  const observacionesFiltro =
+    document.getElementById('filtroObservacionesSabana')?.value.toLowerCase() ||
+    '';
 
   if (!currentSabanaItems || currentSabanaItems.length === 0) return;
 
@@ -636,6 +726,13 @@ function filterSabana() {
       const responsable = item.responsable_nombre || item.responsable;
       return responsable && responsable.trim() === personalFiltro;
     });
+  }
+
+  // Filtrar por observaciones
+  if (observacionesFiltro) {
+    itemsFiltrados = itemsFiltrados.filter((item) =>
+      item.observaciones?.toLowerCase().includes(observacionesFiltro)
+    );
   }
 
   // Filtrar por búsqueda de texto
@@ -1555,6 +1652,7 @@ async function confirmarEliminarSabana() {
       tituloEl.innerHTML =
         '<span class="sabana-placeholder-title">Selecciona una sábana</span>';
     }
+    configurarSabanaIdTab(null);
 
     const periodoEl = document.getElementById('periodoActual');
     if (periodoEl) {
@@ -1998,6 +2096,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
 
 window.cargarListaSabanas = cargarListaSabanas;
 window.cambiarServicioActual = cambiarServicioActual;
+window.seleccionarSabanaPorId = seleccionarSabanaPorId;
 window.toggleRealizadoSabana = toggleRealizadoSabana;
 window.guardarObservacionSabana = guardarObservacionSabana;
 window.filterSabana = filterSabana;
