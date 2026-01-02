@@ -13,42 +13,32 @@ const API_BASE_URL =
       : '';
 
 /**
- * WORKAROUND para bug de Electron con ventanas frameless:
- * Después de diálogos nativos (confirm/alert), el webContents pierde la capacidad
- * de procesar input de teclado. Esta función hace el ciclo blur/focus necesario.
- */
-function refreshElectronFocus() {
-  if (window.electronAPI && window.electronAPI.refreshWindowFocus) {
-    window.electronAPI.refreshWindowFocus().catch((err) => {
-      console.warn('Error refrescando foco:', err);
-    });
-  }
-}
-
-/**
- * Wrapper seguro para confirm() que restaura el foco en Electron
+ * Wrapper seguro para confirm() usando dialogo nativo en el proceso principal
  * @param {string} message - Mensaje del confirm
  * @returns {boolean} - Resultado del confirm
  */
 function electronSafeConfirm(message) {
-  const result = confirm(message);
-  refreshElectronFocus();
-  return result;
+  if (window.electronAPI && window.electronAPI.dialog) {
+    return window.electronAPI.dialog.confirm(message);
+  }
+  return confirm(message);
 }
 
 /**
- * Wrapper seguro para alert() que restaura el foco en Electron
+ * Wrapper seguro para alert() usando dialogo nativo en el proceso principal
  * @param {string} message - Mensaje del alert
  */
 function electronSafeAlert(message) {
+  if (window.electronAPI && window.electronAPI.dialog) {
+    window.electronAPI.dialog.alert(message);
+    return;
+  }
   alert(message);
-  refreshElectronFocus();
 }
 
 // Exponer globalmente para uso en otros archivos
 window.electronSafeConfirm = electronSafeConfirm;
 window.electronSafeAlert = electronSafeAlert;
-window.refreshElectronFocus = refreshElectronFocus;
 
 // Estado global de la aplicación
 const AppState = {
