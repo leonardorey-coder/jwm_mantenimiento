@@ -170,7 +170,10 @@ function seleccionarSabanaPorId(inputValue) {
   if (!sabanaId) return;
 
   const sabana = sabanasCache.find((item) => Number(item.id) === sabanaId);
-  if (!sabana) return;
+  if (!sabana) {
+    mostrarMensajeSabana('No se encontró una sábana con ese ID', 'error');
+    return;
+  }
 
   const selectServicio = document.getElementById('filtroServicioActual');
   if (selectServicio) {
