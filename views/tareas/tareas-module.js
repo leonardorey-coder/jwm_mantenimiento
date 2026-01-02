@@ -2622,6 +2622,37 @@ function aplicarFiltrosTareas() {
     return tarea.estado === filtroResumenActual;
   });
 
+  // Ordenar por estado: pendiente -> en_proceso -> completada -> cancelada
+  const ordenEstados = {
+    pendiente: 0,
+    en_proceso: 1,
+    completada: 2,
+    cancelada: 3,
+  };
+  const estadoOrdenCache = new Map();
+  const obtenerEstadoOrden = (tarea) => {
+    if (estadoOrdenCache.has(tarea.id)) {
+      return estadoOrdenCache.get(tarea.id);
+    }
+    let estadoVisual = tarea.estado;
+    if (estadoVisual !== 'cancelada' && estadoVisual !== 'completada') {
+      const serviciosAsignados = todosLosServiciosCache.filter(
+        (s) => s.tarea_id == tarea.id
+      );
+      const derivado = calcularEstadoDesdeServicios(serviciosAsignados);
+      if (derivado) estadoVisual = derivado;
+    }
+    const orden = ordenEstados[estadoVisual] ?? 99;
+    estadoOrdenCache.set(tarea.id, orden);
+    return orden;
+  };
+  tareasFiltradas.sort((a, b) => {
+    const ordenA = obtenerEstadoOrden(a);
+    const ordenB = obtenerEstadoOrden(b);
+    if (ordenA !== ordenB) return ordenA - ordenB;
+    return 0;
+  });
+
   // Reiniciar renderizado
   tareasRenderizadas = 0;
   const listaTareas = document.getElementById('listaTareas');
