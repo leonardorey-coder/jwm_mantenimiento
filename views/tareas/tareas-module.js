@@ -418,11 +418,16 @@ function aplicarFiltrosServicios() {
     // Filtro por término de búsqueda
     if (terminoLower) {
       const descripcion = (servicio.descripcion || '').toLowerCase();
-      const ubicacion = (
-        servicio.cuarto_numero
-          ? `hab. ${servicio.cuarto_numero}`
-          : servicio.edificio_nombre || ''
-      ).toLowerCase();
+      // Construir ubicación igual que en renderizado
+      let ubicacionStr = '';
+      if (servicio.cuarto_numero) {
+        ubicacionStr = `hab. ${servicio.cuarto_numero}`;
+      } else if (servicio.espacio_nombre) {
+        ubicacionStr = servicio.espacio_nombre;
+      } else if (servicio.edificio_nombre) {
+        ubicacionStr = servicio.edificio_nombre;
+      }
+      const ubicacion = ubicacionStr.toLowerCase();
       const tipo = (servicio.tipo || '').toLowerCase();
 
       if (
@@ -475,6 +480,530 @@ function filtrarServicios(termino) {
   aplicarFiltrosServicios();
 }
 
+// Variables para edición de servicios
+let todosLosServiciosEditar = [];
+let serviciosFiltradosEditar = [];
+let serviciosRenderizadosEditar = 0;
+let observerServiciosEditar = null;
+let filtroResponsableEditar = '';
+let filtroBusquedaEditar = '';
+let serviciosAsignadosOriginales = []; // IDs de servicios asignados originalmente a la tarea
+
+/**
+ * Carga los servicios para el modal de edición, marcando los que ya están asignados a la tarea.
+ * @param {number} tareaId - El ID de la tarea que se está editando.
+ */
+async function cargarServiciosParaEdicion(tareaId) {
+  const container = document.getElementById('listaServiciosEditar');
+  const inputBusqueda = document.getElementById('buscarServiciosTareaEditar');
+
+  if (!container) return;
+
+  container.innerHTML =
+    '<p class="mensaje-vacio"><i class="fas fa-spinner fa-spin"></i> Cargando servicios...</p>';
+
+  try {
+    // Fetch todos los servicios
+    const response = await fetch(`${API_URL}/mantenimientos`, {
+      headers: obtenerHeadersConAuth(),
+    });
+    if (!response.ok) throw new Error('Error al cargar servicios');
+
+    todosLosServiciosEditar = await response.json();
+
+    // Identificar qué servicios están asignados a esta tarea
+    serviciosAsignadosOriginales = todosLosServiciosEditar
+      .filter((s) => s.tarea_id === tareaId)
+      .map((s) => s.id);
+
+    console.log(
+      `📋 Servicios asignados a tarea ${tareaId}:`,
+      serviciosAsignadosOriginales
+    );
+
+    serviciosFiltradosEditar = [...todosLosServiciosEditar];
+    serviciosRenderizadosEditar = 0;
+
+    if (todosLosServiciosEditar.length === 0) {
+      container.innerHTML =
+        '<p class="mensaje-vacio">No hay servicios registrados en el sistema.</p>';
+      return;
+    }
+
+    container.innerHTML = '';
+
+    // Renderizar primer lote
+    renderizarLoteServiciosEditar(container, tareaId);
+
+    // Configurar IntersectionObserver para lazy loading
+    if (observerServiciosEditar) observerServiciosEditar.disconnect();
+
+    observerServiciosEditar = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          renderizarLoteServiciosEditar(container, tareaId);
+        }
+      },
+      { root: container, threshold: 0.1 }
+    );
+
+    // Crear elemento centinela
+    const sentinel = document.createElement('div');
+    sentinel.id = 'sentinel-servicios-editar';
+    sentinel.style.height = '10px';
+    container.appendChild(sentinel);
+    observerServiciosEditar.observe(sentinel);
+
+    // Configurar evento de búsqueda
+    if (inputBusqueda) {
+      inputBusqueda.value = '';
+      filtroBusquedaEditar = '';
+
+      const nuevoInput = inputBusqueda.cloneNode(true);
+      inputBusqueda.parentNode.replaceChild(nuevoInput, inputBusqueda);
+
+      nuevoInput.addEventListener('input', (e) => {
+        filtroBusquedaEditar = e.target.value;
+        aplicarFiltrosServiciosEditar(tareaId);
+      });
+    }
+
+    // Configurar evento del selector de responsable para filtrar servicios
+    const selectResponsable = document.getElementById('editarTareaResponsable');
+    if (selectResponsable) {
+      // Obtener el responsable actualmente seleccionado para el filtro inicial
+      const selectedOption =
+        selectResponsable.options[selectResponsable.selectedIndex];
+      filtroResponsableEditar =
+        selectedOption && selectedOption.value
+          ? selectedOption.text.trim()
+          : '';
+
+      const handleResponsableChange = (e) => {
+        const selOption = e.target.options[e.target.selectedIndex];
+        filtroResponsableEditar =
+          selOption && selOption.value ? selOption.text.trim() : '';
+        console.log(
+          '📋 [Editar] Filtrando servicios por responsable:',
+          filtroResponsableEditar || 'todos'
+        );
+        aplicarFiltrosServiciosEditar(tareaId);
+      };
+
+      // Remover listener anterior si existe
+      if (selectResponsable._filtroHandlerEditar) {
+        selectResponsable.removeEventListener(
+          'change',
+          selectResponsable._filtroHandlerEditar
+        );
+      }
+
+      selectResponsable._filtroHandlerEditar = handleResponsableChange;
+      selectResponsable.addEventListener('change', handleResponsableChange);
+    }
+
+    // Configurar toggle para activar/desactivar filtro por responsable
+    const toggleFiltroResponsable = document.getElementById(
+      'toggleFiltroResponsableEditar'
+    );
+    if (toggleFiltroResponsable) {
+      toggleFiltroResponsable.checked = true;
+
+      if (toggleFiltroResponsable._toggleHandlerEditar) {
+        toggleFiltroResponsable.removeEventListener(
+          'change',
+          toggleFiltroResponsable._toggleHandlerEditar
+        );
+      }
+
+      const handleToggleChange = () => {
+        console.log(
+          '🔄 [Editar] Toggle filtro responsable:',
+          toggleFiltroResponsable.checked ? 'activado' : 'desactivado'
+        );
+        aplicarFiltrosServiciosEditar(tareaId);
+      };
+
+      toggleFiltroResponsable._toggleHandlerEditar = handleToggleChange;
+      toggleFiltroResponsable.addEventListener('change', handleToggleChange);
+    }
+
+    // Aplicar filtro inicial con el responsable ya seleccionado
+    // Esto dispara el filtrado automático al abrir el modal
+    if (filtroResponsableEditar) {
+      console.log(
+        '📋 [Editar] Aplicando filtro inicial por responsable:',
+        filtroResponsableEditar
+      );
+      aplicarFiltrosServiciosEditar(tareaId);
+    }
+  } catch (error) {
+    console.error('Error al cargar servicios para edición:', error);
+    container.innerHTML =
+      '<p class="mensaje-vacio error">Error al cargar servicios.</p>';
+  }
+}
+
+/**
+ * Aplica los filtros de búsqueda y responsable a los servicios en el modal de edición
+ * @param {number} tareaId - El ID de la tarea que se está editando
+ */
+function aplicarFiltrosServiciosEditar(tareaId) {
+  const container = document.getElementById('listaServiciosEditar');
+  if (!container) return;
+
+  const terminoLower = (filtroBusquedaEditar || '').toLowerCase().trim();
+  const responsableLower = (filtroResponsableEditar || '').toLowerCase().trim();
+
+  const toggleFiltroResponsable = document.getElementById(
+    'toggleFiltroResponsableEditar'
+  );
+  const filtrarPorResponsable = toggleFiltroResponsable
+    ? toggleFiltroResponsable.checked
+    : true;
+
+  // Aplicar filtros combinados
+  serviciosFiltradosEditar = todosLosServiciosEditar.filter((servicio) => {
+    // SIEMPRE mostrar servicios que ya están asignados a esta tarea
+    // Esto evita que se pierdan al guardar si no pasan los filtros
+    const estaAsignadoATarea = servicio.tarea_id === tareaId;
+    if (estaAsignadoATarea) {
+      // Aún así aplicar filtro de búsqueda si hay uno
+      if (terminoLower) {
+        const descripcion = (servicio.descripcion || '').toLowerCase();
+        let ubicacionStr = '';
+        if (servicio.cuarto_numero) {
+          ubicacionStr = `hab. ${servicio.cuarto_numero}`;
+        } else if (servicio.espacio_nombre) {
+          ubicacionStr = servicio.espacio_nombre;
+        } else if (servicio.edificio_nombre) {
+          ubicacionStr = servicio.edificio_nombre;
+        }
+        const ubicacion = ubicacionStr.toLowerCase();
+        const tipo = (servicio.tipo || '').toLowerCase();
+
+        if (
+          !descripcion.includes(terminoLower) &&
+          !ubicacion.includes(terminoLower) &&
+          !tipo.includes(terminoLower)
+        ) {
+          return false;
+        }
+      }
+      return true; // Mostrar servicio asignado
+    }
+
+    // Para servicios NO asignados, aplicar filtro por responsable
+    if (filtrarPorResponsable && responsableLower) {
+      const usuarioAsignado = (servicio.usuario_asignado_nombre || '')
+        .toLowerCase()
+        .trim();
+      if (!usuarioAsignado || usuarioAsignado !== responsableLower) {
+        return false;
+      }
+    }
+
+    // Filtro por término de búsqueda
+    if (terminoLower) {
+      const descripcion = (servicio.descripcion || '').toLowerCase();
+      // Construir ubicación igual que en renderizado
+      let ubicacionStr = '';
+      if (servicio.cuarto_numero) {
+        ubicacionStr = `hab. ${servicio.cuarto_numero}`;
+      } else if (servicio.espacio_nombre) {
+        ubicacionStr = servicio.espacio_nombre;
+      } else if (servicio.edificio_nombre) {
+        ubicacionStr = servicio.edificio_nombre;
+      }
+      const ubicacion = ubicacionStr.toLowerCase();
+      const tipo = (servicio.tipo || '').toLowerCase();
+
+      if (
+        !descripcion.includes(terminoLower) &&
+        !ubicacion.includes(terminoLower) &&
+        !tipo.includes(terminoLower)
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Ordenar: primero los asignados a esta tarea, luego los demás
+  serviciosFiltradosEditar.sort((a, b) => {
+    const aAsignado = a.tarea_id === tareaId ? 0 : 1;
+    const bAsignado = b.tarea_id === tareaId ? 0 : 1;
+    return aAsignado - bAsignado;
+  });
+
+  // Reiniciar renderizado
+  serviciosRenderizadosEditar = 0;
+  container.innerHTML = '';
+
+  if (serviciosFiltradosEditar.length === 0) {
+    const mensajeFiltro =
+      filtrarPorResponsable && responsableLower
+        ? `No se encontraron servicios asignados a "${filtroResponsableEditar}"${terminoLower ? ` con búsqueda "${filtroBusquedaEditar}"` : ''}`
+        : 'No se encontraron servicios que coincidan.';
+    container.innerHTML = `<p class="mensaje-vacio">${mensajeFiltro}</p>`;
+    return;
+  }
+
+  // Renderizar primer lote de los filtrados
+  renderizarLoteServiciosEditar(container, tareaId);
+
+  // Re-agregar centinela para lazy loading
+  const sentinel = document.createElement('div');
+  sentinel.id = 'sentinel-servicios-editar';
+  sentinel.style.height = '10px';
+  container.appendChild(sentinel);
+
+  if (observerServiciosEditar) {
+    observerServiciosEditar.disconnect();
+    observerServiciosEditar.observe(sentinel);
+  }
+}
+
+/**
+ * Renderiza un lote de servicios en el contenedor de edición
+ * @param {HTMLElement} container - El contenedor de la lista
+ * @param {number} tareaId - El ID de la tarea que se está editando
+ */
+function renderizarLoteServiciosEditar(container, tareaId) {
+  const siguienteLote = serviciosFiltradosEditar.slice(
+    serviciosRenderizadosEditar,
+    serviciosRenderizadosEditar + SERVICIOS_POR_LOTE
+  );
+
+  const estadoServicios = {
+    cancelado: 'Cancelado',
+    pendiente: 'Pendiente',
+    en_proceso: 'En Proceso',
+    completado: 'Completado',
+  };
+
+  if (siguienteLote.length === 0) return;
+
+  const fragment = document.createDocumentFragment();
+
+  siguienteLote.forEach((servicio) => {
+    const item = document.createElement('div');
+    item.className = 'servicio-checkbox-item';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = `servicio_editar_${servicio.id}`;
+    checkbox.value = servicio.id;
+    checkbox.name = 'servicios_seleccionados_editar';
+
+    // Marcar como checked si el servicio está asignado a esta tarea
+    if (servicio.tarea_id === tareaId) {
+      checkbox.checked = true;
+      item.classList.add('servicio-asignado');
+    }
+
+    const label = document.createElement('label');
+    label.htmlFor = `servicio_editar_${servicio.id}`;
+
+    const titulo = document.createElement('span');
+    titulo.textContent = servicio.descripcion || 'Servicio sin descripción';
+
+    const meta = document.createElement('span');
+    meta.className = 'servicio-meta';
+    // Mostrar ubicación (Cuarto o Espacio Común)
+    let ubicacion = 'Sin ubicación';
+    if (servicio.cuarto_numero) {
+      ubicacion = `Hab. ${servicio.cuarto_numero}`;
+    } else if (servicio.espacio_nombre) {
+      ubicacion = servicio.espacio_nombre;
+    } else if (servicio.edificio_nombre) {
+      ubicacion = servicio.edificio_nombre;
+    }
+    const servicioHexId =
+      'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+    const responsableServicio =
+      servicio.usuario_asignado_nombre || 'Sin asignar';
+    const responsableLower = (filtroResponsableEditar || '')
+      .toLowerCase()
+      .trim();
+    const responsableCoincide =
+      responsableLower &&
+      (servicio.usuario_asignado_nombre || '').toLowerCase() ===
+        responsableLower;
+    const tipoServicio =
+      servicio.tipo === 'normal'
+        ? 'Avería'
+        : servicio.tipo === 'rutina'
+          ? 'Alerta'
+          : 'Otro';
+    const agregarMetaParte = (texto, clase) => {
+      const span = document.createElement('span');
+      if (clase) span.className = clase;
+      span.textContent = texto;
+      meta.appendChild(span);
+    };
+    const agregarSeparador = () => {
+      const sep = document.createElement('span');
+      sep.className = 'servicio-meta-sep';
+      sep.textContent = '·';
+      meta.appendChild(sep);
+    };
+    meta.innerHTML = '';
+    agregarMetaParte(ubicacion);
+    agregarSeparador();
+    agregarMetaParte(tipoServicio);
+    agregarSeparador();
+    agregarMetaParte(estadoServicios[servicio.estado]);
+    agregarSeparador();
+    agregarMetaParte(
+      responsableServicio,
+      responsableCoincide ? 'servicio-responsable-highlight' : ''
+    );
+    meta.appendChild(document.createTextNode(' '));
+    agregarMetaParte(`#${servicioHexId}`, 'servicio-id');
+
+    label.appendChild(titulo);
+    label.appendChild(meta);
+
+    item.appendChild(checkbox);
+    item.appendChild(label);
+    fragment.appendChild(item);
+  });
+
+  // Insertar antes del sentinel si existe
+  const sentinel = document.getElementById('sentinel-servicios-editar');
+  if (sentinel) {
+    container.insertBefore(fragment, sentinel);
+  } else {
+    container.appendChild(fragment);
+  }
+
+  serviciosRenderizadosEditar += siguienteLote.length;
+
+  // Si ya no hay más, desconectar observer
+  if (
+    serviciosRenderizadosEditar >= serviciosFiltradosEditar.length &&
+    observerServiciosEditar
+  ) {
+    observerServiciosEditar.disconnect();
+    if (sentinel) sentinel.remove();
+  }
+}
+
+/**
+ * Guarda los cambios en la asignación de servicios a una tarea.
+ * Compara los servicios originales con los seleccionados y hace las actualizaciones necesarias.
+ * También detecta si debe cambiar el responsable de la tarea.
+ * @param {number} tareaId - El ID de la tarea
+ * @returns {Object} Resultado con asignados, desasignados y nuevo responsable si aplica
+ */
+async function guardarAsignacionServicios(tareaId) {
+  // Obtener servicios actualmente seleccionados
+  const checkboxesServicios = document.querySelectorAll(
+    'input[name="servicios_seleccionados_editar"]:checked'
+  );
+  const serviciosSeleccionados = Array.from(checkboxesServicios).map((cb) =>
+    parseInt(cb.value)
+  );
+
+  console.log(
+    `📋 Servicios originales: [${serviciosAsignadosOriginales.join(', ')}]`
+  );
+  console.log(
+    `📋 Servicios seleccionados: [${serviciosSeleccionados.join(', ')}]`
+  );
+
+  // Determinar qué servicios hay que asignar (nuevos) y cuáles desasignar
+  const serviciosAAsignar = serviciosSeleccionados.filter(
+    (id) => !serviciosAsignadosOriginales.includes(id)
+  );
+  const serviciosADesasignar = serviciosAsignadosOriginales.filter(
+    (id) => !serviciosSeleccionados.includes(id)
+  );
+
+  console.log(`➕ Servicios a asignar: [${serviciosAAsignar.join(', ')}]`);
+  console.log(
+    `➖ Servicios a desasignar: [${serviciosADesasignar.join(', ')}]`
+  );
+
+  // Resultado a retornar
+  const resultado = {
+    asignados: serviciosAAsignar.length,
+    desasignados: serviciosADesasignar.length,
+    nuevoResponsableId: null,
+  };
+
+  // Si no hay cambios, retornar
+  if (serviciosAAsignar.length === 0 && serviciosADesasignar.length === 0) {
+    console.log('📋 No hay cambios en la asignación de servicios');
+    return resultado;
+  }
+
+  // Verificar si debemos cambiar el responsable:
+  // - Si antes no tenía servicios y ahora tiene 1 → cambiar
+  // - Si antes tenía servicios y ahora queda solo 1 → cambiar
+  const teniaServiciosAntes = serviciosAsignadosOriginales.length > 0;
+  const quedaConUnServicio = serviciosSeleccionados.length === 1;
+
+  if (quedaConUnServicio) {
+    const unicoServicioId = serviciosSeleccionados[0];
+    // Buscar el servicio en la lista cacheada para obtener su responsable
+    const servicioUnico = todosLosServiciosEditar.find(
+      (s) => s.id === unicoServicioId
+    );
+
+    if (servicioUnico && servicioUnico.usuario_asignado_id) {
+      // Solo cambiar responsable si:
+      // 1. No tenía servicios antes, o
+      // 2. Tenía servicios pero ahora queda con solo uno (después de editar)
+      if (!teniaServiciosAntes || serviciosAsignadosOriginales.length !== 1) {
+        resultado.nuevoResponsableId = servicioUnico.usuario_asignado_id;
+        console.log(
+          `👤 Cambiando responsable de tarea al del servicio único: ${servicioUnico.usuario_asignado_nombre} (ID: ${resultado.nuevoResponsableId})`
+        );
+      }
+    }
+  }
+
+  // Asignar nuevos servicios a la tarea
+  const promesasAsignacion = serviciosAAsignar.map((servicioId) => {
+    return fetch(`${API_URL}/mantenimientos/${servicioId}`, {
+      method: 'PUT',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify({ tarea_id: tareaId }),
+    })
+      .then((res) => {
+        if (!res.ok)
+          console.warn(`Error al asignar tarea a servicio ${servicioId}`);
+        return res;
+      })
+      .catch((err) =>
+        console.error(`Error de red al asignar servicio ${servicioId}`, err)
+      );
+  });
+
+  // Desasignar servicios (tarea_id = null)
+  const promesasDesasignacion = serviciosADesasignar.map((servicioId) => {
+    return fetch(`${API_URL}/mantenimientos/${servicioId}`, {
+      method: 'PUT',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify({ tarea_id: null }),
+    })
+      .then((res) => {
+        if (!res.ok) console.warn(`Error al desasignar servicio ${servicioId}`);
+        return res;
+      })
+      .catch((err) =>
+        console.error(`Error de red al desasignar servicio ${servicioId}`, err)
+      );
+  });
+
+  await Promise.all([...promesasAsignacion, ...promesasDesasignacion]);
+
+  return resultado;
+}
+
 /**
  * Renderiza un lote de servicios en el contenedor
  * @param {HTMLElement} container - El contenedor de la lista
@@ -514,11 +1043,57 @@ function renderizarLoteServicios(container) {
 
     const meta = document.createElement('span');
     meta.className = 'servicio-meta';
-    // Mostrar ubicación (Cuarto/Edificio) ya que ahora son todos los servicios
-    const ubicacion = servicio.cuarto_numero
-      ? `Hab. ${servicio.cuarto_numero}`
-      : servicio.edificio_nombre || 'Sin ubicación';
-    meta.textContent = `${ubicacion} · ${servicio.tipo === 'normal' ? 'Avería' : servicio.tipo === 'rutina' ? 'Alerta' : 'Otro'} · ${estadoServicios[servicio.estado]}`;
+    // Mostrar ubicación (Cuarto o Espacio Común)
+    let ubicacion = 'Sin ubicación';
+    if (servicio.cuarto_numero) {
+      ubicacion = `Hab. ${servicio.cuarto_numero}`;
+    } else if (servicio.espacio_nombre) {
+      ubicacion = servicio.espacio_nombre;
+    } else if (servicio.edificio_nombre) {
+      ubicacion = servicio.edificio_nombre;
+    }
+    const servicioHexId =
+      'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
+    const responsableServicio =
+      servicio.usuario_asignado_nombre || 'Sin asignar';
+    const responsableLower = (filtroResponsableActual || '')
+      .toLowerCase()
+      .trim();
+    const responsableCoincide =
+      responsableLower &&
+      (servicio.usuario_asignado_nombre || '').toLowerCase() ===
+        responsableLower;
+    const tipoServicio =
+      servicio.tipo === 'normal'
+        ? 'Avería'
+        : servicio.tipo === 'rutina'
+          ? 'Alerta'
+          : 'Otro';
+    const agregarMetaParte = (texto, clase) => {
+      const span = document.createElement('span');
+      if (clase) span.className = clase;
+      span.textContent = texto;
+      meta.appendChild(span);
+    };
+    const agregarSeparador = () => {
+      const sep = document.createElement('span');
+      sep.className = 'servicio-meta-sep';
+      sep.textContent = '·';
+      meta.appendChild(sep);
+    };
+    meta.innerHTML = '';
+    agregarMetaParte(ubicacion);
+    agregarSeparador();
+    agregarMetaParte(tipoServicio);
+    agregarSeparador();
+    agregarMetaParte(estadoServicios[servicio.estado]);
+    agregarSeparador();
+    agregarMetaParte(
+      responsableServicio,
+      responsableCoincide ? 'servicio-responsable-highlight' : ''
+    );
+    meta.appendChild(document.createTextNode(' '));
+    agregarMetaParte(`#${servicioHexId}`, 'servicio-id');
 
     label.appendChild(titulo);
     label.appendChild(meta);
@@ -594,6 +1169,9 @@ async function abrirModalEditarTarea(tareaId) {
 
     // Cargar adjuntos existentes (en modo editable)
     await cargarAdjuntosTarea(tareaId, true, 'adjuntosEditarChips');
+
+    // Cargar servicios para edición (marca los ya asignados a esta tarea)
+    await cargarServiciosParaEdicion(tareaId);
 
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
@@ -860,10 +1438,53 @@ async function submitCrearTarea(event) {
       );
 
       await Promise.all(promesasAsignacion);
-      mostrarNotificacion(
-        `Tarea creada y asignada a ${checkboxesServicios.length} servicios`,
-        'success'
-      );
+
+      // Si solo hay un servicio seleccionado, cambiar el responsable de la tarea al del servicio
+      if (checkboxesServicios.length === 1) {
+        const unicoServicioId = parseInt(checkboxesServicios[0].value);
+        const servicioUnico = todosLosServicios.find(
+          (s) => s.id === unicoServicioId
+        );
+
+        if (
+          servicioUnico &&
+          servicioUnico.usuario_asignado_id &&
+          servicioUnico.usuario_asignado_id !== parseInt(responsableId)
+        ) {
+          console.log(
+            `👤 Cambiando responsable de tarea al del servicio único: ${servicioUnico.usuario_asignado_nombre} (ID: ${servicioUnico.usuario_asignado_id})`
+          );
+          try {
+            await fetch(`${API_URL}/tareas/${nuevaTarea.id}`, {
+              method: 'PUT',
+              headers: obtenerHeadersConAuth(),
+              body: JSON.stringify({
+                responsable_id: servicioUnico.usuario_asignado_id,
+              }),
+            });
+            mostrarNotificacion(
+              `Tarea creada con responsable: ${servicioUnico.usuario_asignado_nombre}`,
+              'success'
+            );
+          } catch (err) {
+            console.error('Error al actualizar responsable de tarea:', err);
+            mostrarNotificacion(
+              `Tarea creada y asignada a ${checkboxesServicios.length} servicio`,
+              'success'
+            );
+          }
+        } else {
+          mostrarNotificacion(
+            `Tarea creada y asignada a ${checkboxesServicios.length} servicio`,
+            'success'
+          );
+        }
+      } else {
+        mostrarNotificacion(
+          `Tarea creada y asignada a ${checkboxesServicios.length} servicios`,
+          'success'
+        );
+      }
     } else {
       mostrarNotificacion('¡Tarea creada con éxito!', 'success');
     }
@@ -992,6 +1613,35 @@ async function submitEditarTarea(event) {
     // Guardar el ID antes de cerrar el modal (porque cerrarModal resetea tareaIdActual)
     const tareaId = tareaIdActual;
 
+    // Guardar cambios en la asignación de servicios
+    const resultadoServicios = await guardarAsignacionServicios(tareaId);
+    if (
+      resultadoServicios.asignados > 0 ||
+      resultadoServicios.desasignados > 0
+    ) {
+      console.log(
+        `📋 Servicios actualizados: +${resultadoServicios.asignados} asignados, -${resultadoServicios.desasignados} desasignados`
+      );
+    }
+
+    // Si hay un nuevo responsable sugerido por tener un único servicio asignado, actualizar la tarea
+    if (resultadoServicios.nuevoResponsableId) {
+      console.log(
+        `👤 Actualizando responsable de tarea a ID: ${resultadoServicios.nuevoResponsableId}`
+      );
+      try {
+        await fetch(`${API_URL}/tareas/${tareaId}`, {
+          method: 'PUT',
+          headers: obtenerHeadersConAuth(),
+          body: JSON.stringify({
+            responsable_id: resultadoServicios.nuevoResponsableId,
+          }),
+        });
+      } catch (err) {
+        console.error('Error al actualizar responsable de tarea:', err);
+      }
+    }
+
     // Subir archivos adjuntos si hay alguno seleccionado
     if (archivosSeleccionados && archivosSeleccionados.length > 0) {
       console.log(
@@ -1015,7 +1665,19 @@ async function submitEditarTarea(event) {
     }
 
     cerrarModal('modalEditarTarea');
-    mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
+
+    // Mostrar notificación de éxito con info de servicios si aplica
+    if (
+      resultadoServicios.asignados > 0 ||
+      resultadoServicios.desasignados > 0
+    ) {
+      mostrarNotificacion(
+        `Tarea actualizada. Servicios: +${resultadoServicios.asignados} / -${resultadoServicios.desasignados}`,
+        'success'
+      );
+    } else {
+      mostrarNotificacion('¡Tarea actualizada con éxito!', 'success');
+    }
 
     // Actualizar solo la tarjeta específica en lugar de recargar todas
     await actualizarTarjetaTarea(tareaId);
@@ -1579,7 +2241,24 @@ async function actualizarTarjetaTarea(tareaId) {
         calcularEstadoDesdeServicios(serviciosAsignados) ||
         tareaActualizada.estado;
       if (estadoDerivado && estadoDerivado !== tareaActualizada.estado) {
+        console.log(
+          `📊 Estado de tarea cambia de "${tareaActualizada.estado}" a "${estadoDerivado}" según sus servicios`
+        );
         tareaActualizada.estado = estadoDerivado;
+
+        // Persistir el nuevo estado en el backend
+        try {
+          await fetch(`${API_URL}/tareas/${tareaId}`, {
+            method: 'PUT',
+            headers: obtenerHeadersConAuth(),
+            body: JSON.stringify({ estado: estadoDerivado }),
+          });
+          console.log(
+            `✅ Estado de tarea ${tareaId} actualizado a ${estadoDerivado} en BD`
+          );
+        } catch (err) {
+          console.error('Error al actualizar estado de tarea en BD:', err);
+        }
       }
     }
 
@@ -2843,6 +3522,7 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
   const li = document.createElement('li');
   li.className = 'cuarto-item';
   li.dataset.tareaId = tarea.id;
+  li.addEventListener('click', () => verDetalleTarea(tarea.id));
 
   // Calculate progress from assigned services (excluding cancelled ones)
   const serviciosAsignados = todosServicios.filter(
@@ -2979,7 +3659,7 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                   serviciosAsignados.length > 0
                     ? `
                     <div class="tarea-servicios-pills">
-                        ${serviciosAsignados.map((s) => `<span class="servicio-pill" onclick="event.stopPropagation(); if(typeof abrirModalDetalleServicio === 'function') abrirModalDetalleServicio(${s.id}); else if(typeof window.abrirModalDetalleServicio === 'function') window.abrirModalDetalleServicio(${s.id});" title="Ver detalle del servicio">serv-${s.id}</span>`).join('')}
+                        ${serviciosAsignados.map((s) => `<span class="servicio-pill" onclick="event.stopPropagation(); if(typeof abrirModalDetalleServicio === 'function') abrirModalDetalleServicio(${s.id}); else if(typeof window.abrirModalDetalleServicio === 'function') window.abrirModalDetalleServicio(${s.id});" title="Ver detalle del servicio">serv-${s.id.toString(16).padStart(3, '0').toUpperCase()}</span>`).join('')}
                     </div>
                 `
                     : ''
@@ -3007,14 +3687,20 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     </div>
                 </div>
                 <div class="tarea-acciones-btns">
-                    <button class="btn-cuarto-action" onclick="verDetalleTarea(${tarea.id})" title="Ver detalles">
-                        <i class="fas fa-eye"></i>
-                    </button>
                     ${
                       puedeEditarTarea(tarea)
                         ? `
-                        <button class="btn-cuarto-action btn-edit" onclick="abrirModalEditarTarea(${tarea.id})" title="Editar">
+                        <button class="btn-cuarto-action btn-edit" onclick="event.stopPropagation(); abrirModalEditarTarea(${tarea.id})" title="Editar">
                             <i class="fas fa-edit"></i>
+                        </button>
+                    `
+                        : ''
+                    }
+                    ${
+                      tarea.estado === 'pendiente'
+                        ? `
+                        <button class="btn-cuarto-action btn-play" onclick="event.stopPropagation(); accionarTarea(${tarea.id}, 'en_proceso')" title="Iniciar">
+                            <i class="fas fa-play"></i>
                         </button>
                     `
                         : ''
@@ -3457,6 +4143,35 @@ async function cambiarEstadoServicioDesdeDetalle(selectElement) {
       `✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`
     );
 
+    // Actualizar en el array global de mantenimientos (cache usado por abrirModalDetalleServicio)
+    if (window.appLoaderState) {
+      // Actualizar en mantenimientos de cuartos
+      if (Array.isArray(window.appLoaderState.mantenimientos)) {
+        const servicioCuarto = window.appLoaderState.mantenimientos.find(
+          (m) => m.id == servicioId
+        );
+        if (servicioCuarto) {
+          servicioCuarto.estado = nuevoEstado;
+          if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+            servicioCuarto.fecha_finalizacion = new Date().toISOString();
+          }
+        }
+      }
+      // Actualizar en mantenimientos de espacios comunes
+      if (Array.isArray(window.appLoaderState.mantenimientosEspacios)) {
+        const servicioEspacio =
+          window.appLoaderState.mantenimientosEspacios.find(
+            (m) => m.id == servicioId
+          );
+        if (servicioEspacio) {
+          servicioEspacio.estado = nuevoEstado;
+          if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
+            servicioEspacio.fecha_finalizacion = new Date().toISOString();
+          }
+        }
+      }
+    }
+
     // Mostrar notificación de éxito
     if (typeof mostrarNotificacion === 'function') {
       mostrarNotificacion('Estado del servicio actualizado', 'success');
@@ -3501,6 +4216,23 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
     console.log(`🚀 Accionando tarea ${tareaId} a estado: ${nuevoEstado}...`);
 
     const headers = obtenerHeadersConAuth();
+
+    const actualizarEstadoServicioEnCaches = (servicioId, estado) => {
+      if (!window.appLoaderState) return;
+      const listas = [
+        window.appLoaderState.mantenimientos,
+        window.appLoaderState.mantenimientosEspacios,
+      ].filter(Array.isArray);
+      listas.forEach((lista) => {
+        const servicioCache = lista.find((m) => m.id == servicioId);
+        if (servicioCache) {
+          servicioCache.estado = estado;
+          if (estado === 'completado' || estado === 'cancelado') {
+            servicioCache.fecha_finalizacion = new Date().toISOString();
+          }
+        }
+      });
+    };
 
     const response = await fetch(`${API_URL}/tareas/${tareaId}`, {
       method: 'PUT',
@@ -3581,6 +4313,7 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
                   console.log(`✅ Servicio ${servicio.id} iniciado`);
                   // Actualizar en cache
                   servicio.estado = 'en_proceso';
+                  actualizarEstadoServicioEnCaches(servicio.id, 'en_proceso');
                   return true;
                 }
                 return false;
@@ -3649,6 +4382,7 @@ async function accionarTarea(tareaId, nuevoEstado = 'en_proceso') {
                   console.log(`✅ Servicio ${servicio.id} completado`);
                   // Actualizar en cache
                   servicio.estado = 'completado';
+                  actualizarEstadoServicioEnCaches(servicio.id, 'completado');
                   return true;
                 }
                 return false;
@@ -4131,6 +4865,7 @@ window.cerrarModalDetalleTarea = cerrarModalDetalleTarea;
 window.cerrarModalAdvertenciaEdicion = cerrarModalAdvertenciaEdicion;
 window.removerArchivoPreview = removerArchivoPreview;
 window.cambiarEstadoServicioDesdeDetalle = cambiarEstadoServicioDesdeDetalle;
+window.actualizarTarjetaTarea = actualizarTarjetaTarea;
 
 // Exportar el flag de carga como getter/setter
 Object.defineProperty(window, 'tareasCargadas', {

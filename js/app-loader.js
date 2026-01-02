@@ -3729,6 +3729,16 @@
         }
       });
 
+      // Si el servicio tiene una tarea asignada, actualizar la tarjeta de esa tarea
+      if (servicio && servicio.tarea_id) {
+        console.log(
+          `📋 Servicio ${servicioId} tiene tarea ${servicio.tarea_id}, actualizando tarjeta...`
+        );
+        if (typeof window.actualizarTarjetaTarea === 'function') {
+          window.actualizarTarjetaTarea(servicio.tarea_id);
+        }
+      }
+
       // Mostrar notificación de éxito
       if (window.mostrarAlertaBlur) {
         window.mostrarAlertaBlur(

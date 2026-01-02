@@ -601,7 +601,8 @@ class PostgresManager {
                 m.*,
                 c.numero as cuarto_numero,
                 c.numero as cuarto_nombre,
-                e.nombre as edificio_nombre,
+                COALESCE(e.nombre, e2.nombre) as edificio_nombre,
+                ec.nombre as espacio_nombre,
                 uc.nombre as usuario_creador_nombre,
                 ua.nombre as usuario_asignado_nombre,
                 ua.rol_id as usuario_asignado_rol_id,
@@ -609,6 +610,8 @@ class PostgresManager {
             FROM mantenimientos m
             LEFT JOIN cuartos c ON m.cuarto_id = c.id
             LEFT JOIN edificios e ON c.edificio_id = e.id
+            LEFT JOIN espacios_comunes ec ON m.espacio_comun_id = ec.id
+            LEFT JOIN edificios e2 ON ec.edificio_id = e2.id
             LEFT JOIN usuarios uc ON m.usuario_creador_id = uc.id
             LEFT JOIN usuarios ua ON m.usuario_asignado_id = ua.id
             LEFT JOIN roles r ON ua.rol_id = r.id
