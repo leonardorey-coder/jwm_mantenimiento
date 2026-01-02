@@ -184,7 +184,7 @@ function createWindow() {
     height: 700,
     minWidth: 400,
     minHeight: 550,
-    icon: path.join(__dirname, 'assets/icon.png'), // Updated icon path
+    icon: path.join(__dirname, 'icons/icon.ico'), // ICO con múltiples tamaños para Windows y macOS
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
