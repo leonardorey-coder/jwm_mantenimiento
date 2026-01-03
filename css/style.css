@@ -533,22 +533,22 @@ body.modal-open {
 
 /* Portable Version - Green Olive style */
 .download-portable {
-  border: 1px solid rgba(76, 84, 76, 0.4);
-  background: rgba(76, 84, 76, 0.08);
-  color: var(--verde-oliva);
+  border: 1px solid rgba(101, 163, 13, 0.4);
+  background: rgba(101, 163, 13, 0.08);
+  color: #65a30d;
 }
 
 .download-portable:hover {
-  background: var(--verde-oliva);
+  background: #65a30d;
   color: var(--blanco);
-  border-color: var(--verde-oliva);
+  border-color: #65a30d;
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(76, 84, 76, 0.4);
+  box-shadow: 0 4px 16px rgba(101, 163, 13, 0.4);
 }
 
 .download-portable:active {
   transform: translateY(0);
-  box-shadow: 0 2px 8px rgba(76, 84, 76, 0.3);
+  box-shadow: 0 2px 8px rgba(101, 163, 13, 0.3);
 }
 
 /* Installer Version - Blue accent style */
@@ -569,6 +569,26 @@ body.modal-open {
 .download-installer:active {
   transform: translateY(0);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+/* iPhone Guide - Orange accent style */
+.download-ios-guide {
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  background: rgba(249, 115, 22, 0.08);
+  color: #f97316;
+}
+
+.download-ios-guide:hover {
+  background: #f97316;
+  color: var(--blanco);
+  border-color: #f97316;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
+}
+
+.download-ios-guide:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 /* Tooltip for download buttons */
