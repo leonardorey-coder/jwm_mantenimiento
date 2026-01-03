@@ -718,11 +718,6 @@ body.modal-open {
   }
 }
 
-/* Hide update button in web (only visible in Electron) */
-body:not(.electron-app) .update-check-btn {
-  display: none;
-}
-
 /* ========================================
    NAVEGACIÓN PREMIUM - MINIMAL & ELEGANT
    ======================================== */

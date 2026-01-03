@@ -578,9 +578,13 @@ function setupEventListeners() {
     themeToggle.addEventListener('click', toggleTheme);
   }
 
-  // Botón de verificar actualizaciones (solo en Electron)
+  // Botón de recargar página / verificar actualizaciones
   const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
-  if (checkUpdatesBtn && window.electronAPI && window.electronAPI.updates) {
+  if (checkUpdatesBtn) {
+    // En Electron: verificar actualizaciones + recargar
+    // En Web/PWA: solo recargar la página
+    const isElectron = window.electronAPI && window.electronAPI.updates;
+
     checkUpdatesBtn.addEventListener('click', async () => {
       const btn = checkUpdatesBtn;
       const badge = btn.querySelector('.update-badge');
@@ -590,41 +594,57 @@ function setupEventListeners() {
       btn.disabled = true;
 
       try {
-        const result = await window.electronAPI.updates.check();
+        if (isElectron) {
+          // En Electron: verificar actualizaciones primero
+          const result = await window.electronAPI.updates.check();
 
-        if (result.error) {
-          if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(result.error, 'warning');
+          if (result.error) {
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(result.error, 'warning');
+            } else {
+              alert(result.error);
+            }
+          } else if (result.hasUpdate) {
+            // Hay actualización disponible
+            if (badge) badge.style.display = 'flex';
+            const mensaje = `¡Nueva versión ${result.latestVersion} disponible! (Actual: ${result.currentVersion})`;
+
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(mensaje, 'info');
+            }
+
+            // Preguntar si desea abrir la página de descarga
+            if (
+              electronSafeConfirm(
+                `${mensaje}\n\n¿Desea abrir la página de descarga?`
+              )
+            ) {
+              window.open(result.downloadUrl, '_blank');
+            }
           } else {
-            alert(result.error);
-          }
-        } else if (result.hasUpdate) {
-          // Hay actualización disponible
-          if (badge) badge.style.display = 'flex';
-          const mensaje = `¡Nueva versión ${result.latestVersion} disponible! (Actual: ${result.currentVersion})`;
-
-          if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(mensaje, 'info');
-          }
-
-          // Preguntar si desea abrir la página de descarga
-          if (
-            electronSafeConfirm(
-              `${mensaje}\n\n¿Desea abrir la página de descarga?`
-            )
-          ) {
-            window.open(result.downloadUrl, '_blank');
+            if (badge) badge.style.display = 'none';
+            const mensajeExito = `Estás al día (v${result.currentVersion}). Recargando...`;
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(mensajeExito, 'success');
+            }
+            // Recargar después de mostrar el mensaje
+            setTimeout(() => {
+              location.reload(true);
+            }, 1000);
           }
         } else {
-          if (badge) badge.style.display = 'none';
-          const mensajeExito = `Estás al día (v${result.currentVersion})`;
+          // En Web/PWA: hacer hot reload directamente
           if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(mensajeExito, 'success');
+            window.mostrarAlertaBlur('Recargando página...', 'info');
           }
+          setTimeout(() => {
+            location.reload(true);
+          }, 500);
         }
       } catch (error) {
-        console.error('Error verificando actualizaciones:', error);
-        showNotification('Error al verificar actualizaciones', 'error');
+        console.error('Error:', error);
+        // En caso de error, igual recargar la página
+        location.reload(true);
       } finally {
         btn.classList.remove('checking');
         btn.disabled = false;
