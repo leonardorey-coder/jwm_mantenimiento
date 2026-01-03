@@ -58,6 +58,35 @@ const toggleButtons = document.querySelectorAll('.toggle-button');
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
+function isStandaloneLoginContext() {
+  const isStandalone =
+    window.navigator.standalone === true ||
+    window.matchMedia('(display-mode: standalone)').matches;
+  const isElectron = !!(window.electronAPI && window.electronAPI.auth);
+  return isStandalone || isElectron;
+}
+
+function setLoginButtonLoading(isLoading, message = 'Iniciando sesión...') {
+  const submitBtn = loginForm?.querySelector('.btn-submit');
+  if (!submitBtn) return;
+
+  if (isLoading) {
+    if (!submitBtn.dataset.originalHtml) {
+      submitBtn.dataset.originalHtml = submitBtn.innerHTML;
+    }
+    submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> ${message}`;
+    submitBtn.disabled = true;
+    return;
+  }
+
+  if (!submitBtn.dataset.originalHtml) {
+    return;
+  }
+
+  submitBtn.innerHTML = submitBtn.dataset.originalHtml;
+  submitBtn.disabled = false;
+}
+
 toggleButtons.forEach((button) => {
   button.addEventListener('click', () => {
     const mode = button.getAttribute('data-mode');
@@ -185,6 +214,12 @@ async function initializeAuth() {
     userRole: currentUser?.rol,
   });
 
+  const shouldShowAutoLoginSpinner =
+    isStandaloneLoginContext() && accessToken && currentUser;
+  if (shouldShowAutoLoginSpinner) {
+    setLoginButtonLoading(true, 'Iniciando sesión...');
+  }
+
   if (accessToken && currentUser) {
     // Verificar si el token está expirado
     const tokenExpiration =
@@ -196,6 +231,7 @@ async function initializeAuth() {
         console.log(
           '🟡 [LOGIN-JWT] El usuario debe cambiar su contraseña antes de continuar'
         );
+        setLoginButtonLoading(false);
         showForcePasswordModal(currentUser);
         showMessage(
           'Debes actualizar tu contraseña antes de acceder al panel.',
@@ -220,6 +256,7 @@ async function initializeAuth() {
           console.log(
             '🟡 [LOGIN-JWT] Usuario refrescado pero requiere cambio de contraseña. Mostrando modal'
           );
+          setLoginButtonLoading(false);
           showForcePasswordModal(refreshedUser);
           showMessage(
             'Debes actualizar tu contraseña antes de acceder al panel.',
@@ -230,9 +267,14 @@ async function initializeAuth() {
         if (refreshedUser?.rol) {
           redirectToDashboard(refreshedUser.rol);
         }
+      } else {
+        setLoginButtonLoading(false);
       }
+    } else {
+      setLoginButtonLoading(false);
     }
   } else {
+    setLoginButtonLoading(false);
     console.log(
       '🔵 [LOGIN-JWT] No hay sesión activa, mostrando formulario de login'
     );
@@ -257,11 +299,7 @@ loginForm.addEventListener('submit', async (e) => {
   }
 
   // Mostrar loading
-  const submitBtn = loginForm.querySelector('.btn-submit');
-  const originalText = submitBtn.innerHTML;
-  submitBtn.innerHTML =
-    '<i class="fas fa-spinner fa-spin"></i> Iniciando sesión...';
-  submitBtn.disabled = true;
+  setLoginButtonLoading(true, 'Iniciando sesión...');
 
   try {
     console.log(
@@ -403,8 +441,7 @@ loginForm.addEventListener('submit', async (e) => {
         console.log(
           '🟡 [LOGIN-JWT] Usuario debe cambiar su contraseña inmediatamente'
         );
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
+        setLoginButtonLoading(false);
         showMessage(
           'Debes actualizar tu contraseña antes de continuar.',
           'info'
@@ -425,8 +462,7 @@ loginForm.addEventListener('submit', async (e) => {
   } catch (error) {
     console.error('Error en login:', error);
     showMessage(error.message, 'error');
-    submitBtn.innerHTML = originalText;
-    submitBtn.disabled = false;
+    setLoginButtonLoading(false);
   }
 });
 
