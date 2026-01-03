@@ -633,13 +633,13 @@ function setupEventListeners() {
             }, 1000);
           }
         } else {
-          // En Web/PWA: hacer hot reload directamente
+          // En Web/PWA: hacer hot reload completo (limpiar caché, SW, y recargar todo)
           if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur('Recargando página...', 'info');
+            window.mostrarAlertaBlur('Recargando desde cero...', 'info');
           }
-          setTimeout(() => {
-            location.reload(true);
-          }, 500);
+
+          // Hot reload completo: limpiar caché, service workers y recargar
+          await performHotReload();
         }
       } catch (error) {
         console.error('Error:', error);
@@ -679,6 +679,95 @@ function setupEventListeners() {
   setupModalDragResize();
 
   console.log('✅ Event listeners configurados');
+}
+
+// ========================================
+// HOT RELOAD - Recarga completa de la aplicación
+// ========================================
+
+/**
+ * Realiza un hot reload completo de la aplicación:
+ * 1. Limpia todas las cachés del navegador (Cache API)
+ * 2. Desregistra todos los service workers activos
+ * 3. Recarga la página con un cache buster para forzar carga fresca de HTML/JS/CSS
+ */
+async function performHotReload() {
+  console.log('🔄 [HOT RELOAD] Iniciando recarga completa...');
+
+  try {
+    // 1. Limpiar Cache API (si está disponible)
+    if ('caches' in window) {
+      console.log('🧹 [HOT RELOAD] Limpiando Cache API...');
+      const cacheNames = await caches.keys();
+      console.log('🧹 [HOT RELOAD] Cachés encontradas:', cacheNames);
+
+      await Promise.all(
+        cacheNames.map(async (cacheName) => {
+          console.log(`🧹 [HOT RELOAD] Eliminando caché: ${cacheName}`);
+          await caches.delete(cacheName);
+        })
+      );
+      console.log('✅ [HOT RELOAD] Cache API limpiada');
+    }
+
+    // 2. Desregistrar todos los Service Workers
+    if ('serviceWorker' in navigator) {
+      console.log('🔧 [HOT RELOAD] Desregistrando Service Workers...');
+      const registrations = await navigator.serviceWorker.getRegistrations();
+
+      if (registrations.length > 0) {
+        await Promise.all(
+          registrations.map(async (registration) => {
+            console.log(`🔧 [HOT RELOAD] Desregistrando SW: ${registration.scope}`);
+            await registration.unregister();
+          })
+        );
+        console.log('✅ [HOT RELOAD] Service Workers desregistrados');
+      } else {
+        console.log('ℹ️ [HOT RELOAD] No hay Service Workers activos');
+      }
+    }
+
+    // 3. Limpiar localStorage de cachés temporales (preservar auth y preferencias)
+    const keysToPreserve = [
+      'accessToken', 'refreshToken', 'currentUser',
+      'usuarioActualId', 'theme', 'rememberMe'
+    ];
+
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && !keysToPreserve.includes(key) &&
+        (key.startsWith('ultimos') || key.startsWith('cached'))) {
+        keysToRemove.push(key);
+      }
+    }
+
+    keysToRemove.forEach((key) => {
+      console.log(`🧹 [HOT RELOAD] Eliminando localStorage: ${key}`);
+      localStorage.removeItem(key);
+    });
+
+    console.log('✅ [HOT RELOAD] Cachés de datos limpiadas');
+
+    // 4. Forzar recarga sin caché agregando timestamp como cache buster
+    const timestamp = Date.now();
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.set('_reload', timestamp);
+
+    console.log('🚀 [HOT RELOAD] Recargando desde:', currentUrl.href);
+
+    // Pequeña pausa para mostrar el mensaje
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    // Navegar a la nueva URL (esto fuerza recarga completa)
+    window.location.href = currentUrl.href;
+
+  } catch (error) {
+    console.error('❌ [HOT RELOAD] Error durante hot reload:', error);
+    // Fallback: recargar normalmente
+    window.location.reload(true);
+  }
 }
 
 // ========================================
