@@ -234,8 +234,25 @@ function mostrarCuartos() {
                                     </div>
                                 </div>
                             </div>
-                            <div class="habitacion-estado-badge ${estadoBadgeClass}">
+                            <div class="habitacion-estado-badge estado-dropdown ${estadoBadgeClass}" 
+                                 data-cuarto-id="${cuartoId}" 
+                                 data-estado="${estadoCuarto === 'vacio' ? 'disponible' : estadoCuarto}"
+                                 onclick="toggleEstadoDropdown(this, ${cuartoId}, false)">
                                 <i class="fas ${estadoIcon}"></i> ${estadoText}
+                                <div class="estado-dropdown-menu" style="display: none;">
+                                    <div class="estado-dropdown-item estado-disponible" data-estado="disponible" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'disponible', this, false)">
+                                        <i class="fas fa-check-circle"></i> Disponible
+                                    </div>
+                                    <div class="estado-dropdown-item estado-ocupado" data-estado="ocupado" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'ocupado', this, false)">
+                                        <i class="fas fa-user"></i> Ocupado
+                                    </div>
+                                    <div class="estado-dropdown-item estado-mantenimiento" data-estado="mantenimiento" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'mantenimiento', this, false)">
+                                        <i class="fas fa-tools"></i> En Mantenimiento
+                                    </div>
+                                    <div class="estado-dropdown-item estado-fuera-servicio" data-estado="fuera_servicio" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'fuera_servicio', this, false)">
+                                        <i class="fas fa-ban"></i> Fuera de Servicio
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div class="habitacion-servicios" id="servicios-${cuartoId}">
@@ -784,42 +801,56 @@ function actualizarEstadoBadgeCard(cuartoId, nuevoEstado) {
     return;
   }
 
-  let estadoBadgeClass = 'estado-vacio';
-  let estadoIcon = 'fa-check-circle';
-  let estadoText = 'Vacío';
+  // Normalizar el estado para el mapping
+  const estadoNormalizado = nuevoEstado.toLowerCase();
+  const estadoMapeado =
+    estadoNormalizado === 'vacio'
+      ? 'disponible'
+      : estadoNormalizado === 'en mantenimiento'
+        ? 'mantenimiento'
+        : estadoNormalizado === 'fuera de servicio'
+          ? 'fuera_servicio'
+          : estadoNormalizado;
 
-  switch (nuevoEstado.toLowerCase()) {
-    case 'disponible':
-    case 'vacio':
-      estadoBadgeClass = 'estado-disponible';
-      estadoIcon = 'fa-check-circle';
-      estadoText = 'Disponible';
-      break;
-    case 'ocupado':
-      estadoBadgeClass = 'estado-ocupado';
-      estadoIcon = 'fa-user';
-      estadoText = 'Ocupado';
-      break;
-    case 'en mantenimiento':
-    case 'mantenimiento':
-      estadoBadgeClass = 'estado-mantenimiento';
-      estadoIcon = 'fa-tools';
-      estadoText = 'En Mantenimiento';
-      break;
-    case 'fuera de servicio':
-    case 'fuera_servicio':
-      estadoBadgeClass = 'estado-fuera-servicio';
-      estadoIcon = 'fa-ban';
-      estadoText = 'Fuera de Servicio';
-      break;
-    default:
-      estadoBadgeClass = 'estado-vacio';
-      estadoIcon = 'fa-check-circle';
-      estadoText = 'Disponible';
+  // Si es un select element, actualizar valor y estilo
+  if (estadoBadge.tagName === 'SELECT') {
+    estadoBadge.value = estadoMapeado;
+    actualizarEstiloSelectBadge(estadoBadge, estadoMapeado);
+  } else {
+    // Fallback para div (legacy)
+    let estadoBadgeClass = 'estado-disponible';
+    let estadoIcon = 'fa-check-circle';
+    let estadoText = 'Disponible';
+
+    switch (estadoNormalizado) {
+      case 'disponible':
+      case 'vacio':
+        estadoBadgeClass = 'estado-disponible';
+        estadoIcon = 'fa-check-circle';
+        estadoText = 'Disponible';
+        break;
+      case 'ocupado':
+        estadoBadgeClass = 'estado-ocupado';
+        estadoIcon = 'fa-user';
+        estadoText = 'Ocupado';
+        break;
+      case 'en mantenimiento':
+      case 'mantenimiento':
+        estadoBadgeClass = 'estado-mantenimiento';
+        estadoIcon = 'fa-tools';
+        estadoText = 'En Mantenimiento';
+        break;
+      case 'fuera de servicio':
+      case 'fuera_servicio':
+        estadoBadgeClass = 'estado-fuera-servicio';
+        estadoIcon = 'fa-ban';
+        estadoText = 'Fuera de Servicio';
+        break;
+    }
+
+    estadoBadge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
+    estadoBadge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
   }
-
-  estadoBadge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
-  estadoBadge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
 
   const estadoSelector = cardElement.querySelector('.estado-selector-inline');
   if (estadoSelector) {
@@ -1272,17 +1303,23 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
       cuarto.estado = nuevoEstado;
     }
 
-    // Remover clase activo de todos los botones de estado de este contenedor
+    // Remover clase activo y habilitar todos los botones de estado de este contenedor
     const contenedorPills = boton.closest('.estado-pills-inline');
     if (contenedorPills) {
       const todosLosBotones = contenedorPills.querySelectorAll(
         '.estado-pill-inline'
       );
-      todosLosBotones.forEach((btn) => btn.classList.remove('activo'));
+      todosLosBotones.forEach((btn) => {
+        btn.classList.remove('activo');
+        btn.classList.remove('estado-pill-inline-activo');
+        btn.disabled = false;
+      });
     }
 
-    // Agregar clase activo al botón seleccionado
+    // Agregar clase activo y deshabilitar el botón seleccionado
     boton.classList.add('activo');
+    boton.classList.add('estado-pill-inline-activo');
+    boton.disabled = true;
 
     // Actualizar el input hidden
     const inputEstado = document.getElementById(
@@ -1292,8 +1329,12 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
       inputEstado.value = nuevoEstado;
     }
 
-    // Actualizar solo el badge de estado de la card específica
-    actualizarEstadoBadgeCard(cuartoId, nuevoEstado);
+    // Actualizar el badge dropdown de la card específica
+    const cardElement = document.getElementById(`cuarto-${cuartoId}`);
+    const badgeDropdown = cardElement?.querySelector('.estado-dropdown');
+    if (badgeDropdown) {
+      actualizarBadgeDropdown(badgeDropdown, nuevoEstado);
+    }
 
     const estadoLabels = {
       disponible: 'Disponible',
@@ -1316,6 +1357,272 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
   }
 }
 window.seleccionarEstadoInline = seleccionarEstadoInline;
+
+/**
+ * Cambiar estado del cuarto desde el badge/select dropdown
+ */
+async function cambiarEstadoCuartoBadge(cuartoId, nuevoEstado, selectElement) {
+  const s = getState();
+  try {
+    console.log(`🔄 [BADGE] Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
+
+    const response = await window.fetchWithAuth(
+      `${window.API_BASE_URL}/api/cuartos/${cuartoId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ estado: nuevoEstado }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const resultado = await response.json();
+    console.log('✅ Estado actualizado:', resultado);
+
+    // Actualizar el cuarto en el array local
+    const cuarto = s.cuartos.find((c) => c.id === cuartoId);
+    if (cuarto) {
+      cuarto.estado = nuevoEstado;
+    }
+
+    // Actualizar el estilo del select para reflejar el nuevo estado
+    actualizarEstiloSelectBadge(selectElement, nuevoEstado);
+
+    // Actualizar los pills del selector inline si está visible
+    const estadoSelector = document.getElementById(`estado-selector-inline-id-${cuartoId}`);
+    if (estadoSelector) {
+      const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
+      pills.forEach((pill) => {
+        const estadoPill = pill.getAttribute('data-estado');
+        const isActive = estadoPill === nuevoEstado;
+        pill.classList.toggle('estado-pill-inline-activo', isActive);
+        pill.disabled = isActive;
+      });
+    }
+
+    const estadoLabels = {
+      disponible: 'Disponible',
+      ocupado: 'Ocupado',
+      mantenimiento: 'En Mantenimiento',
+      fuera_servicio: 'Fuera de Servicio',
+    };
+
+    const label = estadoLabels[nuevoEstado] || nuevoEstado;
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
+  } catch (error) {
+    console.error('❌ Error al actualizar estado:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
+
+    // Revertir el select al estado anterior si hay error
+    const cuarto = s.cuartos.find((c) => c.id === cuartoId);
+    if (cuarto && selectElement) {
+      selectElement.value = cuarto.estado;
+    }
+  }
+}
+window.cambiarEstadoCuartoBadge = cambiarEstadoCuartoBadge;
+
+/**
+ * Actualizar el estilo visual del select badge según el nuevo estado
+ */
+function actualizarEstiloSelectBadge(selectElement, nuevoEstado) {
+  if (!selectElement) return;
+
+  // Remover todas las clases de estado
+  selectElement.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+
+  // Agregar la clase correspondiente
+  switch (nuevoEstado.toLowerCase()) {
+    case 'disponible':
+    case 'vacio':
+      selectElement.classList.add('estado-disponible');
+      break;
+    case 'ocupado':
+      selectElement.classList.add('estado-ocupado');
+      break;
+    case 'mantenimiento':
+    case 'en mantenimiento':
+      selectElement.classList.add('estado-mantenimiento');
+      break;
+    case 'fuera_servicio':
+    case 'fuera de servicio':
+      selectElement.classList.add('estado-fuera-servicio');
+      break;
+    default:
+      selectElement.classList.add('estado-disponible');
+  }
+}
+window.actualizarEstiloSelectBadge = actualizarEstiloSelectBadge;
+
+/**
+ * Toggle el menú dropdown de estado
+ */
+function toggleEstadoDropdown(badgeElement, id, esEspacio) {
+  // Cerrar otros dropdowns abiertos
+  document.querySelectorAll('.estado-dropdown-menu').forEach(menu => {
+    if (menu.parentElement !== badgeElement) {
+      menu.style.display = 'none';
+    }
+  });
+
+  const menu = badgeElement.querySelector('.estado-dropdown-menu');
+  if (menu) {
+    menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+  }
+}
+window.toggleEstadoDropdown = toggleEstadoDropdown;
+
+/**
+ * Seleccionar estado desde el dropdown personalizado
+ */
+async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio) {
+  const s = getState();
+  const dropdown = itemElement.closest('.estado-dropdown');
+  const menu = dropdown.querySelector('.estado-dropdown-menu');
+
+  // Cerrar el menú
+  if (menu) menu.style.display = 'none';
+
+  try {
+    console.log(`🔄 [DROPDOWN] Actualizando estado ${esEspacio ? 'espacio' : 'cuarto'} ${id} a: ${nuevoEstado}`);
+
+    const endpoint = esEspacio
+      ? `${window.API_BASE_URL}/api/espacios-comunes/${id}`
+      : `${window.API_BASE_URL}/api/cuartos/${id}`;
+
+    const response = await window.fetchWithAuth(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify({ estado: nuevoEstado }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Error ${response.status}: ${response.statusText}`);
+    }
+
+    const resultado = await response.json();
+    console.log('✅ Estado actualizado:', resultado);
+
+    // Actualizar localmente
+    if (esEspacio) {
+      // Actualizar en espaciosComunes si existe
+      if (window.appLoaderState?.espaciosComunes) {
+        const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === id);
+        if (espacio) espacio.estado = nuevoEstado;
+      }
+    } else {
+      const cuarto = s.cuartos.find(c => c.id === id);
+      if (cuarto) cuarto.estado = nuevoEstado;
+    }
+
+    // Actualizar el badge visualmente
+    actualizarBadgeDropdown(dropdown, nuevoEstado);
+
+    // Sincronizar las pills inline con el nuevo estado
+    const selectorId = esEspacio
+      ? `estado-selector-inline-espacio-${id}`
+      : `estado-selector-inline-id-${id}`;
+    const estadoSelector = document.getElementById(selectorId);
+    if (estadoSelector) {
+      const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
+      pills.forEach(pill => {
+        const estadoPill = pill.getAttribute('data-estado');
+        const isActive = estadoPill === nuevoEstado;
+        pill.classList.toggle('estado-pill-inline-activo', isActive);
+        pill.classList.toggle('activo', isActive);
+        pill.disabled = isActive;
+      });
+    }
+
+    // Actualizar estadísticas si es espacio
+    if (esEspacio && typeof actualizarEstadisticasEspacios === 'function') {
+      actualizarEstadisticasEspacios();
+    }
+
+    const estadoLabels = {
+      disponible: 'Disponible',
+      ocupado: 'Ocupado',
+      mantenimiento: esEspacio ? 'Mantenimiento' : 'En Mantenimiento',
+      fuera_servicio: 'Fuera de Servicio',
+    };
+
+    const label = estadoLabels[nuevoEstado] || nuevoEstado;
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
+
+  } catch (error) {
+    console.error('❌ Error al actualizar estado:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
+  }
+}
+window.seleccionarEstadoDropdown = seleccionarEstadoDropdown;
+
+/**
+ * Actualizar visualmente el badge dropdown después de cambiar estado
+ */
+function actualizarBadgeDropdown(dropdown, nuevoEstado) {
+  if (!dropdown) return;
+
+  // Quitar clases de estado previas
+  dropdown.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+
+  // Mapear estado e icono
+  let estadoClass, estadoIcon, estadoText;
+  switch (nuevoEstado.toLowerCase()) {
+    case 'disponible':
+    case 'vacio':
+      estadoClass = 'estado-disponible';
+      estadoIcon = 'fa-check-circle';
+      estadoText = 'Disponible';
+      break;
+    case 'ocupado':
+      estadoClass = 'estado-ocupado';
+      estadoIcon = 'fa-user';
+      estadoText = 'Ocupado';
+      break;
+    case 'mantenimiento':
+    case 'en mantenimiento':
+      estadoClass = 'estado-mantenimiento';
+      estadoIcon = 'fa-tools';
+      estadoText = dropdown.dataset.espacioId ? 'Mantenimiento' : 'En Mantenimiento';
+      break;
+    case 'fuera_servicio':
+    case 'fuera de servicio':
+      estadoClass = 'estado-fuera-servicio';
+      estadoIcon = 'fa-ban';
+      estadoText = 'Fuera de Servicio';
+      break;
+    default:
+      estadoClass = 'estado-disponible';
+      estadoIcon = 'fa-check-circle';
+      estadoText = 'Disponible';
+  }
+
+  dropdown.classList.add(estadoClass);
+  dropdown.dataset.estado = nuevoEstado;
+
+  // Guardar el menú antes de limpiar
+  const menuElement = dropdown.querySelector('.estado-dropdown-menu');
+  const menuHTML = menuElement ? menuElement.outerHTML : '';
+
+  // Limpiar todo el contenido y reconstruir
+  dropdown.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}${menuHTML}`;
+}
+window.actualizarBadgeDropdown = actualizarBadgeDropdown;
+
+// Cerrar dropdown cuando se hace clic fuera
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.estado-dropdown')) {
+    document.querySelectorAll('.estado-dropdown-menu').forEach(menu => {
+      menu.style.display = 'none';
+    });
+  }
+});
 
 function formularioEdicionInlineLleno(cuartoId) {
   const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);

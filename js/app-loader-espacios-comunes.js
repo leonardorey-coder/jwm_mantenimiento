@@ -403,8 +403,25 @@ function cargarContenidoEspacio(li, espacio) {
                     </div>
                 </div>
             </div>
-            <div class="habitacion-estado-badge ${estadoBadgeClass}">
+            <div class="habitacion-estado-badge estado-dropdown ${estadoBadgeClass}" 
+                 data-espacio-id="${espacio.id}" 
+                 data-estado="${espacio.estado}"
+                 onclick="toggleEstadoDropdown(this, ${espacio.id}, true)">
                 <i class="fas ${estadoIcon}"></i> ${estadoText}
+                <div class="estado-dropdown-menu" style="display: none;">
+                    <div class="estado-dropdown-item estado-disponible" data-estado="disponible" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'disponible', this, true)">
+                        <i class="fas fa-check-circle"></i> Disponible
+                    </div>
+                    <div class="estado-dropdown-item estado-ocupado" data-estado="ocupado" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'ocupado', this, true)">
+                        <i class="fas fa-user"></i> Ocupado
+                    </div>
+                    <div class="estado-dropdown-item estado-mantenimiento" data-estado="mantenimiento" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'mantenimiento', this, true)">
+                        <i class="fas fa-tools"></i> Mantenimiento
+                    </div>
+                    <div class="estado-dropdown-item estado-fuera-servicio" data-estado="fuera_servicio" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'fuera_servicio', this, true)">
+                        <i class="fas fa-ban"></i> Fuera de Servicio
+                    </div>
+                </div>
             </div>
         </div>
         <div class="habitacion-servicios" id="servicios-espacio-${espacio.id}">
@@ -603,6 +620,9 @@ function toggleModoEdicionEspacio(espacioId) {
   const contenedorEstadoSelector = document.getElementById(
     `estado-selector-inline-espacio-${espacioId}`
   );
+  const liElement = document.querySelector(`li[data-espacio-id="${espacioId}"]`) ||
+    document.getElementById(`servicios-espacio-${espacioId}`)?.closest('li');
+  const badgeDropdown = liElement?.querySelector('.estado-dropdown');
 
   if (!contenedorServicios || !botonEditar) return;
 
@@ -614,6 +634,12 @@ function toggleModoEdicionEspacio(espacioId) {
     botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
     if (contenedorEstadoSelector)
       contenedorEstadoSelector.style.display = 'none';
+
+    // Habilitar el badge dropdown
+    if (badgeDropdown) {
+      badgeDropdown.style.pointerEvents = 'auto';
+      badgeDropdown.style.opacity = '1';
+    }
 
     const serviciosEspacio = mantenimientosEspacios.filter(
       (m) => m.espacio_comun_id === espacioId
@@ -632,6 +658,12 @@ function toggleModoEdicionEspacio(espacioId) {
     if (contenedorEstadoSelector)
       contenedorEstadoSelector.style.display = 'block';
 
+    // Deshabilitar el badge dropdown (para usar solo las pills)
+    if (badgeDropdown) {
+      badgeDropdown.style.pointerEvents = 'none';
+      badgeDropdown.style.opacity = '0.7';
+    }
+
     const serviciosEspacio = mantenimientosEspacios.filter(
       (m) => m.espacio_comun_id === espacioId
     );
@@ -643,18 +675,17 @@ function toggleModoEdicionEspacio(espacioId) {
       null  // No aplicar filtro en modo edición
     );
 
-    // Actualizar pills de estado
+    // Actualizar pills de estado con disabled correcto
     const espacio = espaciosComunes.find((e) => e.id === espacioId);
     if (espacio && contenedorEstadoSelector) {
-      const pills = contenedorEstadoSelector.querySelectorAll(
-        '.estado-pill-inline'
-      );
+      const estadoActual = espacio.estado || 'disponible';
+      const pills = contenedorEstadoSelector.querySelectorAll('.estado-pill-inline');
       pills.forEach((pill) => {
-        if (pill.dataset.estado === espacio.estado) {
-          pill.classList.add('activo');
-        } else {
-          pill.classList.remove('activo');
-        }
+        const estadoPill = pill.getAttribute('data-estado');
+        const isActive = estadoPill === estadoActual;
+        pill.classList.toggle('estado-pill-inline-activo', isActive);
+        pill.classList.toggle('activo', isActive);
+        pill.disabled = isActive;
       });
     }
   }
@@ -1166,17 +1197,16 @@ async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
     boton.classList.add('activo');
     boton.setAttribute('disabled', 'disabled');
 
-    // Actualizar badge del header
+    // Actualizar badge del header usando actualizarBadgeDropdown
     const li =
       document.querySelector(`li[data-espacio-id="${espacioId}"]`) ||
       document.getElementById(`servicios-espacio-${espacioId}`).closest('li');
 
     if (li) {
-      const badge = li.querySelector('.habitacion-estado-badge');
-      const { estadoBadgeClass, estadoIcon, estadoText } =
-        getEstadoBadgeInfoEspacio(nuevoEstado);
-      badge.className = `habitacion-estado-badge ${estadoBadgeClass}`;
-      badge.innerHTML = `<i class="fas ${estadoIcon}"></i> ${estadoText}`;
+      const badgeDropdown = li.querySelector('.estado-dropdown');
+      if (badgeDropdown && window.actualizarBadgeDropdown) {
+        window.actualizarBadgeDropdown(badgeDropdown, nuevoEstado);
+      }
     }
 
     // Actualizar pills de estado (estilo activo)
@@ -1198,6 +1228,84 @@ async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
       window.mostrarAlertaBlur('Error al actualizar estado', 'error');
   }
 }
+
+/**
+ * Cambiar estado del espacio desde el badge/select dropdown
+ */
+async function cambiarEstadoEspacioBadge(espacioId, nuevoEstado, selectElement) {
+  try {
+    const baseUrl = window.API_BASE_URL || '';
+    console.log(`🔄 [BADGE] Actualizando estado del espacio ${espacioId} a: ${nuevoEstado}`);
+
+    const response = await window.fetchWithAuth(
+      `${baseUrl}/api/espacios-comunes/${espacioId}`,
+      {
+        method: 'PUT',
+        body: JSON.stringify({ estado: nuevoEstado }),
+      }
+    );
+
+    if (!response.ok) throw new Error('Error al actualizar estado');
+
+    const resultado = await response.json();
+    console.log('✅ Estado actualizado:', resultado);
+
+    // Actualizar localmente
+    const espacio = espaciosComunes.find((e) => e.id === espacioId);
+    if (espacio) espacio.estado = nuevoEstado;
+
+    // Actualizar el estilo del select para reflejar el nuevo estado
+    if (window.actualizarEstiloSelectBadge) {
+      window.actualizarEstiloSelectBadge(selectElement, nuevoEstado);
+    } else {
+      // Fallback manual
+      selectElement.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+      switch (nuevoEstado) {
+        case 'disponible': selectElement.classList.add('estado-disponible'); break;
+        case 'ocupado': selectElement.classList.add('estado-ocupado'); break;
+        case 'mantenimiento': selectElement.classList.add('estado-mantenimiento'); break;
+        case 'fuera_servicio': selectElement.classList.add('estado-fuera-servicio'); break;
+      }
+    }
+
+    // Actualizar pills del selector inline si está visible
+    const estadoSelector = document.getElementById(`estado-selector-inline-espacio-${espacioId}`);
+    if (estadoSelector) {
+      const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
+      pills.forEach((pill) => {
+        const estadoPill = pill.getAttribute('data-estado');
+        const isActive = estadoPill === nuevoEstado;
+        pill.classList.toggle('estado-pill-inline-activo', isActive);
+        pill.disabled = isActive;
+      });
+    }
+
+    actualizarEstadisticasEspacios();
+
+    const estadoLabels = {
+      disponible: 'Disponible',
+      ocupado: 'Ocupado',
+      mantenimiento: 'Mantenimiento',
+      fuera_servicio: 'Fuera de Servicio',
+    };
+
+    const label = estadoLabels[nuevoEstado] || nuevoEstado;
+
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
+  } catch (error) {
+    console.error('❌ Error al actualizar estado:', error);
+    if (window.mostrarAlertaBlur)
+      window.mostrarAlertaBlur('Error al actualizar estado', 'error');
+
+    // Revertir el select al estado anterior si hay error
+    const espacio = espaciosComunes.find((e) => e.id === espacioId);
+    if (espacio && selectElement) {
+      selectElement.value = espacio.estado;
+    }
+  }
+}
+window.cambiarEstadoEspacioBadge = cambiarEstadoEspacioBadge;
 
 /**
  * Cambiar estado de espacio común (Versión legacy/prompt)
