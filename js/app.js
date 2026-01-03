@@ -13,42 +13,32 @@ const API_BASE_URL =
       : '';
 
 /**
- * WORKAROUND para bug de Electron con ventanas frameless:
- * Después de diálogos nativos (confirm/alert), el webContents pierde la capacidad
- * de procesar input de teclado. Esta función hace el ciclo blur/focus necesario.
- */
-function refreshElectronFocus() {
-  if (window.electronAPI && window.electronAPI.refreshWindowFocus) {
-    window.electronAPI.refreshWindowFocus().catch((err) => {
-      console.warn('Error refrescando foco:', err);
-    });
-  }
-}
-
-/**
- * Wrapper seguro para confirm() que restaura el foco en Electron
+ * Wrapper seguro para confirm() usando dialogo nativo en el proceso principal
  * @param {string} message - Mensaje del confirm
  * @returns {boolean} - Resultado del confirm
  */
 function electronSafeConfirm(message) {
-  const result = confirm(message);
-  refreshElectronFocus();
-  return result;
+  if (window.electronAPI && window.electronAPI.dialog) {
+    return window.electronAPI.dialog.confirm(message);
+  }
+  return confirm(message);
 }
 
 /**
- * Wrapper seguro para alert() que restaura el foco en Electron
+ * Wrapper seguro para alert() usando dialogo nativo en el proceso principal
  * @param {string} message - Mensaje del alert
  */
 function electronSafeAlert(message) {
+  if (window.electronAPI && window.electronAPI.dialog) {
+    window.electronAPI.dialog.alert(message);
+    return;
+  }
   alert(message);
-  refreshElectronFocus();
 }
 
 // Exponer globalmente para uso en otros archivos
 window.electronSafeConfirm = electronSafeConfirm;
 window.electronSafeAlert = electronSafeAlert;
-window.refreshElectronFocus = refreshElectronFocus;
 
 // Estado global de la aplicación
 const AppState = {
@@ -588,9 +578,13 @@ function setupEventListeners() {
     themeToggle.addEventListener('click', toggleTheme);
   }
 
-  // Botón de verificar actualizaciones (solo en Electron)
+  // Botón de recargar página / verificar actualizaciones
   const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
-  if (checkUpdatesBtn && window.electronAPI && window.electronAPI.updates) {
+  if (checkUpdatesBtn) {
+    // En Electron: verificar actualizaciones + recargar
+    // En Web/PWA: solo recargar la página
+    const isElectron = window.electronAPI && window.electronAPI.updates;
+
     checkUpdatesBtn.addEventListener('click', async () => {
       const btn = checkUpdatesBtn;
       const badge = btn.querySelector('.update-badge');
@@ -600,41 +594,57 @@ function setupEventListeners() {
       btn.disabled = true;
 
       try {
-        const result = await window.electronAPI.updates.check();
+        if (isElectron) {
+          // En Electron: verificar actualizaciones primero
+          const result = await window.electronAPI.updates.check();
 
-        if (result.error) {
-          if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(result.error, 'warning');
+          if (result.error) {
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(result.error, 'warning');
+            } else {
+              alert(result.error);
+            }
+          } else if (result.hasUpdate) {
+            // Hay actualización disponible
+            if (badge) badge.style.display = 'flex';
+            const mensaje = `¡Nueva versión ${result.latestVersion} disponible! (Actual: ${result.currentVersion})`;
+
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(mensaje, 'info');
+            }
+
+            // Preguntar si desea abrir la página de descarga
+            if (
+              electronSafeConfirm(
+                `${mensaje}\n\n¿Desea abrir la página de descarga?`
+              )
+            ) {
+              window.open(result.downloadUrl, '_blank');
+            }
           } else {
-            alert(result.error);
-          }
-        } else if (result.hasUpdate) {
-          // Hay actualización disponible
-          if (badge) badge.style.display = 'flex';
-          const mensaje = `¡Nueva versión ${result.latestVersion} disponible! (Actual: ${result.currentVersion})`;
-
-          if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(mensaje, 'info');
-          }
-
-          // Preguntar si desea abrir la página de descarga
-          if (
-            electronSafeConfirm(
-              `${mensaje}\n\n¿Desea abrir la página de descarga?`
-            )
-          ) {
-            window.open(result.downloadUrl, '_blank');
+            if (badge) badge.style.display = 'none';
+            const mensajeExito = `Estás al día (v${result.currentVersion}). Recargando...`;
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur(mensajeExito, 'success');
+            }
+            // Recargar después de mostrar el mensaje
+            setTimeout(() => {
+              location.reload(true);
+            }, 1000);
           }
         } else {
-          if (badge) badge.style.display = 'none';
-          const mensajeExito = `Estás al día (v${result.currentVersion})`;
+          // En Web/PWA: hacer hot reload directamente
           if (window.mostrarAlertaBlur) {
-            window.mostrarAlertaBlur(mensajeExito, 'success');
+            window.mostrarAlertaBlur('Recargando página...', 'info');
           }
+          setTimeout(() => {
+            location.reload(true);
+          }, 500);
         }
       } catch (error) {
-        console.error('Error verificando actualizaciones:', error);
-        showNotification('Error al verificar actualizaciones', 'error');
+        console.error('Error:', error);
+        // En caso de error, igual recargar la página
+        location.reload(true);
       } finally {
         btn.classList.remove('checking');
         btn.disabled = false;

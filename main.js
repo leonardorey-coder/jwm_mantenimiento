@@ -5,7 +5,7 @@
 
 const fs = require('fs/promises');
 const path = require('path');
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const express = require('express');
 const cors = require('cors');
 
@@ -132,8 +132,6 @@ async function startServer() {
   });
 }
 
-let dummyWindow = null;
-
 /**
  * Cierra todas las conexiones y recursos de forma limpia
  */
@@ -142,13 +140,6 @@ function cleanupAndQuit() {
   isQuitting = true;
 
   console.log('🛑 Iniciando cierre limpio de la aplicación...');
-
-  // Cerrar ventana dummy
-  if (dummyWindow) {
-    dummyWindow.destroy();
-    dummyWindow = null;
-    console.log('✅ Ventana dummy cerrada');
-  }
 
   // Cerrar ventana principal
   if (mainWindow) {
@@ -202,22 +193,6 @@ function createWindow() {
     backgroundColor: '#f5f5f5', // Updated background color
     resizable: true,
     center: true,
-  });
-
-  // Crear ventana dummy para el manejo de foco (invisible)
-  // Esto evita que al hacer refreshFocus el foco salte a otra aplicacion del OS
-  dummyWindow = new BrowserWindow({
-    width: 1,
-    height: 1,
-    show: false,
-    frame: false,
-    focusable: true,
-    transparent: true,
-    skipTaskbar: true, // No mostrar en barra de tareas
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-    },
   });
 
   // Cargar la página de login primero
@@ -275,6 +250,19 @@ function createWindow() {
 }
 
 /**
+ * Aplica titleBarOverlay solo en Windows
+ */
+function setTitleBarOverlaySafe(options) {
+  if (
+    process.platform === 'win32' &&
+    mainWindow &&
+    typeof mainWindow.setTitleBarOverlay === 'function'
+  ) {
+    mainWindow.setTitleBarOverlay(options);
+  }
+}
+
+/**
  * Redimensiona la ventana según la página actual
  */
 function resizeForPage(url) {
@@ -287,7 +275,7 @@ function resizeForPage(url) {
     }
 
     // Configurar título y controles primero
-    mainWindow.setTitleBarOverlay({
+    setTitleBarOverlaySafe({
       color: '#00000000',
       symbolColor: '#1E1E1E',
       height: 32,
@@ -308,12 +296,32 @@ function resizeForPage(url) {
     mainWindow.center();
     mainWindow.maximize();
     // Titlebar transparente con símbolos blancos para index
-    mainWindow.setTitleBarOverlay({
+    setTitleBarOverlaySafe({
       color: '#00000000',
       symbolColor: '#FFFFFF',
       height: 32,
     });
   }
+}
+
+/**
+ * Fuerza el foco en la ventana principal luego de un dialog nativo
+ */
+function refocusMainWindow() {
+  if (!mainWindow) return;
+
+  // Hack conocido en Windows para traer al frente cuando focus() no alcanza
+  mainWindow.setAlwaysOnTop(true);
+  mainWindow.show();
+  mainWindow.focus();
+  if (mainWindow.webContents) {
+    mainWindow.webContents.focus();
+  }
+  setTimeout(() => {
+    if (mainWindow) {
+      mainWindow.setAlwaysOnTop(false);
+    }
+  }, 0);
 }
 
 /**
@@ -411,29 +419,47 @@ app.whenReady().then(async () => {
       }
     });
 
-    // Handler para refrescar el foco de la ventana
-    // WORKAROUND: Usamos la ventana dummy como pivote para no perder foco de la app
-    // Esto evita que Windows le de foco al Explorador o Chrome al hacer blur()
-    ipcMain.handle('window:refreshFocus', async () => {
-      if (mainWindow && dummyWindow) {
-        // 1. Mostrar y enfocar la dummy (ocurre dentro de la misma app Electron)
-        dummyWindow.show();
-        dummyWindow.focus();
+    // Handlers para dialogos nativos en el proceso principal
+    ipcMain.on('dialog:alert', (event, payload = {}) => {
+      const message = String(payload.message || '');
+      const options = {
+        type: 'info',
+        title: payload.title || 'JW Mantto',
+        message,
+        buttons: ['OK'],
+        defaultId: 0,
+      };
 
-        // 2. Inmediatamente regresar el foco a la principal
-        setImmediate(() => {
-          if (mainWindow) {
-            mainWindow.focus();
-            if (mainWindow.webContents) {
-              mainWindow.webContents.focus();
-            }
-            // Ocultar dummy nuevamente
-            dummyWindow.hide();
-          }
-        });
-        return { success: true };
+      if (mainWindow) {
+        dialog.showMessageBoxSync(mainWindow, options);
+      } else {
+        dialog.showMessageBoxSync(options);
       }
-      return { success: false, error: 'No windows' };
+
+      refocusMainWindow();
+      event.returnValue = true;
+    });
+
+    ipcMain.on('dialog:confirm', (event, payload = {}) => {
+      const message = String(payload.message || '');
+      const options = {
+        type: 'question',
+        title: payload.title || 'JW Mantto',
+        message,
+        buttons: ['Cancelar', 'Aceptar'],
+        defaultId: 1,
+        cancelId: 0,
+      };
+
+      let responseIndex = 0;
+      if (mainWindow) {
+        responseIndex = dialog.showMessageBoxSync(mainWindow, options);
+      } else {
+        responseIndex = dialog.showMessageBoxSync(options);
+      }
+
+      refocusMainWindow();
+      event.returnValue = responseIndex === 1;
     });
 
     // Verificar variables de entorno críticas
