@@ -3,11 +3,22 @@
  * Este archivo exporta la aplicación Express como función serverless para Vercel
  */
 
+// Polyfill para crypto en Electron - necesario para UploadThing signing
+const crypto = require('node:crypto');
+if (!globalThis.crypto) {
+  globalThis.crypto = crypto;
+  console.log('🔐 [Crypto] Polyfill crypto aplicado a globalThis');
+} else {
+  console.log('🔐 [Crypto] globalThis.crypto ya existe');
+}
+
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const multer = require('multer');
+// Node.js 20+ File API - necesario para uploads en Electron
+const { Blob, File } = require('buffer');
 const PostgresManager = require('../db/postgres-manager');
 const {
   verificarAutenticacion,
@@ -17,33 +28,41 @@ const {
 const authRoutes = require('./auth-routes');
 
 // UploadThing para almacenamiento de archivos en la nube (Server-side uploads)
-// Leer token de UploadThing desde .env.local sin afectar otras variables de entorno
 const { UTApi } = require('uploadthing/server');
-let uploadthingToken = process.env.UPLOADTHING_TOKEN;
 
-// Si no está en el entorno, intentar leer solo esa variable del archivo .env.local
+// Cargar token/secret de UploadThing
+let uploadthingToken = process.env.UPLOADTHING_TOKEN;
+const uploadthingSecret = process.env.UPLOADTHING_SECRET;
+
+// Si no hay token en el entorno, intentar leer de .env.local
 if (!uploadthingToken) {
   try {
     const envPath = path.join(__dirname, '..', '.env.local');
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf8');
-      const match = envContent.match(
-        /^UPLOADTHING_TOKEN=['"]?([^'"\n]+)['"]?/m
-      );
+      const match = envContent.match(/^UPLOADTHING_TOKEN=['\"]?([^'\"\\n]+)['\"]?/m);
       if (match) {
-        uploadthingToken = match[1];
+        uploadthingToken = match[1].trim();
         console.log('✅ UPLOADTHING_TOKEN cargado desde .env.local');
       }
     }
   } catch (e) {
-    console.warn(
-      '⚠️ No se pudo leer UPLOADTHING_TOKEN de .env.local:',
-      e.message
-    );
+    console.warn('⚠️ No se pudo leer UPLOADTHING_TOKEN de .env.local:', e.message);
   }
 }
 
-const utapi = new UTApi({ token: uploadthingToken });
+// UTApi: preferir apiKey (secret) sobre token
+let utapi;
+if (uploadthingSecret) {
+  utapi = new UTApi({ apiKey: uploadthingSecret.trim() });
+  console.log('✅ UTApi inicializado con apiKey');
+} else if (uploadthingToken) {
+  utapi = new UTApi({ token: uploadthingToken.trim() });
+  console.log('✅ UTApi inicializado con token');
+} else {
+  console.error('❌ [UploadThing] No hay token ni secret disponible!');
+  utapi = new UTApi();
+}
 
 const app = express();
 
@@ -2980,17 +2999,16 @@ app.post(
         `📷 Filename sanitizado: ${sanitizedFilename}, mimetype: ${req.file.mimetype}`
       );
 
-      // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
-      const { Blob } = require('buffer');
+      // Crear archivo para UploadThing usando File API de Node.js (importado al inicio)
       const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
-      const file = new File([blob], sanitizedFilename, {
+      const fileToUpload = new File([blob], sanitizedFilename, {
         type: req.file.mimetype,
       });
 
       console.log(
-        `📤 Iniciando upload a UploadThing (file size: ${file.size})...`
+        `📤 Iniciando upload a UploadThing (file size: ${fileToUpload.size})...`
       );
-      const uploadResult = await utapi.uploadFiles(file);
+      const uploadResult = await utapi.uploadFiles(fileToUpload);
 
       if (uploadResult.error) {
         console.error('❌ Error subiendo a UploadThing:', uploadResult.error);
@@ -3148,15 +3166,14 @@ app.post(
         `📤 Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`
       );
 
-      // Usar File global de Node.js en lugar de UTFile (workaround para UPLOAD_FAILED)
-      const { Blob } = require('buffer');
+      // Crear archivo para UploadThing usando File API de Node.js (importado al inicio)
       const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
-      const file = new File([blob], req.file.originalname, {
+      const fileToUpload = new File([blob], req.file.originalname, {
         type: req.file.mimetype,
       });
 
       // Subir a UploadThing usando UTApi
-      const uploadResult = await utapi.uploadFiles(file);
+      const uploadResult = await utapi.uploadFiles(fileToUpload);
 
       if (uploadResult.error) {
         console.error('❌ Error subiendo a UploadThing:', uploadResult.error);
