@@ -5,6 +5,9 @@
 
 const GITHUB_REPO = 'leonardorey-coder/jwm_mantenimiento';
 const GITHUB_API_URL = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+const IPHONE_GUIDE_URL =
+  'https://zlnkrtkxj3.ufs.sh/f/54ULqUm6Ozd0ZQ62jUcg5xYjaqmvAcCIg97TbFVlo3rpnMHy';
+const IPHONE_GUIDE_FILENAME = 'tutorial-instalacion-pwa-iphone.jpeg';
 
 /**
  * Obtener información de la última versión
@@ -143,6 +146,18 @@ async function downloadInstaller(button) {
   }
 }
 
+function openIphoneGuide() {
+  const link = document.createElement('a');
+  link.href = IPHONE_GUIDE_URL;
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.download = IPHONE_GUIDE_FILENAME;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // Exponer funciones globalmente
 window.downloadPortable = downloadPortable;
 window.downloadInstaller = downloadInstaller;
+window.openIphoneGuide = openIphoneGuide;
