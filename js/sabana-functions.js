@@ -13,6 +13,85 @@ let cerrarModalHistorialEscHandler = null;
 let cerrarModalConfirmarEliminarEscHandler = null;
 let cerrarModalValidarEliminarEscHandler = null;
 
+/**
+ * Convierte un timestamp UTC de la base de datos a string formateado en zona horaria local.
+ * Garantiza comportamiento consistente entre Web y Electron.
+ * La BD almacena timestamps en UTC sin indicador de zona horaria.
+ * @param {string|Date} utcTimestamp - Timestamp de la BD (UTC)
+ * @param {object} options - Opciones de Intl.DateTimeFormat
+ * @returns {string} Fecha formateada en zona horaria local
+ */
+function formatFechaLocal(utcTimestamp, options = {}) {
+  if (!utcTimestamp) return '-';
+
+  let dateStr = utcTimestamp;
+
+  // Si es string y no tiene indicador de zona horaria, asumir UTC agregando Z
+  if (typeof dateStr === 'string') {
+    // Normalizar: reemplazar espacio por T si es necesario
+    dateStr = dateStr.replace(' ', 'T');
+
+    // Si ya tiene Z o offset (+/-), dejarlo como está
+    if (!dateStr.endsWith('Z') && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
+      dateStr = dateStr + 'Z';
+    }
+  }
+
+  // Parse como UTC
+  const date = new Date(dateStr);
+
+  // Verificar fecha válida
+  if (isNaN(date.getTime())) return '-';
+
+  // Opciones por defecto para display - JavaScript automáticamente convierte a hora local
+  const defaultOptions = {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  };
+
+  return date.toLocaleDateString('es-MX', { ...defaultOptions, ...options });
+}
+
+/**
+ * Formatea fecha corta (para tablas) con conversión de zona horaria
+ * @param {string|Date} utcTimestamp - Timestamp ISO de la BD (UTC)
+ * @returns {string} Fecha formateada como DD/MM/YYYY
+ */
+function formatFechaCorta(utcTimestamp) {
+  return formatFechaLocal(utcTimestamp, {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+/**
+ * Formatea fecha y hora con conversión de zona horaria
+ * @param {string|Date} utcTimestamp - Timestamp ISO de la BD (UTC)
+ * @returns {string} Fecha y hora formateada
+ */
+function formatFechaHora(utcTimestamp) {
+  if (!utcTimestamp) return '-';
+
+  let dateStr = utcTimestamp;
+
+  // Si es string y no tiene indicador de zona horaria, asumir UTC agregando Z
+  if (typeof dateStr === 'string') {
+    if (!dateStr.endsWith('Z') && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
+      dateStr = dateStr + 'Z';
+    }
+  }
+
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return '-';
+
+  return date.toLocaleString('es-MX', {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  });
+}
+
 function lockBodyScroll() {
   document.body.classList.add('modal-open');
 }
@@ -261,15 +340,7 @@ async function cambiarServicioActual(sabanaId) {
 
     const periodoEl = document.getElementById('periodoActual');
     if (periodoEl && sabana.fecha_creacion) {
-      const fechaCreacion = new Date(sabana.fecha_creacion);
-      periodoEl.textContent = `Creación: ${fechaCreacion.toLocaleDateString(
-        'es-MX',
-        {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }
-      )}`;
+      periodoEl.textContent = `Creación: ${formatFechaLocal(sabana.fecha_creacion)}`;
     }
 
     // Mostrar usuario creador
@@ -380,32 +451,24 @@ function renderSabanaTable(items, archivada = false) {
       const readonly = archivada ? 'disabled' : '';
       const readonlyClass = archivada ? 'readonly' : '';
 
-      // Formatear fecha programada
-      const fechaProgramada = item.fecha_programada
-        ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
-        : '-';
+      // Formatear fecha programada con función de timezone
+      const fechaProgramada = formatFechaCorta(item.fecha_programada);
 
       tr.innerHTML = `
                 <td data-label="Edificio">${item.edificio || 'Sin edificio'}</td>
                 <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
                 <td data-label="Programada">${fechaProgramada}</td>
                 <td data-label="Realizada">
-                    ${
-                      item.fecha_realizado
-                        ? `<span class="fecha-realizado">${new Date(item.fecha_realizado).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })}</span>`
-                        : '<span style="color: #999;">-</span>'
-                    }
+                    ${item.fecha_realizado
+          ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
+          : '<span style="color: #999;">-</span>'
+        }
                 </td>
                 <td data-label="Responsable">
-                    ${
-                      item.responsable_nombre || item.responsable
-                        ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
-                        : '<span style="color: #999;">-</span>'
-                    }
+                    ${item.responsable_nombre || item.responsable
+          ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
+          : '<span style="color: #999;">-</span>'
+        }
                 </td>
                 <td data-label="Observaciones">
                     <input 
@@ -581,9 +644,9 @@ async function toggleRealizadoSabana(itemId, realizado) {
           if (fechaRealizadoCell) {
             const fechaRealizado = data.item.fecha_realizado
               ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', {
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                })
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })
               : null;
 
             fechaRealizadoCell.innerHTML = fechaRealizado
@@ -834,6 +897,14 @@ async function abrirModalNuevaSabana() {
     toggleAvisoArchivarActual();
   }
 
+  // Inicializar date picker con fecha de hoy en formato local
+  const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+  if (inputFechaProgramada) {
+    const hoy = new Date();
+    const fechaLocal = hoy.toISOString().split('T')[0]; // YYYY-MM-DD format
+    inputFechaProgramada.value = fechaLocal;
+  }
+
   // Permitir cerrar con Escape
   if (!cerrarModalNuevaSabanaEscHandler) {
     cerrarModalNuevaSabanaEscHandler = function (e) {
@@ -1021,6 +1092,8 @@ async function confirmarNuevaSabana() {
   let nombreServicio = inputNombre?.value.trim();
   const inputNotas = document.getElementById('inputNotasSabana');
   const notas = inputNotas?.value.trim() || null;
+  const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+  const fechaProgramada = inputFechaProgramada?.value || null; // YYYY-MM-DD
   const switchArchivar = document.getElementById('switchArchivarActual');
   const debeArchivarActual = switchArchivar?.checked || false;
 
@@ -1060,7 +1133,7 @@ async function confirmarNuevaSabana() {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-              (errorData.error || 'desconocido')
+            (errorData.error || 'desconocido')
           );
         }
 
@@ -1118,6 +1191,7 @@ async function confirmarNuevaSabana() {
         servicio_id: servicioId,
         servicio_nombre: nombreServicio,
         notas: notas,
+        fecha_programada: fechaProgramada,
       }),
     });
 
@@ -1197,7 +1271,7 @@ async function verHistorialServicios() {
     } else {
       listaContainer.innerHTML = historial
         .map((entry) => {
-          const fecha = new Date(entry.fecha_archivado || entry.fecha_creacion);
+          const fechaDisplay = formatFechaCorta(entry.fecha_archivado || entry.fecha_creacion);
           const porcentaje = parseFloat(entry.progreso_porcentaje) || 0;
           const creadorInfo = entry.creador_nombre
             ? `<span class="historial-creador"><i class="fas fa-user"></i> ${Object.assign(document.createElement('div'), { textContent: entry.creador_nombre }).innerHTML}</span>`
@@ -1210,7 +1284,7 @@ async function verHistorialServicios() {
                     <div class="historial-item" onclick="cargarSabanaDesdeHistorial(${entry.id})">
                         <div class="historial-item-header">
                              <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
-                            <span class="historial-fecha">${fecha.toLocaleDateString('es-MX')}</span>
+                            <span class="historial-fecha">${fechaDisplay}</span>
                         </div>
                         ${creadorInfo}
                         ${notasInfo}
@@ -1770,17 +1844,17 @@ async function exportarSabanaExcel() {
     currentSabanaItems.forEach((item, index) => {
       const fechaProgramada = item.fecha_programada
         ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
         : '-';
 
       const fechaRealizado = item.fecha_realizado
         ? new Date(item.fecha_realizado).toLocaleString('es-MX', {
-            dateStyle: 'short',
-            timeStyle: 'short',
-          })
+          dateStyle: 'short',
+          timeStyle: 'short',
+        })
         : '-';
 
       const responsable = item.responsable_nombre || item.responsable || '-';
@@ -1982,7 +2056,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-              (errorData.error || 'desconocido')
+            (errorData.error || 'desconocido')
           );
         }
 
@@ -2022,6 +2096,8 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
     // 2. Crear nueva sábana
     const inputNotas = document.getElementById('inputNotasSabana');
     const notas = inputNotas?.value.trim() || null;
+    const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+    const fechaProgramada = inputFechaProgramada?.value || null; // YYYY-MM-DD
 
     const servicioId =
       'servicio_' +
@@ -2041,6 +2117,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
         servicio_id: servicioId,
         servicio_nombre: nombreServicio,
         notas: notas,
+        fecha_programada: fechaProgramada,
       }),
     });
 

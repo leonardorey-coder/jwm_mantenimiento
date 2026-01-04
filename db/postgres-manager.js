@@ -1,7 +1,20 @@
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const fs = require('fs');
 const path = require('path');
-const { dbConfig, validateConfig, displayConfig } = require('./config');
+const { dbConfig, validateConfig, displayConfig, isLocal } = require('./config');
+
+// Configurar node-postgres para interpretar TIMESTAMP WITHOUT TIME ZONE como UTC
+// SOLO en producción (Neon almacena en UTC), no en desarrollo local
+// Por defecto, pg interpreta estos timestamps como hora local del servidor Node.js,
+// lo que causa desfases de zona horaria cuando el servidor corre en diferente zona que PostgreSQL
+if (!isLocal) {
+  const TIMESTAMP_OID = 1114; // OID de TIMESTAMP WITHOUT TIME ZONE en PostgreSQL
+  types.setTypeParser(TIMESTAMP_OID, (stringValue) => {
+    // Agregar 'Z' para indicar que es UTC (solo para Neon que almacena en UTC)
+    return stringValue ? new Date(stringValue + 'Z') : null;
+  });
+  console.log('🕐 Type parser UTC configurado para producción (Neon)');
+}
 
 /**
  * Gestor de base de datos PostgreSQL
@@ -582,9 +595,9 @@ class PostgresManager {
         porcentaje:
           estadisticas.total > 0
             ? (
-                ((estadisticas[estado] || 0) / estadisticas.total) *
-                100
-              ).toFixed(1)
+              ((estadisticas[estado] || 0) / estadisticas.total) *
+              100
+            ).toFixed(1)
             : 0,
       };
     });
@@ -2149,7 +2162,7 @@ class PostgresManager {
         if (
           !cuarto.fecha_ultima_edicion ||
           new Date(row.fecha_ultima_edicion) >
-            new Date(cuarto.fecha_ultima_edicion)
+          new Date(cuarto.fecha_ultima_edicion)
         ) {
           cuarto.ultimo_editor = row.ultimo_editor;
           cuarto.fecha_ultima_edicion = row.fecha_ultima_edicion;

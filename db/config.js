@@ -155,4 +155,5 @@ module.exports = {
   dbConfig,
   validateConfig,
   displayConfig,
+  isLocal,
 };

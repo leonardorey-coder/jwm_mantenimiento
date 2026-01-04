@@ -20,6 +20,7 @@ const multer = require('multer');
 // Node.js 20+ File API - necesario para uploads en Electron
 const { Blob, File } = require('buffer');
 const PostgresManager = require('../db/postgres-manager');
+const { isLocal } = require('../db/config');
 const {
   verificarAutenticacion,
   verificarAdmin,
@@ -1589,7 +1590,7 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
       return res.status(500).json({ error: 'Base de datos no disponible' });
     }
 
-    const { nombre, servicio_id, servicio_nombre, notas } = req.body;
+    const { nombre, servicio_id, servicio_nombre, notas, fecha_programada } = req.body;
     const usuario_creador_id = req.usuario?.id;
 
     if (!nombre || !servicio_id || !servicio_nombre) {
@@ -1601,9 +1602,18 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
 
     const cuartosResult = await postgresManager.getCuartos();
 
-    // Guardar timestamp completo con timezone (TIMESTAMPTZ)
-    // El frontend convertirá a la zona horaria local del usuario con toLocaleDateString()
-    const fechaProgramadaTimestamp = new Date().toISOString();
+    // Usar la fecha_programada del frontend (seleccionada por el usuario)
+    // o fallback a la fecha actual si no se proporciona
+    // El frontend envía fecha en formato YYYY-MM-DD (zona horaria local del usuario)
+    // Usamos T12:00:00.000Z (mediodía UTC) para evitar que la conversión de zona horaria
+    // cambie la fecha al día anterior (problema con zonas horarias UTC-X)
+    let fechaProgramadaTimestamp;
+    if (fecha_programada) {
+      // Convertir YYYY-MM-DD a ISO string a mediodía UTC para evitar problemas de timezone
+      fechaProgramadaTimestamp = new Date(fecha_programada + 'T12:00:00.000Z').toISOString();
+    } else {
+      fechaProgramadaTimestamp = new Date().toISOString();
+    }
 
     const cuartosParaSabana = cuartosResult.map((cuarto) => ({
       cuarto_id: cuarto.id,
@@ -1746,7 +1756,9 @@ app.patch(
         updateData.realizado = realizado;
 
         if (realizado) {
-          updateData.fecha_realizado = new Date();
+          // En producción (Neon), usar toISOString() para UTC explícito
+          // En local, usar new Date() porque PostgreSQL local usa hora local
+          updateData.fecha_realizado = isLocal ? new Date() : new Date().toISOString();
           updateData.responsable = req.usuario?.nombre;
           updateData.usuario_responsable_id = req.usuario?.id;
         } else {
