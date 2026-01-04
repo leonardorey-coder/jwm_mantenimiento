@@ -669,6 +669,23 @@ async function toggleRealizadoSabana(itemId, realizado) {
               }, 1000);
             }
             poblarPersonalSabana(currentSabanaItems);
+          } else {
+            // Limpiar responsable en UI cuando se desmarca como realizado
+            const responsableCell = row.cells[4];
+            if (responsableCell) {
+              responsableCell.innerHTML = '<span style="color: #999;">-</span>';
+              responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
+              setTimeout(() => {
+                responsableCell.style.backgroundColor = '';
+              }, 1000);
+            }
+            // También limpiar en el item local
+            if (localItem) {
+              localItem.responsable = null;
+              localItem.responsable_nombre = null;
+              localItem.usuario_responsable_id = null;
+            }
+            poblarPersonalSabana(currentSabanaItems);
           }
         }
       }
@@ -724,30 +741,32 @@ async function guardarObservacionSabana(itemId, observaciones) {
       }
 
       // Actualizar la fila en la tabla si es necesario
-      if (data.item.responsable) {
-        // Buscar la fila por el input que disparó el evento (usando el itemId)
-        const inputObservacion = document.querySelector(
-          `input[data-item-id="${itemId}"]`
-        );
-        if (inputObservacion) {
-          const row = inputObservacion.closest('tr');
-          if (row) {
-            // La columna del responsable es la 5ta (índice 4)
-            const responsableCell = row.cells[4];
-            if (responsableCell) {
+      const inputObservacion = document.querySelector(
+        `input[data-item-id="${itemId}"]`
+      );
+      if (inputObservacion) {
+        const row = inputObservacion.closest('tr');
+        if (row) {
+          // La columna del responsable es la 5ta (índice 4)
+          const responsableCell = row.cells[4];
+          if (responsableCell) {
+            if (data.item.responsable) {
               responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
-              // Efecto visual de actualización
-              responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
-              setTimeout(() => {
-                responsableCell.style.backgroundColor = '';
-              }, 1000);
+            } else {
+              // Limpiar responsable si observaciones está vacío
+              responsableCell.innerHTML = '<span style="color: #999;">-</span>';
             }
+            // Efecto visual de actualización
+            responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
+            setTimeout(() => {
+              responsableCell.style.backgroundColor = '';
+            }, 1000);
           }
         }
-
-        // Actualizar filtro de personal si es un nuevo responsable
-        poblarPersonalSabana(currentSabanaItems);
       }
+
+      // Actualizar filtro de personal
+      poblarPersonalSabana(currentSabanaItems);
     }
   } catch (error) {
     console.error('❌ Error guardando observación:', error);

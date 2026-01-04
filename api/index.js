@@ -1747,9 +1747,16 @@ app.patch(
       };
 
       // Si se actualizan observaciones, actualizar también el responsable
+      // Si observaciones tiene contenido, poner el responsable
+      // Si observaciones está vacío, limpiar el responsable
       if (observaciones !== undefined) {
-        updateData.responsable = req.usuario?.nombre;
-        updateData.usuario_responsable_id = req.usuario?.id;
+        if (observaciones && observaciones.trim() !== '') {
+          updateData.responsable = req.usuario?.nombre;
+          updateData.usuario_responsable_id = req.usuario?.id;
+        } else {
+          updateData.responsable = null;
+          updateData.usuario_responsable_id = null;
+        }
       }
 
       if (realizado !== undefined) {
