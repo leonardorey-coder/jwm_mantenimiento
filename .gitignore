@@ -55,3 +55,6 @@ js/notification-tester.js
 # Antigravity
 .antigravity
 .agent
+
+# macOS
+.DS_Store
