@@ -1,0 +1,348 @@
+.login-body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1E1E1E 0%, #2C2C2C 100%);
+  padding: 1rem;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  padding: 2rem;
+  box-shadow: var(--sombra-fuerte);
+}
+
+.login-logo-container {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.login-logo {
+  height: 80px;
+  width: auto;
+  margin-bottom: 1rem;
+}
+
+.login-title {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin-bottom: 0.5rem;
+}
+
+.login-subtitle {
+  font-size: 0.8125rem;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.login-toggle {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.25rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-md);
+}
+
+.toggle-button {
+  flex: 1;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--texto-secundario);
+  border-radius: var(--radio-sm);
+  transition: var(--transicion-rapida);
+}
+
+.toggle-button.active {
+  background: var(--bg-principal);
+  color: var(--texto-principal);
+  box-shadow: var(--sombra-suave);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.auth-form.register-disabled {
+  padding: 1.5rem 0;
+}
+
+.register-message-container {
+  text-align: center;
+}
+
+.register-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gris-claro);
+  border-radius: var(--radio-full);
+  color: var(--texto-secundario);
+}
+
+.register-message-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.register-message-text,
+.register-message-contact {
+  font-size: 0.875rem;
+  color: var(--texto-secundario);
+  margin-bottom: 0.5rem;
+}
+
+.register-admin-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-md);
+  color: var(--texto-principal);
+  text-decoration: none;
+  font-weight: 500;
+  margin: 0.5rem 0;
+}
+
+.register-admin-email:hover {
+  background: var(--negro-carbon);
+  color: white;
+}
+
+.form-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  color: var(--texto-secundario);
+}
+
+.remember-me input {
+  width: 16px;
+  height: 16px;
+}
+
+.forgot-password {
+  color: var(--texto-secundario);
+  text-decoration: none;
+  transition: var(--transicion-rapida);
+}
+
+.forgot-password:hover {
+  color: var(--texto-principal);
+}
+
+.btn-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem;
+  background: var(--negro-carbon);
+  color: white;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border-radius: var(--radio-md);
+  transition: var(--transicion-rapida);
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: var(--gris-oscuro);
+  transform: translateY(-1px);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-message {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radio-md);
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.auth-message.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-peligro);
+}
+
+.login-footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+}
+
+.forgot-password-modal.active,
+.force-password-modal.active {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+}
+
+.forgot-card,
+.force-password-card {
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  width: 100%;
+  max-width: 450px;
+  padding: 1.5rem;
+  position: relative;
+}
+
+.forgot-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radio-sm);
+  color: var(--texto-secundario);
+}
+
+.forgot-close:hover {
+  background: var(--gris-claro);
+}
+
+.forgot-header,
+.force-password-header {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.forgot-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--gris-claro);
+  border-radius: var(--radio-full);
+  flex-shrink: 0;
+}
+
+.forgot-header h3,
+.force-password-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.forgot-header p,
+.force-password-header p {
+  font-size: 0.8125rem;
+  color: var(--texto-secundario);
+}
+
+.forgot-form,
+.force-password-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forgot-form label,
+.force-password-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.forgot-form label span,
+.force-password-form label span {
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.forgot-form input,
+.forgot-form textarea,
+.force-password-form input {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radio-md);
+  font-size: 0.875rem;
+}
+
+.forgot-form input:focus,
+.forgot-form textarea:focus,
+.force-password-form input:focus {
+  outline: none;
+  border-color: var(--negro-carbon);
+}
+
+.forgot-admin-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-md);
+  margin: 0.5rem 0;
+}
+
+.admin-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-principal);
+  border-radius: var(--radio-full);
+}
+
+.admin-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+}
+
+.admin-contact a {
+  color: var(--color-info);
+  text-decoration: none;
+}
+
+.force-password-feedback {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radio-md);
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.force-password-feedback.error {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--color-peligro);
+}
