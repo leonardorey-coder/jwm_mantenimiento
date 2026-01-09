@@ -217,12 +217,11 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  grid-column: span 2;
-  padding: 0.5rem 0.75rem;
+  padding: 0.3rem 0.6rem;
   background: linear-gradient(135deg, #fef3c7, #fde047);
   border: 2px solid #eab308;
   border-radius: 6px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--negro-carbon);
   box-shadow: 2px 2px 0px var(--negro-carbon);
@@ -230,6 +229,97 @@
 
 .sesion-activas i {
   color: #d97706;
+}
+
+.sesion-hoy {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--negro-carbon);
+}
+
+/* =====================================================
+   INDICADOR DE ACTIVIDAD - SEMÁFORO
+   ===================================================== */
+.usuario-actividad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid var(--gris-medio);
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.actividad-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.actividad-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--gris-oscuro);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.actividad-valor {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--negro-carbon);
+  margin-left: 1.1rem;
+}
+
+/* Semáforo de colores */
+.semaforo-verde {
+  color: #10b981;
+  animation: pulse-semaforo 2s infinite;
+}
+
+.semaforo-amarillo {
+  color: #f59e0b;
+}
+
+.semaforo-rojo {
+  color: #ef4444;
+}
+
+.semaforo-gris {
+  color: #9ca3af;
+}
+
+@keyframes pulse-semaforo {
+
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+  }
+}
+
+/* Estilo mejorado para el resumen de sesiones */
+.usuario-sesiones-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--gris-claro);
+  border: 2px solid var(--gris-medio);
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.sesion-valores {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 /* =====================================================
