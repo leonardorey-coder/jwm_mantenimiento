@@ -1,359 +1,275 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
-    <title>Login - JW Marriott Sistema de Mantenimiento</title>
 
-    <!-- Detectar modo standalone (PWA instalada) y establecer tema -->
-    <script>
-      (function () {
-        // Detectar modo standalone
-        if (
-          window.navigator.standalone === true ||
-          window.matchMedia('(display-mode: standalone)').matches
-        ) {
-          document.documentElement.classList.add('standalone-mode');
-        }
-        // Establecer tema
-        const theme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', theme);
-      })();
-    </script>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Login - JW Marriott Sistema de Mantenimiento</title>
 
-    <link rel="stylesheet" href="css/style.css" />
-    <link rel="stylesheet" href="css/login-style.css" />
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-    />
+  <!-- Detectar modo standalone (PWA instalada) y establecer tema -->
+  <script>
+    (function () {
+      // Detectar modo standalone
+      if (
+        window.navigator.standalone === true ||
+        window.matchMedia('(display-mode: standalone)').matches
+      ) {
+        document.documentElement.classList.add('standalone-mode');
+      }
+      // Establecer tema
+      const theme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 
-    <!-- Favicon para navegadores -->
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="192x192"
-      href="icons/icon-192x192.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="512x512"
-      href="icons/icon-512x512.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="icons/favicon-32x32.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="icons/favicon-16x16.png"
-    />
-    <link rel="shortcut icon" href="icons/favicon.ico" />
-  </head>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/login-style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
 
-  <body class="login-body">
-    <div class="login-container">
-      <!-- Logo Container con animación -->
-      <div class="login-logo-container">
-        <img src="logo_high.png" alt="JW Marriott Logo" class="login-logo" />
-        <h1 class="login-title">SGSOM</h1>
-        <p class="login-subtitle">
-          Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y
-          Espacios Comunes
-        </p>
-      </div>
+  <!-- Favicon para navegadores -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png" />
+  <link rel="shortcut icon" href="icons/favicon.ico" />
+</head>
 
-      <!-- Switch de Tema en el login -->
-      <!-- <div class="theme-toggle-login">
+<body class="login-body">
+  <div class="login-container">
+    <!-- Logo Container con animación -->
+    <div class="login-logo-container">
+      <img src="logo_high.png" alt="JW Marriott Logo" class="login-logo" />
+      <h1 class="login-title">SGSOM</h1>
+      <p class="login-subtitle">
+        Sistema de Gestión de Servicios, de Mantenimiento, Habitaciones y
+        Espacios Comunes
+      </p>
+    </div>
+
+    <!-- Switch de Tema en el login -->
+    <!-- <div class="theme-toggle-login">
             <button id="themeToggleLogin" class="theme-toggle-btn">
                 <i class="fas fa-moon"></i>
             </button>
         </div> -->
 
-      <!-- Toggle: Iniciar Sesión / Registrarse -->
-      <div class="login-toggle">
-        <button class="toggle-button active" data-mode="login">
-          Iniciar Sesión
-        </button>
-        <button class="toggle-button" data-mode="register">Registrarse</button>
+    <!-- Toggle: Iniciar Sesión / Registrarse -->
+    <div class="login-toggle">
+      <button class="toggle-button active" data-mode="login">
+        Iniciar Sesión
+      </button>
+      <button class="toggle-button" data-mode="register">Registrarse</button>
+    </div>
+
+    <!-- Formulario de Login -->
+    <form id="loginForm" class="auth-form active">
+      <div class="form-group">
+        <label for="loginEmail">
+          <i class="fas fa-id-badge"></i>
+          Correo o No. de Empleado
+        </label>
+        <input type="text" id="loginEmail" class="form-input" placeholder="correo@ejemplo.com o Emp-123" required />
       </div>
 
-      <!-- Formulario de Login -->
-      <form id="loginForm" class="auth-form active">
-        <div class="form-group">
-          <label for="loginEmail">
-            <i class="fas fa-envelope"></i>
-            Correo Electrónico
-          </label>
-          <input
-            type="email"
-            id="loginEmail"
-            class="form-input"
-            placeholder="correo@ejemplo.com"
-            required
-          />
-        </div>
-
-        <div class="form-group">
-          <label for="loginPassword">
-            <i class="fas fa-lock"></i>
-            Contraseña
-          </label>
-          <div class="password-input-container">
-            <input
-              type="password"
-              id="loginPassword"
-              class="form-input"
-              placeholder="••••••••"
-              required
-            />
-            <button
-              type="button"
-              class="toggle-password"
-              data-target="loginPassword"
-            >
-              <i class="fas fa-eye"></i>
-            </button>
-          </div>
-        </div>
-
-        <div class="form-options">
-          <label class="remember-me">
-            <input type="checkbox" id="rememberMe" />
-            <span>Recordarme</span>
-          </label>
-          <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
-        </div>
-
-        <button type="submit" class="btn-submit">
-          <i class="fas fa-sign-in-alt"></i>
-          Iniciar Sesión
-        </button>
-      </form>
-
-      <!-- Formulario de Registro (Deshabilitado - Contactar Administrador) -->
-      <div id="registerForm" class="auth-form register-disabled">
-        <div class="register-message-container">
-          <div class="register-icon">
-            <i class="fas fa-user-shield"></i>
-          </div>
-          <h3 class="register-message-title">Registro Restringido</h3>
-          <p class="register-message-text">
-            El registro de nuevos usuarios está restringido por seguridad.
-          </p>
-          <p class="register-message-contact">
-            Para solicitar acceso al sistema, por favor contacta al
-            administrador:
-          </p>
-          <a href="mailto:fcruz@grupodiestra.com" class="register-admin-email">
-            <i class="fas fa-envelope"></i>
-            fcruz@grupodiestra.com
-          </a>
-          <div class="register-info">
-            <i class="fas fa-info-circle"></i>
-            <span
-              >El administrador verificará tu identidad y asignará los permisos
-              correspondientes.</span
-            >
-          </div>
-        </div>
-      </div>
-
-      <!-- Mensaje de error/éxito -->
-      <div id="authMessage" class="auth-message"></div>
-
-      <!-- Modal: Olvidaste tu contraseña -->
-      <div class="forgot-password-modal" id="forgotPasswordModal">
-        <div class="forgot-card">
-          <button
-            class="forgot-close"
-            id="closeForgotModal"
-            aria-label="Cerrar modal de recuperación"
-          >
-            <i class="fas fa-times"></i>
+      <div class="form-group">
+        <label for="loginPassword">
+          <i class="fas fa-lock"></i>
+          Contraseña
+        </label>
+        <div class="password-input-container">
+          <input type="password" id="loginPassword" class="form-input" placeholder="••••••••" required />
+          <button type="button" class="toggle-password" data-target="loginPassword">
+            <i class="fas fa-eye"></i>
           </button>
-          <div class="forgot-header">
-            <div class="forgot-icon">
-              <i class="fas fa-unlock-alt"></i>
-            </div>
-            <div>
-              <h3>¿Olvidaste tu contraseña?</h3>
-              <p>
-                Enviaremos tu solicitud al administrador para restablecer el
-                acceso.
-              </p>
-            </div>
-          </div>
-
-          <form id="forgotPasswordForm" class="forgot-form" novalidate>
-            <label for="forgotName">
-              <span>Nombre completo</span>
-              <input
-                type="text"
-                id="forgotName"
-                placeholder="Ej. Juan Leonardo Cruz"
-                required
-              />
-            </label>
-
-            <label for="forgotEmail">
-              <span>Correo corporativo</span>
-              <input
-                type="email"
-                id="forgotEmail"
-                placeholder="correo@jwmarriott.com"
-                required
-              />
-            </label>
-
-            <label for="forgotPhone">
-              <span>Teléfono o extensión (opcional)</span>
-              <input
-                type="text"
-                id="forgotPhone"
-                placeholder="Ej. 624 237 0000"
-              />
-            </label>
-
-            <label for="forgotNotes">
-              <span>Comentarios para el administrador (opcional)</span>
-              <textarea
-                id="forgotNotes"
-                rows="3"
-                placeholder="Agrega contexto para acelerar el soporte"
-              ></textarea>
-            </label>
-
-            <div class="forgot-admin-card" id="forgotAdminCard">
-              <div class="admin-icon">
-                <i class="fas fa-headset"></i>
-              </div>
-              <div class="admin-contact">
-                <p>
-                  Tu solicitud será atendida por
-                  <strong id="forgotAdminName">Fidel Cruz Lozada</strong>.
-                </p>
-                <a href="mailto:fcruz@grupodiestra.com" id="forgotAdminEmail"
-                  >fcruz@grupodiestra.com</a
-                >
-                <span id="forgotAdminPhone">+52 624 237 1063</span>
-              </div>
-            </div>
-
-            <div class="forgot-feedback" id="forgotPasswordFeedback"></div>
-
-            <button type="submit" class="btn-submit">
-              <i class="fas fa-paper-plane"></i>
-              Enviar solicitud
-            </button>
-          </form>
         </div>
       </div>
 
-      <!-- Modal cambio obligatorio de contraseña -->
-      <div class="force-password-modal" id="forcePasswordModal">
-        <div class="force-password-card">
-          <div class="force-password-header">
-            <i class="fas fa-shield-alt"></i>
-            <div>
-              <h3>Actualiza tu contraseña</h3>
-              <p>
-                Por seguridad,
-                <span id="forcePasswordUser">tu cuenta</span> debe establecer
-                una nueva contraseña antes de continuar.
-              </p>
-            </div>
-          </div>
-          <form id="forcePasswordForm" class="force-password-form" novalidate>
-            <label>
-              <span>Contraseña actual</span>
-              <input
-                type="password"
-                id="forceCurrentPassword"
-                placeholder="••••••••"
-                required
-              />
-            </label>
-            <label>
-              <span>Nueva contraseña</span>
-              <input
-                type="password"
-                id="forceNewPassword"
-                placeholder="Mínimo 8 caracteres"
-                required
-              />
-            </label>
-            <label>
-              <span>Confirmar nueva contraseña</span>
-              <input
-                type="password"
-                id="forceConfirmPassword"
-                placeholder="Repite la contraseña"
-                required
-              />
-            </label>
-            <div
-              class="force-password-feedback"
-              id="forcePasswordFeedback"
-            ></div>
-            <button type="submit" class="btn-submit">
-              <i class="fas fa-key"></i>
-              Cambiar contraseña y continuar
-            </button>
-          </form>
-        </div>
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox" id="rememberMe" />
+          <span>Recordarme</span>
+        </label>
+        <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
       </div>
 
-      <!-- Footer -->
-      <div class="login-footer">
-        <p>&copy; 2025 JW Marriott Los Cabos. Todos los derechos reservados.</p>
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-sign-in-alt"></i>
+        Iniciar Sesión
+      </button>
+    </form>
+
+    <!-- Formulario de Registro (Deshabilitado - Contactar Administrador) -->
+    <div id="registerForm" class="auth-form register-disabled">
+      <div class="register-message-container">
+        <div class="register-icon">
+          <i class="fas fa-user-shield"></i>
+        </div>
+        <h3 class="register-message-title">Registro Restringido</h3>
+        <p class="register-message-text">
+          El registro de nuevos usuarios está restringido por seguridad.
+        </p>
+        <p class="register-message-contact">
+          Para solicitar acceso al sistema, por favor contacta al
+          administrador:
+        </p>
+        <a href="mailto:fcruz@grupodiestra.com" class="register-admin-email">
+          <i class="fas fa-envelope"></i>
+          fcruz@grupodiestra.com
+        </a>
+        <div class="register-info">
+          <i class="fas fa-info-circle"></i>
+          <span>El administrador verificará tu identidad y asignará los permisos
+            correspondientes.</span>
+        </div>
       </div>
     </div>
 
-    <!-- IndexedDB Manager - Sistema de almacenamiento local -->
-    <script type="module">
-      // Importar módulos de IndexedDB
-      import dbManager from './js/indexeddb-manager.js';
-      import storageHelper from './js/storage-helper.js';
+    <!-- Mensaje de error/éxito -->
+    <div id="authMessage" class="auth-message"></div>
 
-      // Exponer globalmente para compatibilidad
-      window.dbManager = dbManager;
-      window.storageHelper = storageHelper;
+    <!-- Modal: Olvidaste tu contraseña -->
+    <div class="forgot-password-modal" id="forgotPasswordModal">
+      <div class="forgot-card">
+        <button class="forgot-close" id="closeForgotModal" aria-label="Cerrar modal de recuperación">
+          <i class="fas fa-times"></i>
+        </button>
+        <div class="forgot-header">
+          <div class="forgot-icon">
+            <i class="fas fa-unlock-alt"></i>
+          </div>
+          <div>
+            <h3>¿Olvidaste tu contraseña?</h3>
+            <p>
+              Enviaremos tu solicitud al administrador para restablecer el
+              acceso.
+            </p>
+          </div>
+        </div>
 
-      // Inicializar IndexedDB antes de cargar login
-      console.log('🔧 [Login] Inicializando sistema de almacenamiento...');
+        <form id="forgotPasswordForm" class="forgot-form" novalidate>
+          <label for="forgotName">
+            <span>Nombre completo</span>
+            <input type="text" id="forgotName" placeholder="Ej. Juan Leonardo Cruz" required />
+          </label>
 
-      Promise.all([dbManager.init(), storageHelper.init()])
-        .then(() => {
-          console.log('✅ [Login] Sistema de almacenamiento inicializado');
+          <label for="forgotEmail">
+            <span>Correo corporativo</span>
+            <input type="email" id="forgotEmail" placeholder="correo@jwmarriott.com" required />
+          </label>
 
-          // Cargar script de login
-          const script = document.createElement('script');
-          script.src = 'js/login-jwt.js?v=' + Date.now();
-          script.onload = () =>
-            console.log('✅ [Login] Script de login cargado');
-          script.onerror = (error) =>
-            console.error('❌ [Login] Error cargando script:', error);
-          document.body.appendChild(script);
-        })
-        .catch((error) => {
-          console.error('❌ [Login] Error al inicializar storage:', error);
+          <label for="forgotPhone">
+            <span>Teléfono o extensión (opcional)</span>
+            <input type="text" id="forgotPhone" placeholder="Ej. 624 237 0000" />
+          </label>
 
-          // Cargar de todas formas (fallback)
-          const script = document.createElement('script');
-          script.src = 'js/login-jwt.js?v=' + Date.now();
-          script.onload = () =>
-            console.log('✅ [Login] Script cargado en modo fallback');
-          document.body.appendChild(script);
-        });
-    </script>
-  </body>
+          <label for="forgotNotes">
+            <span>Comentarios para el administrador (opcional)</span>
+            <textarea id="forgotNotes" rows="3" placeholder="Agrega contexto para acelerar el soporte"></textarea>
+          </label>
+
+          <div class="forgot-admin-card" id="forgotAdminCard">
+            <div class="admin-icon">
+              <i class="fas fa-headset"></i>
+            </div>
+            <div class="admin-contact">
+              <p>
+                Tu solicitud será atendida por
+                <strong id="forgotAdminName">Fidel Cruz Lozada</strong>.
+              </p>
+              <a href="mailto:fcruz@grupodiestra.com" id="forgotAdminEmail">fcruz@grupodiestra.com</a>
+              <span id="forgotAdminPhone">+52 624 237 1063</span>
+            </div>
+          </div>
+
+          <div class="forgot-feedback" id="forgotPasswordFeedback"></div>
+
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-paper-plane"></i>
+            Enviar solicitud
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal cambio obligatorio de contraseña -->
+    <div class="force-password-modal" id="forcePasswordModal">
+      <div class="force-password-card">
+        <div class="force-password-header">
+          <i class="fas fa-shield-alt"></i>
+          <div>
+            <h3>Actualiza tu contraseña</h3>
+            <p>
+              Por seguridad,
+              <span id="forcePasswordUser">tu cuenta</span> debe establecer
+              una nueva contraseña antes de continuar.
+            </p>
+          </div>
+        </div>
+        <form id="forcePasswordForm" class="force-password-form" novalidate>
+          <label>
+            <span>Contraseña actual</span>
+            <input type="password" id="forceCurrentPassword" placeholder="••••••••" required />
+          </label>
+          <label>
+            <span>Nueva contraseña</span>
+            <input type="password" id="forceNewPassword" placeholder="Mínimo 8 caracteres" required />
+          </label>
+          <label>
+            <span>Confirmar nueva contraseña</span>
+            <input type="password" id="forceConfirmPassword" placeholder="Repite la contraseña" required />
+          </label>
+          <div class="force-password-feedback" id="forcePasswordFeedback"></div>
+          <button type="submit" class="btn-submit">
+            <i class="fas fa-key"></i>
+            Cambiar contraseña y continuar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="login-footer">
+      <p>&copy; 2025 JW Marriott Los Cabos. Todos los derechos reservados.</p>
+    </div>
+  </div>
+
+  <!-- IndexedDB Manager - Sistema de almacenamiento local -->
+  <script type="module">
+    // Importar módulos de IndexedDB
+    import dbManager from './js/indexeddb-manager.js';
+    import storageHelper from './js/storage-helper.js';
+
+    // Exponer globalmente para compatibilidad
+    window.dbManager = dbManager;
+    window.storageHelper = storageHelper;
+
+    // Inicializar IndexedDB antes de cargar login
+    console.log('🔧 [Login] Inicializando sistema de almacenamiento...');
+
+    Promise.all([dbManager.init(), storageHelper.init()])
+      .then(() => {
+        console.log('✅ [Login] Sistema de almacenamiento inicializado');
+
+        // Cargar script de login
+        const script = document.createElement('script');
+        script.src = 'js/login-jwt.js?v=' + Date.now();
+        script.onload = () =>
+          console.log('✅ [Login] Script de login cargado');
+        script.onerror = (error) =>
+          console.error('❌ [Login] Error cargando script:', error);
+        document.body.appendChild(script);
+      })
+      .catch((error) => {
+        console.error('❌ [Login] Error al inicializar storage:', error);
+
+        // Cargar de todas formas (fallback)
+        const script = document.createElement('script');
+        script.src = 'js/login-jwt.js?v=' + Date.now();
+        script.onload = () =>
+          console.log('✅ [Login] Script cargado en modo fallback');
+        document.body.appendChild(script);
+      });
+  </script>
+</body>
+
 </html>

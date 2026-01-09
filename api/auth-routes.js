@@ -26,19 +26,21 @@ const pool = new Pool(dbConfig);
 async function login(req, res) {
   console.log('🔵 [AUTH-ROUTES] Login iniciado');
   const { email, password } = req.body;
-  console.log('🔵 [AUTH-ROUTES] Email recibido:', email);
+  // 'email' puede ser un correo electrónico o un número de empleado (ej: Enp-123)
+  const identificador = email?.trim();
+  console.log('🔵 [AUTH-ROUTES] Identificador recibido:', identificador);
 
-  if (!email || !password) {
+  if (!identificador || !password) {
     console.log('🔴 [AUTH-ROUTES] Datos incompletos');
     return res.status(400).json({
       error: 'Datos incompletos',
-      mensaje: 'Email y contraseña son requeridos',
+      mensaje: 'Correo o número de empleado y contraseña son requeridos',
     });
   }
 
   try {
     console.log('🔵 [AUTH-ROUTES] Buscando usuario en BD...');
-    // Buscar usuario por email
+    // Buscar usuario por email O por numero_empleado (case-insensitive)
     const userResult = await pool.query(
       `
             SELECT 
@@ -49,9 +51,9 @@ async function login(req, res) {
                 r.id as rol_id, r.nombre as rol_nombre, r.permisos
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
-            WHERE u.email = $1
+            WHERE LOWER(u.email) = LOWER($1) OR LOWER(u.numero_empleado) = LOWER($1)
         `,
-      [email]
+      [identificador]
     );
 
     if (userResult.rows.length === 0) {
