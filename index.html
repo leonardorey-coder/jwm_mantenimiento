@@ -1489,22 +1489,20 @@
           <h4 class="detalle-usuario-seccion-titulo">
             <i class="fas fa-clock"></i> Actividad de Sesiones
           </h4>
-          <div class="detalle-usuario-sesiones-grid">
-            <div class="detalle-usuario-sesion-item">
-              <span class="detalle-usuario-sesion-label">Último acceso</span>
-              <span class="detalle-usuario-sesion-valor" id="detalleUsuarioUltimoAcceso">Sin registro</span>
+          <!-- Indicador de última actividad con semáforo -->
+          <div class="detalle-usuario-actividad" id="detalleUsuarioActividadContainer">
+            <div class="detalle-actividad-header">
+              <i class="fas fa-circle semaforo-gris" id="detalleUsuarioSemaforoIcon" title="Sin actividad"></i>
+              <span class="detalle-actividad-label">ÚLTIMA ACTIVIDAD</span>
             </div>
-            <div class="detalle-usuario-sesion-item">
-              <span class="detalle-usuario-sesion-label">Última sesión</span>
-              <span class="detalle-usuario-sesion-valor" id="detalleUsuarioUltimaSesion">Sin registro</span>
-            </div>
+            <span class="detalle-actividad-valor" id="detalleUsuarioActividadRelativa">Sin registro</span>
           </div>
           <div class="detalle-usuario-sesiones-resumen">
-            <div class="detalle-usuario-sesion-stat">
-              <i class="fas fa-history stat-icon"></i>
+            <div class="detalle-usuario-sesion-stat hoy">
+              <i class="fas fa-calendar-day stat-icon"></i>
               <div class="stat-content">
-                <span class="stat-numero" id="detalleUsuarioSesionesTotal">0</span>
-                <span class="stat-label">Sesiones registradas</span>
+                <span class="stat-numero" id="detalleUsuarioSesionesHoy">0</span>
+                <span class="stat-label">Sesiones hoy</span>
               </div>
             </div>
             <div class="detalle-usuario-sesion-stat activas">
