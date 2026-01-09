@@ -1707,6 +1707,52 @@
   border: none;
 }
 
+/* =====================================================
+   INDICADOR DE ACTIVIDAD CON SEMÁFORO - Modal Detalle
+   ===================================================== */
+.detalle-usuario-actividad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 2px solid var(--gris-medio, #ddd);
+  border-radius: 10px;
+  margin-bottom: 0.75rem;
+}
+
+.detalle-actividad-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detalle-actividad-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--gris-oscuro, #888);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+}
+
+.detalle-actividad-valor {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--negro-carbon, #1a1a1a);
+  margin-left: 1.1rem;
+}
+
+/* Estilo para sesiones hoy */
+.detalle-usuario-sesion-stat.hoy .stat-icon {
+  color: #10b981;
+  border-color: #34d399;
+  background: #d1fae5;
+}
+
+.detalle-usuario-sesion-stat.hoy .stat-numero {
+  color: #047857;
+}
+
 .detalle-usuario-sesion-stat {
   flex: 1;
   display: flex;
