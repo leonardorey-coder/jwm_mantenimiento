@@ -1506,19 +1506,9 @@ function loadTabData(tabId) {
 async function loadUsuariosData() {
   console.log('👥 Cargando datos de usuarios...');
 
-  // Si ya hay usuarios cargados, solo renderizar (no mostrar skeleton)
-  if (AppState.usuarios && AppState.usuarios.length > 0) {
-    console.log(
-      '👥 [USUARIOS] Usando datos en caché:',
-      AppState.usuarios.length
-    );
-    renderUsuariosList();
-    return;
-  }
-
-  // Primera carga: cargar roles y usuarios
+  // Siempre recargar datos frescos para reflejar actividad reciente (último acceso, sesiones)
   await cargarRoles();
-  await cargarUsuarios();
+  await cargarUsuarios(true); // forceReload = true
 }
 
 // ========================================
@@ -4854,9 +4844,11 @@ function renderUsuariosList() {
 
 function renderUsuarioCard(usuario) {
   const estadoClase = usuario.activo ? 'estado-activo' : 'estado-inactivo';
-  const ultimaSesion = formatUsuarioFecha(usuario.ultima_sesion_login);
-  const ultimoAcceso = formatUsuarioFecha(usuario.ultimo_acceso);
   const rol = (usuario.rol_nombre || 'tecnico').toLowerCase();
+
+  // Calcular tiempo relativo y semáforo de actividad
+  const actividadRelativa = formatearTiempoRelativo(usuario.ultimo_acceso || usuario.ultima_sesion_login);
+  const semaforoInfo = obtenerIconoSemaforo(actividadRelativa.nivel);
 
   // Determinar clase de badge según rol
   const badgeClass =
@@ -4879,6 +4871,10 @@ function renderUsuarioCard(usuario) {
   const bloqueadoHasta = estaBloqueado
     ? formatUsuarioFecha(usuario.bloqueado_hasta)
     : null;
+
+  // Sesiones del día y activas
+  const sesionesHoy = usuario.sesiones_hoy || 0;
+  const sesionesActivas = usuario.sesiones_activas || 0;
 
   return `
         <div class="usuario-card gradient-card ${estaBloqueado ? 'usuario-bloqueado' : ''}" data-rol="${rol}" data-estado="${usuario.activo ? 'activo' : 'inactivo'}" onclick="abrirModalDetalleUsuario(${usuario.id})">
@@ -4922,21 +4918,18 @@ function renderUsuarioCard(usuario) {
                 </div>
             </div>
             <div class="usuario-footer">
-                <div class="usuario-info-sesiones">
-                    <div class="usuario-sesion">
-                        <span class="sesion-label">ÚLTIMO ACCESO</span>
-                        <span class="sesion-valor">${ultimoAcceso}</span>
+                <div class="usuario-actividad">
+                    <div class="actividad-header">
+                        <i class="fas ${semaforoInfo.icono} ${semaforoInfo.clase}" title="${semaforoInfo.tooltip}"></i>
+                        <span class="actividad-label">ÚLTIMA ACTIVIDAD</span>
                     </div>
-                    <div class="usuario-sesion">
-                        <span class="sesion-label">ÚLTIMA SESIÓN</span>
-                        <span class="sesion-valor">${ultimaSesion}</span>
-                    </div>
+                    <span class="actividad-valor">${actividadRelativa.texto}</span>
                 </div>
                 <div class="usuario-sesiones-resumen">
                     <span class="sesion-label">SESIONES</span>
                     <div class="sesion-valores">
-                        <span class="sesion-total">${usuario.total_sesiones || 0} registradas</span>
-                        <span class="sesion-activas">${usuario.sesiones_activas || 0} activas</span>
+                        <span class="sesion-hoy">${sesionesHoy} hoy</span>
+                        <span class="sesion-activas">${sesionesActivas} ${sesionesActivas === 1 ? 'activa' : 'activas'}</span>
                     </div>
                 </div>
                 <div class="usuario-switch-container" onclick="event.stopPropagation()">
@@ -4982,6 +4975,68 @@ function formatUsuarioFecha(fecha) {
   } catch (error) {
     return 'Sin registro';
   }
+}
+
+/**
+ * Formatea una fecha como tiempo relativo (hace X minutos/horas/días)
+ * @param {string|Date} fecha - Fecha a formatear
+ * @returns {{texto: string, nivel: string}} - Objeto con texto y nivel del semáforo
+ */
+function formatearTiempoRelativo(fecha) {
+  if (!fecha) return { texto: 'Sin registro', nivel: 'gris' };
+
+  try {
+    const ahora = new Date();
+    const fechaActividad = new Date(fecha);
+    const diffMs = ahora - fechaActividad;
+    const diffMinutos = Math.floor(diffMs / (1000 * 60));
+    const diffHoras = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    let texto;
+    let nivel;
+
+    if (diffMinutos < 1) {
+      texto = 'Ahora mismo';
+      nivel = 'verde';
+    } else if (diffMinutos < 60) {
+      texto = `hace ${diffMinutos} min`;
+      nivel = 'verde';
+    } else if (diffHoras < 24) {
+      texto = `hace ${diffHoras} ${diffHoras === 1 ? 'hora' : 'horas'}`;
+      nivel = 'verde';
+    } else if (diffDias < 7) {
+      texto = `hace ${diffDias} ${diffDias === 1 ? 'día' : 'días'}`;
+      nivel = 'amarillo';
+    } else if (diffDias < 30) {
+      const semanas = Math.floor(diffDias / 7);
+      texto = `hace ${semanas} ${semanas === 1 ? 'semana' : 'semanas'}`;
+      nivel = 'rojo';
+    } else {
+      const meses = Math.floor(diffDias / 30);
+      texto = `hace ${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+      nivel = 'gris';
+    }
+
+    return { texto, nivel };
+  } catch (error) {
+    return { texto: 'Sin registro', nivel: 'gris' };
+  }
+}
+
+/**
+ * Obtiene la información del icono de semáforo según el nivel de actividad
+ * @param {string} nivel - Nivel de actividad (verde, amarillo, rojo, gris)
+ * @returns {{icono: string, clase: string, tooltip: string}}
+ */
+function obtenerIconoSemaforo(nivel) {
+  const iconos = {
+    verde: { icono: 'fa-circle', clase: 'semaforo-verde', tooltip: 'Usuario activo' },
+    amarillo: { icono: 'fa-circle', clase: 'semaforo-amarillo', tooltip: 'Actividad reciente' },
+    rojo: { icono: 'fa-circle', clase: 'semaforo-rojo', tooltip: 'Inactivo' },
+    gris: { icono: 'fa-circle', clase: 'semaforo-gris', tooltip: 'Sin actividad registrada' }
+  };
+  return iconos[nivel] || iconos.gris;
 }
 
 function resetUsuarioForm() {
@@ -5444,22 +5499,25 @@ function poblarModalDetalleUsuario(usuario) {
   if (departamentoEl)
     departamentoEl.textContent = usuario.departamento || 'Sin registro';
 
-  // Información de sesiones
-  const ultimoAccesoEl = document.getElementById('detalleUsuarioUltimoAcceso');
-  if (ultimoAccesoEl)
-    ultimoAccesoEl.textContent = formatUsuarioFecha(usuario.ultimo_acceso);
+  // Información de actividad con semáforo
+  const actividadRelativa = formatearTiempoRelativo(usuario.ultimo_acceso || usuario.ultima_sesion_login);
+  const semaforoInfo = obtenerIconoSemaforo(actividadRelativa.nivel);
 
-  const ultimaSesionEl = document.getElementById('detalleUsuarioUltimaSesion');
-  if (ultimaSesionEl)
-    ultimaSesionEl.textContent = formatUsuarioFecha(
-      usuario.ultima_sesion_login
-    );
+  const semaforoIconEl = document.getElementById('detalleUsuarioSemaforoIcon');
+  if (semaforoIconEl) {
+    semaforoIconEl.className = `fas fa-circle ${semaforoInfo.clase}`;
+    semaforoIconEl.title = semaforoInfo.tooltip;
+  }
 
-  const sesionesTotalEl = document.getElementById(
-    'detalleUsuarioSesionesTotal'
-  );
-  if (sesionesTotalEl)
-    sesionesTotalEl.textContent = usuario.total_sesiones || 0;
+  const actividadRelativaEl = document.getElementById('detalleUsuarioActividadRelativa');
+  if (actividadRelativaEl) {
+    actividadRelativaEl.textContent = actividadRelativa.texto;
+  }
+
+  const sesionesHoyEl = document.getElementById('detalleUsuarioSesionesHoy');
+  if (sesionesHoyEl) {
+    sesionesHoyEl.textContent = usuario.sesiones_hoy || 0;
+  }
 
   const sesionesActivasEl = document.getElementById(
     'detalleUsuarioSesionesActivas'
