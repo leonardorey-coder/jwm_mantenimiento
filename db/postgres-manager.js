@@ -1006,18 +1006,16 @@ class PostgresManager {
                 u.intentos_fallidos,
                 r.id as rol_id,
                 r.nombre as rol_nombre,
-                COALESCE(s.total_sesiones, 0) as total_sesiones,
+                COALESCE(s.sesiones_hoy, 0) as sesiones_hoy,
                 s.ultima_sesion_login,
-                s.ultima_sesion_logout,
                 COALESCE(s.sesiones_activas, 0) as sesiones_activas
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
             LEFT JOIN LATERAL (
                 SELECT 
-                    COUNT(*) FILTER (WHERE TRUE) as total_sesiones,
+                    COUNT(*) FILTER (WHERE DATE(fecha_login) = CURRENT_DATE) as sesiones_hoy,
                     COUNT(*) FILTER (WHERE activa = TRUE) as sesiones_activas,
-                    MAX(fecha_login) as ultima_sesion_login,
-                    MAX(fecha_logout) as ultima_sesion_logout
+                    MAX(fecha_login) as ultima_sesion_login
                 FROM sesiones_usuarios su
                 WHERE su.usuario_id = u.id
             ) s ON TRUE
@@ -1054,18 +1052,16 @@ class PostgresManager {
                 u.requiere_cambio_password,
                 r.id as rol_id,
                 r.nombre as rol_nombre,
-                COALESCE(s.total_sesiones, 0) as total_sesiones,
+                COALESCE(s.sesiones_hoy, 0) as sesiones_hoy,
                 s.ultima_sesion_login,
-                s.ultima_sesion_logout,
                 COALESCE(s.sesiones_activas, 0) as sesiones_activas
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
             LEFT JOIN LATERAL (
                 SELECT 
-                    COUNT(*) FILTER (WHERE TRUE) as total_sesiones,
+                    COUNT(*) FILTER (WHERE DATE(fecha_login) = CURRENT_DATE) as sesiones_hoy,
                     COUNT(*) FILTER (WHERE activa = TRUE) as sesiones_activas,
-                    MAX(fecha_login) as ultima_sesion_login,
-                    MAX(fecha_logout) as ultima_sesion_logout
+                    MAX(fecha_login) as ultima_sesion_login
                 FROM sesiones_usuarios su
                 WHERE su.usuario_id = u.id
             ) s ON TRUE
