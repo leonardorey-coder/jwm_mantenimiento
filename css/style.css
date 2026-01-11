@@ -12008,9 +12008,9 @@ tr[data-lazy='true'] {
     margin-top: 0.5rem;
   }
 
-  /* Asegurar que el body tenga padding-bottom para el home indicator */
+  /* Asegurar espacio extra para el home indicator */
   body {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -12020,6 +12020,7 @@ tr[data-lazy='true'] {
   /* Aumentar espacio en contenedor móvil */
   .contenedor {
     padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
   }
 
   /* Más espacio para títulos en móvil */
@@ -12046,6 +12047,7 @@ tr[data-lazy='true'] {
     /* Cuando está en modo standalone en iOS */
     html.standalone-mode .contenedor {
       padding-top: calc(1rem + env(safe-area-inset-top, 0px));
+      padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
     }
 
     html.standalone-mode .t-principal {
@@ -12054,6 +12056,10 @@ tr[data-lazy='true'] {
 
     html.standalone-mode .premium-nav-mobile {
       padding-bottom: calc(0.4rem + env(safe-area-inset-bottom, 0px));
+    }
+
+    html.standalone-mode body {
+      padding-bottom: calc(2rem + env(safe-area-inset-bottom, 0px));
     }
   }
 }
