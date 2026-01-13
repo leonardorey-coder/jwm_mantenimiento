@@ -382,6 +382,29 @@ function obtenerIconoEspacio(espacio) {
 }
 
 /**
+ * Ajustar tamaño de título según longitud del texto
+ */
+function ajustarTamanoTitulo(elemento) {
+  if (!elemento) return;
+
+  const longitud = elemento.textContent.length;
+
+  elemento.classList.remove(
+    'titulo-largo',
+    'titulo-muy-largo',
+    'titulo-extra-largo'
+  );
+
+  if (longitud > 35) {
+    elemento.classList.add('titulo-extra-largo');
+  } else if (longitud > 25) {
+    elemento.classList.add('titulo-muy-largo');
+  } else if (longitud > 18) {
+    elemento.classList.add('titulo-largo');
+  }
+}
+
+/**
  * Cargar contenido de un espacio (llamado por IntersectionObserver)
  */
 function cargarContenidoEspacio(li, espacio) {
@@ -459,6 +482,11 @@ function cargarContenidoEspacio(li, espacio) {
             </button>
         </div>
     `;
+
+  const nombreElemento = li.querySelector('.habitacion-nombre');
+  if (nombreElemento) {
+    ajustarTamanoTitulo(nombreElemento);
+  }
 }
 
 /**
@@ -620,7 +648,8 @@ function toggleModoEdicionEspacio(espacioId) {
   const contenedorEstadoSelector = document.getElementById(
     `estado-selector-inline-espacio-${espacioId}`
   );
-  const liElement = document.querySelector(`li[data-espacio-id="${espacioId}"]`) ||
+  const liElement =
+    document.querySelector(`li[data-espacio-id="${espacioId}"]`) ||
     document.getElementById(`servicios-espacio-${espacioId}`)?.closest('li');
   const badgeDropdown = liElement?.querySelector('.estado-dropdown');
 
@@ -672,14 +701,16 @@ function toggleModoEdicionEspacio(espacioId) {
       espacioId,
       true,
       true,
-      null  // No aplicar filtro en modo edición
+      null // No aplicar filtro en modo edición
     );
 
     // Actualizar pills de estado con disabled correcto
     const espacio = espaciosComunes.find((e) => e.id === espacioId);
     if (espacio && contenedorEstadoSelector) {
       const estadoActual = espacio.estado || 'disponible';
-      const pills = contenedorEstadoSelector.querySelectorAll('.estado-pill-inline');
+      const pills = contenedorEstadoSelector.querySelectorAll(
+        '.estado-pill-inline'
+      );
       pills.forEach((pill) => {
         const estadoPill = pill.getAttribute('data-estado');
         const isActive = estadoPill === estadoActual;
@@ -1002,7 +1033,7 @@ function renderizarServiciosEspacio(espacioId) {
     espacioId,
     enModoEdicion,
     true,
-    enModoEdicion ? null : (window.AppState?.filtroServicioEspacios || null)
+    enModoEdicion ? null : window.AppState?.filtroServicioEspacios || null
   );
 
   // Mostrar/Ocultar botón editar según si hay servicios
@@ -1232,10 +1263,16 @@ async function seleccionarEstadoEspacioInline(espacioId, nuevoEstado, boton) {
 /**
  * Cambiar estado del espacio desde el badge/select dropdown
  */
-async function cambiarEstadoEspacioBadge(espacioId, nuevoEstado, selectElement) {
+async function cambiarEstadoEspacioBadge(
+  espacioId,
+  nuevoEstado,
+  selectElement
+) {
   try {
     const baseUrl = window.API_BASE_URL || '';
-    console.log(`🔄 [BADGE] Actualizando estado del espacio ${espacioId} a: ${nuevoEstado}`);
+    console.log(
+      `🔄 [BADGE] Actualizando estado del espacio ${espacioId} a: ${nuevoEstado}`
+    );
 
     const response = await window.fetchWithAuth(
       `${baseUrl}/api/espacios-comunes/${espacioId}`,
@@ -1259,17 +1296,33 @@ async function cambiarEstadoEspacioBadge(espacioId, nuevoEstado, selectElement) 
       window.actualizarEstiloSelectBadge(selectElement, nuevoEstado);
     } else {
       // Fallback manual
-      selectElement.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+      selectElement.classList.remove(
+        'estado-disponible',
+        'estado-ocupado',
+        'estado-mantenimiento',
+        'estado-fuera-servicio',
+        'estado-vacio'
+      );
       switch (nuevoEstado) {
-        case 'disponible': selectElement.classList.add('estado-disponible'); break;
-        case 'ocupado': selectElement.classList.add('estado-ocupado'); break;
-        case 'mantenimiento': selectElement.classList.add('estado-mantenimiento'); break;
-        case 'fuera_servicio': selectElement.classList.add('estado-fuera-servicio'); break;
+        case 'disponible':
+          selectElement.classList.add('estado-disponible');
+          break;
+        case 'ocupado':
+          selectElement.classList.add('estado-ocupado');
+          break;
+        case 'mantenimiento':
+          selectElement.classList.add('estado-mantenimiento');
+          break;
+        case 'fuera_servicio':
+          selectElement.classList.add('estado-fuera-servicio');
+          break;
       }
     }
 
     // Actualizar pills del selector inline si está visible
-    const estadoSelector = document.getElementById(`estado-selector-inline-espacio-${espacioId}`);
+    const estadoSelector = document.getElementById(
+      `estado-selector-inline-espacio-${espacioId}`
+    );
     if (estadoSelector) {
       const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
       pills.forEach((pill) => {
@@ -1376,6 +1429,7 @@ window.seleccionarEstadoEspacioInline = seleccionarEstadoEspacioInline;
 window.cambiarEstadoEspacio = cambiarEstadoEspacio;
 window.renderizarServiciosEspacio = renderizarServiciosEspacio;
 window.recargarMantenimientosEspacios = recargarMantenimientosEspacios;
+window.ajustarTamanoTitulo = ajustarTamanoTitulo;
 
 // Exportar el flag de carga como getter/setter
 Object.defineProperty(window, 'espaciosComunesCargados', {

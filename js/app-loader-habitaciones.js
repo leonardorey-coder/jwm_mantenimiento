@@ -294,6 +294,11 @@ function mostrarCuartos() {
 
       // Limpiar clase lazy inmediatamente (sin animación)
       li.classList.remove('cuarto-lazy');
+
+      const nombreElemento = li.querySelector('.habitacion-nombre');
+      if (nombreElemento && window.ajustarTamanoTitulo) {
+        window.ajustarTamanoTitulo(nombreElemento);
+      }
     });
   };
 
@@ -1364,7 +1369,9 @@ window.seleccionarEstadoInline = seleccionarEstadoInline;
 async function cambiarEstadoCuartoBadge(cuartoId, nuevoEstado, selectElement) {
   const s = getState();
   try {
-    console.log(`🔄 [BADGE] Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`);
+    console.log(
+      `🔄 [BADGE] Actualizando estado del cuarto ${cuartoId} a: ${nuevoEstado}`
+    );
 
     const response = await window.fetchWithAuth(
       `${window.API_BASE_URL}/api/cuartos/${cuartoId}`,
@@ -1391,7 +1398,9 @@ async function cambiarEstadoCuartoBadge(cuartoId, nuevoEstado, selectElement) {
     actualizarEstiloSelectBadge(selectElement, nuevoEstado);
 
     // Actualizar los pills del selector inline si está visible
-    const estadoSelector = document.getElementById(`estado-selector-inline-id-${cuartoId}`);
+    const estadoSelector = document.getElementById(
+      `estado-selector-inline-id-${cuartoId}`
+    );
     if (estadoSelector) {
       const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
       pills.forEach((pill) => {
@@ -1416,7 +1425,10 @@ async function cambiarEstadoCuartoBadge(cuartoId, nuevoEstado, selectElement) {
   } catch (error) {
     console.error('❌ Error al actualizar estado:', error);
     if (window.mostrarAlertaBlur)
-      window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
+      window.mostrarAlertaBlur(
+        `Error al actualizar estado: ${error.message}`,
+        'error'
+      );
 
     // Revertir el select al estado anterior si hay error
     const cuarto = s.cuartos.find((c) => c.id === cuartoId);
@@ -1434,7 +1446,13 @@ function actualizarEstiloSelectBadge(selectElement, nuevoEstado) {
   if (!selectElement) return;
 
   // Remover todas las clases de estado
-  selectElement.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+  selectElement.classList.remove(
+    'estado-disponible',
+    'estado-ocupado',
+    'estado-mantenimiento',
+    'estado-fuera-servicio',
+    'estado-vacio'
+  );
 
   // Agregar la clase correspondiente
   switch (nuevoEstado.toLowerCase()) {
@@ -1464,7 +1482,7 @@ window.actualizarEstiloSelectBadge = actualizarEstiloSelectBadge;
  */
 function toggleEstadoDropdown(badgeElement, id, esEspacio) {
   // Cerrar otros dropdowns abiertos
-  document.querySelectorAll('.estado-dropdown-menu').forEach(menu => {
+  document.querySelectorAll('.estado-dropdown-menu').forEach((menu) => {
     if (menu.parentElement !== badgeElement) {
       menu.style.display = 'none';
     }
@@ -1480,7 +1498,12 @@ window.toggleEstadoDropdown = toggleEstadoDropdown;
 /**
  * Seleccionar estado desde el dropdown personalizado
  */
-async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio) {
+async function seleccionarEstadoDropdown(
+  id,
+  nuevoEstado,
+  itemElement,
+  esEspacio
+) {
   const s = getState();
   const dropdown = itemElement.closest('.estado-dropdown');
   const menu = dropdown.querySelector('.estado-dropdown-menu');
@@ -1489,7 +1512,9 @@ async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio
   if (menu) menu.style.display = 'none';
 
   try {
-    console.log(`🔄 [DROPDOWN] Actualizando estado ${esEspacio ? 'espacio' : 'cuarto'} ${id} a: ${nuevoEstado}`);
+    console.log(
+      `🔄 [DROPDOWN] Actualizando estado ${esEspacio ? 'espacio' : 'cuarto'} ${id} a: ${nuevoEstado}`
+    );
 
     const endpoint = esEspacio
       ? `${window.API_BASE_URL}/api/espacios-comunes/${id}`
@@ -1511,11 +1536,13 @@ async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio
     if (esEspacio) {
       // Actualizar en espaciosComunes si existe
       if (window.appLoaderState?.espaciosComunes) {
-        const espacio = window.appLoaderState.espaciosComunes.find(e => e.id === id);
+        const espacio = window.appLoaderState.espaciosComunes.find(
+          (e) => e.id === id
+        );
         if (espacio) espacio.estado = nuevoEstado;
       }
     } else {
-      const cuarto = s.cuartos.find(c => c.id === id);
+      const cuarto = s.cuartos.find((c) => c.id === id);
       if (cuarto) cuarto.estado = nuevoEstado;
     }
 
@@ -1529,7 +1556,7 @@ async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio
     const estadoSelector = document.getElementById(selectorId);
     if (estadoSelector) {
       const pills = estadoSelector.querySelectorAll('.estado-pill-inline');
-      pills.forEach(pill => {
+      pills.forEach((pill) => {
         const estadoPill = pill.getAttribute('data-estado');
         const isActive = estadoPill === nuevoEstado;
         pill.classList.toggle('estado-pill-inline-activo', isActive);
@@ -1553,11 +1580,13 @@ async function seleccionarEstadoDropdown(id, nuevoEstado, itemElement, esEspacio
     const label = estadoLabels[nuevoEstado] || nuevoEstado;
     if (window.mostrarAlertaBlur)
       window.mostrarAlertaBlur(`Estado actualizado a: ${label}`, 'success');
-
   } catch (error) {
     console.error('❌ Error al actualizar estado:', error);
     if (window.mostrarAlertaBlur)
-      window.mostrarAlertaBlur(`Error al actualizar estado: ${error.message}`, 'error');
+      window.mostrarAlertaBlur(
+        `Error al actualizar estado: ${error.message}`,
+        'error'
+      );
   }
 }
 window.seleccionarEstadoDropdown = seleccionarEstadoDropdown;
@@ -1569,7 +1598,13 @@ function actualizarBadgeDropdown(dropdown, nuevoEstado) {
   if (!dropdown) return;
 
   // Quitar clases de estado previas
-  dropdown.classList.remove('estado-disponible', 'estado-ocupado', 'estado-mantenimiento', 'estado-fuera-servicio', 'estado-vacio');
+  dropdown.classList.remove(
+    'estado-disponible',
+    'estado-ocupado',
+    'estado-mantenimiento',
+    'estado-fuera-servicio',
+    'estado-vacio'
+  );
 
   // Mapear estado e icono
   let estadoClass, estadoIcon, estadoText;
@@ -1589,7 +1624,9 @@ function actualizarBadgeDropdown(dropdown, nuevoEstado) {
     case 'en mantenimiento':
       estadoClass = 'estado-mantenimiento';
       estadoIcon = 'fa-tools';
-      estadoText = dropdown.dataset.espacioId ? 'Mantenimiento' : 'En Mantenimiento';
+      estadoText = dropdown.dataset.espacioId
+        ? 'Mantenimiento'
+        : 'En Mantenimiento';
       break;
     case 'fuera_servicio':
     case 'fuera de servicio':
@@ -1618,7 +1655,7 @@ window.actualizarBadgeDropdown = actualizarBadgeDropdown;
 // Cerrar dropdown cuando se hace clic fuera
 document.addEventListener('click', (e) => {
   if (!e.target.closest('.estado-dropdown')) {
-    document.querySelectorAll('.estado-dropdown-menu').forEach(menu => {
+    document.querySelectorAll('.estado-dropdown-menu').forEach((menu) => {
       menu.style.display = 'none';
     });
   }
