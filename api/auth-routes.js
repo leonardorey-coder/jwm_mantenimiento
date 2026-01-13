@@ -574,6 +574,8 @@ async function register(req, res) {
     // Crear el usuario (sin número de empleado primero)
     await pool.query('BEGIN');
 
+    // Crear el usuario sin requerir cambio de contraseña por defecto
+    // El admin puede configurar esto después en las configuraciones de cuenta
     const usuarioResult = await pool.query(
       `
             INSERT INTO usuarios (
@@ -584,7 +586,7 @@ async function register(req, res) {
                 telefono,
                 activo,
                 requiere_cambio_password
-            ) VALUES ($1, $2, $3, $4, $5, TRUE, TRUE)
+            ) VALUES ($1, $2, $3, $4, $5, TRUE, FALSE)
             RETURNING id, nombre, email
         `,
       [
