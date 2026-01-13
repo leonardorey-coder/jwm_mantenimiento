@@ -81,6 +81,17 @@ async function cargarEspaciosComunes() {
         window.appLoaderState.mantenimientosEspacios = mantenimientosEspacios;
       }
 
+      // Actualizar AppState global
+      if (window.AppState) {
+        window.AppState.espaciosComunes = espaciosComunes;
+        window.AppState.mantenimientosEspacios = mantenimientosEspacios;
+      }
+
+      // Poblar filtro de edificios para espacios comunes
+      if (window.poblarFiltroEdificiosEspacios) {
+        window.poblarFiltroEdificiosEspacios();
+      }
+
       // Sincronizar filtros y mostrar
       sincronizarEspaciosFiltrados();
       mostrarEspaciosComunes();
@@ -332,48 +343,82 @@ function mostrarEspaciosComunes() {
  * Obtener icono según tipo y nombre del espacio
  */
 function obtenerIconoEspacio(espacio) {
-  const nombreLower = espacio.nombre.toLowerCase();
-  const tipo = espacio.tipo ? espacio.tipo.toLowerCase() : '';
+  const nombreLower = espacio.nombre.toLowerCase().trim();
+  const tipo = espacio.tipo ? espacio.tipo.toLowerCase().trim() : '';
 
-  // Mapeo de iconos por nombre específico
-  const iconosPorNombre = {
-    restaurante: 'fa-utensils',
-    bar: 'fa-cocktail',
-    gimnasio: 'fa-dumbbell',
-    piscina: 'fa-swimming-pool',
-    spa: 'fa-spa',
-    lobby: 'fa-building',
-    lavandería: 'fa-tshirt',
-    lavanderia: 'fa-tshirt',
-    estacionamiento: 'fa-car',
-    parking: 'fa-car',
-    jardín: 'fa-tree',
-    jardin: 'fa-tree',
-    terraza: 'fa-umbrella-beach',
-    salón: 'fa-users',
-    salon: 'fa-users',
-    'business center': 'fa-laptop',
-    'centro de negocios': 'fa-laptop',
-    tienda: 'fa-shopping-bag',
-    'gift shop': 'fa-shopping-bag',
-    biblioteca: 'fa-book',
-    playground: 'fa-child',
-    'área de juegos': 'fa-child',
-    'area de juegos': 'fa-child',
-  };
+  // Mapeo de iconos por palabras clave específicas (orden de prioridad)
+  // Las coincidencias más específicas deben ir primero
+  const iconosPorPalabraClave = [
+    // Piscinas y albercas (prioridad alta para evitar confusión con gimnasio)
+    { keywords: ['alberca', 'piscina', 'pool', 'swimming'], icono: 'fa-swimming-pool' },
+    
+    // Spa y wellness
+    { keywords: ['spa', 'wellness', 'masaje', 'relajacion', 'temazcal', 'jacuzzi'], icono: 'fa-spa' },
+    
+    // Gimnasio y fitness
+    { keywords: ['gimnasio', 'gym', 'fitness', 'vitality'], icono: 'fa-dumbbell' },
+    
+    // Restaurantes y comida
+    { keywords: ['restaurante', 'cocina', 'comedor', 'buffet', 'desayuno', 'carniceria', 'pasteleria', 'chocolateria', 'panaderia', 'linea caliente', 'linea fria', 'cafe des artistes', 'auka deli', 'niparaya', 'kaha'], icono: 'fa-utensils' },
+    
+    // Bares y bebidas
+    { keywords: ['bar', 'cocktail', 'lounge'], icono: 'fa-cocktail' },
+    
+    // Eventos y salones
+    { keywords: ['salon', 'conferencia', 'banquete', 'reunion', 'junta', 'kumat', 'cine', 'sala vip', 'sala de juntas', 'matku', 'board room', 'eventos'], icono: 'fa-users' },
+    
+    // Lavandería
+    { keywords: ['lavanderia', 'lavandería', 'roperia', 'vestidor', 'locker'], icono: 'fa-tshirt' },
+    
+    // Estacionamiento
+    { keywords: ['estacionamiento', 'parking', 'parqueo'], icono: 'fa-car' },
+    
+    // Jardines y exteriores
+    { keywords: ['jardin', 'jardín', 'jardines', 'terraza', 'huerto', 'jardinera', 'espejo de agua', 'duela'], icono: 'fa-tree' },
+    
+    // Playground y áreas de juego
+    { keywords: ['playground', 'área de juegos', 'area de juegos', 'game room'], icono: 'fa-child' },
+    
+    // Business center y oficinas
+    { keywords: ['business center', 'centro de negocios', 'oficina', 'consultorio'], icono: 'fa-laptop' },
+    
+    // Tiendas
+    { keywords: ['tienda', 'gift shop', 'boutique'], icono: 'fa-shopping-bag' },
+    
+    // Biblioteca
+    { keywords: ['biblioteca'], icono: 'fa-book' },
+    
+    // Baños y servicios sanitarios
+    { keywords: ['bano', 'baño', 'sanitario', 'wc'], icono: 'fa-shower' },
+    
+    // Servicios técnicos
+    { keywords: ['cuarto de filtro', 'carcamo', 'tanque', 'cisterna', 'sala de maquinas', 'chiller', 'calentador', 'bomba', 'osmos', 'planta', 'subestacion', 'banco de baterias', 'site sistemas'], icono: 'fa-cog' },
+    
+    // Almacenes y bodegas
+    { keywords: ['bodega', 'almacen', 'almacén'], icono: 'fa-archive' },
+    
+    // Lobby y recepción
+    { keywords: ['lobby', 'recepcion', 'recepción'], icono: 'fa-building' },
+    
+    // Pasillos y áreas comunes
+    { keywords: ['pasillo', 'corredor', 'hall'], icono: 'fa-door-open' },
+  ];
 
-  // Buscar por nombre exacto o parcial
-  for (const [key, icono] of Object.entries(iconosPorNombre)) {
-    if (nombreLower.includes(key)) {
-      return icono;
+  // Buscar coincidencia por palabra clave (prioridad a coincidencias más específicas)
+  for (const { keywords, icono } of iconosPorPalabraClave) {
+    for (const keyword of keywords) {
+      if (nombreLower.includes(keyword)) {
+        return icono;
+      }
     }
   }
 
-  // Mapeo por tipo si no se encontró por nombre
+  // Mapeo por tipo si no se encontró por nombre (fallback)
   const iconosPorTipo = {
+    recreativo: 'fa-swimming-pool', // Cambiado de dumbbell a swimming-pool como default
     restaurante: 'fa-utensils',
-    recreativo: 'fa-dumbbell',
     servicio: 'fa-concierge-bell',
+    eventos: 'fa-users',
     exterior: 'fa-tree',
     comun: 'fa-building',
   };

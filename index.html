@@ -639,18 +639,25 @@
                 placeholder="Buscar por servicio..."
               />
             </div>
-            <div class="select-container premium-select">
-              <select id="filtroTipoEspacio">
-                <option value="">Todos los espacios</option>
-                <option value="comun">Áreas Comunes</option>
-                <option value="recreativo">Recreación</option>
-                <option value="restaurante">Restaurantes</option>
-                <option value="eventos">Eventos</option>
-                <option value="servicios">Servicios</option>
-                <option value="exterior">Exterior</option>
-              </select>
-              <i class="fas fa-chevron-down icono-select"></i>
-            </div>
+          <div class="select-container premium-select">
+            <select id="filtroEdificioEspacio">
+              <option value="">Todos los edificios</option>
+              <!-- Los edificios se cargarán dinámicamente -->
+            </select>
+            <i class="fas fa-chevron-down icono-select"></i>
+          </div>
+          <div class="select-container premium-select">
+            <select id="filtroTipoEspacio">
+              <option value="">Todos los espacios</option>
+              <option value="comun">Áreas Comunes</option>
+              <option value="recreativo">Recreación</option>
+              <option value="restaurante">Restaurantes</option>
+              <option value="eventos">Eventos</option>
+              <option value="servicios">Servicios</option>
+              <option value="exterior">Exterior</option>
+            </select>
+            <i class="fas fa-chevron-down icono-select"></i>
+          </div>
             <div
               class="select-container premium-select"
               data-semaforo-wrapper="prioridad"

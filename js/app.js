@@ -1084,6 +1084,7 @@ function setupSearchListeners() {
   // Filtros de espacios comunes
   const buscarEspacioInput = document.getElementById('buscarEspacio');
   const buscarServicioInput = document.getElementById('buscarServicioEspacio');
+  const filtroEdificioEspacioSelect = document.getElementById('filtroEdificioEspacio');
   const filtroTipoSelect = document.getElementById('filtroTipoEspacio');
   const filtroPrioridadEspacioSelect = document.getElementById(
     'filtroPrioridadEspacio'
@@ -1096,6 +1097,8 @@ function setupSearchListeners() {
     buscarEspacioInput.addEventListener('input', filterEspaciosComunes);
   if (buscarServicioInput)
     buscarServicioInput.addEventListener('input', filterEspaciosComunes);
+  if (filtroEdificioEspacioSelect)
+    filtroEdificioEspacioSelect.addEventListener('change', filterEspaciosComunes);
   if (filtroTipoSelect)
     filtroTipoSelect.addEventListener('change', filterEspaciosComunes);
 
@@ -1176,6 +1179,7 @@ function filterEspaciosComunes() {
     document.getElementById('buscarEspacio')?.value.toLowerCase() || '';
   const buscarServicio =
     document.getElementById('buscarServicioEspacio')?.value.toLowerCase() || '';
+  const filtroEdificio = document.getElementById('filtroEdificioEspacio')?.value || '';
   const tipoFiltro = document.getElementById('filtroTipoEspacio')?.value || '';
   const prioridadFiltro =
     document.getElementById('filtroPrioridadEspacio')?.value || '';
@@ -1189,6 +1193,8 @@ function filterEspaciosComunes() {
   const espaciosFiltrados = espaciosComunes.filter((espacio) => {
     const coincideNombre =
       !buscarEspacio || espacio.nombre.toLowerCase().includes(buscarEspacio);
+    const coincideEdificio =
+      !filtroEdificio || espacio.edificio_id?.toString() === filtroEdificio || espacio.edificio_nombre === filtroEdificio;
     const coincideTipo = !tipoFiltro || espacio.tipo === tipoFiltro;
     const coincideEstado = !estadoFiltro || espacio.estado === estadoFiltro;
 
@@ -1221,6 +1227,7 @@ function filterEspaciosComunes() {
 
     return (
       coincideNombre &&
+      coincideEdificio &&
       coincideTipo &&
       coincideEstado &&
       coincideServicio &&
@@ -2138,6 +2145,52 @@ function poblarFiltroEdificiosChecklist() {
 
   console.log('🏢 [APP.JS] Filtro de edificios poblado:', edificios);
 }
+
+/**
+ * Poblar el select de filtro de edificios para espacios comunes
+ */
+function poblarFiltroEdificiosEspacios() {
+  const select = document.getElementById('filtroEdificioEspacio');
+  if (!select) return;
+
+  // Limpiar opciones existentes (excepto la primera "Todos")
+  select.innerHTML = '<option value="">Todos los edificios</option>';
+
+  // Obtener edificios desde AppState o extraer de los espacios comunes
+  let edificios = [];
+
+  if (AppState.edificios && AppState.edificios.length > 0) {
+    edificios = AppState.edificios.map((e) => ({ id: e.id, nombre: e.nombre }));
+  } else {
+    // Extraer edificios únicos de los espacios comunes
+    const espaciosComunes = AppState.espaciosComunes || [];
+    const edificiosMap = new Map();
+    espaciosComunes.forEach((espacio) => {
+      if (espacio.edificio_id && espacio.edificio_nombre) {
+        edificiosMap.set(espacio.edificio_id, espacio.edificio_nombre);
+      }
+    });
+    edificios = Array.from(edificiosMap.entries()).map(([id, nombre]) => ({
+      id: parseInt(id),
+      nombre: nombre,
+    }));
+  }
+
+  // Agregar opciones ordenadas por nombre
+  edificios
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    .forEach((edificio) => {
+      const option = document.createElement('option');
+      option.value = edificio.id.toString();
+      option.textContent = edificio.nombre;
+      select.appendChild(option);
+    });
+
+  console.log('🏢 [APP.JS] Filtro de edificios (espacios) poblado:', edificios.length);
+}
+
+// Hacer la función disponible globalmente
+window.poblarFiltroEdificiosEspacios = poblarFiltroEdificiosEspacios;
 
 /**
  * Poblar el select de filtro de editores con usuarios de la BD
@@ -4199,6 +4252,9 @@ async function loadEspaciosComunesData() {
       console.log(
         `✅ [ESPACIOS] Datos cargados: ${AppState.espaciosComunes.length} espacios, ${AppState.mantenimientosEspacios.length} mantenimientos.`
       );
+
+      // Poblar filtro de edificios para espacios comunes
+      poblarFiltroEdificiosEspacios();
 
       // Usar la nueva función de renderizado si está disponible
       if (window.cargarEspaciosComunes) {

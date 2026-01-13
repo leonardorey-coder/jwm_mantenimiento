@@ -1090,6 +1090,10 @@ body.admin .tab-content.admin-only.active {
   grid-template-columns: repeat(6, 1fr);
 }
 
+#contenedorFiltrosEspacios {
+  grid-template-columns: repeat(6, 1fr);
+}
+
 #tab-checklist .busqueda-filtros {
   margin-top: 1.5rem;
   grid-template-columns: repeat(6, 1fr);
@@ -1098,6 +1102,10 @@ body.admin .tab-content.admin-only.active {
 @media (max-width: 1024px) {
   .busqueda-filtros {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  #contenedorFiltrosEspacios {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
@@ -1123,6 +1131,10 @@ body.admin .tab-content.admin-only.active {
   }
 
   #contenedorFiltrosTareas {
+    grid-template-columns: 1fr;
+  }
+  
+  #contenedorFiltrosEspacios {
     grid-template-columns: 1fr;
   }
 
