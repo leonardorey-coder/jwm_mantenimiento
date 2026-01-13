@@ -99,9 +99,13 @@ toggleButtons.forEach((button) => {
     if (mode === 'login') {
       loginForm.classList.add('active');
       registerForm.classList.remove('active');
+      // Limpiar formulario de registro
+      registerForm?.reset();
     } else {
       registerForm.classList.add('active');
       loginForm.classList.remove('active');
+      // Limpiar formulario de login
+      loginForm?.reset();
     }
 
     // Limpiar mensajes
@@ -585,6 +589,8 @@ function setupForgotPasswordModal() {
     openForgotPasswordModal();
   });
 
+  setupTermsLink();
+
   modal.addEventListener('click', (event) => {
     if (event.target.id === 'forgotPasswordModal') {
       closeForgotPasswordModal();
@@ -761,13 +767,146 @@ function isValidEmail(email) {
   return re.test(email);
 }
 
-// Prevenir envío del formulario de registro (ya que está deshabilitado)
-registerForm?.addEventListener?.('submit', (e) => {
+function setupTermsLink() {
+  const termsLink = document.getElementById('termsLink');
+  if (!termsLink) return;
+
+  termsLink.addEventListener('click', (event) => {
+    event.preventDefault();
+
+    // Solo abrir en Electron, no en navegador web
+    if (window.electronAPI && window.electronAPI.shell) {
+      // Abrir términos y condiciones en Electron
+      const termsUrl = 'https://www.jwmarriott.com/es/legal/terms-and-conditions.html';
+      window.electronAPI.shell
+        .openExternal(termsUrl)
+        .then((result) => {
+          if (!result.success) {
+            console.warn('⚠️ No se pudo abrir términos y condiciones:', result.error);
+            showMessage(
+              'No se pudo abrir los términos y condiciones. Contacta al administrador.',
+              'info'
+            );
+          }
+        })
+        .catch((err) => {
+          console.warn('⚠️ Error abriendo términos y condiciones:', err);
+          showMessage(
+            'No se pudo abrir los términos y condiciones. Contacta al administrador.',
+            'info'
+          );
+        });
+    } else {
+      // En navegador web, no hacer nada o mostrar mensaje
+      showMessage(
+        'Para ver los términos y condiciones, contacta al administrador.',
+        'info'
+      );
+    }
+  });
+}
+
+// Manejar envío del formulario de registro
+registerForm?.addEventListener?.('submit', async (e) => {
   e.preventDefault();
-  showMessage(
-    'El registro está deshabilitado. Contacta al administrador.',
-    'info'
-  );
+  console.log('🟢 [LOGIN-JWT] Formulario de registro enviado');
+
+  const nombre = document.getElementById('registerNombre')?.value.trim();
+  const email = document.getElementById('registerEmail')?.value.trim();
+  const telefono = document.getElementById('registerTelefono')?.value.trim() || null;
+  const rol = document.getElementById('registerRol')?.value.trim();
+  const password = document.getElementById('registerPassword')?.value;
+  const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
+  const termsAccepted = document.getElementById('registerTerms')?.checked;
+
+  if (!nombre || !email || !password || !confirmPassword || !rol) {
+    showMessage('Por favor completa todos los campos obligatorios', 'error');
+    return;
+  }
+
+  if (!termsAccepted) {
+    showMessage('Debes aceptar los términos y condiciones', 'error');
+    return;
+  }
+
+  if (password.length < 8) {
+    showMessage('La contraseña debe tener al menos 8 caracteres', 'error');
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showMessage('Las contraseñas no coinciden', 'error');
+    return;
+  }
+
+  if (!isValidEmail(email)) {
+    showMessage('Ingresa un correo electrónico válido', 'error');
+    return;
+  }
+
+  const submitBtn = registerForm.querySelector('.btn-submit');
+  const originalHTML = submitBtn?.innerHTML;
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
+  }
+
+  try {
+    console.log('🟢 [LOGIN-JWT] Enviando petición de registro a:', `${API_BASE_URL}/api/auth/register`);
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        nombre,
+        email: email.toLowerCase(),
+        password,
+        telefono: telefono,
+        rol: rol,
+      }),
+    });
+
+    console.log('🟢 [LOGIN-JWT] Respuesta recibida, status:', response.status);
+    const data = await response.json();
+    console.log('🟢 [LOGIN-JWT] Data recibida:', {
+      success: data.success,
+      mensaje: data.mensaje,
+    });
+
+    if (!response.ok) {
+      throw new Error(data.mensaje || data.error || 'Error al registrar usuario');
+    }
+
+    if (data.success) {
+      console.log('🟢 [LOGIN-JWT] Registro exitoso');
+      showMessage(
+        data.mensaje || 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.',
+        'success'
+      );
+
+      // Cambiar al formulario de login después de 2 segundos
+      setTimeout(() => {
+        const loginButton = document.querySelector('[data-mode="login"]');
+        if (loginButton) {
+          loginButton.click();
+        }
+        // Pre-llenar el número de empleado en el login
+        const loginEmail = document.getElementById('loginEmail');
+        if (loginEmail && (data.numero_empleado || data.usuario?.numero_empleado)) {
+          loginEmail.value = data.numero_empleado || data.usuario.numero_empleado;
+        }
+      }, 2000);
+    }
+  } catch (error) {
+    console.error('Error en registro:', error);
+    showMessage(error.message, 'error');
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHTML || '<i class="fas fa-user-plus"></i> Crear cuenta';
+    }
+  }
 });
 
 function setupForcePasswordModal() {
@@ -790,7 +929,7 @@ function showForcePasswordModal(usuario) {
   );
   modal.classList.add('show');
   lockBodyScrollAuth();
-  document.getElementById('forceCurrentPassword')?.focus();
+  document.getElementById('forceNewPassword')?.focus();
 }
 
 function hideForcePasswordModal() {
@@ -800,7 +939,6 @@ function hideForcePasswordModal() {
   setTimeout(() => {
     modal.classList.remove('show', 'closing');
     [
-      'forceCurrentPassword',
       'forceNewPassword',
       'forceConfirmPassword',
     ].forEach((id) => {
@@ -837,9 +975,6 @@ async function handleForcePasswordSubmit(event) {
     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
   }
 
-  const passwordActual = document
-    .getElementById('forceCurrentPassword')
-    ?.value.trim();
   const nuevoPassword = document
     .getElementById('forceNewPassword')
     ?.value.trim();
@@ -847,7 +982,7 @@ async function handleForcePasswordSubmit(event) {
     .getElementById('forceConfirmPassword')
     ?.value.trim();
 
-  if (!passwordActual || !nuevoPassword || !confirmarPassword) {
+  if (!nuevoPassword || !confirmarPassword) {
     setForcePasswordFeedback(
       'Completa todos los campos para continuar.',
       'error'
@@ -889,7 +1024,6 @@ async function handleForcePasswordSubmit(event) {
       {
         method: 'POST',
         body: JSON.stringify({
-          passwordActual,
           nuevoPassword,
           confirmarPassword,
         }),

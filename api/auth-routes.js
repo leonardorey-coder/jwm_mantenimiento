@@ -474,6 +474,236 @@ async function contactoAdmin(req, res) {
 }
 
 /**
+ * POST /api/auth/register
+ * Registrar nuevo usuario
+ */
+async function register(req, res) {
+  console.log('🔵 [AUTH-ROUTES] Registro iniciado');
+  const { nombre, email, password, telefono, rol } = req.body;
+
+  if (!nombre || !email || !password) {
+    console.log('🔴 [AUTH-ROUTES] Datos incompletos');
+    return res.status(400).json({
+      error: 'Datos incompletos',
+      mensaje: 'Nombre, correo electrónico y contraseña son requeridos',
+    });
+  }
+
+  const nombreSanitizado = nombre.trim();
+  const emailSanitizado = email.trim().toLowerCase();
+  const passwordSanitizado = password.trim();
+  const telefonoSanitizado = telefono?.trim() || null;
+
+  if (!nombreSanitizado || !emailSanitizado || !passwordSanitizado) {
+    return res.status(400).json({
+      error: 'Datos inválidos',
+      mensaje: 'Los campos obligatorios no pueden estar vacíos',
+    });
+  }
+
+  if (passwordSanitizado.length < 8) {
+    return res.status(400).json({
+      error: 'Contraseña débil',
+      mensaje: 'La contraseña debe tener al menos 8 caracteres',
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(emailSanitizado)) {
+    return res.status(400).json({
+      error: 'Email inválido',
+      mensaje: 'Ingresa un correo electrónico válido',
+    });
+  }
+
+  try {
+    // Verificar si el email ya existe
+    const emailCheck = await pool.query(
+      'SELECT id FROM usuarios WHERE LOWER(email) = LOWER($1)',
+      [emailSanitizado]
+    );
+
+    if (emailCheck.rows.length > 0) {
+      console.log('🔴 [AUTH-ROUTES] Email ya existe');
+      return res.status(409).json({
+        error: 'Email ya registrado',
+        mensaje: 'Este correo electrónico ya está registrado en el sistema',
+      });
+    }
+
+    // Validar y obtener el rol seleccionado
+    const rolSeleccionado = rol?.trim().toUpperCase() || 'TECNICO';
+    
+    // Validar que el rol sea permitido para registro público
+    // TODO: Futura implementación - Permitir registro como ADMIN
+    // Cuando se implemente, agregar 'ADMIN' a rolesPermitidos y agregar validación adicional
+    const rolesPermitidos = ['TECNICO', 'SUPERVISOR'];
+    if (!rolesPermitidos.includes(rolSeleccionado)) {
+      return res.status(400).json({
+        error: 'Rol no permitido',
+        mensaje: 'El rol seleccionado no está disponible para registro público',
+      });
+    }
+
+    // Obtener el rol_id del rol seleccionado
+    const rolResult = await pool.query(
+      'SELECT id, nombre FROM roles WHERE LOWER(nombre) = LOWER($1)',
+      [rolSeleccionado]
+    );
+
+    if (rolResult.rows.length === 0) {
+      console.error(`❌ [AUTH-ROUTES] Rol ${rolSeleccionado} no encontrado`);
+      return res.status(500).json({
+        error: 'Error del servidor',
+        mensaje: 'Error al configurar el rol del usuario',
+      });
+    }
+
+    const rolId = rolResult.rows[0].id;
+    const rolNombre = rolResult.rows[0].nombre.toUpperCase();
+
+    // Determinar el prefijo según el rol (ADM para admin, EMP para otros)
+    const prefijo = rolNombre === 'ADMIN' ? 'ADM' : 'EMP';
+
+    // Hashear la contraseña
+    const hashResult = await pool.query('SELECT hashear_password($1) as hash', [
+      passwordSanitizado,
+    ]);
+    const passwordHash = hashResult.rows[0].hash;
+
+    // Crear el usuario (sin número de empleado primero)
+    await pool.query('BEGIN');
+
+    const usuarioResult = await pool.query(
+      `
+            INSERT INTO usuarios (
+                nombre,
+                email,
+                password_hash,
+                rol_id,
+                telefono,
+                activo,
+                requiere_cambio_password
+            ) VALUES ($1, $2, $3, $4, $5, TRUE, TRUE)
+            RETURNING id, nombre, email
+        `,
+      [
+        nombreSanitizado,
+        emailSanitizado,
+        passwordHash,
+        rolId,
+        telefonoSanitizado,
+      ]
+    );
+
+    const nuevoUsuarioId = usuarioResult.rows[0].id;
+
+    // Generar número de empleado automático basado en el ID real (3 dígitos)
+    const numeroEmpleadoGenerado = `${prefijo}-${String(nuevoUsuarioId).padStart(3, '0')}`;
+
+    // Verificar que el número generado no exista (por si acaso hay gaps en la secuencia)
+    let numeroEmpleadoFinal = numeroEmpleadoGenerado;
+    let intentos = 0;
+    while (intentos < 10) {
+      const checkNumero = await pool.query(
+        'SELECT id FROM usuarios WHERE numero_empleado = $1 AND id != $2',
+        [numeroEmpleadoFinal, nuevoUsuarioId]
+      );
+      if (checkNumero.rows.length === 0) {
+        break;
+      }
+      // Si existe, incrementar el contador
+      const numeroMatch = numeroEmpleadoFinal.match(/(ADM|EMP)-(\d+)/);
+      if (numeroMatch) {
+        const num = parseInt(numeroMatch[2]) + 1;
+        numeroEmpleadoFinal = `${prefijo}-${String(num).padStart(3, '0')}`;
+      } else {
+        numeroEmpleadoFinal = `${prefijo}-${String(nuevoUsuarioId + intentos + 1).padStart(3, '0')}`;
+      }
+      intentos++;
+    }
+
+    // Actualizar el número de empleado
+    await pool.query(
+      'UPDATE usuarios SET numero_empleado = $1 WHERE id = $2',
+      [numeroEmpleadoFinal, nuevoUsuarioId]
+    );
+
+    // Obtener el usuario completo con el número de empleado
+    const usuarioCompleto = await pool.query(
+      'SELECT id, nombre, email, numero_empleado FROM usuarios WHERE id = $1',
+      [nuevoUsuarioId]
+    );
+
+    // Registrar en auditoría
+    await pool.query(
+      `
+            INSERT INTO auditoria_usuarios (usuario_id, accion, descripcion, ip_address)
+            VALUES ($1, 'registro', $2, $3)
+        `,
+      [
+        nuevoUsuarioId,
+        `Usuario registrado desde el formulario público: ${nombreSanitizado}`,
+        obtenerIPCliente(req),
+      ]
+    );
+
+    await pool.query('COMMIT');
+
+    const nuevoUsuario = usuarioCompleto.rows[0];
+
+    console.log('✅ [AUTH-ROUTES] Usuario registrado exitosamente:', {
+      id: nuevoUsuario.id,
+      nombre: nuevoUsuario.nombre,
+      email: nuevoUsuario.email,
+      numero_empleado: nuevoUsuario.numero_empleado,
+    });
+
+    res.status(201).json({
+      success: true,
+      mensaje: 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.',
+      numero_empleado: nuevoUsuario.numero_empleado,
+      usuario: {
+        id: nuevoUsuario.id,
+        nombre: nuevoUsuario.nombre,
+        email: nuevoUsuario.email,
+        numero_empleado: nuevoUsuario.numero_empleado,
+      },
+    });
+  } catch (error) {
+    console.error('❌ [AUTH-ROUTES] Error en registro:', error);
+    try {
+      await pool.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('❌ [AUTH-ROUTES] Error al hacer rollback:', rollbackError);
+    }
+
+    // Manejar errores de constraint (email o numero_empleado duplicado)
+    if (error.code === '23505') {
+      const constraint = error.constraint || '';
+      if (constraint.includes('email')) {
+        return res.status(409).json({
+          error: 'Email ya registrado',
+          mensaje: 'Este correo electrónico ya está registrado en el sistema',
+        });
+      }
+      if (constraint.includes('numero_empleado')) {
+        // Si hay conflicto con número de empleado, intentar regenerar
+        console.warn('⚠️ [AUTH-ROUTES] Conflicto con número de empleado generado, reintentando...');
+        // Este caso es muy raro, pero si ocurre, el error se manejará como error del servidor
+      }
+    }
+
+    res.status(500).json({
+      error: 'Error del servidor',
+      mensaje: 'Error al registrar usuario. Intenta nuevamente.',
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+}
+
+/**
  * POST /api/auth/solicitar-acceso
  * Enviar solicitud de acceso al administrador
  */
@@ -524,7 +754,7 @@ async function solicitarAcceso(req, res) {
  */
 async function cambiarPasswordObligatorio(req, res) {
   const usuarioId = req.usuario?.id;
-  const { passwordActual, nuevoPassword, confirmarPassword } = req.body || {};
+  const { nuevoPassword, confirmarPassword } = req.body || {};
 
   if (!usuarioId) {
     return res.status(401).json({
@@ -533,22 +763,17 @@ async function cambiarPasswordObligatorio(req, res) {
     });
   }
 
-  if (!passwordActual || !nuevoPassword || !confirmarPassword) {
+  if (!nuevoPassword || !confirmarPassword) {
     return res.status(400).json({
       error: 'Datos incompletos',
-      mensaje: 'Debes proporcionar la contraseña actual y la nueva contraseña',
+      mensaje: 'Debes proporcionar la nueva contraseña y su confirmación',
     });
   }
 
-  const passwordActualSanitizado = passwordActual.trim();
   const nuevoPasswordSanitizado = nuevoPassword.trim();
   const confirmarPasswordSanitizado = confirmarPassword.trim();
 
-  if (
-    !passwordActualSanitizado ||
-    !nuevoPasswordSanitizado ||
-    !confirmarPasswordSanitizado
-  ) {
+  if (!nuevoPasswordSanitizado || !confirmarPasswordSanitizado) {
     return res.status(400).json({
       error: 'Datos inválidos',
       mensaje: 'Los campos no pueden estar vacíos',
@@ -588,18 +813,7 @@ async function cambiarPasswordObligatorio(req, res) {
 
     const usuario = userResult.rows[0];
 
-    const passwordValido = await pool.query(
-      'SELECT verificar_password($1, $2) as valido',
-      [passwordActualSanitizado, usuario.password_hash]
-    );
-
-    if (!passwordValido.rows[0].valido) {
-      return res.status(400).json({
-        error: 'Contraseña incorrecta',
-        mensaje: 'La contraseña actual no es válida',
-      });
-    }
-
+    // Verificar que la nueva contraseña no sea igual a la anterior
     const esIgualAlAnterior = await pool.query(
       'SELECT verificar_password($1, $2) as valido',
       [nuevoPasswordSanitizado, usuario.password_hash]
@@ -667,6 +881,7 @@ module.exports = {
   refresh,
   me,
   contactoAdmin,
+  register,
   solicitarAcceso,
   cambiarPasswordObligatorio,
 };

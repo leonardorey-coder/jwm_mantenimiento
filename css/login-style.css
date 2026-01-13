@@ -144,6 +144,7 @@
 .electron-app .login-container button,
 .electron-app .login-container a,
 .electron-app .login-container input,
+.electron-app .login-container select,
 .electron-app .login-container .theme-toggle-btn {
   -webkit-app-region: no-drag;
 }
@@ -333,6 +334,12 @@
   color: var(--login-btn-bg);
 }
 
+.required-asterisk {
+  color: var(--login-btn-bg);
+  font-weight: 700;
+  margin-left: 0.125rem;
+}
+
 /* ========================================
    INPUTS
    ======================================== */
@@ -358,6 +365,71 @@
 .form-input::placeholder {
   color: var(--login-text-secondary);
   opacity: 0.6;
+}
+
+/* Select wrapper */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.select-wrapper::after {
+  content: '';
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231e1e1e' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Select styling */
+.form-input[type='select'],
+.form-input select,
+select.form-input {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.5rem;
+  position: relative;
+  z-index: 1;
+  background-image: none;
+  width: 100%;
+}
+
+.form-input[type='select']:focus,
+.form-input select:focus,
+select.form-input:focus {
+  outline: none;
+}
+
+/* Asegurar que el select sea cliqueable en Electron */
+.electron-app select.form-input {
+  -webkit-app-region: no-drag !important;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  position: relative;
+  z-index: 10;
+}
+
+/* Asegurar que el form-group no bloquee eventos en Electron */
+.electron-app #registerForm .form-group {
+  -webkit-app-region: no-drag;
+}
+
+.electron-app #registerForm .form-group select {
+  -webkit-app-region: no-drag !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 /* Password input container */
@@ -538,100 +610,92 @@
 }
 
 /* ========================================
-   REGISTRO DESHABILITADO
+   REGISTRO - ESTILOS ADICIONALES
    ======================================== */
-.register-disabled {
-  display: none;
-}
-
-.register-disabled.active {
-  display: block;
-}
-
-.register-message-container {
-  text-align: center;
-  padding: 2rem 1rem;
-}
-
-.register-icon {
-  margin-bottom: 1.5rem;
-}
-
-.register-icon i {
-  font-size: 4rem;
-  color: var(--login-btn-bg);
-  opacity: 0.8;
-}
-
-.register-message-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--login-text);
-  margin-bottom: 1rem;
-}
-
-.register-message-text {
-  font-size: 1rem;
-  color: var(--login-text-secondary);
-  margin-bottom: 1rem;
-  line-height: 1.6;
-}
-
-.register-message-contact {
-  font-size: 0.95rem;
-  color: var(--login-text-secondary);
-  margin-bottom: 1.5rem;
-  font-weight: 500;
-}
-
-.register-admin-email {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--login-btn-bg);
-  color: #ffffff;
-  text-decoration: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-  margin-bottom: 1.5rem;
-}
-
-.register-admin-email:hover {
-  background: var(--login-btn-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-}
-
-.register-admin-email i {
-  font-size: 1.1rem;
-}
-
-.register-info {
-  display: flex;
-  align-items: flex-start;
+.register-form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 0.75rem;
-  padding: 1rem;
-  background: var(--login-input-bg);
-  border: 2px solid var(--login-border);
-  border-radius: 8px;
-  margin-top: 1.5rem;
-  text-align: left;
 }
 
-.register-info i {
+/* En Electron, siempre usar dos columnas */
+.electron-app .register-form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 600px) {
+  .register-form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+
+}
+
+#registerForm .form-group {
+  margin-bottom: 0;
+  margin-top: 0;
+  padding-top: 0;
+  animation: fadeInUp 0.5s ease both;
+}
+
+#registerForm .form-group label {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+#registerForm .form-options {
+  margin-top: 1.25rem;
+  margin-bottom: 0;
+}
+
+#registerForm .btn-submit {
+  margin-top: 1.25rem;
+}
+
+#registerForm .form-group:nth-child(1) {
+  animation-delay: 0.15s;
+}
+
+#registerForm .form-group:nth-child(2) {
+  animation-delay: 0.25s;
+}
+
+#registerForm .form-group:nth-child(3) {
+  animation-delay: 0.35s;
+}
+
+#registerForm .form-group:nth-child(4) {
+  animation-delay: 0.45s;
+}
+
+#registerForm .form-group:nth-child(5) {
+  animation-delay: 0.55s;
+}
+
+#registerForm .form-group:nth-child(6) {
+  animation-delay: 0.65s;
+}
+
+#registerForm .form-group:nth-child(7) {
+  animation-delay: 0.75s;
+}
+
+.terms-link {
   color: var(--login-btn-bg);
-  font-size: 1.2rem;
-  flex-shrink: 0;
-  margin-top: 0.2rem;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  cursor: pointer;
 }
 
-.register-info span {
-  font-size: 0.85rem;
-  color: var(--login-text-secondary);
-  line-height: 1.5;
+.terms-link:hover {
+  color: var(--login-btn-hover);
+  text-decoration: underline;
+}
+
+.remember-me .terms-link {
+  margin-left: 0.25rem;
 }
 
 /* ========================================

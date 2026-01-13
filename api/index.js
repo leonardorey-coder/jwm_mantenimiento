@@ -245,6 +245,7 @@ const mockData = {
 // RUTAS DE AUTENTICACIÓN (Públicas)
 // ====================================
 app.post('/api/auth/login', authRoutes.login);
+app.post('/api/auth/register', authRoutes.register);
 app.post('/api/auth/refresh', authRoutes.refresh);
 app.get('/api/auth/contacto-admin', authRoutes.contactoAdmin);
 app.post('/api/auth/solicitar-acceso', authRoutes.solicitarAcceso);

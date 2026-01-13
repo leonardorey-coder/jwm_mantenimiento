@@ -32,6 +32,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     check: () => ipcRenderer.invoke('updates:check'),
   },
 
+  // Métodos para abrir URLs externas
+  shell: {
+    openExternal: (url) => ipcRenderer.invoke('shell:openExternal', url),
+  },
+
   // Dialogos nativos del proceso principal (sincronicos)
   dialog: {
     alert: (message, options = {}) =>

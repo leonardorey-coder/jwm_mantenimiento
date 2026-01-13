@@ -98,31 +98,89 @@
       </button>
     </form>
 
-    <!-- Formulario de Registro (Deshabilitado - Contactar Administrador) -->
-    <div id="registerForm" class="auth-form register-disabled">
-      <div class="register-message-container">
-        <div class="register-icon">
-          <i class="fas fa-user-shield"></i>
+    <!-- Formulario de Registro -->
+    <form id="registerForm" class="auth-form">
+      <div class="register-form-grid">
+        <div class="form-group">
+          <label for="registerNombre">
+            <i class="fas fa-user"></i>
+            Nombre completo <span class="required-asterisk">*</span>
+          </label>
+          <input type="text" id="registerNombre" class="form-input" placeholder="Juan Leonardo Cruz" required />
         </div>
-        <h3 class="register-message-title">Registro Restringido</h3>
-        <p class="register-message-text">
-          El registro de nuevos usuarios está restringido por seguridad.
-        </p>
-        <p class="register-message-contact">
-          Para solicitar acceso al sistema, por favor contacta al
-          administrador:
-        </p>
-        <a href="mailto:fcruz@grupodiestra.com" class="register-admin-email">
-          <i class="fas fa-envelope"></i>
-          fcruz@grupodiestra.com
-        </a>
-        <div class="register-info">
-          <i class="fas fa-info-circle"></i>
-          <span>El administrador verificará tu identidad y asignará los permisos
-            correspondientes.</span>
+
+        <div class="form-group">
+          <label for="registerEmail">
+            <i class="fas fa-envelope"></i>
+            Correo electrónico <span class="required-asterisk">*</span>
+          </label>
+          <input type="email" id="registerEmail" class="form-input" placeholder="correo@ejemplo.com" required />
+        </div>
+
+        <div class="form-group">
+          <label for="registerTelefono">
+            <i class="fas fa-phone"></i>
+            Teléfono (opcional)
+          </label>
+          <input type="tel" id="registerTelefono" class="form-input" placeholder="624 237 0000" />
+        </div>
+
+        <div class="form-group">
+          <label for="registerRol">
+            <i class="fas fa-user-tag"></i>
+            Rol <span class="required-asterisk">*</span>
+          </label>
+          <div class="select-wrapper">
+            <select id="registerRol" class="form-input" required>
+              <option value="">Selecciona un rol</option>
+              <option value="TECNICO">Técnico</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <!-- TODO: Futura implementación - Permitir registro como ADMIN
+                   Cuando se implemente, agregar: <option value="ADMIN">Administrador</option>
+                   Nota: Requiere validación adicional y posible aprobación del administrador principal -->
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="registerPassword">
+            <i class="fas fa-lock"></i>
+            Contraseña <span class="required-asterisk">*</span>
+          </label>
+          <div class="password-input-container">
+            <input type="password" id="registerPassword" class="form-input" placeholder="Mínimo 8 caracteres" required minlength="8" />
+            <button type="button" class="toggle-password" data-target="registerPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="registerConfirmPassword">
+            <i class="fas fa-lock"></i>
+            Confirmar contraseña <span class="required-asterisk">*</span>
+          </label>
+          <div class="password-input-container">
+            <input type="password" id="registerConfirmPassword" class="form-input" placeholder="Repite la contraseña" required minlength="8" />
+            <button type="button" class="toggle-password" data-target="registerConfirmPassword">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="form-options">
+        <label class="remember-me">
+          <input type="checkbox" id="registerTerms" required />
+          <span>Acepto los <a href="#" id="termsLink" class="terms-link">términos y condiciones</a></span>
+        </label>
+      </div>
+
+      <button type="submit" class="btn-submit">
+        <i class="fas fa-user-plus"></i>
+        Crear cuenta
+      </button>
+    </form>
 
     <!-- Mensaje de error/éxito -->
     <div id="authMessage" class="auth-message"></div>
@@ -206,10 +264,6 @@
           </div>
         </div>
         <form id="forcePasswordForm" class="force-password-form" novalidate>
-          <label>
-            <span>Contraseña actual</span>
-            <input type="password" id="forceCurrentPassword" placeholder="••••••••" required />
-          </label>
           <label>
             <span>Nueva contraseña</span>
             <input type="password" id="forceNewPassword" placeholder="Mínimo 8 caracteres" required />

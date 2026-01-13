@@ -338,6 +338,17 @@ app.whenReady().then(async () => {
     ipcMain.handle('auth:get', async () => getAuthData());
     ipcMain.handle('auth:clear', async () => clearAuthData());
 
+    // Handler para abrir URLs externas
+    ipcMain.handle('shell:openExternal', async (event, url) => {
+      try {
+        shell.openExternal(url);
+        return { success: true };
+      } catch (error) {
+        console.error('Error abriendo URL externa:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
     // Handler para verificar actualizaciones desde GitHub Releases
     ipcMain.handle('updates:check', async () => {
       try {
