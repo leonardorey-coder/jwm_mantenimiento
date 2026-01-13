@@ -777,12 +777,16 @@ function setupTermsLink() {
     // Solo abrir en Electron, no en navegador web
     if (window.electronAPI && window.electronAPI.shell) {
       // Abrir términos y condiciones en Electron
-      const termsUrl = 'https://www.jwmarriott.com/es/legal/terms-and-conditions.html';
+      const termsUrl =
+        'https://www.jwmarriott.com/es/legal/terms-and-conditions.html';
       window.electronAPI.shell
         .openExternal(termsUrl)
         .then((result) => {
           if (!result.success) {
-            console.warn('⚠️ No se pudo abrir términos y condiciones:', result.error);
+            console.warn(
+              '⚠️ No se pudo abrir términos y condiciones:',
+              result.error
+            );
             showMessage(
               'No se pudo abrir los términos y condiciones. Contacta al administrador.',
               'info'
@@ -813,10 +817,13 @@ registerForm?.addEventListener?.('submit', async (e) => {
 
   const nombre = document.getElementById('registerNombre')?.value.trim();
   const email = document.getElementById('registerEmail')?.value.trim();
-  const telefono = document.getElementById('registerTelefono')?.value.trim() || null;
+  const telefono =
+    document.getElementById('registerTelefono')?.value.trim() || null;
   const rol = document.getElementById('registerRol')?.value.trim();
   const password = document.getElementById('registerPassword')?.value;
-  const confirmPassword = document.getElementById('registerConfirmPassword')?.value;
+  const confirmPassword = document.getElementById(
+    'registerConfirmPassword'
+  )?.value;
   const termsAccepted = document.getElementById('registerTerms')?.checked;
 
   if (!nombre || !email || !password || !confirmPassword || !rol) {
@@ -848,11 +855,15 @@ registerForm?.addEventListener?.('submit', async (e) => {
   const originalHTML = submitBtn?.innerHTML;
   if (submitBtn) {
     submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
+    submitBtn.innerHTML =
+      '<i class="fas fa-spinner fa-spin"></i> Creando cuenta...';
   }
 
   try {
-    console.log('🟢 [LOGIN-JWT] Enviando petición de registro a:', `${API_BASE_URL}/api/auth/register`);
+    console.log(
+      '🟢 [LOGIN-JWT] Enviando petición de registro a:',
+      `${API_BASE_URL}/api/auth/register`
+    );
     const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: {
@@ -875,13 +886,16 @@ registerForm?.addEventListener?.('submit', async (e) => {
     });
 
     if (!response.ok) {
-      throw new Error(data.mensaje || data.error || 'Error al registrar usuario');
+      throw new Error(
+        data.mensaje || data.error || 'Error al registrar usuario'
+      );
     }
 
     if (data.success) {
       console.log('🟢 [LOGIN-JWT] Registro exitoso');
       showMessage(
-        data.mensaje || 'Cuenta creada exitosamente. Puedes iniciar sesión ahora.',
+        data.mensaje ||
+          'Cuenta creada exitosamente. Puedes iniciar sesión ahora.',
         'success'
       );
 
@@ -893,8 +907,12 @@ registerForm?.addEventListener?.('submit', async (e) => {
         }
         // Pre-llenar el número de empleado en el login
         const loginEmail = document.getElementById('loginEmail');
-        if (loginEmail && (data.numero_empleado || data.usuario?.numero_empleado)) {
-          loginEmail.value = data.numero_empleado || data.usuario.numero_empleado;
+        if (
+          loginEmail &&
+          (data.numero_empleado || data.usuario?.numero_empleado)
+        ) {
+          loginEmail.value =
+            data.numero_empleado || data.usuario.numero_empleado;
         }
       }, 2000);
     }
@@ -904,7 +922,8 @@ registerForm?.addEventListener?.('submit', async (e) => {
   } finally {
     if (submitBtn) {
       submitBtn.disabled = false;
-      submitBtn.innerHTML = originalHTML || '<i class="fas fa-user-plus"></i> Crear cuenta';
+      submitBtn.innerHTML =
+        originalHTML || '<i class="fas fa-user-plus"></i> Crear cuenta';
     }
   }
 });
@@ -938,10 +957,7 @@ function hideForcePasswordModal() {
   modal.classList.add('closing');
   setTimeout(() => {
     modal.classList.remove('show', 'closing');
-    [
-      'forceNewPassword',
-      'forceConfirmPassword',
-    ].forEach((id) => {
+    ['forceNewPassword', 'forceConfirmPassword'].forEach((id) => {
       const input = document.getElementById(id);
       if (input) input.value = '';
     });

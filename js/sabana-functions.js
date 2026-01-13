@@ -459,16 +459,18 @@ function renderSabanaTable(items, archivada = false) {
                 <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
                 <td data-label="Programada">${fechaProgramada}</td>
                 <td data-label="Realizada">
-                    ${item.fecha_realizado
-          ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
-          : '<span style="color: #999;">-</span>'
-        }
+                    ${
+                      item.fecha_realizado
+                        ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
+                        : '<span style="color: #999;">-</span>'
+                    }
                 </td>
                 <td data-label="Responsable">
-                    ${item.responsable_nombre || item.responsable
-          ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
-          : '<span style="color: #999;">-</span>'
-        }
+                    ${
+                      item.responsable_nombre || item.responsable
+                        ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
+                        : '<span style="color: #999;">-</span>'
+                    }
                 </td>
                 <td data-label="Observaciones">
                     <input 
@@ -644,9 +646,9 @@ async function toggleRealizadoSabana(itemId, realizado) {
           if (fechaRealizadoCell) {
             const fechaRealizado = data.item.fecha_realizado
               ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', {
-                dateStyle: 'short',
-                timeStyle: 'short',
-              })
+                  dateStyle: 'short',
+                  timeStyle: 'short',
+                })
               : null;
 
             fechaRealizadoCell.innerHTML = fechaRealizado
@@ -917,7 +919,9 @@ async function abrirModalNuevaSabana() {
   }
 
   // Inicializar date picker con fecha de hoy en formato local
-  const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+  const inputFechaProgramada = document.getElementById(
+    'inputFechaProgramadaSabana'
+  );
   if (inputFechaProgramada) {
     const hoy = new Date();
     const fechaLocal = hoy.toISOString().split('T')[0]; // YYYY-MM-DD format
@@ -1111,7 +1115,9 @@ async function confirmarNuevaSabana() {
   let nombreServicio = inputNombre?.value.trim();
   const inputNotas = document.getElementById('inputNotasSabana');
   const notas = inputNotas?.value.trim() || null;
-  const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+  const inputFechaProgramada = document.getElementById(
+    'inputFechaProgramadaSabana'
+  );
   const fechaProgramada = inputFechaProgramada?.value || null; // YYYY-MM-DD
   const switchArchivar = document.getElementById('switchArchivarActual');
   const debeArchivarActual = switchArchivar?.checked || false;
@@ -1152,7 +1158,7 @@ async function confirmarNuevaSabana() {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-            (errorData.error || 'desconocido')
+              (errorData.error || 'desconocido')
           );
         }
 
@@ -1290,7 +1296,9 @@ async function verHistorialServicios() {
     } else {
       listaContainer.innerHTML = historial
         .map((entry) => {
-          const fechaDisplay = formatFechaCorta(entry.fecha_archivado || entry.fecha_creacion);
+          const fechaDisplay = formatFechaCorta(
+            entry.fecha_archivado || entry.fecha_creacion
+          );
           const porcentaje = parseFloat(entry.progreso_porcentaje) || 0;
           const creadorInfo = entry.creador_nombre
             ? `<span class="historial-creador"><i class="fas fa-user"></i> ${Object.assign(document.createElement('div'), { textContent: entry.creador_nombre }).innerHTML}</span>`
@@ -1863,17 +1871,17 @@ async function exportarSabanaExcel() {
     currentSabanaItems.forEach((item, index) => {
       const fechaProgramada = item.fecha_programada
         ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-        })
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          })
         : '-';
 
       const fechaRealizado = item.fecha_realizado
         ? new Date(item.fecha_realizado).toLocaleString('es-MX', {
-          dateStyle: 'short',
-          timeStyle: 'short',
-        })
+            dateStyle: 'short',
+            timeStyle: 'short',
+          })
         : '-';
 
       const responsable = item.responsable_nombre || item.responsable || '-';
@@ -2075,7 +2083,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-            (errorData.error || 'desconocido')
+              (errorData.error || 'desconocido')
           );
         }
 
@@ -2115,7 +2123,9 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
     // 2. Crear nueva sábana
     const inputNotas = document.getElementById('inputNotasSabana');
     const notas = inputNotas?.value.trim() || null;
-    const inputFechaProgramada = document.getElementById('inputFechaProgramadaSabana');
+    const inputFechaProgramada = document.getElementById(
+      'inputFechaProgramadaSabana'
+    );
     const fechaProgramada = inputFechaProgramada?.value || null; // YYYY-MM-DD
 
     const servicioId =

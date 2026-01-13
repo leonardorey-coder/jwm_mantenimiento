@@ -363,11 +363,11 @@ try {
 
 ---
 
-**Fecha de testing**: ******\_******
-**Testeado por**: ******\_******
-**Navegador**: ******\_******
-**Versión**: ******\_******
-**Sistema Operativo**: ******\_******
+**Fecha de testing**: **\*\***\_**\*\***
+**Testeado por**: **\*\***\_**\*\***
+**Navegador**: **\*\***\_**\*\***
+**Versión**: **\*\***\_**\*\***
+**Sistema Operativo**: **\*\***\_**\*\***
 
 ## 🔧 Comandos Útiles para Testing
 

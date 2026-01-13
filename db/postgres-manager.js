@@ -1,7 +1,12 @@
 const { Pool, types } = require('pg');
 const fs = require('fs');
 const path = require('path');
-const { dbConfig, validateConfig, displayConfig, isLocal } = require('./config');
+const {
+  dbConfig,
+  validateConfig,
+  displayConfig,
+  isLocal,
+} = require('./config');
 
 // Configurar node-postgres para interpretar TIMESTAMP WITHOUT TIME ZONE como UTC
 // SOLO en producción (Neon almacena en UTC), no en desarrollo local
@@ -595,9 +600,9 @@ class PostgresManager {
         porcentaje:
           estadisticas.total > 0
             ? (
-              ((estadisticas[estado] || 0) / estadisticas.total) *
-              100
-            ).toFixed(1)
+                ((estadisticas[estado] || 0) / estadisticas.total) *
+                100
+              ).toFixed(1)
             : 0,
       };
     });
@@ -2158,7 +2163,7 @@ class PostgresManager {
         if (
           !cuarto.fecha_ultima_edicion ||
           new Date(row.fecha_ultima_edicion) >
-          new Date(cuarto.fecha_ultima_edicion)
+            new Date(cuarto.fecha_ultima_edicion)
         ) {
           cuarto.ultimo_editor = row.ultimo_editor;
           cuarto.fecha_ultima_edicion = row.fecha_ultima_edicion;

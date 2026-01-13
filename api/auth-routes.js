@@ -533,7 +533,7 @@ async function register(req, res) {
 
     // Validar y obtener el rol seleccionado
     const rolSeleccionado = rol?.trim().toUpperCase() || 'TECNICO';
-    
+
     // Validar que el rol sea permitido para registro público
     // TODO: Futura implementación - Permitir registro como ADMIN
     // Cuando se implemente, agregar 'ADMIN' a rolesPermitidos y agregar validación adicional
@@ -626,10 +626,10 @@ async function register(req, res) {
     }
 
     // Actualizar el número de empleado
-    await pool.query(
-      'UPDATE usuarios SET numero_empleado = $1 WHERE id = $2',
-      [numeroEmpleadoFinal, nuevoUsuarioId]
-    );
+    await pool.query('UPDATE usuarios SET numero_empleado = $1 WHERE id = $2', [
+      numeroEmpleadoFinal,
+      nuevoUsuarioId,
+    ]);
 
     // Obtener el usuario completo con el número de empleado
     const usuarioCompleto = await pool.query(
@@ -691,7 +691,9 @@ async function register(req, res) {
       }
       if (constraint.includes('numero_empleado')) {
         // Si hay conflicto con número de empleado, intentar regenerar
-        console.warn('⚠️ [AUTH-ROUTES] Conflicto con número de empleado generado, reintentando...');
+        console.warn(
+          '⚠️ [AUTH-ROUTES] Conflicto con número de empleado generado, reintentando...'
+        );
         // Este caso es muy raro, pero si ocurre, el error se manejará como error del servidor
       }
     }

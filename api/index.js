@@ -41,14 +41,19 @@ if (!uploadthingToken) {
     const envPath = path.join(__dirname, '..', '.env.local');
     if (fs.existsSync(envPath)) {
       const envContent = fs.readFileSync(envPath, 'utf8');
-      const match = envContent.match(/^UPLOADTHING_TOKEN=['\"]?([^'\"\\n]+)['\"]?/m);
+      const match = envContent.match(
+        /^UPLOADTHING_TOKEN=['\"]?([^'\"\\n]+)['\"]?/m
+      );
       if (match) {
         uploadthingToken = match[1].trim();
         console.log('✅ UPLOADTHING_TOKEN cargado desde .env.local');
       }
     }
   } catch (e) {
-    console.warn('⚠️ No se pudo leer UPLOADTHING_TOKEN de .env.local:', e.message);
+    console.warn(
+      '⚠️ No se pudo leer UPLOADTHING_TOKEN de .env.local:',
+      e.message
+    );
   }
 }
 
@@ -648,12 +653,10 @@ app.get('/api/mantenimientos', async (req, res) => {
     }
   } catch (error) {
     console.error('Error al obtener mantenimientos:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener mantenimientos',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener mantenimientos',
+      details: error.message,
+    });
   }
 });
 
@@ -1339,12 +1342,10 @@ app.get('/api/espacios-comunes', async (req, res) => {
     }
   } catch (error) {
     console.error('❌ Error al obtener espacios comunes:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener espacios comunes',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener espacios comunes',
+      details: error.message,
+    });
   }
 });
 
@@ -1370,12 +1371,10 @@ app.get('/api/espacios-comunes/:id', async (req, res) => {
     }
   } catch (error) {
     console.error('Error al obtener espacio común:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener espacio común',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener espacio común',
+      details: error.message,
+    });
   }
 });
 
@@ -1466,12 +1465,10 @@ app.get('/api/mantenimientos/espacios', async (req, res) => {
     }
   } catch (error) {
     console.error('Error al obtener mantenimientos de espacios:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener mantenimientos de espacios',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener mantenimientos de espacios',
+      details: error.message,
+    });
   }
 });
 
@@ -1569,12 +1566,10 @@ app.post(
       }
     } catch (error) {
       console.error('❌ Error al crear mantenimiento de espacio común:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Error al crear mantenimiento',
-          details: error.message,
-        });
+      res.status(500).json({
+        error: 'Error al crear mantenimiento',
+        details: error.message,
+      });
     }
   }
 );
@@ -1591,7 +1586,8 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
       return res.status(500).json({ error: 'Base de datos no disponible' });
     }
 
-    const { nombre, servicio_id, servicio_nombre, notas, fecha_programada } = req.body;
+    const { nombre, servicio_id, servicio_nombre, notas, fecha_programada } =
+      req.body;
     const usuario_creador_id = req.usuario?.id;
 
     if (!nombre || !servicio_id || !servicio_nombre) {
@@ -1611,7 +1607,9 @@ app.post('/api/sabanas', verificarAutenticacion, async (req, res) => {
     let fechaProgramadaTimestamp;
     if (fecha_programada) {
       // Convertir YYYY-MM-DD a ISO string a mediodía UTC para evitar problemas de timezone
-      fechaProgramadaTimestamp = new Date(fecha_programada + 'T12:00:00.000Z').toISOString();
+      fechaProgramadaTimestamp = new Date(
+        fecha_programada + 'T12:00:00.000Z'
+      ).toISOString();
     } else {
       fechaProgramadaTimestamp = new Date().toISOString();
     }
@@ -1689,12 +1687,10 @@ app.get('/api/sabanas/archivadas', verificarAutenticacion, async (req, res) => {
     res.json(sabanas);
   } catch (error) {
     console.error('❌ Error al obtener sábanas archivadas:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener sábanas archivadas',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener sábanas archivadas',
+      details: error.message,
+    });
   }
 });
 
@@ -1766,7 +1762,9 @@ app.patch(
         if (realizado) {
           // En producción (Neon), usar toISOString() para UTC explícito
           // En local, usar new Date() porque PostgreSQL local usa hora local
-          updateData.fecha_realizado = isLocal ? new Date() : new Date().toISOString();
+          updateData.fecha_realizado = isLocal
+            ? new Date()
+            : new Date().toISOString();
           updateData.responsable = req.usuario?.nombre;
           updateData.usuario_responsable_id = req.usuario?.id;
         } else {
@@ -2360,12 +2358,10 @@ app.post(
       });
     } catch (error) {
       console.error('❌ Error inicializando checklist:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Error al inicializar checklist',
-          details: error.message,
-        });
+      res.status(500).json({
+        error: 'Error al inicializar checklist',
+        details: error.message,
+      });
     }
   }
 );
@@ -2720,12 +2716,10 @@ app.get('/api/checklist/cuartos', async (req, res) => {
   } catch (error) {
     console.error('📥 ❌ Error al obtener datos de checklist:', error);
     console.error('📥 Stack:', error.stack);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener datos de checklist',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener datos de checklist',
+      details: error.message,
+    });
   }
 });
 
@@ -2774,12 +2768,10 @@ app.get('/api/checklist/cuartos/:id', async (req, res) => {
     res.json(cuartoData);
   } catch (error) {
     console.error('❌ Error al obtener checklist del cuarto:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener checklist del cuarto',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener checklist del cuarto',
+      details: error.message,
+    });
   }
 });
 
@@ -2868,12 +2860,10 @@ app.put(
       });
     } catch (error) {
       console.error('❌ Error en actualización masiva:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Error en actualización masiva',
-          details: error.message,
-        });
+      res.status(500).json({
+        error: 'Error en actualización masiva',
+        details: error.message,
+      });
     }
   }
 );
@@ -2913,12 +2903,10 @@ app.get('/api/checklist/resumen', async (req, res) => {
     res.json(resumen);
   } catch (error) {
     console.error('❌ Error al obtener resumen general:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Error al obtener resumen general',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Error al obtener resumen general',
+      details: error.message,
+    });
   }
 });
 
