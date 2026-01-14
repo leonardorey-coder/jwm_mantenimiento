@@ -132,6 +132,14 @@
 
         <!-- Columna Derecha: Controles -->
         <div class="header-right">
+          <!-- Botón de configuración de fondo -->
+          <button
+            onclick="abrirModalConfigFondo()"
+            class="download-btn btn-config-fondo-header"
+            title="Configurar fondo de pantalla"
+          >
+            <i class="fas fa-image"></i>
+          </button>
           <!-- Botones de descarga de la app -->
           <button
             onclick="downloadPortable(this)"
@@ -2698,6 +2706,7 @@
 
     <!-- Scripts principales -->
     <script src="js/sabana-functions.js"></script>
+    <script src="js/background-manager.js"></script>
     <script src="js/app.js"></script>
     <script src="js/script.js"></script>
     <script src="js/enhanced-frontend.js"></script>

@@ -30,10 +30,13 @@ const authRoutes = require('./auth-routes');
 
 // UploadThing para almacenamiento de archivos en la nube (Server-side uploads)
 const { UTApi } = require('uploadthing/server');
+const { createRouteHandler } = require('uploadthing/express');
+const { uploadRouter } = require('./uploadthing');
 
 // Cargar token/secret de UploadThing
 let uploadthingToken = process.env.UPLOADTHING_TOKEN;
 const uploadthingSecret = process.env.UPLOADTHING_SECRET;
+const uploadthingAppId = process.env.UPLOADTHING_APP_ID;
 
 // Si no hay token en el entorno, intentar leer de .env.local
 if (!uploadthingToken) {
@@ -263,6 +266,133 @@ app.post(
 // Rutas protegidas de autenticación
 app.post('/api/auth/logout', verificarAutenticacion, authRoutes.logout);
 app.get('/api/auth/me', verificarAutenticacion, authRoutes.me);
+app.post(
+  '/api/auth/actualizar-fondo',
+  verificarAutenticacion,
+  authRoutes.actualizarFondo
+);
+
+// Configuración de multer para upload de fondos en memoria
+const uploadFondoMemory = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB máximo
+  },
+  fileFilter: function (req, file, cb) {
+    // Solo imágenes
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(
+          'Solo se permiten archivos de imagen (JPG, PNG, WebP, GIF, etc.)'
+        )
+      );
+    }
+  },
+});
+
+// Endpoint para subir imagen de fondo del usuario
+// Similar a /api/tareas/:id/adjuntos pero para fondos de usuario
+app.post(
+  '/api/auth/subir-fondo',
+  verificarAutenticacion,
+  uploadFondoMemory.single('file'),
+  async (req, res) => {
+    try {
+      const usuarioId = req.usuario?.id;
+
+      console.log(`🖼️ [FONDO] Subiendo fondo para usuario ${usuarioId}`);
+
+      // Verificar si hay archivo
+      if (!req.file) {
+        return res.status(400).json({ error: 'No se recibió ningún archivo' });
+      }
+
+      console.log(
+        `📤 [FONDO] Subiendo ${req.file.originalname} (${req.file.size} bytes) a UploadThing...`
+      );
+
+      // Crear archivo para UploadThing usando File API de Node.js
+      const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+      const fileToUpload = new File([blob], req.file.originalname, {
+        type: req.file.mimetype,
+      });
+
+      // Subir a UploadThing usando UTApi
+      const uploadResult = await utapi.uploadFiles(fileToUpload);
+
+      if (uploadResult.error) {
+        console.error(
+          '❌ [FONDO] Error subiendo a UploadThing:',
+          uploadResult.error
+        );
+        return res.status(500).json({
+          error: 'Error al subir archivo a almacenamiento',
+          details: uploadResult.error.message,
+        });
+      }
+
+      const { key, url, name, size } = uploadResult.data;
+      console.log(`✅ [FONDO] Archivo subido a UploadThing: ${url}`);
+
+      // Actualizar background_url del usuario en la base de datos
+      if (!postgresManager) {
+        return res.status(500).json({ error: 'Base de datos no disponible' });
+      }
+
+      const updateQuery = `
+        UPDATE usuarios 
+        SET background_url = $1, updated_at = NOW()
+        WHERE id = $2
+        RETURNING id, nombre, email, rol_id, background_url
+      `;
+      const result = await postgresManager.pool.query(updateQuery, [
+        url,
+        usuarioId,
+      ]);
+
+      if (result.rows.length === 0) {
+        return res.status(404).json({ error: 'Usuario no encontrado' });
+      }
+
+      const usuarioActualizado = result.rows[0];
+      console.log(
+        '✅ [FONDO] Fondo actualizado para usuario:',
+        usuarioActualizado.nombre
+      );
+
+      res.status(200).json({
+        success: true,
+        mensaje: 'Fondo actualizado exitosamente',
+        usuario: usuarioActualizado,
+        fileUrl: url,
+        fileKey: key,
+      });
+    } catch (error) {
+      console.error('❌ [FONDO] Error al subir fondo:', error);
+      res.status(500).json({
+        error: 'Error al subir fondo',
+        details: error.message,
+      });
+    }
+  }
+);
+
+// ====================================
+// RUTAS DE UPLOADTHING
+// ====================================
+// Handler de UploadThing para subida de archivos (tareas y fondos)
+app.use(
+  '/api/uploadthing',
+  createRouteHandler({
+    router: uploadRouter,
+    config: {
+      uploadthingId: uploadthingAppId,
+      uploadthingSecret: uploadthingSecret || uploadthingToken,
+    },
+  })
+);
 
 // ====================================
 // RUTAS DE USUARIOS (Solo Admin)

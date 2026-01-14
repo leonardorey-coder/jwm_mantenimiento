@@ -47,7 +47,7 @@ async function login(req, res) {
                 u.id, u.nombre, u.email, u.password_hash, u.activo, 
                 u.bloqueado_hasta, u.intentos_fallidos, u.fecha_baja,
                 u.numero_empleado, u.departamento, u.telefono,
-                u.requiere_cambio_password,
+                u.requiere_cambio_password, u.background_url,
                 r.id as rol_id, r.nombre as rol_nombre, r.permisos
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
@@ -211,6 +211,7 @@ async function login(req, res) {
         rol: usuario.rol_nombre,
         permisos: usuario.permisos,
         requiere_cambio_password: usuario.requiere_cambio_password,
+        background_url: usuario.background_url,
       },
       tokens: {
         accessToken: jwtToken,
@@ -402,6 +403,7 @@ async function me(req, res) {
             SELECT 
                 u.id, u.nombre, u.email, u.numero_empleado, 
                 u.departamento, u.telefono, u.foto_perfil_url,
+                u.background_url,
                 u.activo, u.ultimo_acceso, u.created_at,
                 u.requiere_cambio_password,
                 r.nombre as rol_nombre, r.permisos
@@ -753,6 +755,86 @@ async function solicitarAcceso(req, res) {
 }
 
 /**
+ * POST /api/auth/actualizar-fondo
+ * Actualizar imagen de fondo personalizada del usuario
+ */
+async function actualizarFondo(req, res) {
+  try {
+    const usuarioId = req.usuario?.id;
+    const { background_url } = req.body;
+
+    if (!usuarioId) {
+      return res.status(401).json({
+        error: 'No autorizado',
+        mensaje: 'Sesión inválida',
+      });
+    }
+
+    // Validar que la URL sea de UploadThing o permitir null/vacío para eliminar
+    if (
+      background_url &&
+      !background_url.includes('uploadthing') &&
+      !background_url.includes('utfs.io')
+    ) {
+      return res.status(400).json({
+        error: 'URL inválida',
+        mensaje: 'Solo se permiten URLs de UploadThing',
+      });
+    }
+
+    console.log('🖼️ [AUTH-ROUTES] Actualizando fondo para usuario:', usuarioId);
+    console.log('   Nueva URL:', background_url || 'null (eliminar fondo)');
+
+    // Actualizar el background_url del usuario
+    const result = await pool.query(
+      `UPDATE usuarios 
+       SET background_url = $1, updated_at = CURRENT_TIMESTAMP 
+       WHERE id = $2 
+       RETURNING id, nombre, background_url`,
+      [background_url || null, usuarioId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Usuario no encontrado',
+        mensaje: 'No se pudo actualizar el fondo',
+      });
+    }
+
+    // Registrar en auditoría
+    await pool.query(
+      `INSERT INTO auditoria_usuarios (usuario_id, accion, descripcion, ip_address)
+       VALUES ($1, 'actualizar_fondo', $2, $3)`,
+      [
+        usuarioId,
+        background_url
+          ? 'Usuario actualizó imagen de fondo'
+          : 'Usuario eliminó imagen de fondo',
+        obtenerIPCliente(req),
+      ]
+    );
+
+    console.log('✅ [AUTH-ROUTES] Fondo actualizado exitosamente');
+
+    res.json({
+      success: true,
+      mensaje: background_url
+        ? 'Fondo actualizado exitosamente'
+        : 'Fondo eliminado exitosamente',
+      usuario: result.rows[0],
+    });
+  } catch (error) {
+    console.error('❌ [AUTH-ROUTES] Error al actualizar fondo:', error);
+    res.status(500).json({
+      error: 'Error del servidor',
+      mensaje: 'Error al actualizar el fondo',
+      details:
+        process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
+}
+
+/**
  * POST /api/auth/cambiar-password-obligatorio
  * Permite al usuario actualizar su contraseña cuando es requerida
  */
@@ -888,4 +970,5 @@ module.exports = {
   register,
   solicitarAcceso,
   cambiarPasswordObligatorio,
+  actualizarFondo,
 };

@@ -69,6 +69,39 @@ const uploadRouter = {
         size: file.size,
       };
     }),
+
+  // Ruta para subir fondos de pantalla de usuario
+  fondoPantalla: f({
+    // Solo imágenes: hasta 5MB, solo 1 archivo a la vez
+    image: {
+      maxFileSize: '5MB',
+      maxFileCount: 1,
+    },
+  })
+    .middleware(async ({ req }) => {
+      console.log('📤 UploadThing middleware - fondo de pantalla recibido');
+
+      // Retornar metadata que estará disponible en onUploadComplete
+      return {
+        uploadedAt: new Date().toISOString(),
+        uploadType: 'background',
+      };
+    })
+    .onUploadComplete(async ({ metadata, file }) => {
+      console.log('✅ UploadThing - Fondo de pantalla subido:', file.name);
+      console.log('   URL:', file.url);
+      console.log('   Key:', file.key);
+      console.log('   Size:', file.size);
+
+      // Retornar datos del archivo para el cliente
+      return {
+        url: file.url,
+        key: file.key,
+        name: file.name,
+        size: file.size,
+        uploadType: 'background',
+      };
+    }),
 };
 
 module.exports = {

@@ -322,50 +322,65 @@ async function checkAuthentication() {
     return false;
   }
 
-  // Si el usuario local tiene requiere_cambio_password, verificar con el backend
-  if (currentUser.requiere_cambio_password) {
-    console.warn(
-      '🟡 [APP.JS] Usuario local requiere cambio de contraseña. Verificando estado actual...'
-    );
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
+  // Siempre obtener datos frescos del usuario desde el backend
+  console.log('🔐 [APP.JS] Obteniendo datos actualizados del usuario desde /api/auth/me...');
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-      if (response.ok) {
-        const data = await response.json();
-        // Actualizar el usuario con los datos frescos del backend
-        if (data.usuario && !data.usuario.requiere_cambio_password) {
-          console.log(
-            '✅ [APP.JS] Backend confirmó: usuario ya NO requiere cambio de contraseña. Actualizando storage...'
-          );
-          currentUser.requiere_cambio_password = false;
-          const isRemembered = localStorage.getItem('currentUser') !== null;
-          if (isRemembered) {
-            localStorage.setItem('currentUser', JSON.stringify(currentUser));
-          } else {
-            sessionStorage.setItem('currentUser', JSON.stringify(currentUser));
-          }
-        } else if (data.usuario && data.usuario.requiere_cambio_password) {
+    if (response.ok) {
+      const data = await response.json();
+      if (data.usuario) {
+        // Actualizar el usuario con los datos frescos del backend (incluye background_url)
+        console.log('✅ [APP.JS] Datos del usuario actualizados desde backend');
+        
+        // Mantener el rol normalizado
+        const updatedUser = {
+          ...data.usuario,
+          rol: data.usuario.rol_nombre || data.usuario.rol,
+        };
+
+        const isRemembered = localStorage.getItem('currentUser') !== null;
+        if (isRemembered) {
+          localStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        } else {
+          sessionStorage.setItem('currentUser', JSON.stringify(updatedUser));
+        }
+
+        // Usar los datos actualizados
+        currentUser.requiere_cambio_password = updatedUser.requiere_cambio_password;
+        currentUser.background_url = updatedUser.background_url;
+
+        // Si requiere cambio de contraseña, redirigir
+        if (currentUser.requiere_cambio_password) {
           console.warn(
-            '🟡 [APP.JS] Backend confirmó: usuario aún requiere cambio de contraseña. Redirigiendo...'
+            '🟡 [APP.JS] Usuario requiere cambio de contraseña. Redirigiendo...'
           );
           window.location.href = 'login.html?forcePassword=1';
           return false;
         }
       }
-    } catch (error) {
-      console.error(
-        '❌ [APP.JS] Error al verificar estado del usuario:',
-        error
-      );
-      // Si hay error, por seguridad redirigir a login
-      window.location.href = 'login.html?forcePassword=1';
-      return false;
     }
+  } catch (error) {
+    console.error(
+      '❌ [APP.JS] Error al obtener datos del usuario:',
+      error
+    );
+    // Continuar con los datos del localStorage si falla la llamada
+    console.warn('⚠️ [APP.JS] Usando datos del usuario en localStorage como fallback');
+  }
+
+  // Si el usuario local tiene requiere_cambio_password y no pudimos verificar con backend
+  if (currentUser.requiere_cambio_password) {
+    console.warn(
+      '🟡 [APP.JS] Usuario local requiere cambio de contraseña.'
+    );
+    window.location.href = 'login.html?forcePassword=1';
+    return false;
   }
 
   // Normalizar el campo de rol para compatibilidad
@@ -382,6 +397,7 @@ async function checkAuthentication() {
   // Verificar si el token sigue vigente
   AppState.currentUser = currentUser;
   console.log('🔐 [APP.JS] Usuario asignado a AppState:', AppState.currentUser);
+  console.log('🔐 [APP.JS] Background URL:', AppState.currentUser.background_url);
 
   // Actualizar UI con info del usuario
   console.log('🔐 [APP.JS] Actualizando UI del usuario...');
@@ -390,6 +406,13 @@ async function checkAuthentication() {
   // Aplicar permisos según el rol
   console.log('🔐 [APP.JS] Aplicando permisos de rol:', currentUser.role);
   applyRolePermissions(currentUser.role);
+
+  // Disparar evento para que el background-manager aplique el fondo
+  const userUpdatedEvent = new CustomEvent('user-updated', {
+    detail: { user: currentUser }
+  });
+  document.dispatchEvent(userUpdatedEvent);
+  console.log('🔐 [APP.JS] Evento user-updated disparado');
 
   console.log(
     '✅ [APP.JS] Usuario autenticado:',

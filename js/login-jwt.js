@@ -371,6 +371,7 @@ loginForm.addEventListener('submit', async (e) => {
         rol: data.usuario.rol,
         permisos: data.usuario.permisos,
         requiere_cambio_password: requiereCambioPassword,
+        background_url: data.usuario.background_url,
       };
 
       // PERSISTENCIA ELECTRON (Si es Desktop y Recordarme)

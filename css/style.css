@@ -12855,3 +12855,372 @@ tr[data-lazy='true'] {
   box-shadow: 6px 6px 0 var(--negro-carbon);
   background: #ffd27a;
 }
+
+/* ========================================
+   FONDO DE PANTALLA PERSONALIZADO
+   ======================================== */
+
+/* Fondo personalizado del usuario */
+.app-custom-background {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0;
+  transition: opacity 0.6s ease-in-out;
+}
+
+body.has-custom-background .app-custom-background {
+  opacity: 1;
+}
+
+/* Overlay para mejorar legibilidad del contenido */
+.app-background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.25) 0%,
+    rgba(248, 249, 250, 0.2) 50%,
+    rgba(255, 255, 255, 0.25) 100%
+  );
+}
+
+/* Overlay oscuro para tema dark */
+:root[data-theme='dark'] .app-background-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(30, 30, 30, 0.5) 0%,
+    rgba(44, 44, 44, 0.45) 50%,
+    rgba(30, 30, 30, 0.5) 100%
+  );
+}
+
+/* Body transparente cuando hay fondo personalizado */
+body.has-custom-background {
+  background: transparent;
+}
+
+/* Ajustar contenido cuando hay fondo personalizado */
+body.has-custom-background .tab-content {
+  background: transparent;
+}
+
+body.has-custom-background .panel,
+body.has-custom-background .card,
+body.has-custom-background .habitacion-card {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+:root[data-theme='dark'].has-custom-background .tab-content {
+  background: transparent;
+}
+
+:root[data-theme='dark'].has-custom-background .panel,
+:root[data-theme='dark'].has-custom-background .card,
+:root[data-theme='dark'].has-custom-background .habitacion-card {
+  background: rgba(30, 30, 30, 0.9);
+}
+
+/* Contenedor principal más transparente */
+body.has-custom-background .contenedor {
+  background: transparent;
+}
+
+/* Los títulos principales con fondo semi-transparente */
+body.has-custom-background .titulos {
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+body.has-custom-background .titulos.t-principal {
+  -webkit-text-fill-color: var(--negro-carbon);
+  color: var(--negro-carbon);
+  background: rgba(255, 255, 255, 0.9);
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+body.has-custom-background .titulos.t-secundario {
+  color: var(--gris-grafito);
+}
+
+:root[data-theme='dark'].has-custom-background .titulos {
+  background: rgba(30, 30, 30, 0.9);
+}
+
+:root[data-theme='dark'].has-custom-background .titulos.t-principal {
+  -webkit-text-fill-color: var(--negro-carbon);
+  color: var(--negro-carbon);
+  background: rgba(30, 30, 30, 0.9);
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+:root[data-theme='dark'].has-custom-background .titulos.t-secundario {
+  color: var(--gris-grafito);
+}
+
+/* Header con fondo personalizado */
+body.has-custom-background .premium-header {
+  background: rgba(var(--bg-header-rgb, 30, 30, 30), 0.96);
+}
+
+/* ========================================
+   MODAL DE CONFIGURACIÓN DE FONDO
+   ======================================== */
+
+.modal-config-fondo {
+  max-width: 600px;
+  width: 90%;
+}
+
+.modal-config-fondo-body {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Preview del fondo */
+.fondo-preview-container {
+  width: 100%;
+  height: 300px;
+  border: 3px solid var(--negro-carbon);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--gris-claro);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.fondo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: none;
+}
+
+.no-preview-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--gris-oscuro);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.no-preview-message i {
+  font-size: 3rem;
+  opacity: 0.4;
+}
+
+/* Botones de acción */
+.fondo-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-upload-fondo,
+.btn-eliminar-fondo {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.9rem 1.5rem;
+  border: 3px solid var(--negro-carbon);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-upload-fondo {
+  background: var(--verde-oliva);
+  color: #ffffff;
+}
+
+.btn-upload-fondo:hover {
+  background: #5a6a5a;
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.btn-eliminar-fondo {
+  background: var(--blanco);
+  color: var(--rojo-vino);
+  border-color: var(--rojo-vino);
+}
+
+.btn-eliminar-fondo:hover {
+  background: var(--rojo-vino);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+.btn-upload-fondo:active,
+.btn-eliminar-fondo:active {
+  transform: translateY(2px);
+  box-shadow: 1px 1px 0 var(--negro-carbon);
+}
+
+/* Información */
+.fondo-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: var(--gris-claro);
+  border: 2px solid var(--gris-separador);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  line-height: 1.5;
+}
+
+.fondo-info i {
+  color: var(--verde-oliva);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Loader para subida */
+.fondo-loader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.fondo-loader-content {
+  background: var(--blanco);
+  border: 4px solid var(--negro-carbon);
+  border-radius: 12px;
+  padding: 2rem 3rem;
+  box-shadow: 12px 12px 0 var(--negro-carbon);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fondo-loader-content .spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid var(--gris-claro);
+  border-top-color: var(--verde-oliva);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fondo-loader-content p {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--negro-carbon);
+  margin: 0;
+}
+
+/* Botón para abrir configuración de fondo */
+.btn-config-fondo {
+  padding: 0.7rem 1.2rem;
+  background: linear-gradient(135deg, var(--verde-oliva), #5a6a5a);
+  color: #ffffff;
+  border: 3px solid var(--negro-carbon);
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  transition: all 0.2s ease;
+  box-shadow: 4px 4px 0 var(--negro-carbon);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.btn-config-fondo:hover {
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0 var(--negro-carbon);
+  background: linear-gradient(135deg, #5a6a5a, var(--verde-oliva));
+}
+
+.btn-config-fondo:active {
+  transform: translateY(2px);
+  box-shadow: 1px 1px 0 var(--negro-carbon);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .modal-config-fondo {
+    width: 95%;
+    max-width: 100%;
+  }
+
+  .fondo-preview-container {
+    height: 200px;
+  }
+
+  .fondo-actions {
+    flex-direction: column;
+  }
+
+  .btn-upload-fondo,
+  .btn-eliminar-fondo {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .modal-config-fondo-body {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .fondo-loader-content {
+    padding: 1.5rem 2rem;
+  }
+
+  .fondo-loader-content .spinner {
+    width: 40px;
+    height: 40px;
+  }
+}
