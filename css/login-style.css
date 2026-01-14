@@ -328,6 +328,9 @@
   font-weight: 600;
   font-size: 0.9rem;
   color: var(--login-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .form-group label i {
@@ -353,6 +356,8 @@
   background: var(--login-input-bg);
   color: var(--login-text);
   transition: all 0.3s ease;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -614,21 +619,14 @@ select.form-input:focus {
    ======================================== */
 .register-form-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 0.75rem;
-}
-
-/* En Electron, siempre usar dos columnas */
-.electron-app .register-form-grid {
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
 }
 
-@media (min-width: 600px) {
-  .register-form-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 0.75rem;
-  }
+/* En Electron, mantener dos columnas */
+.electron-app .register-form-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
 }
 
 #registerForm .form-group {
@@ -636,11 +634,16 @@ select.form-input:focus {
   margin-top: 0;
   padding-top: 0;
   animation: fadeInUp 0.5s ease both;
+  min-width: 0;
 }
 
 #registerForm .form-group label {
   margin-top: 0;
   padding-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
 }
 
 #registerForm .form-options {
@@ -1161,6 +1164,14 @@ body.login-body.modal-open {
   .register-admin-email {
     padding: 0.65rem 1.25rem;
     font-size: 0.95rem;
+  }
+
+  .register-form-grid {
+    gap: 0.5rem;
+  }
+
+  #registerForm .form-group label {
+    font-size: 0.8rem;
   }
 }
 
