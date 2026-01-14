@@ -1,6 +1,6 @@
 {
   "name": "jw-mantto",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "JW Mantto - Sistema de Gestión de Mantenimiento (PWA + PostgreSQL)",
   "main": "main.js",
   "author": {
