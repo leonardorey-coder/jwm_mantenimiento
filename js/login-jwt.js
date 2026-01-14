@@ -582,6 +582,7 @@ function setupForgotPasswordModal() {
   const modal = document.getElementById('forgotPasswordModal');
   const form = document.getElementById('forgotPasswordForm');
   const closeBtn = document.getElementById('closeForgotModal');
+  const overlay = modal?.querySelector('.forgot-modal-overlay');
 
   if (!forgotLink || !modal) return;
 
@@ -592,10 +593,8 @@ function setupForgotPasswordModal() {
 
   setupTermsLink();
 
-  modal.addEventListener('click', (event) => {
-    if (event.target.id === 'forgotPasswordModal') {
-      closeForgotPasswordModal();
-    }
+  overlay?.addEventListener('click', () => {
+    closeForgotPasswordModal();
   });
 
   closeBtn?.addEventListener('click', closeForgotPasswordModal);
@@ -620,6 +619,7 @@ function openForgotPasswordModal() {
 
   setForgotPasswordFeedback('');
   modal.classList.add('show');
+  document.body.classList.add('modal-open');
   lockBodyScrollAuth();
   emailInput?.focus();
   populateForgotAdminContact();
@@ -631,6 +631,7 @@ function closeForgotPasswordModal() {
   modal.classList.add('closing');
   setTimeout(() => {
     modal.classList.remove('show', 'closing');
+    document.body.classList.remove('modal-open');
     document.getElementById('forgotPasswordForm')?.reset();
     setForgotPasswordFeedback('');
     unlockBodyScrollAuth();
@@ -770,45 +771,101 @@ function isValidEmail(email) {
 
 function setupTermsLink() {
   const termsLink = document.getElementById('termsLink');
-  if (!termsLink) return;
+  const termsModal = document.getElementById('termsModal');
+  const closeTermsModal = document.getElementById('closeTermsModal');
+  const termsModalOverlay = termsModal?.querySelector('.terms-modal-overlay');
+  const acceptTermsBtn = document.getElementById('acceptTermsBtn');
+  const termsModalBody = document.getElementById('termsModalBody');
+
+  if (!termsLink || !termsModal) return;
 
   termsLink.addEventListener('click', (event) => {
     event.preventDefault();
-
-    // Solo abrir en Electron, no en navegador web
-    if (window.electronAPI && window.electronAPI.shell) {
-      // Abrir términos y condiciones en Electron
-      const termsUrl =
-        'https://www.jwmarriott.com/es/legal/terms-and-conditions.html';
-      window.electronAPI.shell
-        .openExternal(termsUrl)
-        .then((result) => {
-          if (!result.success) {
-            console.warn(
-              '⚠️ No se pudo abrir términos y condiciones:',
-              result.error
-            );
-            showMessage(
-              'No se pudo abrir los términos y condiciones. Contacta al administrador.',
-              'info'
-            );
-          }
-        })
-        .catch((err) => {
-          console.warn('⚠️ Error abriendo términos y condiciones:', err);
-          showMessage(
-            'No se pudo abrir los términos y condiciones. Contacta al administrador.',
-            'info'
-          );
-        });
-    } else {
-      // En navegador web, no hacer nada o mostrar mensaje
-      showMessage(
-        'Para ver los términos y condiciones, contacta al administrador.',
-        'info'
-      );
-    }
+    openTermsModal();
   });
+
+  closeTermsModal?.addEventListener('click', () => {
+    closeTermsModalHandler();
+  });
+
+  termsModalOverlay?.addEventListener('click', () => {
+    closeTermsModalHandler();
+  });
+
+  acceptTermsBtn?.addEventListener('click', () => {
+    acceptTerms();
+  });
+
+  termsModalBody?.addEventListener('scroll', () => {
+    checkScrollPosition();
+  });
+
+  function openTermsModal() {
+    if (!termsModal) return;
+    termsModal.classList.add('show');
+    document.body.classList.add('modal-open');
+
+    const acceptBtn = document.getElementById('acceptTermsBtn');
+    if (acceptBtn) {
+      acceptBtn.disabled = true;
+    }
+
+    setTimeout(() => {
+      checkScrollPosition();
+    }, 100);
+  }
+
+  function closeTermsModalHandler() {
+    if (!termsModal) return;
+    termsModal.classList.add('closing');
+
+    setTimeout(() => {
+      termsModal.classList.remove('show', 'closing');
+      document.body.classList.remove('modal-open');
+    }, 300);
+  }
+
+  function checkScrollPosition() {
+    const body = document.getElementById('termsModalBody');
+    const acceptBtn = document.getElementById('acceptTermsBtn');
+
+    if (!body || !acceptBtn) return;
+
+    const threshold = 20;
+    const isAtBottom =
+      body.scrollTop + body.clientHeight >= body.scrollHeight - threshold;
+
+    if (isAtBottom) {
+      acceptBtn.disabled = false;
+    }
+  }
+
+  function acceptTerms() {
+    const registerTermsCheckbox = document.getElementById('registerTerms');
+
+    if (registerTermsCheckbox) {
+      registerTermsCheckbox.checked = true;
+    }
+
+    closeTermsModalHandler();
+
+    setTimeout(() => {
+      if (registerTermsCheckbox) {
+        registerTermsCheckbox.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+
+        const label = registerTermsCheckbox.closest('.remember-me');
+        if (label) {
+          label.style.animation = 'pulse 0.5s ease';
+          setTimeout(() => {
+            label.style.animation = '';
+          }, 500);
+        }
+      }
+    }, 400);
+  }
 }
 
 // Manejar envío del formulario de registro

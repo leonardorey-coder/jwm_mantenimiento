@@ -272,15 +272,20 @@
 
       <!-- Modal: Olvidaste tu contraseña -->
       <div class="forgot-password-modal" id="forgotPasswordModal">
+        <div class="forgot-modal-overlay"></div>
         <div class="forgot-card">
-          <button
-            class="forgot-close"
-            id="closeForgotModal"
-            aria-label="Cerrar modal de recuperación"
-          >
-            <i class="fas fa-times"></i>
-          </button>
-          <div class="forgot-header">
+          <div class="forgot-card-header">
+            <h3>¿Olvidaste tu contraseña?</h3>
+            <button
+              class="forgot-close"
+              id="closeForgotModal"
+              aria-label="Cerrar modal de recuperación"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="forgot-card-body">
+            <div class="forgot-header">
             <div class="forgot-icon">
               <i class="fas fa-unlock-alt"></i>
             </div>
@@ -355,6 +360,7 @@
               Enviar solicitud
             </button>
           </form>
+          </div>
         </div>
       </div>
 
@@ -400,6 +406,220 @@
               Cambiar contraseña y continuar
             </button>
           </form>
+        </div>
+      </div>
+
+      <!-- Modal Términos y Condiciones -->
+      <div class="terms-modal" id="termsModal">
+        <div class="terms-modal-overlay"></div>
+        <div class="terms-modal-content">
+          <div class="terms-modal-header">
+            <h3>Términos y Condiciones</h3>
+            <button
+              class="terms-modal-close"
+              id="closeTermsModal"
+              aria-label="Cerrar términos y condiciones"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="terms-modal-body" id="termsModalBody">
+            <div class="terms-content">
+              <section class="terms-section">
+                <h4>1. Introducción</h4>
+                <p>
+                  Bienvenido al Sistema de Gestión de Servicios, Mantenimiento,
+                  Habitaciones y Espacios Comunes (SGSOM) de JW Marriott Los
+                  Cabos. Al registrarse y utilizar este sistema, usted acepta
+                  cumplir con los siguientes términos y condiciones.
+                </p>
+              </section>
+
+              <section class="terms-section">
+                <h4>2. Aceptación de los Términos</h4>
+                <p>
+                  Al crear una cuenta y acceder al sistema, usted confirma que
+                  ha leído, comprendido y aceptado estos términos y condiciones
+                  en su totalidad. Si no está de acuerdo con alguna parte de
+                  estos términos, no debe utilizar el sistema.
+                </p>
+              </section>
+
+              <section class="terms-section">
+                <h4>3. Uso del Sistema</h4>
+                <p>
+                  El SGSOM es una herramienta interna de JW Marriott Los Cabos
+                  destinada exclusivamente para el personal autorizado. El
+                  sistema permite:
+                </p>
+                <ul>
+                  <li>Control de habitaciones y espacios comunes</li>
+                  <li>Gestión de tareas de mantenimiento</li>
+                  <li>Gestión de sábanas y control de servicios programados</li>
+                  <li>Registro de inspecciones y checklists</li>
+                  <li>Coordinación entre equipos de trabajo</li>
+                  <li>Generación de reportes y seguimiento</li>
+                </ul>
+              </section>
+
+              <section class="terms-section">
+                <h4>4. Responsabilidades del Usuario</h4>
+                <p>Como usuario del sistema, usted se compromete a:</p>
+                <ul>
+                  <li>
+                    Mantener la confidencialidad de sus credenciales de acceso
+                  </li>
+                  <li>No compartir su cuenta con personas no autorizadas</li>
+                  <li>
+                    Utilizar el sistema únicamente para fines laborales
+                    legítimos
+                  </li>
+                  <li>
+                    Reportar cualquier actividad sospechosa o uso indebido
+                  </li>
+                  <li>
+                    Mantener la información del sistema de manera confidencial
+                  </li>
+                  <li>
+                    Cumplir con las políticas internas de JW Marriott Los Cabos
+                  </li>
+                </ul>
+              </section>
+
+              <section class="terms-section">
+                <h4>5. Privacidad y Protección de Datos</h4>
+                <p>
+                  JW Marriott Los Cabos se compromete a proteger su información
+                  personal de acuerdo con las leyes aplicables de protección de
+                  datos. Los datos recopilados incluyen:
+                </p>
+                <ul>
+                  <li>Nombre completo y datos de contacto</li>
+                  <li>Rol y departamento dentro de la organización</li>
+                  <li>Actividad dentro del sistema</li>
+                  <li>Registros de tareas y mantenimientos realizados</li>
+                </ul>
+                <p>
+                  Esta información se utiliza exclusivamente para la operación
+                  del sistema y mejora de los servicios. No se compartirá con
+                  terceros sin su consentimiento, excepto cuando sea requerido
+                  por ley.
+                </p>
+              </section>
+
+              <section class="terms-section">
+                <h4>6. Propiedad Intelectual</h4>
+                <p>
+                  Todo el contenido, diseño, código y funcionalidades del SGSOM
+                  son propiedad de JW Marriott Los Cabos y están protegidos por
+                  las leyes de propiedad intelectual. Queda prohibido:
+                </p>
+                <ul>
+                  <li>Copiar, modificar o distribuir el sistema</li>
+                  <li>Realizar ingeniería inversa del software</li>
+                  <li>Extraer datos de manera masiva o automatizada</li>
+                  <li>Utilizar el sistema para crear productos derivados</li>
+                </ul>
+              </section>
+
+              <section class="terms-section">
+                <h4>7. Limitación de Responsabilidad</h4>
+                <p>
+                  JW Marriott Los Cabos se esfuerza por mantener el sistema
+                  funcionando de manera óptima, sin embargo:
+                </p>
+                <ul>
+                  <li>
+                    No garantiza disponibilidad ininterrumpida del sistema
+                  </li>
+                  <li>
+                    No se hace responsable por pérdida de datos debido a fallas
+                    técnicas
+                  </li>
+                  <li>
+                    No asume responsabilidad por errores en la información
+                    ingresada por usuarios
+                  </li>
+                  <li>
+                    Se reserva el derecho de realizar mantenimientos y
+                    actualizaciones
+                  </li>
+                </ul>
+              </section>
+
+              <section class="terms-section">
+                <h4>8. Suspensión y Terminación de Cuenta</h4>
+                <p>
+                  JW Marriott Los Cabos se reserva el derecho de suspender o
+                  terminar su acceso al sistema en caso de:
+                </p>
+                <ul>
+                  <li>Violación de estos términos y condiciones</li>
+                  <li>Uso indebido o fraudulento del sistema</li>
+                  <li>Terminación de la relación laboral</li>
+                  <li>Solicitud del usuario</li>
+                  <li>Razones de seguridad o mantenimiento</li>
+                </ul>
+              </section>
+
+              <section class="terms-section">
+                <h4>9. Modificaciones de los Términos</h4>
+                <p>
+                  JW Marriott Los Cabos se reserva el derecho de modificar estos
+                  términos y condiciones en cualquier momento. Los cambios serán
+                  notificados a los usuarios a través del sistema y entrarán en
+                  vigor inmediatamente después de su publicación. El uso
+                  continuado del sistema después de las modificaciones
+                  constituye la aceptación de los nuevos términos.
+                </p>
+              </section>
+
+              <section class="terms-section">
+                <h4>10. Ley Aplicable y Jurisdicción</h4>
+                <p>
+                  Estos términos y condiciones se rigen por las leyes de los
+                  Estados Unidos Mexicanos. Cualquier disputa relacionada con el
+                  uso del sistema será resuelta en los tribunales competentes de
+                  Los Cabos, Baja California Sur.
+                </p>
+              </section>
+
+              <section class="terms-section">
+                <h4>11. Contacto</h4>
+                <p>
+                  Para preguntas, comentarios o inquietudes sobre estos términos
+                  y condiciones, puede contactar al administrador del sistema:
+                </p>
+                <p class="terms-contact">
+                  <strong>Fidel Cruz Lozada</strong><br />
+                  Email: fcruz@grupodiestra.com<br />
+                  Teléfono: +52 624 237 1063
+                </p>
+              </section>
+
+              <section class="terms-section terms-final">
+                <p>
+                  <strong>Última actualización:</strong> Enero 2026<br />
+                  <strong>Versión:</strong> 1.3
+                </p>
+                <p class="terms-acceptance">
+                  Al hacer clic en "Aceptar y continuar", usted confirma que ha
+                  leído y acepta estos términos y condiciones.
+                </p>
+              </section>
+            </div>
+          </div>
+          <div class="terms-modal-footer">
+            <button
+              type="button"
+              class="btn-submit"
+              id="acceptTermsBtn"
+              disabled
+            >
+              <i class="fas fa-check-circle"></i>
+              Aceptar y continuar
+            </button>
+          </div>
         </div>
       </div>
 

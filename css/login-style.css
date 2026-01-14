@@ -93,6 +93,17 @@
   }
 }
 
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.05);
+  }
+}
+
 /* ========================================
    BASE - MOBILE FIRST (APP NATIVA)
    ======================================== */
@@ -706,11 +717,12 @@ select.form-input:focus {
 .forgot-password-modal {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  padding: 1rem;
+  padding: 0;
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease;
@@ -727,29 +739,62 @@ select.form-input:focus {
   visibility: visible;
 }
 
+.forgot-modal-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
 .forgot-card {
-  width: 100%;
-  max-width: 520px;
-  max-height: 90vh;
-  overflow-y: auto;
-  background: var(--login-card-bg);
-  border: 4px solid var(--login-border);
-  border-radius: 14px;
-  box-shadow: 12px 12px 0 var(--login-border);
-  padding: 2rem;
   position: relative;
-  animation: slideIn 0.35s ease;
+  width: 100%;
+  max-width: 100%;
+  max-height: 90vh;
+  background: var(--login-card-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: slideUpFromBottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 1901;
+}
+
+.forgot-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 2px solid var(--login-border);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.forgot-card-header::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  background: var(--login-border);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.forgot-card-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--login-text);
+  font-weight: 700;
 }
 
 .forgot-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
+  width: 42px;
+  height: 42px;
   border: 2px solid var(--login-border);
   background: var(--login-input-bg);
   color: var(--login-text);
-  width: 42px;
-  height: 42px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -757,11 +802,45 @@ select.form-input:focus {
   transition:
     transform 0.2s ease,
     background 0.2s ease;
+  flex-shrink: 0;
 }
 
 .forgot-close:hover {
   background: var(--login-input-focus);
-  transform: translate(-2px, -2px);
+  transform: scale(1.1);
+}
+
+.forgot-close:active {
+  transform: scale(0.95);
+}
+
+.forgot-close i {
+  font-size: 1.2rem;
+}
+
+.forgot-card-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.forgot-card-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.forgot-card-body::-webkit-scrollbar-track {
+  background: var(--login-input-focus);
+  border-radius: 4px;
+}
+
+.forgot-card-body::-webkit-scrollbar-thumb {
+  background: var(--login-btn-bg);
+  border-radius: 4px;
+}
+
+.forgot-card-body::-webkit-scrollbar-thumb:hover {
+  background: var(--login-btn-hover);
 }
 
 .forgot-header {
@@ -1032,6 +1111,235 @@ body.login-body.modal-open {
 }
 
 /* ========================================
+   MODAL - TÉRMINOS Y CONDICIONES
+   ======================================== */
+.terms-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease;
+  z-index: 2100;
+}
+
+.terms-modal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.terms-modal.closing {
+  opacity: 0;
+  visibility: visible;
+}
+
+.terms-modal-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+.terms-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  max-height: 90vh;
+  background: var(--login-card-bg);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: slideUpFromBottom 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 2101;
+}
+
+@keyframes slideUpFromBottom {
+  from {
+    opacity: 0;
+    transform: translateY(100%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.terms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.25rem 1rem;
+  border-bottom: 2px solid var(--login-border);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.terms-modal-header::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 4px;
+  background: var(--login-border);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.terms-modal-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--login-text);
+  font-weight: 700;
+}
+
+.terms-modal-close {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--login-border);
+  background: var(--login-input-bg);
+  color: var(--login-text);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.terms-modal-close:hover {
+  background: var(--login-input-focus);
+  transform: scale(1.1);
+}
+
+.terms-modal-close:active {
+  transform: scale(0.95);
+}
+
+.terms-modal-close i {
+  font-size: 1.2rem;
+}
+
+.terms-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 1.25rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+.terms-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.terms-modal-body::-webkit-scrollbar-track {
+  background: var(--login-input-focus);
+  border-radius: 4px;
+}
+
+.terms-modal-body::-webkit-scrollbar-thumb {
+  background: var(--login-btn-bg);
+  border-radius: 4px;
+}
+
+.terms-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--login-btn-hover);
+}
+
+.terms-content {
+  max-width: 100%;
+}
+
+.terms-section {
+  margin-bottom: 1.5rem;
+}
+
+.terms-section h4 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--login-text);
+  font-weight: 700;
+}
+
+.terms-section p {
+  margin: 0 0 0.75rem;
+  line-height: 1.6;
+  color: var(--login-text-secondary);
+  font-size: 0.95rem;
+}
+
+.terms-section ul {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  padding: 0;
+  list-style: disc;
+}
+
+.terms-section li {
+  margin-bottom: 0.5rem;
+  line-height: 1.5;
+  color: var(--login-text-secondary);
+  font-size: 0.95rem;
+}
+
+.terms-contact {
+  padding: 1rem;
+  background: var(--login-input-focus);
+  border: 2px solid var(--login-border);
+  border-radius: 8px;
+  margin-top: 0.75rem;
+}
+
+.terms-final {
+  border-top: 2px solid var(--login-border);
+  padding-top: 1.5rem;
+  margin-top: 2rem;
+}
+
+.terms-acceptance {
+  font-weight: 600;
+  color: var(--login-btn-bg);
+  background: rgba(76, 84, 76, 0.1);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid var(--login-btn-bg);
+  margin-top: 1rem;
+}
+
+.terms-modal-footer {
+  padding: 1rem 1.25rem;
+  border-top: 2px solid var(--login-border);
+  background: var(--login-card-bg);
+  flex-shrink: 0;
+}
+
+.terms-modal-footer .btn-submit {
+  width: 100%;
+  margin: 0;
+  animation: none;
+}
+
+.terms-modal-footer .btn-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--login-text-secondary);
+  transform: none;
+  box-shadow: 4px 4px 0 var(--login-border);
+}
+
+.terms-modal-footer .btn-submit:disabled:hover {
+  transform: none;
+  box-shadow: 4px 4px 0 var(--login-border);
+}
+
+/* ========================================
    RESPONSIVE - TABLET/DESKTOP (≥600px)
    Aquí sí mostramos la card
    ======================================== */
@@ -1050,6 +1358,54 @@ body.login-body.modal-open {
     border-radius: 15px;
     box-shadow: 12px 12px 0 var(--login-border);
     animation: slideIn 0.5s ease-out;
+  }
+
+  .terms-modal {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .terms-modal-content {
+    max-width: 600px;
+    max-height: 85vh;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .terms-modal-header::before {
+    display: none;
+  }
+
+  .terms-modal-body {
+    padding: 2rem;
+  }
+
+  .terms-modal-footer {
+    padding: 1.5rem 2rem;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
+  }
+
+  .forgot-password-modal {
+    align-items: center;
+    padding: 1rem;
+  }
+
+  .forgot-card {
+    max-width: 520px;
+    max-height: 85vh;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .forgot-card-header::before {
+    display: none;
+  }
+
+  .forgot-card-body {
+    padding: 2rem;
+    border-bottom-left-radius: 16px;
+    border-bottom-right-radius: 16px;
   }
 
   /* Ajustar borde superior para que se vea dentro del border-radius */
@@ -1098,7 +1454,6 @@ body.login-body.modal-open {
     font-size: 0.9rem;
   }
 
-  .forgot-card,
   .force-password-card {
     padding: 2rem;
   }
@@ -1139,7 +1494,6 @@ body.login-body.modal-open {
     font-size: 0.9rem;
   }
 
-  .forgot-card,
   .force-password-card {
     padding: 1.5rem;
   }
@@ -1179,7 +1533,6 @@ body.login-body.modal-open {
    MODALES EN MÓVIL - FULLSCREEN
    ======================================== */
 @media (max-width: 599px) {
-  .forgot-card,
   .force-password-card {
     max-height: calc(100vh - 2rem);
     overflow-y: auto;
