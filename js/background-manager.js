@@ -179,6 +179,22 @@
     // Mostrar modal
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('show'), 10);
+    
+    // Bloquear scroll del body
+    document.body.classList.add('modal-open');
+    
+    // Listener para cerrar con ESC (solo se agrega una vez)
+    if (!modal.hasAttribute('data-esc-listener')) {
+      modal.setAttribute('data-esc-listener', 'true');
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const modal = document.getElementById('modalConfigFondo');
+          if (modal && modal.style.display === 'flex') {
+            cerrarModalConfigFondo();
+          }
+        }
+      });
+    }
   }
 
   /**
@@ -191,6 +207,9 @@
       setTimeout(() => {
         modal.style.display = 'none';
       }, 300);
+      
+      // Restaurar scroll del body
+      document.body.classList.remove('modal-open');
     }
   }
 
@@ -444,7 +463,7 @@
     }
 
     console.log('🗑️ [BACKGROUND] Eliminando fondo...');
-    mostrarCargandoFondo(true);
+    mostrarCargandoFondo(true, 'Eliminando imagen...');
 
     try {
       // Actualizar en backend (enviar null)
@@ -482,8 +501,9 @@
   /**
    * Muestra/oculta indicador de carga
    * @param {boolean} mostrar - Si debe mostrar el indicador
+   * @param {string} mensaje - Mensaje a mostrar (por defecto: 'Subiendo imagen...')
    */
-  function mostrarCargandoFondo(mostrar) {
+  function mostrarCargandoFondo(mostrar, mensaje = 'Subiendo imagen...') {
     let loader = document.querySelector('.fondo-loader');
 
     if (mostrar) {
@@ -493,10 +513,16 @@
         loader.innerHTML = `
           <div class="fondo-loader-content">
             <div class="spinner"></div>
-            <p>Subiendo imagen...</p>
+            <p>${mensaje}</p>
           </div>
         `;
         document.body.appendChild(loader);
+      } else {
+        // Actualizar mensaje si ya existe el loader
+        const messageEl = loader.querySelector('p');
+        if (messageEl) {
+          messageEl.textContent = mensaje;
+        }
       }
       loader.style.display = 'flex';
     } else {
