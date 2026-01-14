@@ -323,7 +323,9 @@ async function checkAuthentication() {
   }
 
   // Siempre obtener datos frescos del usuario desde el backend
-  console.log('🔐 [APP.JS] Obteniendo datos actualizados del usuario desde /api/auth/me...');
+  console.log(
+    '🔐 [APP.JS] Obteniendo datos actualizados del usuario desde /api/auth/me...'
+  );
   try {
     const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
       headers: {
@@ -337,7 +339,7 @@ async function checkAuthentication() {
       if (data.usuario) {
         // Actualizar el usuario con los datos frescos del backend (incluye background_url)
         console.log('✅ [APP.JS] Datos del usuario actualizados desde backend');
-        
+
         // Mantener el rol normalizado
         const updatedUser = {
           ...data.usuario,
@@ -352,7 +354,8 @@ async function checkAuthentication() {
         }
 
         // Usar los datos actualizados
-        currentUser.requiere_cambio_password = updatedUser.requiere_cambio_password;
+        currentUser.requiere_cambio_password =
+          updatedUser.requiere_cambio_password;
         currentUser.background_url = updatedUser.background_url;
 
         // Si requiere cambio de contraseña, redirigir
@@ -366,19 +369,16 @@ async function checkAuthentication() {
       }
     }
   } catch (error) {
-    console.error(
-      '❌ [APP.JS] Error al obtener datos del usuario:',
-      error
-    );
+    console.error('❌ [APP.JS] Error al obtener datos del usuario:', error);
     // Continuar con los datos del localStorage si falla la llamada
-    console.warn('⚠️ [APP.JS] Usando datos del usuario en localStorage como fallback');
+    console.warn(
+      '⚠️ [APP.JS] Usando datos del usuario en localStorage como fallback'
+    );
   }
 
   // Si el usuario local tiene requiere_cambio_password y no pudimos verificar con backend
   if (currentUser.requiere_cambio_password) {
-    console.warn(
-      '🟡 [APP.JS] Usuario local requiere cambio de contraseña.'
-    );
+    console.warn('🟡 [APP.JS] Usuario local requiere cambio de contraseña.');
     window.location.href = 'login.html?forcePassword=1';
     return false;
   }
@@ -397,7 +397,10 @@ async function checkAuthentication() {
   // Verificar si el token sigue vigente
   AppState.currentUser = currentUser;
   console.log('🔐 [APP.JS] Usuario asignado a AppState:', AppState.currentUser);
-  console.log('🔐 [APP.JS] Background URL:', AppState.currentUser.background_url);
+  console.log(
+    '🔐 [APP.JS] Background URL:',
+    AppState.currentUser.background_url
+  );
 
   // Actualizar UI con info del usuario
   console.log('🔐 [APP.JS] Actualizando UI del usuario...');
@@ -409,7 +412,7 @@ async function checkAuthentication() {
 
   // Disparar evento para que el background-manager aplique el fondo
   const userUpdatedEvent = new CustomEvent('user-updated', {
-    detail: { user: currentUser }
+    detail: { user: currentUser },
   });
   document.dispatchEvent(userUpdatedEvent);
   console.log('🔐 [APP.JS] Evento user-updated disparado');

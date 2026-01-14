@@ -32,7 +32,9 @@
     // Intentar aplicar fondo desde localStorage primero (fallback rápido)
     const savedBackgroundUrl = localStorage.getItem('user_background_url');
     if (savedBackgroundUrl) {
-      console.log('🖼️ [BACKGROUND] Fondo encontrado en localStorage, aplicando temporalmente');
+      console.log(
+        '🖼️ [BACKGROUND] Fondo encontrado en localStorage, aplicando temporalmente'
+      );
       establecerFondo(savedBackgroundUrl);
     }
 
@@ -179,10 +181,10 @@
     // Mostrar modal
     modal.style.display = 'flex';
     setTimeout(() => modal.classList.add('show'), 10);
-    
+
     // Bloquear scroll del body
     document.body.classList.add('modal-open');
-    
+
     // Listener para cerrar con ESC (solo se agrega una vez)
     if (!modal.hasAttribute('data-esc-listener')) {
       modal.setAttribute('data-esc-listener', 'true');
@@ -207,7 +209,7 @@
       setTimeout(() => {
         modal.style.display = 'none';
       }, 300);
-      
+
       // Restaurar scroll del body
       document.body.classList.remove('modal-open');
     }

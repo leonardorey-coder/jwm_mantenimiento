@@ -823,7 +823,7 @@ async function actualizarFondo(req, res) {
         // - https://uploadthing.com/f/[key]
         // - https://uploadthing-prod.s3.us-west-2.amazonaws.com/[key]
         let uploadthingKey = null;
-        
+
         // Intentar extraer de formato /f/[key]
         const fMatch = fondoAnteriorUrl.match(/\/f\/([^\/\?]+)/);
         if (fMatch && fMatch[1]) {
@@ -835,7 +835,7 @@ async function actualizarFondo(req, res) {
             uploadthingKey = urlMatch[1];
           }
         }
-        
+
         if (uploadthingKey) {
           console.log(
             '🗑️ [AUTH-ROUTES] Eliminando archivo de UploadThing:',
