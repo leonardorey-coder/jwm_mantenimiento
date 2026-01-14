@@ -1084,7 +1084,9 @@ function setupSearchListeners() {
   // Filtros de espacios comunes
   const buscarEspacioInput = document.getElementById('buscarEspacio');
   const buscarServicioInput = document.getElementById('buscarServicioEspacio');
-  const filtroEdificioEspacioSelect = document.getElementById('filtroEdificioEspacio');
+  const filtroEdificioEspacioSelect = document.getElementById(
+    'filtroEdificioEspacio'
+  );
   const filtroTipoSelect = document.getElementById('filtroTipoEspacio');
   const filtroPrioridadEspacioSelect = document.getElementById(
     'filtroPrioridadEspacio'
@@ -1098,7 +1100,10 @@ function setupSearchListeners() {
   if (buscarServicioInput)
     buscarServicioInput.addEventListener('input', filterEspaciosComunes);
   if (filtroEdificioEspacioSelect)
-    filtroEdificioEspacioSelect.addEventListener('change', filterEspaciosComunes);
+    filtroEdificioEspacioSelect.addEventListener(
+      'change',
+      filterEspaciosComunes
+    );
   if (filtroTipoSelect)
     filtroTipoSelect.addEventListener('change', filterEspaciosComunes);
 
@@ -1179,7 +1184,8 @@ function filterEspaciosComunes() {
     document.getElementById('buscarEspacio')?.value.toLowerCase() || '';
   const buscarServicio =
     document.getElementById('buscarServicioEspacio')?.value.toLowerCase() || '';
-  const filtroEdificio = document.getElementById('filtroEdificioEspacio')?.value || '';
+  const filtroEdificio =
+    document.getElementById('filtroEdificioEspacio')?.value || '';
   const tipoFiltro = document.getElementById('filtroTipoEspacio')?.value || '';
   const prioridadFiltro =
     document.getElementById('filtroPrioridadEspacio')?.value || '';
@@ -1194,7 +1200,9 @@ function filterEspaciosComunes() {
     const coincideNombre =
       !buscarEspacio || espacio.nombre.toLowerCase().includes(buscarEspacio);
     const coincideEdificio =
-      !filtroEdificio || espacio.edificio_id?.toString() === filtroEdificio || espacio.edificio_nombre === filtroEdificio;
+      !filtroEdificio ||
+      espacio.edificio_id?.toString() === filtroEdificio ||
+      espacio.edificio_nombre === filtroEdificio;
     const coincideTipo = !tipoFiltro || espacio.tipo === tipoFiltro;
     const coincideEstado = !estadoFiltro || espacio.estado === estadoFiltro;
 
@@ -2186,7 +2194,10 @@ function poblarFiltroEdificiosEspacios() {
       select.appendChild(option);
     });
 
-  console.log('🏢 [APP.JS] Filtro de edificios (espacios) poblado:', edificios.length);
+  console.log(
+    '🏢 [APP.JS] Filtro de edificios (espacios) poblado:',
+    edificios.length
+  );
 }
 
 // Hacer la función disponible globalmente

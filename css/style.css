@@ -1103,7 +1103,7 @@ body.admin .tab-content.admin-only.active {
   .busqueda-filtros {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   #contenedorFiltrosEspacios {
     grid-template-columns: repeat(3, 1fr);
   }
@@ -1133,7 +1133,7 @@ body.admin .tab-content.admin-only.active {
   #contenedorFiltrosTareas {
     grid-template-columns: 1fr;
   }
-  
+
   #contenedorFiltrosEspacios {
     grid-template-columns: 1fr;
   }
@@ -5345,6 +5345,193 @@ body.admin .tab-content.admin-only.active {
   height: 24px;
   cursor: pointer;
   accent-color: var(--verde-oliva);
+}
+
+/* ========================================
+   SÁBANA - LAYOUT EN COLUMNAS POR EDIFICIO (DESKTOP)
+   ======================================== */
+@media (min-width: 769px) {
+  .sabana-layout-columns {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    background: var(--bg-secundario);
+  }
+
+  .sabana-edificio-column {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .sabana-edificio-header {
+    background: var(--border-color);
+    color: var(--texto-header);
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    font-weight: 800;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: var(--radio-pequeno);
+    border: 3px solid var(--negro-carbon);
+    box-shadow: 3px 3px 0 var(--negro-carbon);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    margin-bottom: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+
+  .sabana-edificio-header:hover:not(.active) {
+    background: var(--verde-oliva);
+    color: var(--blanco);
+  }
+
+  .sabana-edificio-header.active {
+    background: var(--verde-oliva);
+    color: var(--blanco);
+    transform: translateY(2px);
+    box-shadow: 1px 1px 0 var(--negro-carbon);
+  }
+
+  .sabana-edificio-column.collapsed {
+    flex: 0 0 auto;
+    min-width: 120px;
+  }
+
+  .sabana-habitacion-card {
+    background: var(--bg-principal);
+    border: 2px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.6rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .sabana-habitacion-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .sabana-habitacion-card.realizada {
+    background: linear-gradient(
+      135deg,
+      rgba(76, 84, 76, 0.06) 0%,
+      rgba(76, 84, 76, 0.01) 100%
+    );
+    border-left: 3px solid var(--verde-oliva);
+  }
+
+  .sabana-habitacion-card.pendiente {
+    background: var(--bg-principal);
+    border-left: 3px solid var(--verde-oliva);
+  }
+
+  .sabana-habitacion-card.sabana-pending {
+    background: rgba(104, 104, 104, 0.12);
+    box-shadow: 0 3px 8px rgba(104, 104, 104, 0.15);
+  }
+
+  .sabana-habitacion-numero {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--texto-principal);
+    margin-bottom: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.4rem;
+    border-bottom: 2px solid var(--gris-separador);
+  }
+
+  .sabana-habitacion-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--verde-oliva);
+  }
+
+  .sabana-habitacion-fecha {
+    font-size: 0.7rem;
+    color: var(--texto-secundario);
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .sabana-habitacion-fecha i {
+    font-size: 0.65rem;
+  }
+
+  .sabana-habitacion-responsable {
+    font-size: 0.7rem;
+    color: var(--texto-principal);
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .sabana-habitacion-responsable i {
+    font-size: 0.65rem;
+    color: var(--verde-oliva);
+  }
+
+  .sabana-habitacion-observaciones {
+    width: 100%;
+    padding: 0.35rem;
+    border: 2px solid var(--gris-separador);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-family: inherit;
+    resize: none;
+    min-height: 50px;
+    transition: all 0.2s ease;
+    margin-top: 0.3rem;
+  }
+
+  .sabana-habitacion-observaciones:focus {
+    outline: none;
+    border-color: var(--verde-oliva);
+    box-shadow: 0 0 0 2px rgba(76, 84, 76, 0.1);
+  }
+
+  .sabana-habitacion-observaciones::placeholder {
+    color: var(--gris-grafito);
+    opacity: 0.5;
+    font-style: italic;
+    font-size: 0.65rem;
+  }
+
+  .sabana-habitacion-observaciones.readonly {
+    opacity: 0.6;
+    cursor: not-allowed;
+    background-color: var(--gris-claro);
+    border-style: dashed;
+  }
+
+  .sabana-habitacion-fecha-realizado {
+    font-size: 0.65rem;
+    color: var(--verde-oliva);
+    font-weight: 600;
+    margin-top: 0.3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .sabana-habitacion-fecha-realizado i {
+    font-size: 0.6rem;
+  }
 }
 
 /* Estilos para elementos de solo lectura (sábanas archivadas) */

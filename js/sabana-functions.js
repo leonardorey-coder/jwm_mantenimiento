@@ -389,18 +389,55 @@ async function cambiarServicioActual(sabanaId) {
 }
 
 function renderSabanaTable(items, archivada = false) {
+  const wrapper = document.querySelector('.filtros-table-wrapper');
   const tbody = document.getElementById('sabanaTableBody');
-  if (!tbody) {
+
+  // Detectar si es desktop (> 768px)
+  const isDesktop = window.innerWidth > 768;
+
+  console.log(
+    '📊 Renderizando tabla con',
+    items?.length || 0,
+    'items',
+    isDesktop ? '(columnas)' : '(tabla)'
+  );
+
+  if (isDesktop) {
+    // En desktop, usar layout de columnas
+    renderSabanaColumns(items, archivada);
+    return;
+  }
+
+  // En móvil, restaurar la tabla si se cambió a columnas previamente
+  if (wrapper && !wrapper.querySelector('table')) {
+    wrapper.innerHTML = `
+      <table class="filtros-table">
+        <thead>
+          <tr>
+            <th><i class="fas fa-building"></i> Edificio</th>
+            <th><i class="fas fa-door-closed"></i> Habitación</th>
+            <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+            <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
+            <th><i class="fas fa-user"></i> Responsable</th>
+            <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
+            <th><i class="fas fa-check-circle"></i> Realizado</th>
+          </tr>
+        </thead>
+        <tbody id="sabanaTableBody"></tbody>
+      </table>
+    `;
+  }
+
+  const tbodyActual = document.getElementById('sabanaTableBody');
+  if (!tbodyActual) {
     console.error('⚠️ No se encontró elemento sabanaTableBody');
     return;
   }
 
-  console.log('📊 Renderizando tabla con', items?.length || 0, 'items');
-
-  tbody.innerHTML = '';
+  tbodyActual.innerHTML = '';
 
   if (!items || items.length === 0) {
-    tbody.innerHTML =
+    tbodyActual.innerHTML =
       '<tr><td colspan="7" class="sabana-placeholder">No hay registros en esta sábana.</td></tr>';
     console.log('⚠️ No hay items para mostrar');
     return;
@@ -428,23 +465,23 @@ function renderSabanaTable(items, archivada = false) {
           return;
         const checkbox = tr.querySelector('input.checkbox-sabana');
         if (!checkbox || checkbox.checked) {
-          tbody.dataset.pendingSabanaClick = '';
+          tbodyActual.dataset.pendingSabanaClick = '';
           tr.classList.remove('sabana-pending');
           return;
         }
-        const pendingId = tbody.dataset.pendingSabanaClick || '';
+        const pendingId = tbodyActual.dataset.pendingSabanaClick || '';
         if (pendingId === String(item.id)) {
-          tbody.dataset.pendingSabanaClick = '';
+          tbodyActual.dataset.pendingSabanaClick = '';
           tr.classList.remove('sabana-pending');
           checkbox.checked = true;
           toggleRealizadoSabana(item.id, true);
           return;
         }
-        const previousPending = tbody.querySelector('tr.sabana-pending');
+        const previousPending = tbodyActual.querySelector('tr.sabana-pending');
         if (previousPending) {
           previousPending.classList.remove('sabana-pending');
         }
-        tbody.dataset.pendingSabanaClick = String(item.id);
+        tbodyActual.dataset.pendingSabanaClick = String(item.id);
         tr.classList.add('sabana-pending');
       });
 
@@ -501,7 +538,7 @@ function renderSabanaTable(items, archivada = false) {
       fragment.appendChild(tr);
     }
 
-    tbody.appendChild(fragment);
+    tbodyActual.appendChild(fragment);
     currentIndex = endIndex;
 
     console.log(`📦 Renderizados ${endIndex}/${items.length} items`);
@@ -512,7 +549,7 @@ function renderSabanaTable(items, archivada = false) {
       sentinel.className = 'lazy-sentinel';
       sentinel.innerHTML =
         '<td colspan="7" style="height: 1px; padding: 0;"></td>';
-      tbody.appendChild(sentinel);
+      tbodyActual.appendChild(sentinel);
 
       // Observer para cargar siguiente lote
       const observer = new IntersectionObserver(
@@ -535,6 +572,435 @@ function renderSabanaTable(items, archivada = false) {
       console.log('✅ Todas las filas renderizadas');
     }
   };
+
+  // Iniciar el primer lote
+  renderBatch();
+
+  actualizarContadoresSabana(items);
+}
+
+function toggleEdificioVisibilidad(headerElement, edificio) {
+  const column = headerElement.closest('.sabana-edificio-column');
+  if (!column) return;
+
+  const isShowingNoChecked = column.classList.toggle('showing-no-checked');
+  headerElement.classList.toggle('active', isShowingNoChecked);
+
+  if (isShowingNoChecked) {
+    // Mostrar solo items NO checked de este edificio
+    // Obtener items no realizados de currentSabanaItems para este edificio
+    const itemsNoChecked = currentSabanaItems.filter(
+      (item) =>
+        (item.edificio || 'Sin edificio') === edificio && !item.realizado
+    );
+
+    // Ordenar por número de habitación
+    itemsNoChecked.sort((a, b) => {
+      const numA = parseInt(a.habitacion.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.habitacion.replace(/\D/g, '')) || 0;
+      return numA - numB;
+    });
+
+    console.log(
+      `🔍 Edificio ${edificio}: mostrando ${itemsNoChecked.length} items no checked`
+    );
+
+    // Limpiar cards existentes pero mantener el header
+    const existingCards = column.querySelectorAll('.sabana-habitacion-card');
+    existingCards.forEach((card) => card.remove());
+
+    // Remover sentinel existente si hay uno
+    const existingSentinel = column.querySelector('.lazy-sentinel-edificio');
+    if (existingSentinel) existingSentinel.remove();
+
+    // Guardar referencia a los items originales del edificio para restaurar después
+    column.dataset.showingNoChecked = 'true';
+
+    // Renderizar items no checked con lazy loading
+    renderCardsInColumnLazy(column, itemsNoChecked, 0);
+
+    // Actualizar texto del header para indicar filtro activo
+    headerElement.textContent = `${edificio} (${itemsNoChecked.length})`;
+  } else {
+    // Restaurar vista completa: mostrar todos los items del edificio
+    column.dataset.showingNoChecked = 'false';
+
+    // Obtener TODOS los items de este edificio
+    const todosItems = currentSabanaItems.filter(
+      (item) => (item.edificio || 'Sin edificio') === edificio
+    );
+
+    // Ordenar por número de habitación
+    todosItems.sort((a, b) => {
+      const numA = parseInt(a.habitacion.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.habitacion.replace(/\D/g, '')) || 0;
+      return numA - numB;
+    });
+
+    console.log(
+      `🔄 Edificio ${edificio}: restaurando vista completa (${todosItems.length} items)`
+    );
+
+    // Limpiar cards existentes
+    const existingCards = column.querySelectorAll('.sabana-habitacion-card');
+    existingCards.forEach((card) => card.remove());
+
+    // Remover sentinel existente
+    const existingSentinel = column.querySelector('.lazy-sentinel-edificio');
+    if (existingSentinel) existingSentinel.remove();
+
+    // Renderizar todos los items con lazy loading
+    renderCardsInColumnLazy(column, todosItems, 0);
+
+    // Restaurar texto del header
+    headerElement.textContent = edificio;
+  }
+}
+
+/**
+ * Renderiza cards en una columna específica con lazy loading
+ * @param {HTMLElement} column - Columna donde renderizar
+ * @param {Array} items - Items a renderizar
+ * @param {number} startIndex - Índice desde donde empezar
+ */
+function renderCardsInColumnLazy(column, items, startIndex) {
+  const CARDS_PER_BATCH = 8;
+  const archivada = currentSabanaArchivada;
+
+  let currentIndex = startIndex;
+
+  const renderBatch = () => {
+    const endIndex = Math.min(currentIndex + CARDS_PER_BATCH, items.length);
+
+    for (let i = currentIndex; i < endIndex; i++) {
+      const item = items[i];
+      const card = createSabanaCard(item, archivada);
+      column.appendChild(card);
+    }
+
+    currentIndex = endIndex;
+
+    console.log(
+      `📦 Columna: renderizadas ${currentIndex}/${items.length} cards`
+    );
+
+    // Si quedan más cards, crear sentinel para lazy loading
+    if (currentIndex < items.length) {
+      const sentinel = document.createElement('div');
+      sentinel.className = 'lazy-sentinel-edificio';
+      sentinel.style.cssText = 'height: 1px; width: 100%; opacity: 0;';
+      column.appendChild(sentinel);
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              observer.unobserve(entry.target);
+              entry.target.remove();
+              renderBatch();
+            }
+          });
+        },
+        {
+          rootMargin: '200px',
+        }
+      );
+
+      observer.observe(sentinel);
+    } else {
+      console.log(`✅ Columna: todas las cards renderizadas`);
+    }
+  };
+
+  // Iniciar primer lote
+  renderBatch();
+}
+
+/**
+ * Crea un elemento card para un item de sábana
+ * @param {Object} item - Item de la sábana
+ * @param {boolean} archivada - Si la sábana está archivada
+ * @returns {HTMLElement} Elemento card
+ */
+function createSabanaCard(item, archivada) {
+  const readonly = archivada ? 'disabled' : '';
+  const readonlyClass = archivada ? 'readonly' : '';
+  const estadoClass = item.realizado ? 'realizada' : 'pendiente';
+
+  const fechaProgramada = formatFechaCorta(item.fecha_programada);
+  const fechaRealizado = item.fecha_realizado
+    ? formatFechaHora(item.fecha_realizado)
+    : null;
+  const responsable = item.responsable_nombre || item.responsable || '';
+
+  const card = document.createElement('div');
+  card.className = `sabana-habitacion-card ${estadoClass}`;
+  card.dataset.itemId = item.id;
+  card.onclick = (e) => handleCardClick(e, item.id, archivada);
+
+  card.innerHTML = `
+    <div class="sabana-habitacion-numero">
+      <span>${item.habitacion}</span>
+      <input 
+        type="checkbox" 
+        class="sabana-habitacion-checkbox" 
+        data-item-id="${item.id}"
+        ${item.realizado ? 'checked' : ''}
+        ${readonly}
+        onchange="toggleRealizadoSabana(${item.id}, this.checked)"
+      />
+    </div>
+    <div class="sabana-habitacion-fecha">
+      <i class="fas fa-calendar"></i>
+      ${fechaProgramada}
+    </div>
+    ${
+      responsable
+        ? `<div class="sabana-habitacion-responsable">
+          <i class="fas fa-user"></i>
+          ${responsable}
+        </div>`
+        : ''
+    }
+    ${
+      fechaRealizado
+        ? `<div class="sabana-habitacion-fecha-realizado">
+          <i class="fas fa-check"></i>
+          ${fechaRealizado}
+        </div>`
+        : ''
+    }
+    <textarea 
+      class="sabana-habitacion-observaciones ${readonlyClass}" 
+      data-item-id="${item.id}"
+      placeholder="${archivada ? 'Sin observaciones' : 'Observaciones...'}"
+      ${readonly}
+      onchange="guardarObservacionSabana(${item.id}, this.value)"
+    >${item.observaciones || ''}</textarea>
+  `;
+
+  return card;
+}
+
+function handleCardClick(event, itemId, archivada) {
+  if (archivada) return;
+
+  // Ignorar clicks en inputs, textareas, checkboxes
+  if (
+    event.target.closest(
+      'input[type="checkbox"], textarea, input, button, select, label, a'
+    )
+  ) {
+    return;
+  }
+
+  const card = document.querySelector(
+    `.sabana-habitacion-card[data-item-id="${itemId}"]`
+  );
+  const checkbox = card?.querySelector('.sabana-habitacion-checkbox');
+
+  if (!card || !checkbox || checkbox.checked) {
+    // Si ya está checked, remover pending state
+    if (card) {
+      card.classList.remove('sabana-pending');
+    }
+    return;
+  }
+
+  // Verificar si ya está en estado pending
+  const isPending = card.classList.contains('sabana-pending');
+
+  if (isPending) {
+    // Segundo click: marcar como realizado
+    card.classList.remove('sabana-pending');
+    checkbox.checked = true;
+    toggleRealizadoSabana(itemId, true);
+  } else {
+    // Primer click: marcar como pending (gris)
+    // Remover pending de otras cards
+    document
+      .querySelectorAll('.sabana-habitacion-card.sabana-pending')
+      .forEach((c) => {
+        c.classList.remove('sabana-pending');
+      });
+    card.classList.add('sabana-pending');
+  }
+}
+
+function renderSabanaColumns(items, archivada = false) {
+  const wrapper = document.querySelector('.filtros-table-wrapper');
+  if (!wrapper) return;
+
+  // Agrupar items por edificio
+  const itemsPorEdificio = {};
+  items.forEach((item) => {
+    const edificio = item.edificio || 'Sin edificio';
+    if (!itemsPorEdificio[edificio]) {
+      itemsPorEdificio[edificio] = [];
+    }
+    itemsPorEdificio[edificio].push(item);
+  });
+
+  // Ordenar edificios alfabéticamente
+  const edificiosOrdenados = Object.keys(itemsPorEdificio).sort();
+
+  // Ordenar habitaciones dentro de cada edificio
+  edificiosOrdenados.forEach((edificio) => {
+    itemsPorEdificio[edificio].sort((a, b) => {
+      const numA = parseInt(a.habitacion.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.habitacion.replace(/\D/g, '')) || 0;
+      return numA - numB;
+    });
+  });
+
+  // Crear el contenedor principal
+  const layoutContainer = document.createElement('div');
+  layoutContainer.className = 'sabana-layout-columns';
+
+  // Crear columnas por edificio
+  const columnsByEdificio = {};
+  const indexByEdificio = {};
+  edificiosOrdenados.forEach((edificio) => {
+    const column = document.createElement('div');
+    column.className = 'sabana-edificio-column';
+
+    const header = document.createElement('div');
+    header.className = 'sabana-edificio-header';
+    header.textContent = edificio;
+    header.title = 'Click para mostrar/ocultar habitaciones';
+    header.onclick = (e) => toggleEdificioVisibilidad(e.target, edificio);
+
+    column.appendChild(header);
+    columnsByEdificio[edificio] = column;
+    indexByEdificio[edificio] = 0;
+    layoutContainer.appendChild(column);
+  });
+
+  // Calcular total de cards
+  const totalCards = items.length;
+  let renderedCards = 0;
+
+  // Renderizar cards por fila (una de cada edificio a la vez)
+  const ROWS_PER_BATCH = 8;
+
+  const renderBatch = () => {
+    let rowsRendered = 0;
+    let hasMoreCards = true;
+
+    while (rowsRendered < ROWS_PER_BATCH && hasMoreCards) {
+      hasMoreCards = false;
+
+      // Renderizar una card de cada edificio
+      edificiosOrdenados.forEach((edificio) => {
+        const habitaciones = itemsPorEdificio[edificio];
+        const idx = indexByEdificio[edificio];
+
+        if (idx < habitaciones.length) {
+          hasMoreCards = true;
+          const item = habitaciones[idx];
+          const column = columnsByEdificio[edificio];
+
+          const readonly = archivada ? 'disabled' : '';
+          const readonlyClass = archivada ? 'readonly' : '';
+          const estadoClass = item.realizado ? 'realizada' : 'pendiente';
+
+          const fechaProgramada = formatFechaCorta(item.fecha_programada);
+          const fechaRealizado = item.fecha_realizado
+            ? formatFechaHora(item.fecha_realizado)
+            : null;
+          const responsable = item.responsable_nombre || item.responsable || '';
+
+          const card = document.createElement('div');
+          card.className = `sabana-habitacion-card ${estadoClass}`;
+          card.dataset.itemId = item.id;
+          card.onclick = (e) => handleCardClick(e, item.id, archivada);
+
+          card.innerHTML = `
+            <div class="sabana-habitacion-numero">
+              <span>${item.habitacion}</span>
+              <input 
+                type="checkbox" 
+                class="sabana-habitacion-checkbox" 
+                data-item-id="${item.id}"
+                ${item.realizado ? 'checked' : ''}
+                ${readonly}
+                onchange="toggleRealizadoSabana(${item.id}, this.checked)"
+              />
+            </div>
+            <div class="sabana-habitacion-fecha">
+              <i class="fas fa-calendar"></i>
+              ${fechaProgramada}
+            </div>
+            ${
+              responsable
+                ? `<div class="sabana-habitacion-responsable">
+                  <i class="fas fa-user"></i>
+                  ${responsable}
+                </div>`
+                : ''
+            }
+            ${
+              fechaRealizado
+                ? `<div class="sabana-habitacion-fecha-realizado">
+                  <i class="fas fa-check"></i>
+                  ${fechaRealizado}
+                </div>`
+                : ''
+            }
+            <textarea 
+              class="sabana-habitacion-observaciones ${readonlyClass}" 
+              data-item-id="${item.id}"
+              placeholder="${archivada ? 'Sin observaciones' : 'Observaciones...'}"
+              ${readonly}
+              onchange="guardarObservacionSabana(${item.id}, this.value)"
+            >${item.observaciones || ''}</textarea>
+          `;
+
+          column.appendChild(card);
+          indexByEdificio[edificio]++;
+          renderedCards++;
+        }
+      });
+
+      rowsRendered++;
+    }
+
+    console.log(
+      `📦 Renderizadas ${renderedCards}/${totalCards} cards en columnas`
+    );
+
+    // Si quedan más cards, crear sentinel para lazy loading
+    if (hasMoreCards) {
+      const sentinel = document.createElement('div');
+      sentinel.className = 'lazy-sentinel-columns';
+      sentinel.style.cssText =
+        'height: 1px; width: 100%; grid-column: 1 / -1; opacity: 0;';
+      layoutContainer.appendChild(sentinel);
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              observer.unobserve(entry.target);
+              entry.target.remove();
+              renderBatch();
+            }
+          });
+        },
+        {
+          rootMargin: '200px',
+        }
+      );
+
+      observer.observe(sentinel);
+    } else {
+      console.log('✅ Todas las cards renderizadas en columnas');
+    }
+  };
+
+  // Reemplazar el contenido del wrapper
+  wrapper.innerHTML = '';
+  wrapper.appendChild(layoutContainer);
 
   // Iniciar el primer lote
   renderBatch();
@@ -633,9 +1099,68 @@ async function toggleRealizadoSabana(itemId, realizado) {
           localItem.responsable = data.item.responsable;
           localItem.responsable_nombre = data.item.responsable;
           localItem.usuario_responsable_id = data.item.usuario_responsable_id;
+        } else {
+          localItem.responsable = null;
+          localItem.responsable_nombre = null;
+          localItem.usuario_responsable_id = null;
         }
       }
 
+      // Actualizar UI en layout de columnas (desktop)
+      const card = document.querySelector(
+        `.sabana-habitacion-card[data-item-id="${itemId}"]`
+      );
+      if (card) {
+        card.classList.toggle('realizada', realizado);
+        card.classList.toggle('pendiente', !realizado);
+
+        // Actualizar responsable
+        const responsableDiv = card.querySelector(
+          '.sabana-habitacion-responsable'
+        );
+        if (data.item.responsable) {
+          if (responsableDiv) {
+            responsableDiv.innerHTML = `<i class="fas fa-user"></i> ${data.item.responsable}`;
+          } else {
+            const fechaDiv = card.querySelector('.sabana-habitacion-fecha');
+            if (fechaDiv) {
+              fechaDiv.insertAdjacentHTML(
+                'afterend',
+                `<div class="sabana-habitacion-responsable"><i class="fas fa-user"></i> ${data.item.responsable}</div>`
+              );
+            }
+          }
+        } else if (responsableDiv) {
+          responsableDiv.remove();
+        }
+
+        // Actualizar fecha realizado
+        const fechaRealizadoDiv = card.querySelector(
+          '.sabana-habitacion-fecha-realizado'
+        );
+        if (data.item.fecha_realizado) {
+          const fechaRealizado = formatFechaHora(data.item.fecha_realizado);
+          if (fechaRealizadoDiv) {
+            fechaRealizadoDiv.innerHTML = `<i class="fas fa-check"></i> ${fechaRealizado}`;
+          } else {
+            const textarea = card.querySelector(
+              '.sabana-habitacion-observaciones'
+            );
+            if (textarea) {
+              textarea.insertAdjacentHTML(
+                'beforebegin',
+                `<div class="sabana-habitacion-fecha-realizado"><i class="fas fa-check"></i> ${fechaRealizado}</div>`
+              );
+            }
+          }
+        } else if (fechaRealizadoDiv) {
+          fechaRealizadoDiv.remove();
+        }
+
+        poblarPersonalSabana(currentSabanaItems);
+      }
+
+      // Actualizar UI en tabla (mobile)
       const checkbox = document.querySelector(
         `input.checkbox-sabana[data-item-id="${itemId}"]`
       );
@@ -672,7 +1197,6 @@ async function toggleRealizadoSabana(itemId, realizado) {
             }
             poblarPersonalSabana(currentSabanaItems);
           } else {
-            // Limpiar responsable en UI cuando se desmarca como realizado
             const responsableCell = row.cells[4];
             if (responsableCell) {
               responsableCell.innerHTML = '<span style="color: #999;">-</span>';
@@ -680,12 +1204,6 @@ async function toggleRealizadoSabana(itemId, realizado) {
               setTimeout(() => {
                 responsableCell.style.backgroundColor = '';
               }, 1000);
-            }
-            // También limpiar en el item local
-            if (localItem) {
-              localItem.responsable = null;
-              localItem.responsable_nombre = null;
-              localItem.usuario_responsable_id = null;
             }
             poblarPersonalSabana(currentSabanaItems);
           }
@@ -730,9 +1248,7 @@ async function guardarObservacionSabana(itemId, observaciones) {
     const data = await response.json();
     console.log('✅ Observación guardada:', data);
 
-    // Actualizar UI si hay datos del responsable
     if (data.success && data.item) {
-      // Actualizar el item en el array local
       const localItem = currentSabanaItems.find((i) => i.id === itemId);
       if (localItem) {
         localItem.observaciones = observaciones;
@@ -742,23 +1258,46 @@ async function guardarObservacionSabana(itemId, observaciones) {
         }
       }
 
-      // Actualizar la fila en la tabla si es necesario
+      // Actualizar UI en layout de columnas (desktop)
+      const card = document.querySelector(
+        `.sabana-habitacion-card[data-item-id="${itemId}"]`
+      );
+      if (card) {
+        const responsableDiv = card.querySelector(
+          '.sabana-habitacion-responsable'
+        );
+        if (data.item.responsable) {
+          if (responsableDiv) {
+            responsableDiv.innerHTML = `<i class="fas fa-user"></i> ${data.item.responsable}`;
+          } else {
+            const fechaDiv = card.querySelector('.sabana-habitacion-fecha');
+            if (fechaDiv) {
+              fechaDiv.insertAdjacentHTML(
+                'afterend',
+                `<div class="sabana-habitacion-responsable"><i class="fas fa-user"></i> ${data.item.responsable}</div>`
+              );
+            }
+          }
+        } else if (responsableDiv) {
+          responsableDiv.remove();
+        }
+        poblarPersonalSabana(currentSabanaItems);
+      }
+
+      // Actualizar UI en tabla (mobile)
       const inputObservacion = document.querySelector(
         `input[data-item-id="${itemId}"]`
       );
       if (inputObservacion) {
         const row = inputObservacion.closest('tr');
         if (row) {
-          // La columna del responsable es la 5ta (índice 4)
           const responsableCell = row.cells[4];
           if (responsableCell) {
             if (data.item.responsable) {
               responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
             } else {
-              // Limpiar responsable si observaciones está vacío
               responsableCell.innerHTML = '<span style="color: #999;">-</span>';
             }
-            // Efecto visual de actualización
             responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
             setTimeout(() => {
               responsableCell.style.backgroundColor = '';
@@ -767,7 +1306,6 @@ async function guardarObservacionSabana(itemId, observaciones) {
         }
       }
 
-      // Actualizar filtro de personal
       poblarPersonalSabana(currentSabanaItems);
     }
   } catch (error) {
@@ -2203,6 +2741,19 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
   }
 }
 
+// Listener para cambiar layout al redimensionar
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(() => {
+    if (currentSabanaItems && currentSabanaItems.length > 0) {
+      renderSabanaTable(currentSabanaItems, currentSabanaArchivada);
+    }
+  }, 300);
+});
+
+window.toggleEdificioVisibilidad = toggleEdificioVisibilidad;
+window.handleCardClick = handleCardClick;
 window.cargarListaSabanas = cargarListaSabanas;
 window.cambiarServicioActual = cambiarServicioActual;
 window.seleccionarSabanaPorId = seleccionarSabanaPorId;

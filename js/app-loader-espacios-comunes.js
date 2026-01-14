@@ -350,56 +350,150 @@ function obtenerIconoEspacio(espacio) {
   // Las coincidencias más específicas deben ir primero
   const iconosPorPalabraClave = [
     // Piscinas y albercas (prioridad alta para evitar confusión con gimnasio)
-    { keywords: ['alberca', 'piscina', 'pool', 'swimming'], icono: 'fa-swimming-pool' },
-    
+    {
+      keywords: ['alberca', 'piscina', 'pool', 'swimming'],
+      icono: 'fa-swimming-pool',
+    },
+
     // Spa y wellness
-    { keywords: ['spa', 'wellness', 'masaje', 'relajacion', 'temazcal', 'jacuzzi'], icono: 'fa-spa' },
-    
+    {
+      keywords: [
+        'spa',
+        'wellness',
+        'masaje',
+        'relajacion',
+        'temazcal',
+        'jacuzzi',
+      ],
+      icono: 'fa-spa',
+    },
+
     // Gimnasio y fitness
-    { keywords: ['gimnasio', 'gym', 'fitness', 'vitality'], icono: 'fa-dumbbell' },
-    
+    {
+      keywords: ['gimnasio', 'gym', 'fitness', 'vitality'],
+      icono: 'fa-dumbbell',
+    },
+
     // Restaurantes y comida
-    { keywords: ['restaurante', 'cocina', 'comedor', 'buffet', 'desayuno', 'carniceria', 'pasteleria', 'chocolateria', 'panaderia', 'linea caliente', 'linea fria', 'cafe des artistes', 'auka deli', 'niparaya', 'kaha'], icono: 'fa-utensils' },
-    
+    {
+      keywords: [
+        'restaurante',
+        'cocina',
+        'comedor',
+        'buffet',
+        'desayuno',
+        'carniceria',
+        'pasteleria',
+        'chocolateria',
+        'panaderia',
+        'linea caliente',
+        'linea fria',
+        'cafe des artistes',
+        'auka deli',
+        'niparaya',
+        'kaha',
+      ],
+      icono: 'fa-utensils',
+    },
+
     // Bares y bebidas
     { keywords: ['bar', 'cocktail', 'lounge'], icono: 'fa-cocktail' },
-    
+
     // Eventos y salones
-    { keywords: ['salon', 'conferencia', 'banquete', 'reunion', 'junta', 'kumat', 'cine', 'sala vip', 'sala de juntas', 'matku', 'board room', 'eventos'], icono: 'fa-users' },
-    
+    {
+      keywords: [
+        'salon',
+        'conferencia',
+        'banquete',
+        'reunion',
+        'junta',
+        'kumat',
+        'cine',
+        'sala vip',
+        'sala de juntas',
+        'matku',
+        'board room',
+        'eventos',
+      ],
+      icono: 'fa-users',
+    },
+
     // Lavandería
-    { keywords: ['lavanderia', 'lavandería', 'roperia', 'vestidor', 'locker'], icono: 'fa-tshirt' },
-    
+    {
+      keywords: ['lavanderia', 'lavandería', 'roperia', 'vestidor', 'locker'],
+      icono: 'fa-tshirt',
+    },
+
     // Estacionamiento
     { keywords: ['estacionamiento', 'parking', 'parqueo'], icono: 'fa-car' },
-    
+
     // Jardines y exteriores
-    { keywords: ['jardin', 'jardín', 'jardines', 'terraza', 'huerto', 'jardinera', 'espejo de agua', 'duela'], icono: 'fa-tree' },
-    
+    {
+      keywords: [
+        'jardin',
+        'jardín',
+        'jardines',
+        'terraza',
+        'huerto',
+        'jardinera',
+        'espejo de agua',
+        'duela',
+      ],
+      icono: 'fa-tree',
+    },
+
     // Playground y áreas de juego
-    { keywords: ['playground', 'área de juegos', 'area de juegos', 'game room'], icono: 'fa-child' },
-    
+    {
+      keywords: ['playground', 'área de juegos', 'area de juegos', 'game room'],
+      icono: 'fa-child',
+    },
+
     // Business center y oficinas
-    { keywords: ['business center', 'centro de negocios', 'oficina', 'consultorio'], icono: 'fa-laptop' },
-    
+    {
+      keywords: [
+        'business center',
+        'centro de negocios',
+        'oficina',
+        'consultorio',
+      ],
+      icono: 'fa-laptop',
+    },
+
     // Tiendas
     { keywords: ['tienda', 'gift shop', 'boutique'], icono: 'fa-shopping-bag' },
-    
+
     // Biblioteca
     { keywords: ['biblioteca'], icono: 'fa-book' },
-    
+
     // Baños y servicios sanitarios
     { keywords: ['bano', 'baño', 'sanitario', 'wc'], icono: 'fa-shower' },
-    
+
     // Servicios técnicos
-    { keywords: ['cuarto de filtro', 'carcamo', 'tanque', 'cisterna', 'sala de maquinas', 'chiller', 'calentador', 'bomba', 'osmos', 'planta', 'subestacion', 'banco de baterias', 'site sistemas'], icono: 'fa-cog' },
-    
+    {
+      keywords: [
+        'cuarto de filtro',
+        'carcamo',
+        'tanque',
+        'cisterna',
+        'sala de maquinas',
+        'chiller',
+        'calentador',
+        'bomba',
+        'osmos',
+        'planta',
+        'subestacion',
+        'banco de baterias',
+        'site sistemas',
+      ],
+      icono: 'fa-cog',
+    },
+
     // Almacenes y bodegas
     { keywords: ['bodega', 'almacen', 'almacén'], icono: 'fa-archive' },
-    
+
     // Lobby y recepción
     { keywords: ['lobby', 'recepcion', 'recepción'], icono: 'fa-building' },
-    
+
     // Pasillos y áreas comunes
     { keywords: ['pasillo', 'corredor', 'hall'], icono: 'fa-door-open' },
   ];
