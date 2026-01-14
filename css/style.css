@@ -912,12 +912,14 @@ body.admin .tab-content.admin-only.active {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  margin-bottom: 0 !important;
 }
 
 .t-secundario {
   font-size: 1.2rem;
   font-weight: 400;
   color: var(--gris-grafito);
+  margin-top: 0.25rem !important;
   margin-bottom: var(--espaciado-xl);
   font-family: 'Montserrat', sans-serif;
 }
@@ -12917,8 +12919,15 @@ body.has-custom-background .tab-content {
 
 body.has-custom-background .panel,
 body.has-custom-background .card,
-body.has-custom-background .habitacion-card {
+body.has-custom-background .habitacion-card,
+body.has-custom-background .brutalist-card,
+body.has-custom-background .tarea-card,
+body.has-custom-background .checklist-card,
+body.has-custom-background .usuario-card,
+body.has-custom-background .lista-cuartos .cuarto-item {
   background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 :root[data-theme='dark'].has-custom-background .tab-content {
@@ -12927,8 +12936,15 @@ body.has-custom-background .habitacion-card {
 
 :root[data-theme='dark'].has-custom-background .panel,
 :root[data-theme='dark'].has-custom-background .card,
-:root[data-theme='dark'].has-custom-background .habitacion-card {
+:root[data-theme='dark'].has-custom-background .habitacion-card,
+:root[data-theme='dark'].has-custom-background .brutalist-card,
+:root[data-theme='dark'].has-custom-background .tarea-card,
+:root[data-theme='dark'].has-custom-background .checklist-card,
+:root[data-theme='dark'].has-custom-background .usuario-card,
+:root[data-theme='dark'].has-custom-background .lista-cuartos .cuarto-item {
   background: rgba(30, 30, 30, 0.9);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 /* Contenedor principal más transparente */
