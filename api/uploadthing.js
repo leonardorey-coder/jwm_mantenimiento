@@ -5,11 +5,43 @@
 
 const { createUploadthing } = require('uploadthing/express');
 const { UTApi } = require('uploadthing/server');
+const path = require('path');
+const fs = require('fs');
 
 const f = createUploadthing();
 
+// Cargar token/secret de UploadThing
+let uploadthingToken = process.env.UPLOADTHING_TOKEN;
+const uploadthingSecret = process.env.UPLOADTHING_SECRET;
+
+// Si no hay token en el entorno, intentar leer de .env.local
+if (!uploadthingToken) {
+  try {
+    const envPath = path.join(__dirname, '..', '.env.local');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      const match = envContent.match(
+        /^UPLOADTHING_TOKEN=['\"]?([^'\"\\n]+)['\"]?/m
+      );
+      if (match) {
+        uploadthingToken = match[1].trim();
+      }
+    }
+  } catch (e) {
+    // Ignorar errores al leer .env.local
+  }
+}
+
 // Instancia de la API para operaciones como eliminar archivos
-const utapi = new UTApi();
+// Preferir apiKey (secret) sobre token
+let utapi;
+if (uploadthingSecret) {
+  utapi = new UTApi({ apiKey: uploadthingSecret.trim() });
+} else if (uploadthingToken) {
+  utapi = new UTApi({ token: uploadthingToken.trim() });
+} else {
+  utapi = new UTApi();
+}
 
 /**
  * FileRouter para adjuntos de tareas

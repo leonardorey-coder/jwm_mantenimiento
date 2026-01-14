@@ -15,6 +15,7 @@ const {
   obtenerIPCliente,
 } = require('./auth');
 const { dbConfig } = require('../db/config');
+const { utapi } = require('./uploadthing');
 
 // Configuración de PostgreSQL (usa la configuración centralizada que soporta DATABASE_URL)
 const pool = new Pool(dbConfig);
@@ -785,6 +786,18 @@ async function actualizarFondo(req, res) {
     console.log('🖼️ [AUTH-ROUTES] Actualizando fondo para usuario:', usuarioId);
     console.log('   Nueva URL:', background_url || 'null (eliminar fondo)');
 
+    // Si se está eliminando el fondo (background_url es null/vacío), obtener el fondo actual para eliminarlo de UploadThing
+    let fondoAnteriorUrl = null;
+    if (!background_url) {
+      const usuarioActual = await pool.query(
+        'SELECT background_url FROM usuarios WHERE id = $1',
+        [usuarioId]
+      );
+      if (usuarioActual.rows.length > 0) {
+        fondoAnteriorUrl = usuarioActual.rows[0].background_url;
+      }
+    }
+
     // Actualizar el background_url del usuario
     const result = await pool.query(
       `UPDATE usuarios 
@@ -801,10 +814,56 @@ async function actualizarFondo(req, res) {
       });
     }
 
+    // Si se eliminó el fondo y había un fondo anterior, eliminar el archivo de UploadThing
+    if (!background_url && fondoAnteriorUrl) {
+      try {
+        // Extraer el key de UploadThing de la URL
+        // Formatos posibles:
+        // - https://utfs.io/f/[key]
+        // - https://uploadthing.com/f/[key]
+        // - https://uploadthing-prod.s3.us-west-2.amazonaws.com/[key]
+        let uploadthingKey = null;
+        
+        // Intentar extraer de formato /f/[key]
+        const fMatch = fondoAnteriorUrl.match(/\/f\/([^\/\?]+)/);
+        if (fMatch && fMatch[1]) {
+          uploadthingKey = fMatch[1];
+        } else {
+          // Fallback: extraer el último segmento de la URL
+          const urlMatch = fondoAnteriorUrl.match(/\/([^\/\?]+)$/);
+          if (urlMatch && urlMatch[1]) {
+            uploadthingKey = urlMatch[1];
+          }
+        }
+        
+        if (uploadthingKey) {
+          console.log(
+            '🗑️ [AUTH-ROUTES] Eliminando archivo de UploadThing:',
+            uploadthingKey
+          );
+          await utapi.deleteFiles(uploadthingKey);
+          console.log(
+            '✅ [AUTH-ROUTES] Archivo eliminado de UploadThing exitosamente'
+          );
+        } else {
+          console.warn(
+            '⚠️ [AUTH-ROUTES] No se pudo extraer el key de UploadThing de la URL:',
+            fondoAnteriorUrl
+          );
+        }
+      } catch (utError) {
+        console.warn(
+          '⚠️ [AUTH-ROUTES] Error eliminando archivo de UploadThing (puede que ya no exista):',
+          utError.message
+        );
+        // No fallar la operación si no se puede eliminar de UploadThing
+      }
+    }
+
     // Registrar en auditoría
     await pool.query(
       `INSERT INTO auditoria_usuarios (usuario_id, accion, descripcion, ip_address)
-       VALUES ($1, 'actualizar_fondo', $2, $3)`,
+       VALUES ($1, 'actualizacion', $2, $3)`,
       [
         usuarioId,
         background_url
