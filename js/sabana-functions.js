@@ -657,6 +657,36 @@ function toggleEdificioVisibilidad(headerElement, edificio) {
   }
 }
 
+function getEdificioHeader(edificio) {
+  const headers = document.querySelectorAll('.sabana-edificio-header');
+  for (const header of headers) {
+    if (header.dataset.edificio === edificio) return header;
+  }
+  return null;
+}
+
+function getEdificioColumn(edificio) {
+  const columns = document.querySelectorAll('.sabana-edificio-column');
+  for (const column of columns) {
+    if (column.dataset.edificio === edificio) return column;
+  }
+  return null;
+}
+
+function updateEdificioNoCheckedCount(edificio) {
+  const column = getEdificioColumn(edificio);
+  if (!column || !column.classList.contains('showing-no-checked')) return;
+
+  const header = getEdificioHeader(edificio);
+  if (!header) return;
+
+  const totalNoChecked = currentSabanaItems.filter(
+    (item) => (item.edificio || 'Sin edificio') === edificio && !item.realizado
+  ).length;
+
+  header.textContent = `${edificio} (${totalNoChecked})`;
+}
+
 /**
  * Renderiza cards en una columna específica con lazy loading
  * @param {HTMLElement} column - Columna donde renderizar
@@ -868,8 +898,10 @@ function renderSabanaColumns(items, archivada = false) {
     header.className = 'sabana-edificio-header';
     header.textContent = edificio;
     header.title = 'Click para mostrar/ocultar habitaciones';
+    header.dataset.edificio = edificio;
     header.onclick = (e) => toggleEdificioVisibilidad(e.target, edificio);
 
+    column.dataset.edificio = edificio;
     column.appendChild(header);
     columnsByEdificio[edificio] = column;
     indexByEdificio[edificio] = 0;
@@ -1104,6 +1136,8 @@ async function toggleRealizadoSabana(itemId, realizado) {
           localItem.responsable_nombre = null;
           localItem.usuario_responsable_id = null;
         }
+
+        updateEdificioNoCheckedCount(localItem.edificio || 'Sin edificio');
       }
 
       // Actualizar UI en layout de columnas (desktop)
