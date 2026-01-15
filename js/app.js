@@ -2113,9 +2113,10 @@ async function loadChecklistFromAPIFallback() {
       checklistData.length
     );
 
-    // Guardar en localStorage como fuente de verdad para actualizaciones
-    localStorage.setItem('checklistData', JSON.stringify(checklistData));
-    console.log('💾 [APP.JS] Datos de checklist guardados en localStorage');
+    // NO guardar en localStorage - es demasiado grande (301 cuartos × 118 items ≈ 35k items)
+    // En su lugar, usar sessionStorage o IndexedDB si es necesario
+    // localStorage.setItem('checklistData', JSON.stringify(checklistData));
+    console.log('💾 [APP.JS] Datos de checklist cargados (no guardados en localStorage por tamaño)');
 
     AppState.checklistFiltradas = checklistData;
     AppState.checklistPagination.totalPages = Math.ceil(
