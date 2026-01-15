@@ -1997,34 +1997,27 @@ let checklistCargado = false;
  * Usar después de agregar/eliminar secciones o ítems
  */
 function recargarChecklistData() {
-  console.log('🔄 [APP.JS] Forzando recarga de checklist...');
   checklistCargado = false;
   loadChecklistData();
 }
 
 function loadChecklistData() {
-  console.log('📋 [APP.JS] loadChecklistData() llamado');
-
   // Si ya está cargado, no mostrar skeleton ni recargar
   if (checklistCargado) {
-    console.log('📋 [APP.JS] Checklist ya cargado, omitiendo recarga');
     return;
   }
 
   // Limpiar datos antiguos del localStorage para asegurar sincronización con BD
   // Los datos frescos se cargarán desde la API
   localStorage.removeItem('checklistData');
-  console.log('🗑️ [APP.JS] Cache de checklistData limpiado');
 
   // Si existe la función de checklist-tab.js que usa la API, usarla
   if (typeof loadChecklistDataFromAPI === 'function') {
-    console.log('📋 [APP.JS] Delegando a loadChecklistDataFromAPI()...');
     return loadChecklistDataFromAPI();
   }
 
   // Si existe ChecklistAPI, cargar desde la API
   if (typeof ChecklistAPI !== 'undefined') {
-    console.log('📋 [APP.JS] ChecklistAPI disponible, cargando desde BD...');
     return loadChecklistFromAPIFallback();
   }
 
@@ -2096,7 +2089,6 @@ async function loadChecklistFromAPIFallback() {
   try {
     // Cargar categorías
     const categorias = await ChecklistAPI.getCategorias();
-    console.log('📋 [APP.JS] Categorías desde API:', categorias.length);
 
     AppState.checklistCategorias = categorias.map((cat) => ({
       id: cat.slug || cat.id.toString(),
@@ -2108,15 +2100,10 @@ async function loadChecklistFromAPIFallback() {
 
     // Cargar datos de checklist
     const checklistData = await ChecklistAPI.getAllChecklistData();
-    console.log(
-      '📋 [APP.JS] Datos de cuartos desde API:',
-      checklistData.length
-    );
 
     // NO guardar en localStorage - es demasiado grande (301 cuartos × 118 items ≈ 35k items)
     // En su lugar, usar sessionStorage o IndexedDB si es necesario
     // localStorage.setItem('checklistData', JSON.stringify(checklistData));
-    console.log('💾 [APP.JS] Datos de checklist cargados (no guardados en localStorage por tamaño)');
 
     AppState.checklistFiltradas = checklistData;
     AppState.checklistPagination.totalPages = Math.ceil(
@@ -2130,7 +2117,6 @@ async function loadChecklistFromAPIFallback() {
 
     // Marcar como cargado para evitar recargar skeleton al volver al tab
     checklistCargado = true;
-    console.log('✅ [APP.JS] Checklist marcado como cargado');
 
     renderChecklistCategorias();
     loadInspeccionesRecientes();
@@ -2327,7 +2313,6 @@ async function poblarSelectIconos() {
 
 // Función local para cuando no hay API disponible
 function loadChecklistDataLocal() {
-  console.log('📋 [APP.JS] Cargando datos locales/mock de checklist...');
 
   const grid = document.getElementById('checklistGrid');
   if (!grid) return;
@@ -2738,9 +2723,7 @@ async function updateChecklistEstado(cuartoId, itemId, nuevoEstado) {
   try {
     // Llamar a la API para guardar en BD
     if (typeof ChecklistAPI !== 'undefined') {
-      console.log('📝 [APP.JS] Guardando en BD via ChecklistAPI...');
       await ChecklistAPI.updateItemEstado(cuartoId, itemId, nuevoEstado);
-      console.log('✅ [APP.JS] Estado guardado en BD');
     }
 
     // Actualizar cache local (localStorage)

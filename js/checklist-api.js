@@ -55,24 +55,12 @@ const ChecklistAPI = {
    * Obtener todas las categorías del checklist
    */
   async getCategorias() {
-    console.log('[ChecklistAPI.getCategorias] Iniciando fetch...');
-    console.log(
-      '[ChecklistAPI.getCategorias] URL:',
-      `${this.baseUrl}/categorias`
-    );
-    console.log('[ChecklistAPI.getCategorias] Headers:', this.getHeaders());
     try {
       const response = await fetch(`${this.baseUrl}/categorias`, {
         method: 'GET',
         headers: this.getHeaders(),
       });
-      console.log(
-        '[ChecklistAPI.getCategorias] Response status:',
-        response.status
-      );
-      console.log('[ChecklistAPI.getCategorias] Response ok:', response.ok);
       const data = await this.handleResponse(response);
-      console.log('[ChecklistAPI.getCategorias] Datos parseados:', data);
       return data;
     } catch (error) {
       console.error('❌ [ChecklistAPI.getCategorias] Error:', error);
@@ -181,8 +169,6 @@ const ChecklistAPI = {
    * Obtener datos de checklist para todos los cuartos
    */
   async getAllChecklistData(filters = {}) {
-    console.log('[ChecklistAPI.getAllChecklistData] Iniciando...');
-    console.log('[ChecklistAPI.getAllChecklistData] Filters:', filters);
     try {
       let url = `${this.baseUrl}/cuartos`;
       const params = new URLSearchParams();
@@ -198,33 +184,12 @@ const ChecklistAPI = {
         url += `?${params.toString()}`;
       }
 
-      console.log('[ChecklistAPI.getAllChecklistData] URL final:', url);
-      console.log(
-        '[ChecklistAPI.getAllChecklistData] Headers:',
-        this.getHeaders()
-      );
-
       const response = await fetch(url, {
         method: 'GET',
         headers: this.getHeaders(),
       });
 
-      console.log(
-        '[ChecklistAPI.getAllChecklistData] Response status:',
-        response.status
-      );
-      console.log(
-        '[ChecklistAPI.getAllChecklistData] Response ok:',
-        response.ok
-      );
-
       const data = await this.handleResponse(response);
-      console.log('[ChecklistAPI.getAllChecklistData] Datos parseados:');
-      console.log('   - Es array:', Array.isArray(data));
-      console.log('   - Cantidad:', data?.length || 0);
-      if (data?.length > 0) {
-        console.log('   - Primer elemento:', JSON.stringify(data[0], null, 2));
-      }
       return data;
     } catch (error) {
       console.error('❌ [ChecklistAPI.getAllChecklistData] Error:', error);
