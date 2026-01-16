@@ -71,6 +71,8 @@ async function login(req, res) {
       nombre: usuario.nombre,
       rol: usuario.rol_nombre,
       activo: usuario.activo,
+      intentos_fallidos: usuario.intentos_fallidos || 0,
+      bloqueado_hasta: usuario.bloqueado_hasta,
     });
 
     // Verificar si el usuario está activo
@@ -88,19 +90,33 @@ async function login(req, res) {
     }
 
     // Verificar si está bloqueado
-    if (
-      usuario.bloqueado_hasta &&
-      new Date(usuario.bloqueado_hasta) > new Date()
-    ) {
-      console.log(
-        '🔴 [AUTH-ROUTES] Usuario bloqueado hasta:',
-        usuario.bloqueado_hasta
-      );
-      return res.status(403).json({
-        error: 'Usuario bloqueado',
-        mensaje: 'Usuario bloqueado por múltiples intentos fallidos',
-        bloqueado_hasta: usuario.bloqueado_hasta,
-      });
+    // Si el bloqueo expiró, limpiarlo automáticamente
+    if (usuario.bloqueado_hasta) {
+      const bloqueadoHastaDate = new Date(usuario.bloqueado_hasta);
+      const ahora = new Date();
+      
+      if (bloqueadoHastaDate > ahora) {
+        console.log(
+          '🔴 [AUTH-ROUTES] Usuario bloqueado hasta:',
+          usuario.bloqueado_hasta
+        );
+        return res.status(403).json({
+          error: 'Usuario bloqueado',
+          mensaje: 'Usuario bloqueado por múltiples intentos fallidos',
+          bloqueado_hasta: usuario.bloqueado_hasta,
+        });
+      } else {
+        // El bloqueo expiró, limpiarlo
+        console.log(
+          '🔄 [AUTH-ROUTES] Bloqueo expirado, limpiando intentos fallidos'
+        );
+        await pool.query(
+          'UPDATE usuarios SET bloqueado_hasta = NULL, intentos_fallidos = 0 WHERE id = $1',
+          [usuario.id]
+        );
+        usuario.intentos_fallidos = 0;
+        usuario.bloqueado_hasta = null;
+      }
     }
 
     console.log('🔵 [AUTH-ROUTES] Verificando contraseña...');
@@ -116,20 +132,31 @@ async function login(req, res) {
     );
     if (!passwordResult.rows[0].valido) {
       console.log('🔴 [AUTH-ROUTES] Contraseña incorrecta');
-      // Incrementar intentos fallidos
-      const intentosFallidos = usuario.intentos_fallidos + 1;
-      let bloqueadoHasta = null;
-
-      // Bloquear después de 5 intentos fallidos
-      if (intentosFallidos >= 5) {
-        bloqueadoHasta = new Date();
-        bloqueadoHasta.setMinutes(bloqueadoHasta.getMinutes() + 30); // 30 minutos
-      }
-
-      await pool.query(
-        'UPDATE usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3',
-        [intentosFallidos, bloqueadoHasta, usuario.id]
+      
+      // Incrementar intentos fallidos de forma atómica en la BD
+      // Usar COALESCE para manejar valores NULL como 0
+      const updateResult = await pool.query(
+        `
+          UPDATE usuarios 
+          SET intentos_fallidos = COALESCE(intentos_fallidos, 0) + 1,
+              bloqueado_hasta = CASE 
+                WHEN COALESCE(intentos_fallidos, 0) + 1 >= 5 
+                THEN CURRENT_TIMESTAMP + INTERVAL '30 minutes'
+                ELSE bloqueado_hasta
+              END
+          WHERE id = $1
+          RETURNING intentos_fallidos, bloqueado_hasta
+        `,
+        [usuario.id]
       );
+
+      const intentosFallidos = updateResult.rows[0].intentos_fallidos;
+      const bloqueadoHasta = updateResult.rows[0].bloqueado_hasta;
+      
+      console.log('🔵 [AUTH-ROUTES] Intentos fallidos actualizados:', {
+        intentos_fallidos: intentosFallidos,
+        bloqueado_hasta: bloqueadoHasta,
+      });
 
       // Registrar intento fallido
       await pool.query(
@@ -143,6 +170,18 @@ async function login(req, res) {
           obtenerIPCliente(req),
         ]
       );
+
+      // Si el usuario fue bloqueado, retornar error de bloqueo
+      if (bloqueadoHasta && new Date(bloqueadoHasta) > new Date()) {
+        console.log(
+          '🔴 [AUTH-ROUTES] Usuario bloqueado después de múltiples intentos fallidos'
+        );
+        return res.status(403).json({
+          error: 'Usuario bloqueado',
+          mensaje: 'Usuario bloqueado por múltiples intentos fallidos',
+          bloqueado_hasta: bloqueadoHasta,
+        });
+      }
 
       return res.status(401).json({
         error: 'Credenciales inválidas',
