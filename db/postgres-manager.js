@@ -1025,7 +1025,12 @@ class PostgresManager {
                 WHERE su.usuario_id = u.id
             ) s ON TRUE
             WHERE ${condition}
-            ORDER BY u.nombre ASC
+            ORDER BY 
+                CASE 
+                    WHEN u.bloqueado_hasta IS NOT NULL AND u.bloqueado_hasta > NOW() THEN 0
+                    ELSE 1
+                END,
+                u.nombre ASC
         `;
 
     const result = await this.pool.query(query);
