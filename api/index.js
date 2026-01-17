@@ -1958,6 +1958,43 @@ app.post(
   }
 );
 
+app.post(
+  '/api/sabanas/:id/desarchivar',
+  verificarAutenticacion,
+  verificarAdmin,
+  async (req, res) => {
+    try {
+      console.log('📦 POST /api/sabanas/:id/desarchivar', req.params.id);
+
+      if (!postgresManager) {
+        return res.status(500).json({ error: 'Base de datos no disponible' });
+      }
+
+      const sabanaId = parseInt(req.params.id);
+
+      if (isNaN(sabanaId)) {
+        return res.status(400).json({ error: 'ID de sábana inválido' });
+      }
+
+      console.log('🔄 Desarchivando sábana ID:', sabanaId);
+      const sabanaDesarchivada = await postgresManager.desarchivarSabana(sabanaId);
+
+      console.log('✅ Sábana desarchivada exitosamente:', {
+        id: sabanaDesarchivada.id,
+        nombre: sabanaDesarchivada.nombre,
+        archivada: sabanaDesarchivada.archivada,
+      });
+
+      res.json({ success: true, sabana: sabanaDesarchivada });
+    } catch (error) {
+      console.error('❌ Error al desarchivar sábana:', error);
+      res
+        .status(500)
+        .json({ error: 'Error al desarchivar sábana', details: error.message });
+    }
+  }
+);
+
 app.get(
   '/api/sabanas/servicio/:servicioId',
   verificarAutenticacion,

@@ -1602,6 +1602,31 @@ class PostgresManager {
     return result.rows[0];
   }
 
+  async desarchivarSabana(sabanaId) {
+    console.log('🗄️ [DB] Desarchivando sábana ID:', sabanaId);
+
+    const query = `
+            UPDATE sabanas
+            SET archivada = false,
+                fecha_archivado = NULL
+            WHERE id = $1
+            RETURNING *
+        `;
+    const result = await this.pool.query(query, [sabanaId]);
+
+    if (result.rows.length === 0) {
+      throw new Error(`Sábana con ID ${sabanaId} no encontrada`);
+    }
+
+    console.log('✅ [DB] Sábana desarchivada:', {
+      id: result.rows[0].id,
+      nombre: result.rows[0].nombre,
+      archivada: result.rows[0].archivada,
+    });
+
+    return result.rows[0];
+  }
+
   async getSabanasArchivadas() {
     const query = `
             SELECT s.*, 
