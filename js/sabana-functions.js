@@ -323,7 +323,7 @@ async function cambiarServicioActual(sabanaId) {
 
       if (sabana.archivada) {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de ${sabana.nombre}</span>
+                    <span class="sabana-placeholder-title">Sábana de <span class="sabana-nombre-display">${sabana.nombre}</span></span>
                     <span class="sabana-archivada-badge">
                         <i class="fas fa-lock"></i>
                         Archivada · Solo lectura
@@ -331,7 +331,7 @@ async function cambiarServicioActual(sabanaId) {
                 `;
       } else {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de ${sabana.nombre}</span>
+                    <span class="sabana-placeholder-title">Sábana de <span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
                 `;
       }
 
@@ -1880,19 +1880,24 @@ async function verHistorialServicios() {
             : '';
 
           return `
-                    <div class="historial-item" onclick="cargarSabanaDesdeHistorial(${entry.id})">
-                        <div class="historial-item-header">
-                             <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
-                            <span class="historial-fecha">${fechaDisplay}</span>
+                    <div class="historial-item">
+                        <div class="historial-item-content" onclick="cargarSabanaDesdeHistorial(${entry.id})">
+                            <div class="historial-item-header">
+                                 <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
+                                <span class="historial-fecha">${fechaDisplay}</span>
+                            </div>
+                            ${creadorInfo}
+                            ${notasInfo}
+                            <div class="historial-stats">
+                                <span class="stat">
+                                    <i class="fas fa-check-circle"></i> ${entry.items_completados || 0}/${entry.total_items || 0} completados
+                                </span>
+                                <span class="stat-progreso">${porcentaje.toFixed(0)}%</span>
+                            </div>
                         </div>
-                        ${creadorInfo}
-                        ${notasInfo}
-                        <div class="historial-stats">
-                            <span class="stat">
-                                <i class="fas fa-check-circle"></i> ${entry.items_completados || 0}/${entry.total_items || 0} completados
-                            </span>
-                            <span class="stat-progreso">${porcentaje.toFixed(0)}%</span>
-                        </div>
+                        <button class="historial-item-action" onclick="event.stopPropagation(); desarchivarSabana(${entry.id}, '${entry.nombre.replace(/'/g, "\\'")}');" title="Desarchivar sábana">
+                            <i class="fas fa-box-open"></i>
+                        </button>
                     </div>
                 `;
         })
@@ -2786,6 +2791,134 @@ window.addEventListener('resize', () => {
   }, 300);
 });
 
+async function desarchivarSabana(sabanaId, nombreSabana) {
+  if (AppState.currentUser?.role !== 'admin') {
+    electronSafeAlert('Solo los administradores pueden desarchivar sábanas');
+    return;
+  }
+
+  if (!window.electronSafeConfirm(`¿Desarchivar la sábana "${nombreSabana}"? Volverá a estar disponible para edición.`)) {
+    return;
+  }
+
+  try {
+    console.log('📦 Desarchivando sábana ID:', sabanaId);
+
+    const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas/${sabanaId}/desarchivar`, {
+      method: 'POST',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Error del servidor:', errorData);
+      throw new Error(errorData.error || 'Error al desarchivar sábana');
+    }
+
+    const resultado = await response.json();
+    console.log('Sábana desarchivada:', resultado);
+
+    await cargarListaSabanas();
+    
+    cerrarModalHistorial();
+    
+    const selectServicio = document.getElementById('filtroServicioActual');
+    if (selectServicio) {
+      selectServicio.value = sabanaId;
+      await cambiarServicioActual(sabanaId);
+    }
+
+    mostrarMensajeSabana(`Sábana "${nombreSabana}" desarchivada exitosamente. Ahora puedes editarla.`, 'success');
+  } catch (error) {
+    console.error('Error desarchivando sábana:', error);
+    electronSafeAlert('Error al desarchivar la sábana: ' + error.message);
+  }
+}
+
+function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
+  if (currentSabanaArchivada) {
+    mostrarMensajeSabana('No se puede editar una sábana archivada', 'error');
+    return;
+  }
+
+  const spanNombre = document.querySelector('.sabana-nombre-editable');
+  if (!spanNombre) return;
+
+  const inputEdit = document.createElement('input');
+  inputEdit.type = 'text';
+  inputEdit.value = nombreActual;
+  inputEdit.className = 'sabana-nombre-input';
+  inputEdit.dataset.sabanaId = sabanaId;
+  inputEdit.dataset.nombreOriginal = nombreActual;
+
+  spanNombre.replaceWith(inputEdit);
+  inputEdit.focus();
+  inputEdit.select();
+
+  const guardarNombre = async () => {
+    const nuevoNombre = inputEdit.value.trim();
+    if (!nuevoNombre || nuevoNombre === nombreActual) {
+      const spanRestore = document.createElement('span');
+      spanRestore.className = 'sabana-nombre-editable';
+      spanRestore.textContent = nombreActual;
+      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.title = 'Click para editar';
+      inputEdit.replaceWith(spanRestore);
+      return;
+    }
+
+    try {
+      const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas/${sabanaId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ nombre: nuevoNombre }),
+      });
+
+      if (!response.ok) throw new Error('Error al actualizar nombre');
+
+      const resultado = await response.json();
+      currentSabanaNombre = nuevoNombre;
+
+      const spanNew = document.createElement('span');
+      spanNew.className = 'sabana-nombre-editable';
+      spanNew.textContent = nuevoNombre;
+      spanNew.onclick = () => iniciarEdicionNombreSabana(sabanaId, nuevoNombre);
+      spanNew.title = 'Click para editar';
+      inputEdit.replaceWith(spanNew);
+
+      await cargarListaSabanas();
+      mostrarMensajeSabana('Nombre actualizado correctamente', 'success');
+    } catch (error) {
+      console.error('Error actualizando nombre:', error);
+      mostrarMensajeSabana('Error al actualizar el nombre', 'error');
+      const spanRestore = document.createElement('span');
+      spanRestore.className = 'sabana-nombre-editable';
+      spanRestore.textContent = nombreActual;
+      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.title = 'Click para editar';
+      inputEdit.replaceWith(spanRestore);
+    }
+  };
+
+  inputEdit.addEventListener('blur', guardarNombre);
+  inputEdit.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      guardarNombre();
+    }
+  });
+  inputEdit.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const spanRestore = document.createElement('span');
+      spanRestore.className = 'sabana-nombre-editable';
+      spanRestore.textContent = nombreActual;
+      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.title = 'Click para editar';
+      inputEdit.replaceWith(spanRestore);
+    }
+  });
+}
+
+window.desarchivarSabana = desarchivarSabana;
+window.iniciarEdicionNombreSabana = iniciarEdicionNombreSabana;
 window.toggleEdificioVisibilidad = toggleEdificioVisibilidad;
 window.handleCardClick = handleCardClick;
 window.cargarListaSabanas = cargarListaSabanas;
