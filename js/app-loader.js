@@ -1175,6 +1175,12 @@
           fechaFinalizacion = `<span><i class="fas fa-flag-checkered"></i> ${formatearFechaCorta(servicio.fecha_finalizacion)}</span>`;
         }
 
+        // Ícono de nota si el servicio tiene notas
+        let iconoNota = '';
+        if (servicio.notas && servicio.notas.trim()) {
+          iconoNota = `<span class="servicio-nota-indicador" title="Este servicio tiene notas"><i class="fas fa-sticky-note"></i></span>`;
+        }
+
         // Añadir badge de ID hex si es resultado de búsqueda
         const servicioHexId =
           'serv-' + servicio.id.toString(16).padStart(3, '0').toUpperCase();
@@ -1202,6 +1208,7 @@
                             ${fechaHoraMostrar}
                             ${usuarioAsignado}
                             ${fechaFinalizacion}
+                            ${iconoNota}
                         </div>
                     </div>
                     <i class="fas fa-pen" style="color: var(--texto-secundario); font-size: 1rem;"></i>
@@ -1225,6 +1232,7 @@
                         ${fechaHoraMostrar}
                         ${usuarioAsignado}
                         ${fechaFinalizacion}
+                        ${iconoNota}
                     </div>
                 </div>
                 <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 1.2rem;"></i>

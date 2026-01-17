@@ -8838,6 +8838,27 @@ body.dark-mode select.habitacion-estado-select option {
   font-weight: 700;
 }
 
+.servicio-nota-indicador {
+  display: inline-flex;
+  align-items: center;
+  color: var(--texto-secundario);
+  font-size: 0.85rem;
+  cursor: help;
+}
+
+.servicio-nota-indicador i {
+  transition: transform 0.2s ease;
+}
+
+.servicio-nota-indicador:hover i {
+  transform: scale(1.1);
+}
+
+.servicio-header .servicio-nota-indicador {
+  margin-left: auto;
+  margin-right: 0.5rem;
+}
+
 .servicio-tipo-badge {
   display: inline-flex;
   align-items: center;

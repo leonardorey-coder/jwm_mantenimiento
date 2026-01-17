@@ -4621,6 +4621,10 @@ function generarServiciosEspacioHTML(mantenimientos, espacioId) {
       const prioridadClass = m.prioridad || 'media';
       const estadoClass = m.estado || 'pendiente';
       const tipoIcon = m.tipo === 'rutina' ? 'fa-clock' : 'fa-wrench';
+      const tieneNotas = m.notas && m.notas.trim();
+      const iconoNota = tieneNotas
+        ? `<span class="servicio-nota-indicador" title="Este servicio tiene notas"><i class="fas fa-sticky-note"></i></span>`
+        : '';
 
       return `
             <div class="servicio-item servicio-${estadoClass}" data-mantenimiento-id="${m.id}">
@@ -4628,6 +4632,7 @@ function generarServiciosEspacioHTML(mantenimientos, espacioId) {
                     <i class="fas ${tipoIcon}"></i>
                     <span class="servicio-tipo">${m.tipo === 'rutina' ? 'Alerta' : 'Servicio'}</span>
                     <span class="servicio-prioridad prioridad-${prioridadClass}">${m.prioridad || 'media'}</span>
+                    ${iconoNota}
                 </div>
                 <div class="servicio-descripcion">${escapeHtml(m.descripcion)}</div>
                 ${
