@@ -227,6 +227,49 @@ function configurarSabanaIdTab(sabanaIdHex, archivada = false) {
   tab.onclick = () => copiarSabanaId(sabanaIdHex);
 }
 
+/**
+ * Agrega las pestañas de archivado al header de la sábana
+ * @param {number} sabanaId - ID de la sábana
+ * @param {string} nombreSabana - Nombre de la sábana
+ */
+function agregarPestanasArchivado(sabanaId, nombreSabana) {
+  // Remover pestañas existentes si las hay
+  removerPestanasArchivado();
+
+  const header = document.querySelector('.filtros-bitacora-header');
+  if (!header) return;
+
+  const tabsContainer = document.createElement('div');
+  tabsContainer.className = 'sabana-archive-tabs';
+  tabsContainer.id = 'sabanaArchiveTabs';
+
+  // Escapar comillas simples en el nombre
+  const nombreEscapado = nombreSabana.replace(/'/g, "\\'");
+
+  tabsContainer.innerHTML = `
+    <span class="sabana-archive-tab sabana-archive-tab--status">
+      <i class="fas fa-folder" aria-hidden="true"></i>
+      Archivada
+    </span>
+    <button type="button" class="sabana-archive-tab sabana-archive-tab--action" onclick="desarchivarSabana(${sabanaId}, '${nombreEscapado}')" title="Desarchivar sábana">
+      <i class="fas fa-folder-open" aria-hidden="true"></i>
+      Desarchivar
+    </button>
+  `;
+
+  header.appendChild(tabsContainer);
+}
+
+/**
+ * Remueve las pestañas de archivado del header
+ */
+function removerPestanasArchivado() {
+  const existingTabs = document.getElementById('sabanaArchiveTabs');
+  if (existingTabs) {
+    existingTabs.remove();
+  }
+}
+
 async function copiarSabanaId(sabanaIdHex) {
   try {
     if (navigator.clipboard?.writeText) {
@@ -391,21 +434,15 @@ async function cambiarServicioActual(sabanaId) {
       if (sabana.archivada) {
         tituloEl.innerHTML = `
                     <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-display">${sabana.nombre}</span></span>
-                    <span class="sabana-archivada-actions">
-                        <span class="sabana-archivada-badge">
-                            <i class="fas fa-lock"></i>
-                            Archivada · Solo lectura
-                        </span>
-                        <button type="button" class="sabana-desarchivar-btn" onclick="desarchivarSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')">
-                            <i class="fas fa-unlock"></i>
-                            Desarchivar
-                        </button>
-                    </span>
                 `;
+        // Agregar pestañas de archivado al header
+        agregarPestanasArchivado(sabana.id, sabana.nombre);
       } else {
         tituloEl.innerHTML = `
                     <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
                 `;
+        // Remover pestañas de archivado si existen
+        removerPestanasArchivado();
       }
 
       configurarSabanaIdTab(sabanaIdHex, sabana.archivada);

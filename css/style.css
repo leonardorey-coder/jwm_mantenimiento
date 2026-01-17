@@ -12337,58 +12337,123 @@ tr[data-lazy='true'] {
   color: var(--blanco);
 }
 
-.sabana-archivada-actions {
+/* ========================================
+   PESTAÑAS DE SÁBANA ARCHIVADA
+   Estilo de carpeta consistente con sabana-id-tab
+   ======================================== */
+
+/* Contenedor de pestañas de archivado */
+.sabana-archive-tabs {
+  position: absolute;
+  top: -18px;
+  left: 140px;
   display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-left: 1rem;
-  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0;
+  z-index: 10;
 }
 
-.sabana-archivada-badge {
+/* Pestaña base (estilo carpeta) */
+.sabana-archive-tab {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
-  margin-left: 0;
-  padding: 0.35rem 0.8rem;
-  background: linear-gradient(135deg, #2d2d2d 0%, #161616 100%);
-  color: var(--blanco);
-  font-size: 0.72rem;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  font-family: 'Montserrat', sans-serif;
   font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-radius: var(--radio-pequeno);
-  border: 2px solid var(--negro-carbon);
-  box-shadow: 2px 2px 0 var(--negro-carbon);
+  border: 3px solid var(--negro-carbon);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  cursor: default;
+  transition:
+    box-shadow 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
-.sabana-desarchivar-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 0.85rem;
+/* Pestaña de estado archivada */
+.sabana-archive-tab--status {
+  background: linear-gradient(135deg, #3d3d3d 0%, #1a1a1a 100%);
+  color: var(--blanco);
+  box-shadow: 3px 3px 0 var(--negro-carbon);
+  margin-right: -3px;
+  z-index: 1;
+}
+
+.sabana-archive-tab--status i {
+  color: var(--amarillo-mustard, #f5d76e);
+  font-size: 0.7rem;
+}
+
+/* Pestaña de acción desarchivar */
+.sabana-archive-tab--action {
   background: var(--verde-oliva);
   color: var(--blanco);
-  font-size: 0.7rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  border-radius: var(--radio-pequeno);
-  border: 2px solid var(--negro-carbon);
-  box-shadow: 2px 2px 0 var(--negro-carbon);
+  box-shadow: 4px 3px 0 var(--negro-carbon);
   cursor: pointer;
+  z-index: 0;
+  padding-left: 0.85rem;
 }
 
-.sabana-desarchivar-btn:hover {
+.sabana-archive-tab--action:hover {
+  background: #6b8e3b;
+  box-shadow: 5px 4px 0 var(--negro-carbon);
   transform: translateY(-1px);
 }
 
-.sabana-desarchivar-btn i {
-  color: var(--blanco);
+.sabana-archive-tab--action:active {
+  box-shadow: 2px 2px 0 var(--negro-carbon);
+  transform: translateY(1px);
 }
 
-.sabana-archivada-badge i {
-  color: var(--amarillo-mustard, #f5d76e);
+.sabana-archive-tab--action i {
+  color: var(--blanco);
+  font-size: 0.65rem;
+}
+
+/* Responsive para pestañas de archivado */
+@media (max-width: 768px) {
+  .sabana-archive-tabs {
+    left: 110px;
+    top: -16px;
+  }
+
+  .sabana-archive-tab {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.65rem;
+    gap: 0.3rem;
+  }
+
+  .sabana-archive-tab--status i,
+  .sabana-archive-tab--action i {
+    font-size: 0.6rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sabana-archive-tabs {
+    left: 90px;
+    top: -14px;
+  }
+
+  .sabana-archive-tab {
+    padding: 0.25rem 0.45rem;
+    font-size: 0.58rem;
+    border-width: 2px;
+    border-radius: 8px 8px 0 0;
+  }
+
+  .sabana-archive-tab--status {
+    box-shadow: 2px 2px 0 var(--negro-carbon);
+  }
+
+  .sabana-archive-tab--action {
+    box-shadow: 3px 2px 0 var(--negro-carbon);
+    padding-left: 0.6rem;
+  }
 }
 
 /* Mensaje cuando no hay servicios */

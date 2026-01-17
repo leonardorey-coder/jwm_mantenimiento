@@ -3793,8 +3793,7 @@ async function actualizarSelectoresTareas() {
 
     selectores.forEach((select) => {
       const selectedValue = select.value;
-      const primeraOpcion =
-        select.options[0]?.text || 'Sin tarea';
+      const primeraOpcion = select.options[0]?.text || 'Sin tarea';
 
       select.innerHTML = `<option value="">${primeraOpcion}</option>`;
 

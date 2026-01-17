@@ -94,7 +94,7 @@ async function login(req, res) {
     if (usuario.bloqueado_hasta) {
       const bloqueadoHastaDate = new Date(usuario.bloqueado_hasta);
       const ahora = new Date();
-      
+
       if (bloqueadoHastaDate > ahora) {
         console.log(
           '🔴 [AUTH-ROUTES] Usuario bloqueado hasta:',
@@ -132,7 +132,7 @@ async function login(req, res) {
     );
     if (!passwordResult.rows[0].valido) {
       console.log('🔴 [AUTH-ROUTES] Contraseña incorrecta');
-      
+
       // Incrementar intentos fallidos de forma atómica en la BD
       // Usar COALESCE para manejar valores NULL como 0
       const updateResult = await pool.query(
@@ -152,7 +152,7 @@ async function login(req, res) {
 
       const intentosFallidos = updateResult.rows[0].intentos_fallidos;
       const bloqueadoHasta = updateResult.rows[0].bloqueado_hasta;
-      
+
       console.log('🔵 [AUTH-ROUTES] Intentos fallidos actualizados:', {
         intentos_fallidos: intentosFallidos,
         bloqueado_hasta: bloqueadoHasta,
