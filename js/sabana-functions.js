@@ -92,6 +92,54 @@ function formatFechaHora(utcTimestamp) {
   });
 }
 
+function obtenerRolUsuarioActualSabana() {
+  let userRole = null;
+
+  if (window.AppState?.currentUser) {
+    userRole =
+      window.AppState.currentUser.role ||
+      window.AppState.currentUser.rol ||
+      window.AppState.currentUser.rol_nombre;
+  }
+
+  if (!userRole) {
+    const storedUser = JSON.parse(
+      localStorage.getItem('currentUser') ||
+        sessionStorage.getItem('currentUser') ||
+        'null'
+    );
+    if (storedUser) {
+      userRole = storedUser.role || storedUser.rol || storedUser.rol_nombre;
+    }
+  }
+
+  if (!userRole) return null;
+
+  const roleMap = {
+    admin: 'admin',
+    ADMIN: 'admin',
+    Administrador: 'admin',
+    supervisor: 'supervisor',
+    SUPERVISOR: 'supervisor',
+    Supervisor: 'supervisor',
+    tecnico: 'tecnico',
+    TECNICO: 'tecnico',
+    Técnico: 'tecnico',
+  };
+
+  if (roleMap[userRole]) return roleMap[userRole];
+  if (typeof userRole === 'string') {
+    const normalized = userRole.toLowerCase();
+    return roleMap[normalized] || normalized;
+  }
+
+  return null;
+}
+
+function esAdminUsuarioActualSabana() {
+  return obtenerRolUsuarioActualSabana() === 'admin';
+}
+
 function lockBodyScroll() {
   document.body.classList.add('modal-open');
 }
@@ -246,15 +294,22 @@ function agregarPestanasArchivado(sabanaId, nombreSabana) {
   // Escapar comillas simples en el nombre
   const nombreEscapado = nombreSabana.replace(/'/g, "\\'");
 
+  const puedeDesarchivar = esAdminUsuarioActualSabana();
+  const actionButton = puedeDesarchivar
+    ? `
+    <button type="button" class="sabana-archive-tab sabana-archive-tab--action" onclick="desarchivarSabana(${sabanaId}, '${nombreEscapado}')" title="Desarchivar sábana">
+      <i class="fas fa-folder-open" aria-hidden="true"></i>
+      Desarchivar
+    </button>
+  `
+    : '';
+
   tabsContainer.innerHTML = `
     <span class="sabana-archive-tab sabana-archive-tab--status">
       <i class="fas fa-folder" aria-hidden="true"></i>
       Archivada
     </span>
-    <button type="button" class="sabana-archive-tab sabana-archive-tab--action" onclick="desarchivarSabana(${sabanaId}, '${nombreEscapado}')" title="Desarchivar sábana">
-      <i class="fas fa-folder-open" aria-hidden="true"></i>
-      Desarchivar
-    </button>
+    ${actionButton}
   `;
 
   header.appendChild(tabsContainer);
@@ -2027,6 +2082,7 @@ async function verHistorialServicios() {
                 </div>
             `;
     } else {
+      const puedeDesarchivar = esAdminUsuarioActualSabana();
       listaContainer.innerHTML = historial
         .map((entry) => {
           const fechaDisplay = formatFechaCorta(
@@ -2038,6 +2094,11 @@ async function verHistorialServicios() {
             : '';
           const notasInfo = entry.notas
             ? `<div class="historial-notas"><i class="fas fa-sticky-note"></i> ${Object.assign(document.createElement('div'), { textContent: entry.notas.substring(0, 60) + (entry.notas.length > 60 ? '...' : '') }).innerHTML}</div>`
+            : '';
+          const actionButton = puedeDesarchivar
+            ? `<button class="historial-item-action" onclick="event.stopPropagation(); desarchivarSabana(${entry.id}, '${entry.nombre.replace(/'/g, "\\'")}');" title="Desarchivar sábana">
+                            <i class="fas fa-box-open"></i>
+                        </button>`
             : '';
 
           return `
@@ -2056,9 +2117,7 @@ async function verHistorialServicios() {
                                 <span class="stat-progreso">${porcentaje.toFixed(0)}%</span>
                             </div>
                         </div>
-                        <button class="historial-item-action" onclick="event.stopPropagation(); desarchivarSabana(${entry.id}, '${entry.nombre.replace(/'/g, "\\'")}');" title="Desarchivar sábana">
-                            <i class="fas fa-box-open"></i>
-                        </button>
+                        ${actionButton}
                     </div>
                 `;
         })
@@ -2968,7 +3027,7 @@ window.addEventListener('resize', () => {
 });
 
 async function desarchivarSabana(sabanaId, nombreSabana) {
-  if (AppState.currentUser?.role !== 'admin') {
+  if (!esAdminUsuarioActualSabana()) {
     electronSafeAlert('Solo los administradores pueden desarchivar sábanas');
     return;
   }
