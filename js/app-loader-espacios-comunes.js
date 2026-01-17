@@ -613,9 +613,9 @@ function cargarContenidoEspacio(li, espacio) {
         </div>
 
         <div class="habitacion-acciones">
-            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicionEspacio(${espacio.id})" id="btn-editar-espacio-${espacio.id}">
+            ${mantenimientosEspacio.length > 0 ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicionEspacio(${espacio.id})" id="btn-editar-espacio-${espacio.id}">
                 <i class="fas fa-edit"></i> Editar
-            </button>
+            </button>` : ''}
             <button class="habitacion-boton boton-principal" onclick="seleccionarEspacioComun(${espacio.id})">
                 <i class="fas fa-plus"></i> Agregar Servicio
             </button>

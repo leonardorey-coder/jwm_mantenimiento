@@ -4655,6 +4655,9 @@ function generarServiciosEspacioHTML(mantenimientos, espacioId) {
 }
 
 function mostrarBtnEditarEspacio(mantenimientos, espacioId) {
+  if (mantenimientos.length === 0) {
+    return '';
+  }
   return `
         <button class="habitacion-boton boton-secundario" onclick="cambiarEstadoEspacio(${espacioId})">
             <i class="fas fa-exchange-alt"></i> Cambiar Estado

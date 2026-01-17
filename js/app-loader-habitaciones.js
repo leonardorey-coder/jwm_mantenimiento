@@ -281,9 +281,9 @@ function mostrarCuartos() {
                             </div>
                         </div>
                         <div class="habitacion-acciones">
-                            <button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
+                            ${mantenimientosCuarto.length > 0 ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
                                 <i class="fas fa-edit"></i> Editar
-                            </button>
+                            </button>` : ''}
                             <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
                                 <i class="fas fa-plus"></i> Agregar Servicio
                             </button>
@@ -920,8 +920,18 @@ function actualizarCardCuartoEnUI(cuartoId) {
       enModoEdicion
     );
 
-    // El botón de editar siempre debe estar visible, incluso sin servicios
-    // (removida la lógica que lo ocultaba cuando no había servicios)
+    // Mostrar/Ocultar botón editar según si hay servicios
+    if (btnEditar) {
+      if (mantenimientosCuarto.length > 0) {
+        btnEditar.style.display = '';
+      } else {
+        if (!enModoEdicion) {
+          btnEditar.style.display = 'none';
+        } else {
+          toggleModoEdicion(cuartoId);
+        }
+      }
+    }
   }
 }
 
