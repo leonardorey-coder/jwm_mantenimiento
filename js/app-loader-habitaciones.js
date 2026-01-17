@@ -206,7 +206,7 @@ function mostrarCuartos() {
       case 'mantenimiento':
         estadoBadgeClass = 'estado-mantenimiento';
         estadoIcon = 'fa-tools';
-        estadoText = 'En Mantenimiento';
+        estadoText = 'Mantenimiento en curso';
         break;
       case 'fuera de servicio':
       case 'fuera_servicio':
@@ -243,11 +243,8 @@ function mostrarCuartos() {
                                     <div class="estado-dropdown-item estado-disponible" data-estado="disponible" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'disponible', this, false)">
                                         <i class="fas fa-check-circle"></i> Disponible
                                     </div>
-                                    <div class="estado-dropdown-item estado-ocupado" data-estado="ocupado" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'ocupado', this, false)">
-                                        <i class="fas fa-user"></i> Ocupado
-                                    </div>
                                     <div class="estado-dropdown-item estado-mantenimiento" data-estado="mantenimiento" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'mantenimiento', this, false)">
-                                        <i class="fas fa-tools"></i> En Mantenimiento
+                                        <i class="fas fa-tools"></i> Mantenimiento en curso
                                     </div>
                                     <div class="estado-dropdown-item estado-fuera-servicio" data-estado="fuera_servicio" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${cuartoId}, 'fuera_servicio', this, false)">
                                         <i class="fas fa-ban"></i> Fuera de Servicio
@@ -266,11 +263,7 @@ function mostrarCuartos() {
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Disp.</span>
                                 </button>
-                                <button type="button" ${estadoText === 'Ocupado' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoInline(${cuartoId}, 'ocupado', this)">
-                                    <span class="pill-dot-inline"></span>
-                                    <span class="pill-text-inline">Ocup.</span>
-                                </button>
-                                <button type="button" ${estadoText === 'En Mantenimiento' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'En Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
+                                <button type="button" ${estadoText === 'Mantenimiento en curso' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Mantenimiento en curso' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoInline(${cuartoId}, 'mantenimiento', this)">
                                     <span class="pill-dot-inline"></span>
                                     <span class="pill-text-inline">Mant.</span>
                                 </button>
@@ -1070,7 +1063,6 @@ function mostrarFormularioInline(cuartoId) {
                             onchange="toggleTipoServicioInline(${cuartoId})">
                     <span class="toggle-switch"></span>
                     <span class="toggle-text">
-                        <span class="tipo-averia">Avería</span>
                         <span class="tipo-alerta">Alerta</span>
                     </span>
                 </label>
@@ -1123,14 +1115,17 @@ function mostrarFormularioInline(cuartoId) {
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="baja" checked>
                         <span class="semaforo-circle green"></span>
+                        <span class="semaforo-text">Baja</span>
                     </label>
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="media">
                         <span class="semaforo-circle yellow"></span>
+                        <span class="semaforo-text">Media</span>
                     </label>
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-${cuartoId}" value="alta">
                         <span class="semaforo-circle red"></span>
+                        <span class="semaforo-text">Alta</span>
                     </label>
                 </div>
             </div>
@@ -1149,7 +1144,7 @@ function mostrarFormularioInline(cuartoId) {
                 </button>
                 <!-- Se deberá deshabilitar si el input "tareaAsignadaInline-${cuartoId}" tiene un valor y el option pasará a estar vacío-->
                     <select id="tareaAsignadaInline-${cuartoId}" class="input-inline selector-tarea-servicio" name="tarea_asignada_id">
-                        <option value="">-- Sin asignar existente --</option>
+                        <option value="">Sin tarea</option>
                         
                     </select>
                 </div>
@@ -1350,7 +1345,7 @@ async function seleccionarEstadoInline(cuartoId, nuevoEstado, boton) {
     const estadoLabels = {
       disponible: 'Disponible',
       ocupado: 'Ocupado',
-      mantenimiento: 'En Mantenimiento',
+      mantenimiento: 'Mantenimiento en curso',
       fuera_servicio: 'Fuera de Servicio',
     };
 
@@ -1420,7 +1415,7 @@ async function cambiarEstadoCuartoBadge(cuartoId, nuevoEstado, selectElement) {
     const estadoLabels = {
       disponible: 'Disponible',
       ocupado: 'Ocupado',
-      mantenimiento: 'En Mantenimiento',
+      mantenimiento: 'Mantenimiento en curso',
       fuera_servicio: 'Fuera de Servicio',
     };
 
@@ -1579,7 +1574,7 @@ async function seleccionarEstadoDropdown(
     const estadoLabels = {
       disponible: 'Disponible',
       ocupado: 'Ocupado',
-      mantenimiento: esEspacio ? 'Mantenimiento' : 'En Mantenimiento',
+      mantenimiento: esEspacio ? 'Mantenimiento en curso' : 'Mantenimiento en curso',
       fuera_servicio: 'Fuera de Servicio',
     };
 

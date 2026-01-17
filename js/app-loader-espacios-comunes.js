@@ -574,11 +574,8 @@ function cargarContenidoEspacio(li, espacio) {
                     <div class="estado-dropdown-item estado-disponible" data-estado="disponible" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'disponible', this, true)">
                         <i class="fas fa-check-circle"></i> Disponible
                     </div>
-                    <div class="estado-dropdown-item estado-ocupado" data-estado="ocupado" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'ocupado', this, true)">
-                        <i class="fas fa-user"></i> Ocupado
-                    </div>
                     <div class="estado-dropdown-item estado-mantenimiento" data-estado="mantenimiento" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'mantenimiento', this, true)">
-                        <i class="fas fa-tools"></i> Mantenimiento
+                        <i class="fas fa-tools"></i> Mantenimiento en curso
                     </div>
                     <div class="estado-dropdown-item estado-fuera-servicio" data-estado="fuera_servicio" onclick="event.stopPropagation(); seleccionarEstadoDropdown(${espacio.id}, 'fuera_servicio', this, true)">
                         <i class="fas fa-ban"></i> Fuera de Servicio
@@ -597,11 +594,7 @@ function cargarContenidoEspacio(li, espacio) {
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Disp.</span>
                 </button>
-                <button type="button" ${estadoText === 'Ocupado' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Ocupado' ? 'estado-pill-inline-activo' : ''} ocupado" data-estado="ocupado" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'ocupado', this)">
-                    <span class="pill-dot-inline"></span>
-                    <span class="pill-text-inline">Ocup.</span>
-                </button>
-                <button type="button" ${estadoText === 'Mantenimiento' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Mantenimiento' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'mantenimiento', this)">
+                <button type="button" ${estadoText === 'Mantenimiento en curso' ? 'disabled' : ''} class="estado-pill-inline ${estadoText === 'Mantenimiento en curso' ? 'estado-pill-inline-activo' : ''} mantenimiento" data-estado="mantenimiento" onclick="seleccionarEstadoEspacioInline(${espacio.id}, 'mantenimiento', this)">
                     <span class="pill-dot-inline"></span>
                     <span class="pill-text-inline">Mant.</span>
                 </button>
@@ -642,7 +635,7 @@ function getEstadoBadgeInfoEspacio(estado) {
     mantenimiento: {
       class: 'estado-mantenimiento',
       icon: 'fa-tools',
-      text: 'Mantenimiento',
+      text: 'Mantenimiento en curso',
     },
     fuera_servicio: {
       class: 'estado-fuera-servicio',
@@ -931,7 +924,6 @@ function mostrarFormularioInlineEspacio(espacioId) {
                                     onchange="toggleTipoServicioEspacioInline(${espacioId})">
                             <span class="toggle-switch"></span>
                             <span class="toggle-text">
-                                <span class="tipo-averia">Avería</span>
                                 <span class="tipo-alerta">Alerta</span>
                             </span>
                         </label>
@@ -979,14 +971,17 @@ function mostrarFormularioInlineEspacio(espacioId) {
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="baja" checked>
                         <span class="semaforo-circle green"></span>
+                        <span class="semaforo-text">Baja</span>
                     </label>
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="media">
                         <span class="semaforo-circle yellow"></span>
+                        <span class="semaforo-text">Media</span>
                     </label>
                     <label class="semaforo-label-inline">
                         <input type="radio" name="prioridad-espacio-${espacioId}" value="alta">
                         <span class="semaforo-circle red"></span>
+                        <span class="semaforo-text">Alta</span>
                     </label>
                 </div>
             </div>
@@ -1002,7 +997,7 @@ function mostrarFormularioInlineEspacio(espacioId) {
                 </button>
                 <!-- Se deberá deshabilitar si el input "tareaAsignadaInline-espacio-${espacioId}" tiene un valor y el option pasará a estar vacío-->
                     <select id="tareaAsignadaInline-espacio-${espacioId}" class="input-inline selector-tarea-servicio" name="tarea_asignada_id">
-                        <option value="">-- Sin asignar existente --</option>
+                        <option value="">Sin tarea</option>
                     </select>
                 </div>
             </div>
@@ -1477,7 +1472,7 @@ async function cambiarEstadoEspacioBadge(
     const estadoLabels = {
       disponible: 'Disponible',
       ocupado: 'Ocupado',
-      mantenimiento: 'Mantenimiento',
+      mantenimiento: 'Mantenimiento en curso',
       fuera_servicio: 'Fuera de Servicio',
     };
 
