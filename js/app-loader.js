@@ -1423,7 +1423,13 @@
           alerta
         );
         const li = document.createElement('li');
-        li.className = 'rutina-item';
+        const prioridadValor = (
+          alerta.prioridad ||
+          alerta.nivel_alerta ||
+          'media'
+        ).toLowerCase();
+        const prioridadClass = `prioridad-${prioridadValor}`;
+        li.className = `rutina-item ${prioridadClass}`;
         li.id = `rutina-${alerta.id}`;
 
         const isEspacioComun = !!alerta.espacio_comun_id;
@@ -3356,9 +3362,10 @@
       // Mostrar/Ocultar botón editar según si hay servicios
       const btnEditar = document.getElementById(`btn-editar-espacio-${id}`);
       if (btnEditar) {
-        const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
-          (m) => m.espacio_comun_id === id
-        ) || [];
+        const serviciosEspacio =
+          window.appLoaderState?.mantenimientosEspacios?.filter(
+            (m) => m.espacio_comun_id === id
+          ) || [];
         if (serviciosEspacio.length > 0) {
           btnEditar.style.display = 'block';
         } else {
@@ -3435,9 +3442,10 @@
         // Mostrar/Ocultar botón editar según si hay servicios
         const btnEditar = document.getElementById(`btn-editar-espacio-${id}`);
         if (btnEditar) {
-          const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
-            (m) => m.espacio_comun_id === id
-          ) || [];
+          const serviciosEspacio =
+            window.appLoaderState?.mantenimientosEspacios?.filter(
+              (m) => m.espacio_comun_id === id
+            ) || [];
           if (serviciosEspacio.length > 0) {
             btnEditar.style.display = 'block';
           } else {
@@ -3809,12 +3817,12 @@
       }
 
       const estadoLabels = {
-        "pendiente": 'Pendiente',
-        "en_proceso": 'En Proceso',
-        "completado": 'Completado',
-        "cancelado": 'Cancelado',
+        pendiente: 'Pendiente',
+        en_proceso: 'En Proceso',
+        completado: 'Completado',
+        cancelado: 'Cancelado',
       };
-      
+
       // Mostrar notificación de éxito
       if (window.mostrarAlertaBlur) {
         window.mostrarAlertaBlur(
@@ -3830,7 +3838,7 @@
 
       // Actualizar HTML del servicio para mostrar fecha de finalización [dia/mes] y icono de notas
       const cuartoIdNum = parseInt(cuartoId, 10);
-      
+
       // Verificar que el servicio esté en el array antes de regenerar HTML
       const servicioEnArray = esEspacio
         ? window.appLoaderState?.mantenimientosEspacios?.find(
@@ -3848,9 +3856,12 @@
               window.appLoaderState?.mantenimientosEspacios?.filter(
                 (m) => m.espacio_comun_id == cuartoIdNum
               ) || [];
-            const botonEditar = document.getElementById(`btn-editar-espacio-${cuartoId}`);
+            const botonEditar = document.getElementById(
+              `btn-editar-espacio-${cuartoId}`
+            );
             const enModoEdicion =
-              botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+              botonEditar &&
+              botonEditar.classList.contains('modo-edicion-activo');
             contenedorServicios.innerHTML = generarServiciosHTML(
               serviciosEspacio,
               cuartoIdNum,
@@ -3859,14 +3870,19 @@
             );
           }
         } else {
-          const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+          const contenedorServicios = document.getElementById(
+            `servicios-${cuartoId}`
+          );
           if (contenedorServicios) {
             const serviciosCuarto = mantenimientos.filter(
               (m) => m.cuarto_id == cuartoIdNum
             );
-            const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
+            const botonEditar = document.getElementById(
+              `btn-editar-${cuartoId}`
+            );
             const enModoEdicion =
-              botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+              botonEditar &&
+              botonEditar.classList.contains('modo-edicion-activo');
             contenedorServicios.innerHTML = generarServiciosHTML(
               serviciosCuarto,
               cuartoIdNum,
@@ -4266,67 +4282,100 @@
                 </span>
             </div>
             
-            <input 
-                type="text" 
-                class="input-edicion-inline" 
-                id="edit-desc-${servicioId}" 
-                value="${escapeHtml(servicio.descripcion)}"
-                placeholder="Descripción"
-            />
+            <div class="form-inline-field-group">
+                <label class="form-inline-label">
+                    <i class="fas fa-align-left"></i> Descripción
+                </label>
+                <input 
+                    type="text" 
+                    class="input-edicion-inline" 
+                    id="edit-desc-${servicioId}" 
+                    value="${escapeHtml(servicio.descripcion)}"
+                    placeholder="Descripción"
+                />
+            </div>
             
             ${
               esAlerta
                 ? `
-                <div class="form-inline-row">
-                    <input 
-                        type="date" 
-                        class="input-edicion-inline input-small" 
-                        id="edit-dia-${servicioId}" 
-                        value="${diaAlertaFormatted}"
-                    />
-                    <input 
-                        type="time" 
-                        class="input-edicion-inline input-small" 
-                        id="edit-hora-${servicioId}" 
-                        value="${servicio.hora || ''}"
-                    />
+                <div class="form-inline-field-group">
+                    <label class="form-inline-label">
+                        <i class="fas fa-calendar-alt"></i> Fecha y Hora
+                    </label>
+                    <div class="form-inline-row">
+                        <input 
+                            type="date" 
+                            class="input-edicion-inline input-small" 
+                            id="edit-dia-${servicioId}" 
+                            value="${diaAlertaFormatted}"
+                        />
+                        <input 
+                            type="time" 
+                            class="input-edicion-inline input-small" 
+                            id="edit-hora-${servicioId}" 
+                            value="${servicio.hora || ''}"
+                        />
+                    </div>
                 </div>
             `
                 : ''
             }
             
-            <select class="input-edicion-inline" id="edit-estado-${servicioId}">
-                <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
-                <option value="en_proceso" ${servicio.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
-                <option value="completado" ${servicio.estado === 'completado' ? 'selected' : ''}>Completado</option>
-                <option value="cancelado" ${servicio.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
-            </select>
-            
-            <select class="input-edicion-inline" id="edit-usuario-${servicioId}">
-                <option value="">-- Sin asignar --</option>
-                ${opcionesUsuarios}
-            </select>
-            
-            <textarea 
-                class="input-edicion-inline" 
-                id="edit-notas-${servicioId}" 
-                placeholder="Notas adicionales (opcional)"
-                rows="2"
-                style="resize: vertical; font-family: inherit;">${servicio.notas || ''}</textarea>
-            
-            <div class="semaforo-edicion-inline">
-                <label class="semaforo-label-inline ${servicio.prioridad === 'baja' ? 'active' : ''}">
-                    <input type="radio" name="prioridad-${servicioId}" value="baja" ${servicio.prioridad === 'baja' || !servicio.prioridad ? 'checked' : ''}>
-                    <span class="semaforo-circle green"></span>
+            <div class="form-inline-field-group">
+                <label class="form-inline-label">
+                    <i class="fas fa-info-circle"></i> Estado del Servicio
                 </label>
-                <label class="semaforo-label-inline ${servicio.prioridad === 'media' ? 'active' : ''}">
-                    <input type="radio" name="prioridad-${servicioId}" value="media" ${servicio.prioridad === 'media' ? 'checked' : ''}>
-                    <span class="semaforo-circle yellow"></span>
+                <select class="input-edicion-inline" id="edit-estado-${servicioId}">
+                    <option value="pendiente" ${servicio.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                    <option value="en_proceso" ${servicio.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                    <option value="completado" ${servicio.estado === 'completado' ? 'selected' : ''}>Completado</option>
+                    <option value="cancelado" ${servicio.estado === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                </select>
+            </div>
+            
+            <div class="form-inline-field-group">
+                <label class="form-inline-label">
+                    <i class="fas fa-user"></i> Usuario Asignado
                 </label>
-                <label class="semaforo-label-inline ${servicio.prioridad === 'alta' ? 'active' : ''}">
-                    <input type="radio" name="prioridad-${servicioId}" value="alta" ${servicio.prioridad === 'alta' ? 'checked' : ''}>
-                    <span class="semaforo-circle red"></span>
+                <select class="input-edicion-inline" id="edit-usuario-${servicioId}">
+                    <option value="">-- Sin asignar --</option>
+                    ${opcionesUsuarios}
+                </select>
+            </div>
+            
+            <div class="form-inline-field-group">
+                <label class="form-inline-label">
+                    <i class="fas fa-sticky-note"></i> Notas Adicionales (Opcional)
                 </label>
+                <textarea 
+                    class="input-edicion-inline" 
+                    id="edit-notas-${servicioId}" 
+                    placeholder="Notas adicionales (opcional)"
+                    rows="2"
+                    style="resize: vertical; font-family: inherit;">${servicio.notas || ''}</textarea>
+            </div>
+            
+            <div class="form-inline-field-group">
+                <label class="form-inline-label">
+                    <i class="fas fa-traffic-light"></i> Prioridad
+                </label>
+                <div class="semaforo-edicion-inline">
+                    <label class="semaforo-label-inline ${servicio.prioridad === 'baja' ? 'active' : ''}">
+                        <input type="radio" name="prioridad-${servicioId}" value="baja" ${servicio.prioridad === 'baja' || !servicio.prioridad ? 'checked' : ''}>
+                        <span class="semaforo-circle green"></span>
+                        <span class="semaforo-text">Baja</span>
+                    </label>
+                    <label class="semaforo-label-inline ${servicio.prioridad === 'media' ? 'active' : ''}">
+                        <input type="radio" name="prioridad-${servicioId}" value="media" ${servicio.prioridad === 'media' ? 'checked' : ''}>
+                        <span class="semaforo-circle yellow"></span>
+                        <span class="semaforo-text">Media</span>
+                    </label>
+                    <label class="semaforo-label-inline ${servicio.prioridad === 'alta' ? 'active' : ''}">
+                        <input type="radio" name="prioridad-${servicioId}" value="alta" ${servicio.prioridad === 'alta' ? 'checked' : ''}>
+                        <span class="semaforo-circle red"></span>
+                        <span class="semaforo-text">Alta</span>
+                    </label>
+                </div>
             </div>
 
                     <!-- Botón de editar Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
@@ -4340,7 +4389,7 @@
                 </button>
                 <!-- Se deberá seleccionar la tarea asignada si el servicio tiene una tarea asignada-->
                     <select class="input-inline" onpointerdown="if (window.cargarTareasEnSelector) cargarTareasEnSelector('tarea_asignada_edit-${servicioId}', ${servicio.tarea_id})" id="tarea_asignada_edit-${servicioId}" name="tarea_asignada_edit-${servicioId}">
-                        <option value="">-- Sin asignar existente --</option>
+                        <option value="">Sin tarea</option>
                         
                     </select>
                 </div>
@@ -4755,13 +4804,14 @@
     // Actualizar UI inmediatamente
     if (esEspacio) {
       renderizarServiciosEspacio(id);
-      
+
       // Verificar si no quedan servicios y salir del modo edición
-      const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
-        (m) => m.espacio_comun_id === id
-      ) || [];
+      const serviciosEspacio =
+        window.appLoaderState?.mantenimientosEspacios?.filter(
+          (m) => m.espacio_comun_id === id
+        ) || [];
       const botonEditar = document.getElementById(`btn-editar-espacio-${id}`);
-      
+
       if (serviciosEspacio.length === 0 && botonEditar) {
         // Salir del modo edición
         botonEditar.classList.remove('modo-edicion-activo');
@@ -4776,7 +4826,8 @@
         }
 
         // Habilitar el badge dropdown
-        const liElement = document.querySelector(`li[data-espacio-id="${id}"]`) ||
+        const liElement =
+          document.querySelector(`li[data-espacio-id="${id}"]`) ||
           document.getElementById(`servicios-espacio-${id}`)?.closest('li');
         const badgeDropdown = liElement?.querySelector('.estado-dropdown');
         if (badgeDropdown) {

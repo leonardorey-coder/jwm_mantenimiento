@@ -1811,7 +1811,7 @@ function cambiarServicioActual_OLD(servicioId) {
   // Actualizar título
   const tituloEl = document.getElementById('tituloServicioActual');
   if (tituloEl) {
-    tituloEl.textContent = `Sábana de ${nombreServicio}`;
+    tituloEl.textContent = `Sábana de${nombreServicio}`;
   }
 
   // Cargar datos del servicio

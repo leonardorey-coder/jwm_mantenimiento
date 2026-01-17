@@ -836,7 +836,7 @@ function actualizarEstadoBadgeCard(cuartoId, nuevoEstado) {
       case 'mantenimiento':
         estadoBadgeClass = 'estado-mantenimiento';
         estadoIcon = 'fa-tools';
-        estadoText = 'En Mantenimiento';
+        estadoText = 'Mantenimiento en curso';
         break;
       case 'fuera de servicio':
       case 'fuera_servicio':
@@ -1574,7 +1574,9 @@ async function seleccionarEstadoDropdown(
     const estadoLabels = {
       disponible: 'Disponible',
       ocupado: 'Ocupado',
-      mantenimiento: esEspacio ? 'Mantenimiento en curso' : 'Mantenimiento en curso',
+      mantenimiento: esEspacio
+        ? 'Mantenimiento en curso'
+        : 'Mantenimiento en curso',
       fuera_servicio: 'Fuera de Servicio',
     };
 
@@ -1626,8 +1628,8 @@ function actualizarBadgeDropdown(dropdown, nuevoEstado) {
       estadoClass = 'estado-mantenimiento';
       estadoIcon = 'fa-tools';
       estadoText = dropdown.dataset.espacioId
-        ? 'Mantenimiento'
-        : 'En Mantenimiento';
+        ? 'Mantenimiento en curso'
+        : 'Mantenimiento en curso';
       break;
     case 'fuera_servicio':
     case 'fuera de servicio':

@@ -1920,6 +1920,75 @@ app.patch(
   }
 );
 
+// Actualizar nombre o notas de sábana
+app.patch('/api/sabanas/:id', verificarAutenticacion, async (req, res) => {
+  try {
+    console.log('✏️ PATCH /api/sabanas/:id', req.params.id, req.body);
+
+    if (!postgresManager) {
+      return res.status(500).json({ error: 'Base de datos no disponible' });
+    }
+
+    const sabanaId = parseInt(req.params.id);
+    const { nombre, notas } = req.body;
+
+    if (isNaN(sabanaId)) {
+      return res.status(400).json({ error: 'ID de sábana inválido' });
+    }
+
+    // Construir query dinámicamente según los campos enviados
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+
+    if (nombre !== undefined) {
+      if (!nombre.trim()) {
+        return res
+          .status(400)
+          .json({ error: 'El nombre no puede estar vacío' });
+      }
+      updates.push(
+        `nombre = $${paramIndex}`,
+        `servicio_nombre = $${paramIndex}`
+      );
+      values.push(nombre.trim());
+      paramIndex++;
+    }
+
+    if (notas !== undefined) {
+      updates.push(`notas = $${paramIndex}`);
+      values.push(notas.trim() || null);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return res.status(400).json({ error: 'No hay campos para actualizar' });
+    }
+
+    values.push(sabanaId);
+    const query = `
+      UPDATE sabanas 
+      SET ${updates.join(', ')}
+      WHERE id = $${paramIndex} 
+      RETURNING id, nombre, servicio_nombre, notas
+    `;
+    const result = await postgresManager.pool.query(query, values);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Sábana no encontrada' });
+    }
+
+    console.log('✅ Sábana actualizada:', result.rows[0]);
+    res.json({ success: true, sabana: result.rows[0] });
+  } catch (error) {
+    console.error('❌ Error al actualizar sábana:', error);
+    res.status(500).json({
+      error: 'Error al actualizar sábana',
+      details: error.message,
+    });
+  }
+});
+
 app.post(
   '/api/sabanas/:id/archivar',
   verificarAutenticacion,
@@ -1977,7 +2046,8 @@ app.post(
       }
 
       console.log('🔄 Desarchivando sábana ID:', sabanaId);
-      const sabanaDesarchivada = await postgresManager.desarchivarSabana(sabanaId);
+      const sabanaDesarchivada =
+        await postgresManager.desarchivarSabana(sabanaId);
 
       console.log('✅ Sábana desarchivada exitosamente:', {
         id: sabanaDesarchivada.id,

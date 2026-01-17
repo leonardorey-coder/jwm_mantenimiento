@@ -136,7 +136,9 @@ function toggleAvisoArchivarActual() {
     if (debeMostrar && currentSabanaNombre) {
       const spanTexto = alertaArchivar.querySelector('span');
       if (spanTexto) {
-        spanTexto.textContent = `La sábana actual "${currentSabanaNombre}" se moverá al historial en automático.`;
+        spanTexto.textContent = currentSabanaArchivada
+          ? `La sábana actual "${currentSabanaNombre}" ya está archivada en el historial.`
+          : `La sábana actual "${currentSabanaNombre}" se moverá al historial en automático.`;
       }
     }
   }
@@ -267,13 +269,78 @@ async function cambiarServicioActual(sabanaId) {
     console.log('🔄 Cambiando a sábana:', sabanaId);
 
     if (!sabanaId) {
-      document.getElementById('sabanaTableBody').innerHTML =
-        '<tr><td colspan="7" class="sabana-placeholder">Selecciona una sábana.</td></tr>';
-      // Ocultar notas y creador
-      const notasContainer = document.getElementById('sabanaNotasContainer');
-      if (notasContainer) notasContainer.style.display = 'none';
+      const wrapper = document.querySelector('.filtros-table-wrapper');
+      if (wrapper) {
+        wrapper.innerHTML = `
+          <table class="filtros-table">
+            <thead>
+              <tr>
+                <th><i class="fas fa-building"></i> Edificio</th>
+                <th><i class="fas fa-door-closed"></i> Habitación</th>
+                <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+                <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
+                <th><i class="fas fa-user"></i> Responsable</th>
+                <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
+                <th><i class="fas fa-check-circle"></i> Realizado</th>
+              </tr>
+            </thead>
+            <tbody id="sabanaTableBody">
+              <tr><td colspan="7" class="sabana-placeholder">Selecciona o crea una sábana para comenzar.</td></tr>
+            </tbody>
+          </table>
+        `;
+      }
+
+      currentSabanaId = null;
+      currentSabanaArchivada = false;
+      currentSabanaNombre = '';
+      currentSabanaItems = [];
+
+      const tituloEl = document.getElementById('tituloServicioActual');
+      if (tituloEl) {
+        tituloEl.textContent = 'Sábana de Servicios';
+      }
+
+      const periodoEl = document.getElementById('periodoActual');
+      if (periodoEl) {
+        periodoEl.textContent = 'Periodo Actual';
+      }
+
+      const completadosEl = document.getElementById('serviciosCompletados');
+      if (completadosEl) {
+        completadosEl.textContent = '0';
+      }
+
+      const totalesEl = document.getElementById('serviciosTotales');
+      if (totalesEl) {
+        totalesEl.textContent = '0';
+      }
+
+      const creadorNombre = document.getElementById('sabanaCreadorNombre');
+      if (creadorNombre) {
+        creadorNombre.textContent = '-';
+      }
+
       const creadorContainer = document.getElementById('sabanaCreadorInfo');
-      if (creadorContainer) creadorContainer.style.display = 'none';
+      if (creadorContainer) {
+        creadorContainer.style.display = 'none';
+      }
+
+      const notasContainer = document.getElementById('sabanaNotasContainer');
+      if (notasContainer) {
+        notasContainer.classList.remove(
+          'sabana-notas-editable-container',
+          'is-empty'
+        );
+        notasContainer.style.display = 'none';
+      }
+
+      const notasTexto = document.getElementById('sabanaNotasTexto');
+      if (notasTexto) {
+        notasTexto.textContent = '';
+        notasTexto.className = 'sabana-notas-editable';
+      }
+
       configurarSabanaIdTab(null);
       return;
     }
@@ -323,7 +390,7 @@ async function cambiarServicioActual(sabanaId) {
 
       if (sabana.archivada) {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de <span class="sabana-nombre-display">${sabana.nombre}</span></span>
+                    <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-display">${sabana.nombre}</span></span>
                     <span class="sabana-archivada-actions">
                         <span class="sabana-archivada-badge">
                             <i class="fas fa-lock"></i>
@@ -337,7 +404,7 @@ async function cambiarServicioActual(sabanaId) {
                 `;
       } else {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de <span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
+                    <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
                 `;
       }
 
@@ -365,12 +432,63 @@ async function cambiarServicioActual(sabanaId) {
     const notasContainer = document.getElementById('sabanaNotasContainer');
     const notasTexto = document.getElementById('sabanaNotasTexto');
     if (notasContainer && notasTexto) {
-      if (sabana.notas && sabana.notas.trim()) {
-        notasTexto.textContent = sabana.notas;
-        notasContainer.style.display = 'flex';
+      const notasActuales = (sabana.notas || '').trim();
+      const tieneNotas = notasActuales.length > 0;
+
+      // Mostrar texto o placeholder según si hay notas
+      if (tieneNotas) {
+        notasTexto.textContent = notasActuales;
+        notasTexto.className = 'sabana-notas-editable';
+        notasContainer.classList.remove('is-empty');
       } else {
-        notasContainer.style.display = 'none';
+        notasTexto.textContent = 'Agregar nota...';
+        notasTexto.className = 'sabana-notas-editable sabana-notas-placeholder';
+        notasContainer.classList.add('is-empty');
       }
+      notasTexto.title = 'Click para editar notas';
+
+      const notasIcon = notasContainer.querySelector('i');
+      if (!sabana.archivada) {
+        const obtenerNotasActuales = () => {
+          const spanActual = document.getElementById('sabanaNotasTexto');
+          if (!spanActual) return '';
+          if (spanActual.classList.contains('sabana-notas-placeholder'))
+            return '';
+          return spanActual.textContent.trim();
+        };
+
+        notasContainer.classList.remove('is-readonly');
+        notasContainer.classList.add('sabana-notas-editable-container');
+        notasTexto.onclick = () =>
+          iniciarEdicionNotasSabana(sabana.id, obtenerNotasActuales());
+        if (notasIcon) {
+          notasIcon.onclick = () =>
+            iniciarEdicionNotasSabana(sabana.id, obtenerNotasActuales());
+        }
+
+        notasContainer.onclick = () => {
+          const inputActual = notasContainer.querySelector(
+            '.sabana-notas-input'
+          );
+          if (inputActual) {
+            inputActual.focus();
+            inputActual.select();
+            return;
+          }
+          iniciarEdicionNotasSabana(sabana.id, obtenerNotasActuales());
+        };
+      } else {
+        notasContainer.classList.remove('sabana-notas-editable-container');
+        notasContainer.classList.add('is-readonly');
+        notasTexto.onclick = null;
+        notasTexto.style.cursor = 'text';
+        if (notasIcon) {
+          notasIcon.onclick = null;
+        }
+        notasContainer.onclick = null;
+      }
+
+      notasContainer.style.display = 'flex';
     }
 
     renderSabanaTable(currentSabanaItems, sabana.archivada);
@@ -949,7 +1067,7 @@ function renderSabanaColumns(items, archivada = false) {
           const responsable = item.responsable_nombre || item.responsable || '';
 
           const card = document.createElement('div');
-          card.className = `sabana-habitacion-card ${estadoClass}`;
+          card.className = `sabana-habitacion-card ${estadoClass} ${readonlyClass}`;
           card.dataset.itemId = item.id;
           card.onclick = (e) => handleCardClick(e, item.id, archivada);
 
@@ -2328,10 +2446,26 @@ async function confirmarEliminarSabana() {
 
     await cargarListaSabanas();
 
-    const tbody = document.getElementById('sabanaTableBody');
-    if (tbody) {
-      tbody.innerHTML =
-        '<tr><td colspan="7" class="sabana-placeholder">Selecciona una sábana.</td></tr>';
+    const wrapper = document.querySelector('.filtros-table-wrapper');
+    if (wrapper) {
+      wrapper.innerHTML = `
+        <table class="filtros-table">
+          <thead>
+            <tr>
+              <th><i class="fas fa-building"></i> Edificio</th>
+              <th><i class="fas fa-door-closed"></i> Habitación</th>
+              <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+              <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
+              <th><i class="fas fa-user"></i> Responsable</th>
+              <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
+              <th><i class="fas fa-check-circle"></i> Realizado</th>
+            </tr>
+          </thead>
+          <tbody id="sabanaTableBody">
+            <tr><td colspan="7" class="sabana-placeholder">Selecciona o crea una sábana para comenzar.</td></tr>
+          </tbody>
+        </table>
+      `;
     }
 
     const tituloEl = document.getElementById('tituloServicioActual');
@@ -2356,7 +2490,6 @@ async function confirmarEliminarSabana() {
       totalesEl.textContent = '0';
     }
 
-    // Ocultar notas y creador
     const notasContainer = document.getElementById('sabanaNotasContainer');
     if (notasContainer) notasContainer.style.display = 'none';
     const creadorContainer = document.getElementById('sabanaCreadorInfo');
@@ -2870,7 +3003,9 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
   inputEdit.focus();
   inputEdit.select();
 
+  let guardandoNombre = false;
   const guardarNombre = async () => {
+    if (guardandoNombre) return;
     const nuevoNombre = inputEdit.value.trim();
     if (!nuevoNombre || nuevoNombre === nombreActual) {
       const spanRestore = document.createElement('span');
@@ -2883,11 +3018,15 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
       return;
     }
 
+    guardandoNombre = true;
     try {
       const response = await fetchWithAuth(
         `${API_BASE_URL}/api/sabanas/${sabanaId}`,
         {
           method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
           body: JSON.stringify({ nombre: nuevoNombre }),
         }
       );
@@ -2905,6 +3044,18 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
       inputEdit.replaceWith(spanNew);
 
       await cargarListaSabanas();
+
+      const selectServicio = document.getElementById('filtroServicioActual');
+      if (selectServicio) {
+        const optionActual = Array.from(selectServicio.options).find(
+          (opt) => opt.value === String(sabanaId)
+        );
+        if (optionActual) {
+          optionActual.textContent = nuevoNombre;
+        }
+        selectServicio.value = sabanaId;
+      }
+
       mostrarMensajeSabana('Nombre actualizado correctamente', 'success');
     } catch (error) {
       console.error('Error actualizando nombre:', error);
@@ -2916,6 +3067,8 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
         iniciarEdicionNombreSabana(sabanaId, nombreActual);
       spanRestore.title = 'Click para editar';
       inputEdit.replaceWith(spanRestore);
+    } finally {
+      guardandoNombre = false;
     }
   };
 
@@ -2939,8 +3092,121 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
   });
 }
 
+function iniciarEdicionNotasSabana(sabanaId, notasActuales) {
+  if (currentSabanaArchivada) {
+    mostrarMensajeSabana('No se puede editar una sábana archivada', 'error');
+    return;
+  }
+
+  const spanNotas = document.getElementById('sabanaNotasTexto');
+  if (!spanNotas) return;
+
+  const inputEdit = document.createElement('input');
+  inputEdit.type = 'text';
+  inputEdit.value = notasActuales;
+  inputEdit.className = 'sabana-notas-input';
+  inputEdit.dataset.sabanaId = sabanaId;
+  inputEdit.dataset.notasOriginal = notasActuales;
+  inputEdit.placeholder = 'Escribe una nota...';
+
+  spanNotas.replaceWith(inputEdit);
+  inputEdit.focus();
+  inputEdit.select();
+
+  // Helper para restaurar el span con el estado visual correcto
+  const restaurarSpanNotas = (texto) => {
+    const tieneNotas = texto.length > 0;
+    const spanRestore = document.createElement('span');
+    spanRestore.id = 'sabanaNotasTexto';
+    spanRestore.title = 'Click para editar notas';
+    spanRestore.onclick = () => iniciarEdicionNotasSabana(sabanaId, texto);
+
+    const notasContainer = document.getElementById('sabanaNotasContainer');
+
+    if (tieneNotas) {
+      spanRestore.className = 'sabana-notas-editable';
+      spanRestore.textContent = texto;
+      if (notasContainer) notasContainer.classList.remove('is-empty');
+    } else {
+      spanRestore.className = 'sabana-notas-editable sabana-notas-placeholder';
+      spanRestore.textContent = 'Agregar nota...';
+      if (notasContainer) notasContainer.classList.add('is-empty');
+    }
+
+    inputEdit.replaceWith(spanRestore);
+
+    const notasIcon = document.querySelector('#sabanaNotasContainer i');
+    if (notasIcon) {
+      notasIcon.onclick = () => iniciarEdicionNotasSabana(sabanaId, texto);
+    }
+
+    if (notasContainer) {
+      notasContainer.onclick = () => {
+        const inputActual = notasContainer.querySelector('.sabana-notas-input');
+        if (inputActual) {
+          inputActual.focus();
+          inputActual.select();
+          return;
+        }
+        iniciarEdicionNotasSabana(sabanaId, texto);
+      };
+    }
+  };
+
+  let guardandoNotas = false;
+  const guardarNotas = async () => {
+    if (guardandoNotas) return;
+    const nuevasNotas = inputEdit.value.trim();
+
+    // Si no cambió, restaurar
+    if (nuevasNotas === notasActuales) {
+      restaurarSpanNotas(notasActuales);
+      return;
+    }
+
+    guardandoNotas = true;
+    try {
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/sabanas/${sabanaId}`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ notas: nuevasNotas }),
+        }
+      );
+
+      if (!response.ok) throw new Error('Error al actualizar notas');
+
+      restaurarSpanNotas(nuevasNotas);
+      mostrarMensajeSabana('Notas actualizadas correctamente', 'success');
+    } catch (error) {
+      console.error('Error actualizando notas:', error);
+      mostrarMensajeSabana('Error al actualizar las notas', 'error');
+      restaurarSpanNotas(notasActuales);
+    } finally {
+      guardandoNotas = false;
+    }
+  };
+
+  inputEdit.addEventListener('blur', guardarNotas);
+  inputEdit.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      guardarNotas();
+    }
+  });
+  inputEdit.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      restaurarSpanNotas(notasActuales);
+    }
+  });
+}
+
 window.desarchivarSabana = desarchivarSabana;
 window.iniciarEdicionNombreSabana = iniciarEdicionNombreSabana;
+window.iniciarEdicionNotasSabana = iniciarEdicionNotasSabana;
 window.toggleEdificioVisibilidad = toggleEdificioVisibilidad;
 window.handleCardClick = handleCardClick;
 window.cargarListaSabanas = cargarListaSabanas;
