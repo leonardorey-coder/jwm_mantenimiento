@@ -8706,10 +8706,12 @@ body.dark-mode select.habitacion-estado-select option {
 .semaforo-label-inline {
   flex: 1;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   cursor: pointer;
   position: relative;
+  gap: 0.3rem;
 }
 
 .semaforo-label-inline input {
@@ -8760,6 +8762,19 @@ body.dark-mode select.habitacion-estado-select option {
 .semaforo-label-inline input:checked + .semaforo-circle.red {
   background: #ff0000;
   box-shadow: 0 0 15px #ff0000;
+}
+
+.semaforo-text {
+  font-size: 0.7rem;
+  color: var(--texto-secundario);
+  font-weight: 500;
+  text-align: center;
+  margin-top: 0.2rem;
+}
+
+.semaforo-label-inline input:checked ~ .semaforo-text {
+  color: var(--texto-principal);
+  font-weight: 600;
 }
 
 .form-inline-acciones {
@@ -12790,6 +12805,41 @@ tr[data-lazy='true'] {
   text-align: center !important;
   display: block;
   width: 100%;
+}
+
+.sabana-nombre-editable {
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  border-bottom: 2px solid transparent;
+}
+
+.sabana-nombre-editable:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-bottom-color: var(--dorado-brillante);
+}
+
+.sabana-nombre-input {
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--negro-carbon);
+  border: 2px solid var(--dorado-brillante);
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  font-size: inherit;
+  font-weight: inherit;
+  font-family: inherit;
+  outline: none;
+  min-width: 200px;
+}
+
+.sabana-nombre-input:focus {
+  border-color: var(--verde-oliva);
+  box-shadow: 0 0 0 3px rgba(76, 84, 76, 0.2);
+}
+
+.sabana-nombre-display {
+  padding: 0.2rem 0.4rem;
 }
 
 /* Asegurar centrado en móviles */
