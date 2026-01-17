@@ -2736,6 +2736,21 @@ body.admin .tab-content.admin-only.active {
     gap: 0.5rem;
   }
 
+  .download-btn,
+  .update-check-btn,
+  .logout-btn,
+  .theme-toggle-header {
+    width: 34px;
+    height: 34px;
+  }
+
+  .download-btn i,
+  .update-check-btn i,
+  .logout-btn i,
+  .theme-toggle-header i {
+    font-size: 0.9rem;
+  }
+
   .logo {
     display: flex;
     justify-content: center;
@@ -7101,6 +7116,46 @@ body.admin a.admin-only {
   .modal-detalles-body {
     max-height: calc(80vh - 60px);
     padding: 1rem 1.5rem 2rem;
+  }
+}
+
+/* Modal guía de instalación iPhone */
+.iphone-guide-modal .modal-detalles-contenido {
+  max-width: 720px;
+}
+
+.iphone-guide-body {
+  padding: 0.75rem 1.25rem 1.5rem;
+}
+
+.iphone-guide-image-container {
+  width: 100%;
+  max-height: 60vh;
+  border-radius: 16px;
+  border: 2px solid var(--gris-separador);
+  background: var(--gris-claro);
+  overflow: hidden;
+}
+
+.iphone-guide-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .iphone-guide-modal .modal-detalles-contenido {
+    max-width: none;
+    max-height: 95vh;
+  }
+
+  .iphone-guide-body {
+    padding: 0.75rem 1rem 1.25rem;
+  }
+
+  .iphone-guide-image-container {
+    max-height: 55vh;
   }
 }
 

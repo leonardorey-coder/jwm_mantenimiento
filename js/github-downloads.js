@@ -147,17 +147,73 @@ async function downloadInstaller(button) {
 }
 
 function openIphoneGuide() {
-  const link = document.createElement('a');
-  link.href = IPHONE_GUIDE_URL;
-  link.target = '_blank';
-  link.rel = 'noopener';
-  link.download = IPHONE_GUIDE_FILENAME;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  let modal = document.getElementById('modalIphoneGuide');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalIphoneGuide';
+    modal.className = 'modal-detalles iphone-guide-modal';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+        <div class="modal-detalles-overlay" onclick="cerrarIphoneGuideModal()"></div>
+        <div class="modal-detalles-contenido iphone-guide-content">
+            <div class="modal-detalles-header">
+                <div class="checklist-foto-header-info">
+                    <h3><i class="fas fa-mobile-alt"></i> Guía de instalación en iPhone</h3>
+                    <span class="checklist-foto-timestamp">
+                        <i class="fas fa-image"></i> ${IPHONE_GUIDE_FILENAME}
+                    </span>
+                </div>
+                <button class="modal-detalles-cerrar" onclick="cerrarIphoneGuideModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-detalles-body iphone-guide-body">
+                <div class="iphone-guide-image-container">
+                    <img src="${IPHONE_GUIDE_URL}" alt="Guía de instalación en iPhone" class="iphone-guide-image">
+                </div>
+            </div>
+        </div>
+    `;
+
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+
+  if (window.iphoneGuideEscHandler) {
+    document.removeEventListener('keydown', window.iphoneGuideEscHandler, true);
+  }
+  window.iphoneGuideEscHandler = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      cerrarIphoneGuideModal();
+    }
+  };
+  document.addEventListener('keydown', window.iphoneGuideEscHandler, true);
+}
+
+function cerrarIphoneGuideModal() {
+  const modal = document.getElementById('modalIphoneGuide');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+
+  const modalVisible = Array.from(
+    document.querySelectorAll('.modal-detalles')
+  ).some((modalItem) => window.getComputedStyle(modalItem).display !== 'none');
+  if (!modalVisible) {
+    document.body.classList.remove('modal-open');
+  }
+
+  if (window.iphoneGuideEscHandler) {
+    document.removeEventListener('keydown', window.iphoneGuideEscHandler, true);
+    window.iphoneGuideEscHandler = null;
+  }
 }
 
 // Exponer funciones globalmente
 window.downloadPortable = downloadPortable;
 window.downloadInstaller = downloadInstaller;
 window.openIphoneGuide = openIphoneGuide;
+window.cerrarIphoneGuideModal = cerrarIphoneGuideModal;
