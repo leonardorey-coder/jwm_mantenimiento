@@ -3114,7 +3114,6 @@
                 <div class="detalle-label"><i class="fas fa-traffic-light"></i> Prioridad</div>
                 <div class="detalle-valor">
                     <div class="nivel-alerta-badge nivel-alerta-${servicio.prioridad}">
-                        <span class="semaforo-indicator"></span>
                         ${prioridadTexto}
                     </div>
                 </div>
