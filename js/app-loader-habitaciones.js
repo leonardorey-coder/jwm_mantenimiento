@@ -281,9 +281,9 @@ function mostrarCuartos() {
                             </div>
                         </div>
                         <div class="habitacion-acciones">
-                            ${mantenimientosCuarto.length > 0 ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
+                            <button ${mantenimientosCuarto.length > 0 ? 'style="display: block;"' : 'style="display: none;"'} class="habitacion-boton boton-secundario" onclick="toggleModoEdicion(${cuartoId})" id="btn-editar-${cuartoId}">
                                 <i class="fas fa-edit"></i> Editar
-                            </button>` : ''}
+                            </button>
                             <button class="habitacion-boton boton-principal" onclick="seleccionarCuarto(${cuartoId})">
                                 <i class="fas fa-plus"></i> Agregar Servicio
                             </button>
@@ -923,13 +923,9 @@ function actualizarCardCuartoEnUI(cuartoId) {
     // Mostrar/Ocultar botón editar según si hay servicios
     if (btnEditar) {
       if (mantenimientosCuarto.length > 0) {
-        btnEditar.style.display = '';
+        btnEditar.style.display = 'block';
       } else {
-        if (!enModoEdicion) {
-          btnEditar.style.display = 'none';
-        } else {
-          toggleModoEdicion(cuartoId);
-        }
+        btnEditar.style.display = 'none';
       }
     }
   }

@@ -3353,6 +3353,18 @@
     // Actualizar card en el fondo
     if (esEspacio) {
       renderizarServiciosEspacio(id);
+      // Mostrar/Ocultar botón editar según si hay servicios
+      const btnEditar = document.getElementById(`btn-editar-espacio-${id}`);
+      if (btnEditar) {
+        const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
+          (m) => m.espacio_comun_id === id
+        ) || [];
+        if (serviciosEspacio.length > 0) {
+          btnEditar.style.display = 'block';
+        } else {
+          btnEditar.style.display = 'none';
+        }
+      }
     } else {
       const contenedorServicios = document.getElementById(`servicios-${id}`);
       if (contenedorServicios) {
@@ -3365,6 +3377,18 @@
           false,
           false
         );
+      }
+      // Mostrar/Ocultar botón editar según si hay servicios
+      const btnEditar = document.getElementById(`btn-editar-${id}`);
+      if (btnEditar) {
+        const serviciosCuarto = listaMantenimientos.filter(
+          (m) => m.cuarto_id === id
+        );
+        if (serviciosCuarto.length > 0) {
+          btnEditar.style.display = 'block';
+        } else {
+          btnEditar.style.display = 'none';
+        }
       }
     }
     mostrarAlertasYRecientes();
@@ -3408,7 +3432,20 @@
       verDetallesServicios(id, esEspacio);
       if (esEspacio) {
         renderizarServiciosEspacio(id);
+        // Mostrar/Ocultar botón editar según si hay servicios
+        const btnEditar = document.getElementById(`btn-editar-espacio-${id}`);
+        if (btnEditar) {
+          const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
+            (m) => m.espacio_comun_id === id
+          ) || [];
+          if (serviciosEspacio.length > 0) {
+            btnEditar.style.display = 'block';
+          } else {
+            btnEditar.style.display = 'none';
+          }
+        }
       } else {
+        const contenedorServicios = document.getElementById(`servicios-${id}`);
         if (contenedorServicios) {
           const serviciosUbicacion = listaMantenimientos.filter(
             (m) => m.cuarto_id === id
@@ -3419,6 +3456,18 @@
             false,
             false
           );
+        }
+        // Mostrar/Ocultar botón editar según si hay servicios
+        const btnEditar = document.getElementById(`btn-editar-${id}`);
+        if (btnEditar) {
+          const serviciosCuarto = listaMantenimientos.filter(
+            (m) => m.cuarto_id === id
+          );
+          if (serviciosCuarto.length > 0) {
+            btnEditar.style.display = 'block';
+          } else {
+            btnEditar.style.display = 'none';
+          }
         }
       }
       mostrarAlertasYRecientes();
@@ -3672,18 +3721,25 @@
         throw new Error('Error al actualizar estado del servicio');
       }
 
+      const result = await response.json();
       console.log(
-        `✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`
+        `✅ Estado del servicio ${servicioId} actualizado a ${nuevoEstado}`,
+        result
       );
 
-      // Actualizar en el array local de mantenimientos
+      // Actualizar en el array local de mantenimientos usando la respuesta del servidor
       const servicio = mantenimientos.find((m) => m.id == servicioId);
       if (servicio) {
-        servicio.estado = nuevoEstado;
-        // Si se completó o canceló, agregar fecha de finalización
+        servicio.estado = result.data?.estado || nuevoEstado;
+        // Si se completó o canceló, usar fecha del servidor o agregar una nueva
         if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-          servicio.fecha_finalizacion = new Date().toISOString();
+          servicio.fecha_finalizacion =
+            result.data?.fecha_finalizacion || new Date().toISOString();
         }
+      } else {
+        console.warn(
+          `⚠️ Servicio ${servicioId} no encontrado en array mantenimientos`
+        );
       }
 
       // También actualizar en mantenimientosEspacios si aplica
@@ -3693,10 +3749,15 @@
             (m) => m.id == servicioId
           );
         if (servicioEspacio) {
-          servicioEspacio.estado = nuevoEstado;
+          servicioEspacio.estado = result.data?.estado || nuevoEstado;
           if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-            servicioEspacio.fecha_finalizacion = new Date().toISOString();
+            servicioEspacio.fecha_finalizacion =
+              result.data?.fecha_finalizacion || new Date().toISOString();
           }
+        } else {
+          console.warn(
+            `⚠️ Servicio ${servicioId} no encontrado en mantenimientosEspacios`
+          );
         }
       }
 
@@ -3709,9 +3770,10 @@
           (m) => m.id == servicioId
         );
         if (servicioCache) {
-          servicioCache.estado = nuevoEstado;
+          servicioCache.estado = result.data?.estado || nuevoEstado;
           if (nuevoEstado === 'completado' || nuevoEstado === 'cancelado') {
-            servicioCache.fecha_finalizacion = new Date().toISOString();
+            servicioCache.fecha_finalizacion =
+              result.data?.fecha_finalizacion || new Date().toISOString();
           }
         }
       }
@@ -3746,10 +3808,17 @@
         }
       }
 
+      const estadoLabels = {
+        "pendiente": 'Pendiente',
+        "en_proceso": 'En Proceso',
+        "completado": 'Completado',
+        "cancelado": 'Cancelado',
+      };
+      
       // Mostrar notificación de éxito
       if (window.mostrarAlertaBlur) {
         window.mostrarAlertaBlur(
-          `Estado actualizado a "${nuevoEstado.replace('_', ' ')}"`,
+          `Estado actualizado a: ${estadoLabels[nuevoEstado] || nuevoEstado}`,
           'success'
         );
       }
@@ -3757,6 +3826,58 @@
       // Actualizar el panel de servicios en Tareas si existe la función
       if (typeof window.actualizarPanelServiciosTareas === 'function') {
         window.actualizarPanelServiciosTareas();
+      }
+
+      // Actualizar HTML del servicio para mostrar fecha de finalización [dia/mes] y icono de notas
+      const cuartoIdNum = parseInt(cuartoId, 10);
+      
+      // Verificar que el servicio esté en el array antes de regenerar HTML
+      const servicioEnArray = esEspacio
+        ? window.appLoaderState?.mantenimientosEspacios?.find(
+            (m) => m.id == servicioId
+          )
+        : mantenimientos.find((m) => m.id == servicioId);
+
+      if (servicioEnArray) {
+        if (esEspacio) {
+          const contenedorServicios = document.getElementById(
+            `servicios-espacio-${cuartoId}`
+          );
+          if (contenedorServicios) {
+            const serviciosEspacio =
+              window.appLoaderState?.mantenimientosEspacios?.filter(
+                (m) => m.espacio_comun_id == cuartoIdNum
+              ) || [];
+            const botonEditar = document.getElementById(`btn-editar-espacio-${cuartoId}`);
+            const enModoEdicion =
+              botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+            contenedorServicios.innerHTML = generarServiciosHTML(
+              serviciosEspacio,
+              cuartoIdNum,
+              enModoEdicion,
+              true
+            );
+          }
+        } else {
+          const contenedorServicios = document.getElementById(`servicios-${cuartoId}`);
+          if (contenedorServicios) {
+            const serviciosCuarto = mantenimientos.filter(
+              (m) => m.cuarto_id == cuartoIdNum
+            );
+            const botonEditar = document.getElementById(`btn-editar-${cuartoId}`);
+            const enModoEdicion =
+              botonEditar && botonEditar.classList.contains('modo-edicion-activo');
+            contenedorServicios.innerHTML = generarServiciosHTML(
+              serviciosCuarto,
+              cuartoIdNum,
+              enModoEdicion
+            );
+          }
+        }
+      } else {
+        console.warn(
+          `⚠️ Servicio ${servicioId} no encontrado en array, omitiendo actualización de HTML`
+        );
       }
     } catch (error) {
       console.error('Error al cambiar estado del servicio:', error);
@@ -4634,6 +4755,44 @@
     // Actualizar UI inmediatamente
     if (esEspacio) {
       renderizarServiciosEspacio(id);
+      
+      // Verificar si no quedan servicios y salir del modo edición
+      const serviciosEspacio = window.appLoaderState?.mantenimientosEspacios?.filter(
+        (m) => m.espacio_comun_id === id
+      ) || [];
+      const botonEditar = document.getElementById(`btn-editar-espacio-${id}`);
+      
+      if (serviciosEspacio.length === 0 && botonEditar) {
+        // Salir del modo edición
+        botonEditar.classList.remove('modo-edicion-activo');
+        botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+        // Ocultar el selector de estado
+        const contenedorEditarEstadoInline = document.getElementById(
+          `estado-selector-inline-espacio-${id}`
+        );
+        if (contenedorEditarEstadoInline) {
+          contenedorEditarEstadoInline.style.display = 'none';
+        }
+
+        // Habilitar el badge dropdown
+        const liElement = document.querySelector(`li[data-espacio-id="${id}"]`) ||
+          document.getElementById(`servicios-espacio-${id}`)?.closest('li');
+        const badgeDropdown = liElement?.querySelector('.estado-dropdown');
+        if (badgeDropdown) {
+          badgeDropdown.style.pointerEvents = 'auto';
+          badgeDropdown.style.opacity = '1';
+        }
+      }
+
+      // Mostrar/Ocultar botón editar según si hay servicios
+      if (botonEditar) {
+        if (serviciosEspacio.length > 0) {
+          botonEditar.style.display = 'block';
+        } else {
+          botonEditar.style.display = 'none';
+        }
+      }
     } else {
       const contenedorServicios = document.getElementById(`servicios-${id}`);
       const botonEditar = document.getElementById(`btn-editar-${id}`);
@@ -4661,6 +4820,23 @@
           );
           if (contenedorEditarEstadoInline) {
             contenedorEditarEstadoInline.style.display = 'none';
+          }
+
+          // Habilitar el badge dropdown
+          const cardElement = document.getElementById(`cuarto-${id}`);
+          const badgeDropdown = cardElement?.querySelector('.estado-dropdown');
+          if (badgeDropdown) {
+            badgeDropdown.style.pointerEvents = 'auto';
+            badgeDropdown.style.opacity = '1';
+          }
+        }
+
+        // Mostrar/Ocultar botón editar según si hay servicios
+        if (botonEditar) {
+          if (serviciosCuarto.length > 0) {
+            botonEditar.style.display = 'block';
+          } else {
+            botonEditar.style.display = 'none';
           }
         }
       }
