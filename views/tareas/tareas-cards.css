@@ -444,6 +444,24 @@
   background: var(--gris-grafito);
 }
 
+.btn-cuarto-action.btn-play {
+  background: var(--verde-oliva);
+  color: var(--blanco);
+}
+
+.btn-cuarto-action.btn-play:hover {
+  background: var(--gris-grafito);
+}
+
+.btn-cuarto-action.btn-pause {
+  background: var(--dorado-brillante);
+  color: var(--negro-carbon);
+}
+
+.btn-cuarto-action.btn-pause:hover {
+  background: var(--oro-viejo);
+}
+
 .btn-cuarto-action i {
   font-size: 1rem;
 }

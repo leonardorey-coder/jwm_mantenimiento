@@ -2193,7 +2193,7 @@ async function cargarTareasEnSelector(selectId, selectedTaskId = null) {
     if (!response.ok) throw new Error('No se pudo obtener la lista de tareas');
 
     const tareas = await response.json();
-    select.innerHTML = '<option value="">-- Sin asignar existente --</option>';
+    select.innerHTML = '<option value="">Sin tarea</option>';
 
     console.log('Mostrando el total de tareas', tareas);
 
@@ -3750,6 +3750,15 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     `
                         : ''
                     }
+                    ${
+                      tarea.estado === 'en_proceso'
+                        ? `
+                        <button class="btn-cuarto-action btn-pause" onclick="event.stopPropagation(); accionarTarea(${tarea.id}, 'pendiente')" title="Pausar">
+                            <i class="fas fa-pause"></i>
+                        </button>
+                    `
+                        : ''
+                    }
                 </div>
             </div>
         </div>
@@ -3785,7 +3794,7 @@ async function actualizarSelectoresTareas() {
     selectores.forEach((select) => {
       const selectedValue = select.value;
       const primeraOpcion =
-        select.options[0]?.text || '-- Sin asignar existente --';
+        select.options[0]?.text || 'Sin tarea';
 
       select.innerHTML = `<option value="">${primeraOpcion}</option>`;
 
