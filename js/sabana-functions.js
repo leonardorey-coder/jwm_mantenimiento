@@ -324,9 +324,15 @@ async function cambiarServicioActual(sabanaId) {
       if (sabana.archivada) {
         tituloEl.innerHTML = `
                     <span class="sabana-placeholder-title">Sábana de <span class="sabana-nombre-display">${sabana.nombre}</span></span>
-                    <span class="sabana-archivada-badge">
-                        <i class="fas fa-lock"></i>
-                        Archivada · Solo lectura
+                    <span class="sabana-archivada-actions">
+                        <span class="sabana-archivada-badge">
+                            <i class="fas fa-lock"></i>
+                            Archivada · Solo lectura
+                        </span>
+                        <button type="button" class="sabana-desarchivar-btn" onclick="desarchivarSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')">
+                            <i class="fas fa-unlock"></i>
+                            Desarchivar
+                        </button>
                     </span>
                 `;
       } else {
@@ -2797,16 +2803,23 @@ async function desarchivarSabana(sabanaId, nombreSabana) {
     return;
   }
 
-  if (!window.electronSafeConfirm(`¿Desarchivar la sábana "${nombreSabana}"? Volverá a estar disponible para edición.`)) {
+  if (
+    !window.electronSafeConfirm(
+      `¿Desarchivar la sábana "${nombreSabana}"? Volverá a estar disponible para edición.`
+    )
+  ) {
     return;
   }
 
   try {
     console.log('📦 Desarchivando sábana ID:', sabanaId);
 
-    const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas/${sabanaId}/desarchivar`, {
-      method: 'POST',
-    });
+    const response = await fetchWithAuth(
+      `${API_BASE_URL}/api/sabanas/${sabanaId}/desarchivar`,
+      {
+        method: 'POST',
+      }
+    );
 
     if (!response.ok) {
       const errorData = await response.json();
@@ -2818,16 +2831,19 @@ async function desarchivarSabana(sabanaId, nombreSabana) {
     console.log('Sábana desarchivada:', resultado);
 
     await cargarListaSabanas();
-    
+
     cerrarModalHistorial();
-    
+
     const selectServicio = document.getElementById('filtroServicioActual');
     if (selectServicio) {
       selectServicio.value = sabanaId;
       await cambiarServicioActual(sabanaId);
     }
 
-    mostrarMensajeSabana(`Sábana "${nombreSabana}" desarchivada exitosamente. Ahora puedes editarla.`, 'success');
+    mostrarMensajeSabana(
+      `Sábana "${nombreSabana}" desarchivada exitosamente. Ahora puedes editarla.`,
+      'success'
+    );
   } catch (error) {
     console.error('Error desarchivando sábana:', error);
     electronSafeAlert('Error al desarchivar la sábana: ' + error.message);
@@ -2860,17 +2876,21 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
       const spanRestore = document.createElement('span');
       spanRestore.className = 'sabana-nombre-editable';
       spanRestore.textContent = nombreActual;
-      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.onclick = () =>
+        iniciarEdicionNombreSabana(sabanaId, nombreActual);
       spanRestore.title = 'Click para editar';
       inputEdit.replaceWith(spanRestore);
       return;
     }
 
     try {
-      const response = await fetchWithAuth(`${API_BASE_URL}/api/sabanas/${sabanaId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ nombre: nuevoNombre }),
-      });
+      const response = await fetchWithAuth(
+        `${API_BASE_URL}/api/sabanas/${sabanaId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ nombre: nuevoNombre }),
+        }
+      );
 
       if (!response.ok) throw new Error('Error al actualizar nombre');
 
@@ -2892,7 +2912,8 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
       const spanRestore = document.createElement('span');
       spanRestore.className = 'sabana-nombre-editable';
       spanRestore.textContent = nombreActual;
-      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.onclick = () =>
+        iniciarEdicionNombreSabana(sabanaId, nombreActual);
       spanRestore.title = 'Click para editar';
       inputEdit.replaceWith(spanRestore);
     }
@@ -2910,7 +2931,8 @@ function iniciarEdicionNombreSabana(sabanaId, nombreActual) {
       const spanRestore = document.createElement('span');
       spanRestore.className = 'sabana-nombre-editable';
       spanRestore.textContent = nombreActual;
-      spanRestore.onclick = () => iniciarEdicionNombreSabana(sabanaId, nombreActual);
+      spanRestore.onclick = () =>
+        iniciarEdicionNombreSabana(sabanaId, nombreActual);
       spanRestore.title = 'Click para editar';
       inputEdit.replaceWith(spanRestore);
     }
