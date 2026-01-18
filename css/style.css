@@ -196,9 +196,11 @@ body {
 
 .electron-app .premium-header button,
 .electron-app .premium-header a,
-.electron-app .premium-header .link {
+.electron-app .premium-header .link,
+.electron-app .premium-header .logo,
+.electron-app .premium-header .user-info {
   -webkit-app-region: no-drag;
-  /* Buttons should be clickable */
+  /* Buttons, links, logo and user info should be clickable */
 }
 
 /* Bloquear scroll de la página cuando hay un modal activo */

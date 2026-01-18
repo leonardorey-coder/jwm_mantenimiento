@@ -13,9 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  // Inicializar tabs
-  initializeTabs();
-
   // Inicializar botones brutalist de navegación
   initializeBrutalistNavButtons();
 
@@ -28,44 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Cargar datos iniciales
   loadInitialData();
 });
-
-// ========================================
-// SISTEMA DE TABS
-// ========================================
-function initializeTabs() {
-  const tabLinks = document.querySelectorAll('.link[data-tab]');
-  const tabContents = document.querySelectorAll('.tab-content');
-
-  tabLinks.forEach((link) => {
-    link.addEventListener('click', function (e) {
-      e.preventDefault();
-
-      const targetTab = this.getAttribute('data-tab');
-
-      // Remover active de todos los links
-      tabLinks.forEach((l) => l.classList.remove('active'));
-
-      // Agregar active al link clickeado
-      this.classList.add('active');
-
-      // Ocultar todos los tabs
-      tabContents.forEach((content) => {
-        content.classList.remove('active');
-      });
-
-      // Mostrar el tab seleccionado
-      const targetContent = document.getElementById(`tab-${targetTab}`);
-      if (targetContent) {
-        targetContent.classList.add('active');
-
-        // Refrescar AOS en el nuevo tab
-        if (typeof AOS !== 'undefined') {
-          AOS.refresh();
-        }
-      }
-    });
-  });
-}
 
 // ========================================
 // BOTONES BRUTALIST DE NAVEGACIÓN

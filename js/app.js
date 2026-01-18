@@ -1461,6 +1461,11 @@ function switchTab(tabId, loadData = true) {
   const selectedTab = document.getElementById(`tab-${tabId}`);
   if (selectedTab) {
     selectedTab.classList.add('active');
+    
+    // Refrescar AOS en el nuevo tab
+    if (typeof AOS !== 'undefined') {
+      AOS.refresh();
+    }
   }
 
   // Activar el botón correspondiente - Desktop y móvil
