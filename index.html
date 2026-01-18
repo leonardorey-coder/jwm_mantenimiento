@@ -2232,11 +2232,141 @@
           </div>
         </div>
 
+        <!-- Sección: Crear nuevo servicio a la tarea -->
+        <div class="tarea-edit-section">
+          <div class="section-header section-header-collapsible" onclick="toggleFormServicioEnTarea('Crear')">
+            <div class="section-header-title">
+              <h4><i class="fas fa-plus-circle"></i> Crear nuevo servicio a la tarea</h4>
+              <p>El servicio se crea y aparece en la lista de abajo.</p>
+            </div>
+            <button type="button" class="btn-toggle-seccion" id="btnToggleServicioCrear">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+
+          <!-- Formulario inline idéntico al de habitaciones -->
+          <div id="formServicioEnTareaCrear" class="form-servicio-inline form-servicio-en-tarea-modal"
+            style="display: none;">
+            <div class="name-tipo-toggle-inline-container">
+              <input type="text" class="input-inline" id="servicioTareaDescripcionCrear"
+                placeholder="Descripción del servicio..." autocomplete="off">
+
+              <div class="tipo-toggle-inline">
+                <label class="toggle-label">
+                  <input type="checkbox" class="toggle-checkbox" id="tipoToggleCrear"
+                    onchange="toggleTipoServicioEnTarea('Crear')">
+                  <span class="toggle-switch"></span>
+                  <span class="toggle-text">
+                    <span class="tipo-alerta">Alerta</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Campos de Alerta -->
+            <div class="campos-alerta-inline" id="camposAlertaCrear" style="display: none;">
+              <input type="time" class="input-inline" id="servicioTareaHoraCrear" placeholder="Hora">
+              <input type="date" class="input-inline" id="servicioTareaDiaCrear" placeholder="Día">
+            </div>
+
+            <!-- Ubicación: Habitación o Espacio -->
+            <div class="ubicacion-selector-inline">
+              <div class="ubicacion-header-row">
+                <label class="ubicacion-label-inline">
+                  <i class="fas fa-map-marker-alt"></i> Ubicación
+                </label>
+                <div class="ubicacion-switch-container">
+                  <span class="ubicacion-label-text ubicacion-label-habitacion activo" id="ubicacionLabelHabCrear"
+                    onclick="document.getElementById('ubicacionTipoCrear').checked = false; toggleTipoUbicacionServicio('Crear');">Habitación</span>
+                  <label class="ubicacion-toggle">
+                    <input type="checkbox" class="ubicacion-checkbox" id="ubicacionTipoCrear"
+                      onchange="toggleTipoUbicacionServicio('Crear')">
+                    <span class="ubicacion-slider"></span>
+                  </label>
+                  <span class="ubicacion-label-text ubicacion-label-espacio" id="ubicacionLabelEspCrear"
+                    onclick="document.getElementById('ubicacionTipoCrear').checked = true; toggleTipoUbicacionServicio('Crear');">Espacio</span>
+                </div>
+              </div>
+              <select class="input-inline" id="servicioTareaCuartoCrear">
+                <option value="">-- Seleccionar habitación --</option>
+              </select>
+            </div>
+
+            <!-- Estado del Servicio -->
+            <div class="estado-mantenimiento-selector-inline">
+              <label class="estado-mant-label-inline">
+                <i class="fas fa-tasks"></i> Estado del Servicio
+              </label>
+              <select class="input-inline" id="servicioTareaEstadoCrear">
+                <option value="pendiente">Pendiente</option>
+                <option value="en_proceso">En Proceso</option>
+                <option value="completado">Completado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Usuario Asignado -->
+            <div class="usuario-asignado-selector-inline">
+              <label class="usuario-asignado-label-inline">
+                <i class="fas fa-user-check"></i> Asignar a
+              </label>
+              <select class="input-inline" id="servicioTareaAsignadoCrear">
+                <option value="">-- Sin asignar --</option>
+              </select>
+            </div>
+
+            <!-- Notas -->
+            <div class="notas-selector-inline">
+              <label class="notas-label-inline">
+                <i class="fas fa-sticky-note"></i> Notas <span class="opcional-text">(opcional)</span>
+              </label>
+              <textarea class="input-inline" id="servicioTareaNotasCrear" placeholder="Escribe notas adicionales..."
+                rows="2"></textarea>
+            </div>
+
+            <!-- Prioridad -->
+            <div class="prioridad-selector-inline">
+              <label class="prioridad-label-inline">
+                <i class="fas fa-traffic-light"></i> Prioridad
+              </label>
+              <div class="semaforo-edicion-inline">
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioCrear" value="baja" checked>
+                  <span class="semaforo-circle green"></span>
+                  <span class="semaforo-text">Baja</span>
+                </label>
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioCrear" value="media">
+                  <span class="semaforo-circle yellow"></span>
+                  <span class="semaforo-text">Media</span>
+                </label>
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioCrear" value="alta">
+                  <span class="semaforo-circle red"></span>
+                  <span class="semaforo-text">Alta</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-inline-actions">
+              <button type="button" class="btn-inline btn-cancelar" onclick="resetFormServicioEnTarea('Crear')">
+                Cancelar
+              </button>
+              <button type="button" id="btnGuardarServicioCrear" class="btn-inline btn-guardar"
+                onclick="guardarServicioEnModalTarea('Crear')">
+                <i class="fas fa-check"></i> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección: Agregar servicios existentes -->
         <div class="tarea-edit-section">
           <div class="section-header">
             <div class="section-header-title">
-              <h4>Agregar servicios a la tarea</h4>
-              <p>Asigna esta tarea a servicios existentes.</p>
+              <h4>Agregar servicios existentes</h4>
+              <p>Asigna esta tarea a servicios ya registrados.</p>
             </div>
             <div class="section-header-controls">
               <label class="toggle-filtro-responsable" title="Mostrar solo servicios del responsable seleccionado">
@@ -2358,7 +2488,136 @@
           </div>
         </div>
 
-        <!-- Sección de Mantenimientos/Servicios -->
+        <!-- Sección: Crear nuevo servicio a la tarea -->
+        <div class="tarea-edit-section">
+          <div class="section-header section-header-collapsible" onclick="toggleFormServicioEnTarea('Editar')">
+            <div class="section-header-title">
+              <h4><i class="fas fa-plus-circle"></i> Crear nuevo servicio a la tarea</h4>
+              <p>El servicio se crea y aparece en la lista de abajo.</p>
+            </div>
+            <button type="button" class="btn-toggle-seccion" id="btnToggleServicioEditar">
+              <i class="fas fa-chevron-down"></i>
+            </button>
+          </div>
+
+          <!-- Formulario inline idéntico al de habitaciones -->
+          <div id="formServicioEnTareaEditar" class="form-servicio-inline form-servicio-en-tarea-modal"
+            style="display: none;">
+            <div class="name-tipo-toggle-inline-container">
+              <input type="text" class="input-inline" id="servicioTareaDescripcionEditar"
+                placeholder="Descripción del servicio..." autocomplete="off">
+
+              <div class="tipo-toggle-inline">
+                <label class="toggle-label">
+                  <input type="checkbox" class="toggle-checkbox" id="tipoToggleEditar"
+                    onchange="toggleTipoServicioEnTarea('Editar')">
+                  <span class="toggle-switch"></span>
+                  <span class="toggle-text">
+                    <span class="tipo-alerta">Alerta</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Campos de Alerta -->
+            <div class="campos-alerta-inline" id="camposAlertaEditar" style="display: none;">
+              <input type="time" class="input-inline" id="servicioTareaHoraEditar" placeholder="Hora">
+              <input type="date" class="input-inline" id="servicioTareaDiaEditar" placeholder="Día">
+            </div>
+
+            <!-- Ubicación: Habitación o Espacio -->
+            <div class="ubicacion-selector-inline">
+              <div class="ubicacion-header-row">
+                <label class="ubicacion-label-inline">
+                  <i class="fas fa-map-marker-alt"></i> Ubicación
+                </label>
+                <div class="ubicacion-switch-container">
+                  <span class="ubicacion-label-text ubicacion-label-habitacion activo" id="ubicacionLabelHabEditar"
+                    onclick="document.getElementById('ubicacionTipoEditar').checked = false; toggleTipoUbicacionServicio('Editar');">Habitación</span>
+                  <label class="ubicacion-toggle">
+                    <input type="checkbox" class="ubicacion-checkbox" id="ubicacionTipoEditar"
+                      onchange="toggleTipoUbicacionServicio('Editar')">
+                    <span class="ubicacion-slider"></span>
+                  </label>
+                  <span class="ubicacion-label-text ubicacion-label-espacio" id="ubicacionLabelEspEditar"
+                    onclick="document.getElementById('ubicacionTipoEditar').checked = true; toggleTipoUbicacionServicio('Editar');">Espacio</span>
+                </div>
+              </div>
+              <select class="input-inline" id="servicioTareaCuartoEditar">
+                <option value="">-- Seleccionar habitación --</option>
+              </select>
+            </div>
+
+            <!-- Estado del Servicio -->
+            <div class="estado-mantenimiento-selector-inline">
+              <label class="estado-mant-label-inline">
+                <i class="fas fa-tasks"></i> Estado del Servicio
+              </label>
+              <select class="input-inline" id="servicioTareaEstadoEditar">
+                <option value="pendiente">Pendiente</option>
+                <option value="en_proceso">En Proceso</option>
+                <option value="completado">Completado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+
+            <!-- Usuario Asignado -->
+            <div class="usuario-asignado-selector-inline">
+              <label class="usuario-asignado-label-inline">
+                <i class="fas fa-user-check"></i> Asignar a
+              </label>
+              <select class="input-inline" id="servicioTareaAsignadoEditar">
+                <option value="">-- Sin asignar --</option>
+              </select>
+            </div>
+
+            <!-- Notas -->
+            <div class="notas-selector-inline">
+              <label class="notas-label-inline">
+                <i class="fas fa-sticky-note"></i> Notas <span class="opcional-text">(opcional)</span>
+              </label>
+              <textarea class="input-inline" id="servicioTareaNotasEditar" placeholder="Escribe notas adicionales..."
+                rows="2"></textarea>
+            </div>
+
+            <!-- Prioridad -->
+            <div class="prioridad-selector-inline">
+              <label class="prioridad-label-inline">
+                <i class="fas fa-traffic-light"></i> Prioridad
+              </label>
+              <div class="semaforo-edicion-inline">
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioEditar" value="baja" checked>
+                  <span class="semaforo-circle green"></span>
+                  <span class="semaforo-text">Baja</span>
+                </label>
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioEditar" value="media">
+                  <span class="semaforo-circle yellow"></span>
+                  <span class="semaforo-text">Media</span>
+                </label>
+                <label class="semaforo-label-inline">
+                  <input type="radio" name="prioridadServicioEditar" value="alta">
+                  <span class="semaforo-circle red"></span>
+                  <span class="semaforo-text">Alta</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="form-inline-actions">
+              <button type="button" class="btn-inline btn-cancelar" onclick="resetFormServicioEnTarea('Editar')">
+                Cancelar
+              </button>
+              <button type="button" id="btnGuardarServicioEditar" class="btn-inline btn-guardar"
+                onclick="guardarServicioEnModalTarea('Editar')">
+                <i class="fas fa-check"></i> Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sección: Servicios asignados -->
         <div class="tarea-edit-section">
           <div class="section-header">
             <div class="section-header-title">

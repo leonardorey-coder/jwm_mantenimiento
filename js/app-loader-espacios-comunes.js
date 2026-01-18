@@ -606,13 +606,12 @@ function cargarContenidoEspacio(li, espacio) {
         </div>
 
         <div class="habitacion-acciones">
-            ${
-              mantenimientosEspacio.length > 0
-                ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicionEspacio(${espacio.id})" id="btn-editar-espacio-${espacio.id}">
+            ${mantenimientosEspacio.length > 0
+      ? `<button class="habitacion-boton boton-secundario" onclick="toggleModoEdicionEspacio(${espacio.id})" id="btn-editar-espacio-${espacio.id}">
                 <i class="fas fa-edit"></i> Editar
             </button>`
-                : ''
-            }
+      : ''
+    }
             <button class="habitacion-boton boton-principal" onclick="seleccionarEspacioComun(${espacio.id})">
                 <i class="fas fa-plus"></i> Agregar Servicio
             </button>
@@ -797,8 +796,6 @@ function toggleModoEdicionEspacio(espacioId) {
     // Desactivar modo edición
     botonEditar.classList.remove('modo-edicion-activo');
     botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
-    if (contenedorEstadoSelector)
-      contenedorEstadoSelector.style.display = 'none';
 
     // Habilitar el badge dropdown
     if (badgeDropdown) {
@@ -820,8 +817,6 @@ function toggleModoEdicionEspacio(espacioId) {
     // Activar modo edición
     botonEditar.classList.add('modo-edicion-activo');
     botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
-    if (contenedorEstadoSelector)
-      contenedorEstadoSelector.style.display = 'block';
 
     // Deshabilitar el badge dropdown (para usar solo las pills)
     if (badgeDropdown) {

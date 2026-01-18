@@ -127,8 +127,8 @@ function obtenerRolUsuarioActual() {
     try {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser) {
         userRole = storedUser.role || storedUser.rol;
@@ -842,7 +842,7 @@ function renderizarLoteServiciosEditar(container, tareaId) {
     const responsableCoincide =
       responsableLower &&
       (servicio.usuario_asignado_nombre || '').toLowerCase() ===
-        responsableLower;
+      responsableLower;
     const tipoServicio =
       servicio.tipo === 'normal'
         ? 'Avería'
@@ -1074,7 +1074,7 @@ function renderizarLoteServicios(container) {
     const responsableCoincide =
       responsableLower &&
       (servicio.usuario_asignado_nombre || '').toLowerCase() ===
-        responsableLower;
+      responsableLower;
     const tipoServicio =
       servicio.tipo === 'normal'
         ? 'Avería'
@@ -1282,7 +1282,7 @@ async function eliminarTarea(tareaId) {
       const errorData = await response.json().catch(() => ({}));
       throw new Error(
         errorData.message ||
-          `Error al eliminar la tarea: ${response.statusText}`
+        `Error al eliminar la tarea: ${response.statusText}`
       );
     }
 
@@ -1364,8 +1364,8 @@ async function submitCrearTarea(event) {
     if (!usuarioCreadorId) {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser && storedUser.id) {
         usuarioCreadorId = storedUser.id;
@@ -1523,6 +1523,13 @@ async function submitCrearTarea(event) {
       mostrarNotificacion('Archivos adjuntados correctamente', 'success');
     }
 
+    // Crear servicio si el usuario llenó el formulario de servicio
+    const datosServicio = obtenerDatosServicioEnTarea('Crear');
+    if (datosServicio) {
+      console.log('📝 Creando servicio para la nueva tarea...');
+      await crearServicioParaTarea(nuevaTarea.id, 'Crear');
+    }
+
     cerrarModal('modalCrearTarea');
 
     // Actualizar selectores con la nueva tarea
@@ -1615,7 +1622,7 @@ async function submitEditarTarea(event) {
       const errorData = await response.json();
       throw new Error(
         errorData.message ||
-          `Error al actualizar la tarea: ${response.statusText}`
+        `Error al actualizar la tarea: ${response.statusText}`
       );
     }
 
@@ -1674,6 +1681,13 @@ async function submitEditarTarea(event) {
       // Limpiar archivos seleccionados
       archivosSeleccionados = [];
       mostrarNotificacion('Archivos adjuntados correctamente', 'success');
+    }
+
+    // Crear servicio si el usuario llenó el formulario de servicio
+    const datosServicioEditar = obtenerDatosServicioEnTarea('Editar');
+    if (datosServicioEditar) {
+      console.log('📝 Creando servicio para la tarea editada...');
+      await crearServicioParaTarea(tareaId, 'Editar');
     }
 
     cerrarModal('modalEditarTarea');
@@ -2464,8 +2478,8 @@ function aplicarFiltrosTareas() {
       try {
         const storedUser = JSON.parse(
           localStorage.getItem('currentUser') ||
-            sessionStorage.getItem('currentUser') ||
-            'null'
+          sessionStorage.getItem('currentUser') ||
+          'null'
         );
         if (storedUser) {
           userRole = storedUser.role || storedUser.rol;
@@ -2549,8 +2563,8 @@ function aplicarFiltrosTareas() {
         try {
           const storedUser = JSON.parse(
             localStorage.getItem('currentUser') ||
-              sessionStorage.getItem('currentUser') ||
-              'null'
+            sessionStorage.getItem('currentUser') ||
+            'null'
           );
           if (storedUser && storedUser.id) {
             usuarioIdActual = storedUser.id;
@@ -3010,8 +3024,8 @@ async function actualizarPanelServiciosTareas() {
     try {
       const storedUser = JSON.parse(
         localStorage.getItem('currentUser') ||
-          sessionStorage.getItem('currentUser') ||
-          'null'
+        sessionStorage.getItem('currentUser') ||
+        'null'
       );
       if (storedUser) {
         usuarioIdActual = storedUser.id;
@@ -3660,16 +3674,15 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                 <span class="badge ${prioridadInfo.class}">${prioridadInfo.label}</span>
             </div>
             
-            ${
-              totalServicios > 0
-                ? `
+            ${totalServicios > 0
+      ? `
                 <div class="tarea-progress-container" title="${serviciosCompletados} de ${totalServicios} servicios completados">
                     <div class="tarea-progress-bar ${progresoCompleto ? 'completed' : ''}" style="width: ${porcentajeProgreso}%"></div>
                     <span class="tarea-progress-info">${serviciosCompletados}/${totalServicios} servicios</span>
                 </div>
             `
-                : ''
-            }
+      : ''
+    }
             
             <div class="cuarto-info">
                 <h3 class="tarea-titulo">${tarea.titulo}</h3>
@@ -3679,47 +3692,43 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     <span>${tarea.ubicacion || 'Sin ubicación'}</span>
                 </div>
                 
-                ${
-                  diasVencimiento
-                    ? `
+                ${diasVencimiento
+      ? `
                     <div class="tarea-vencimiento ${vencimientoClass}">
                         <i class="fas fa-calendar"></i>
                         <span>${diasVencimiento}</span>
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
                 
-                ${
-                  tarea.tags && tarea.tags.length > 0
-                    ? `
+                ${tarea.tags && tarea.tags.length > 0
+      ? `
                     <div class="tarea-tags">
                         ${tarea.tags.map((tag) => `<span class="tag">${tag}</span>`).join('')}
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
                 
-                ${
-                  serviciosAsignados.length > 0
-                    ? `
+                ${serviciosAsignados.length > 0
+      ? `
                     <div class="tarea-servicios-pills">
                         ${serviciosAsignados.map((s) => `<span class="servicio-pill" onclick="event.stopPropagation(); if(typeof abrirModalDetalleServicio === 'function') abrirModalDetalleServicio(${s.id}); else if(typeof window.abrirModalDetalleServicio === 'function') window.abrirModalDetalleServicio(${s.id});" title="Ver detalle del servicio">serv-${s.id.toString(16).padStart(3, '0').toUpperCase()}</span>`).join('')}
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
                 
-                ${
-                  parseInt(tarea.total_adjuntos) > 0
-                    ? `
+                ${parseInt(tarea.total_adjuntos) > 0
+      ? `
                     <div class="tarea-adjuntos-chip">
                         <i class="fas fa-paperclip"></i>
                         <span>${tarea.total_adjuntos}</span>
                     </div>
                 `
-                    : ''
-                }
+      : ''
+    }
             </div>
 
             
@@ -3732,33 +3741,30 @@ function crearTarjetaTarea(tarea, todosServicios = []) {
                     </div>
                 </div>
                 <div class="tarea-acciones-btns">
-                    ${
-                      puedeEditarTarea(tarea)
-                        ? `
+                    ${puedeEditarTarea(tarea)
+      ? `
                         <button class="btn-cuarto-action btn-edit" onclick="event.stopPropagation(); abrirModalEditarTarea(${tarea.id})" title="Editar">
                             <i class="fas fa-edit"></i>
                         </button>
                     `
-                        : ''
-                    }
-                    ${
-                      tarea.estado === 'pendiente'
-                        ? `
+      : ''
+    }
+                    ${tarea.estado === 'pendiente'
+      ? `
                         <button class="btn-cuarto-action btn-play" onclick="event.stopPropagation(); accionarTarea(${tarea.id}, 'en_proceso')" title="Iniciar">
                             <i class="fas fa-play"></i>
                         </button>
                     `
-                        : ''
-                    }
-                    ${
-                      tarea.estado === 'en_proceso'
-                        ? `
+      : ''
+    }
+                    ${tarea.estado === 'en_proceso'
+      ? `
                         <button class="btn-cuarto-action btn-pause" onclick="event.stopPropagation(); accionarTarea(${tarea.id}, 'pendiente')" title="Pausar">
                             <i class="fas fa-pause"></i>
                         </button>
                     `
-                        : ''
-                    }
+      : ''
+    }
                 </div>
             </div>
         </div>
@@ -5012,8 +5018,8 @@ async function cargarProximosVencimientos() {
           try {
             const storedUser = JSON.parse(
               localStorage.getItem('currentUser') ||
-                sessionStorage.getItem('currentUser') ||
-                'null'
+              sessionStorage.getItem('currentUser') ||
+              'null'
             );
             if (storedUser && storedUser.id) {
               usuarioIdActual = storedUser.id;
@@ -5756,4 +5762,574 @@ document.addEventListener('DOMContentLoaded', () => {
   window.actualizarPanelServiciosTareas = actualizarPanelServiciosTareas;
 });
 
+// ------------------------------
+// CREAR SERVICIO DESDE MODAL DE TAREA
+// ------------------------------
+
+/**
+ * Toggle para mostrar/ocultar el formulario de creación de servicio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+function toggleFormServicioEnTarea(modalSuffix) {
+  const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+  const btn = document.getElementById(`btnToggleServicio${modalSuffix}`);
+
+  if (!form || !btn) {
+    console.warn(`Elementos no encontrados para suffix: ${modalSuffix}`);
+    return;
+  }
+
+  const isVisible = form.style.display !== 'none';
+
+  if (isVisible) {
+    // Ocultar
+    form.style.display = 'none';
+    btn.classList.remove('activo');
+  } else {
+    // Mostrar
+    form.style.display = 'block';
+    btn.classList.add('activo');
+
+    // Poblar select de usuarios si está vacío
+    const selectUsuario = document.getElementById(
+      `servicioTareaAsignado${modalSuffix}`
+    );
+    if (selectUsuario && selectUsuario.options.length <= 1) {
+      poblarSelectUsuariosServicio(modalSuffix);
+    }
+
+    // Poblar select de cuartos/espacios si está vacío
+    const selectCuarto = document.getElementById(
+      `servicioTareaCuarto${modalSuffix}`
+    );
+    if (selectCuarto && selectCuarto.options.length <= 1) {
+      poblarSelectCuartosServicio(modalSuffix);
+    }
+
+    // Inicializar estado de labels de ubicación (habitación activo por defecto)
+    const labelHab = document.getElementById(`ubicacionLabelHab${modalSuffix}`);
+    if (labelHab) labelHab.classList.add('activo');
+
+    // Focus en descripción
+    setTimeout(() => {
+      const inputDescripcion = document.getElementById(
+        `servicioTareaDescripcion${modalSuffix}`
+      );
+      if (inputDescripcion) inputDescripcion.focus();
+    }, 100);
+  }
+}
+
+/**
+ * Toggle para mostrar/ocultar campos de alerta
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+function toggleTipoServicioEnTarea(modalSuffix) {
+  const checkbox = document.getElementById(`tipoToggle${modalSuffix}`);
+  const camposAlerta = document.getElementById(`camposAlerta${modalSuffix}`);
+
+  if (!checkbox || !camposAlerta) return;
+
+  if (checkbox.checked) {
+    camposAlerta.style.display = 'flex';
+  } else {
+    camposAlerta.style.display = 'none';
+  }
+}
+
+/**
+ * Pobla el select de usuarios para asignar servicio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+async function poblarSelectUsuariosServicio(modalSuffix) {
+  const select = document.getElementById(`servicioTareaAsignado${modalSuffix}`);
+  if (!select) return;
+
+  try {
+    // Usar usuarios del estado global si están disponibles
+    let usuarios = [];
+    if (window.getState && typeof window.getState === 'function') {
+      const state = window.getState();
+      usuarios = state.usuarios || [];
+    }
+
+    // Si no hay usuarios en el estado, intentar cargar desde API
+    if (usuarios.length === 0) {
+      const response = await fetch(`${API_URL}/usuarios`, {
+        headers: obtenerHeadersConAuth(),
+      });
+      if (response.ok) {
+        usuarios = await response.json();
+      }
+    }
+
+    // Limpiar y poblar
+    select.innerHTML = '<option value="">-- Sin asignar --</option>';
+    usuarios.forEach((u) => {
+      const option = document.createElement('option');
+      option.value = u.id;
+      option.textContent = `${u.nombre}${u.departamento ? ` (${u.departamento})` : ''}`;
+      select.appendChild(option);
+    });
+
+    console.log(`👤 ${usuarios.length} usuarios cargados en selector de servicio`);
+  } catch (error) {
+    console.error('Error al cargar usuarios para servicio:', error);
+  }
+}
+
+/**
+ * Toggle para cambiar entre habitación y espacio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+function toggleTipoUbicacionServicio(modalSuffix) {
+  const checkbox = document.getElementById(`ubicacionTipo${modalSuffix}`);
+  const labelHab = document.getElementById(`ubicacionLabelHab${modalSuffix}`);
+  const labelEsp = document.getElementById(`ubicacionLabelEsp${modalSuffix}`);
+
+  if (!checkbox) return;
+
+  // Actualizar estilos de labels
+  if (checkbox.checked) {
+    // Espacio activo
+    if (labelHab) labelHab.classList.remove('activo');
+    if (labelEsp) labelEsp.classList.add('activo');
+  } else {
+    // Habitación activa
+    if (labelHab) labelHab.classList.add('activo');
+    if (labelEsp) labelEsp.classList.remove('activo');
+  }
+
+  // Recargar el select con el tipo correcto
+  poblarSelectCuartosServicio(modalSuffix);
+}
+
+/**
+ * Pobla el select de cuartos/espacios agrupados por edificio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+async function poblarSelectCuartosServicio(modalSuffix) {
+  const select = document.getElementById(`servicioTareaCuarto${modalSuffix}`);
+  const tipoCheckbox = document.getElementById(`ubicacionTipo${modalSuffix}`);
+
+  if (!select) return;
+
+  const esEspacio = tipoCheckbox?.checked || false;
+  const tipoLabel = esEspacio ? 'espacio' : 'habitación';
+  const endpoint = esEspacio ? 'espacios-comunes' : 'cuartos';
+
+  // Mostrar loading
+  select.innerHTML = `<option value="">Cargando ${tipoLabel}es...</option>`;
+
+  try {
+    let items = [];
+
+    // Intentar cargar desde estado global primero
+    if (window.getState && typeof window.getState === 'function') {
+      const state = window.getState();
+      if (esEspacio) {
+        items = state.espaciosComunes || [];
+      } else {
+        items = state.cuartos || [];
+      }
+    }
+
+    // Si no hay datos en el estado, cargar desde API
+    if (items.length === 0) {
+      const response = await fetch(`${API_URL}/${endpoint}`, {
+        headers: obtenerHeadersConAuth(),
+      });
+      if (response.ok) {
+        items = await response.json();
+      }
+    }
+
+    // Agrupar por edificio
+    const porEdificio = {};
+    items.forEach((item) => {
+      const edificioNombre = item.edificio_nombre || 'Sin edificio';
+      if (!porEdificio[edificioNombre]) {
+        porEdificio[edificioNombre] = [];
+      }
+      porEdificio[edificioNombre].push(item);
+    });
+
+    // Limpiar y poblar con optgroups
+    select.innerHTML = `<option value="">-- Seleccionar ${tipoLabel} --</option>`;
+
+    Object.keys(porEdificio).sort().forEach((edificioNombre) => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = edificioNombre;
+
+      porEdificio[edificioNombre]
+        .sort((a, b) => (a.nombre || a.numero || '').localeCompare(b.nombre || b.numero || ''))
+        .forEach((item) => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = item.nombre || item.numero || `${esEspacio ? 'Espacio' : 'Hab'} ${item.id}`;
+          optgroup.appendChild(option);
+        });
+
+      select.appendChild(optgroup);
+    });
+
+    console.log(`🏠 ${items.length} ${tipoLabel}es cargados en selector de servicio`);
+  } catch (error) {
+    console.error(`Error al cargar ${tipoLabel}es para servicio:`, error);
+    select.innerHTML = `<option value="">-- Error al cargar --</option>`;
+  }
+}
+
+/**
+ * Obtiene los datos del formulario de servicio en tarea
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ * @returns {Object|null} Datos del servicio o null si el formulario está vacío/oculto
+ */
+function obtenerDatosServicioEnTarea(modalSuffix) {
+  const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+  if (!form || form.style.display === 'none') return null;
+
+  const descripcion = document
+    .getElementById(`servicioTareaDescripcion${modalSuffix}`)
+    ?.value?.trim();
+
+  // Si no hay descripción, no hay servicio que crear
+  if (!descripcion) return null;
+
+  const esAlerta =
+    document.getElementById(`tipoToggle${modalSuffix}`)?.checked || false;
+  const hora =
+    document.getElementById(`servicioTareaHora${modalSuffix}`)?.value || null;
+  const diaAlerta =
+    document.getElementById(`servicioTareaDia${modalSuffix}`)?.value || null;
+  const estado =
+    document.getElementById(`servicioTareaEstado${modalSuffix}`)?.value ||
+    'pendiente';
+  const usuarioAsignadoId =
+    document.getElementById(`servicioTareaAsignado${modalSuffix}`)?.value ||
+    null;
+  const notas =
+    document.getElementById(`servicioTareaNotas${modalSuffix}`)?.value?.trim() ||
+    null;
+
+  // Prioridad del radio button
+  const prioridadRadio = document.querySelector(
+    `input[name="prioridadServicio${modalSuffix}"]:checked`
+  );
+  const prioridad = prioridadRadio ? prioridadRadio.value : 'baja';
+
+  // Obtener ubicación y tipo (habitación vs espacio)
+  const ubicacionId =
+    document.getElementById(`servicioTareaCuarto${modalSuffix}`)?.value || null;
+  const esEspacio = document.getElementById(`ubicacionTipo${modalSuffix}`)?.checked || false;
+
+  return {
+    descripcion,
+    tipo: esAlerta ? 'rutina' : 'normal',
+    hora: esAlerta ? hora : null,
+    dia_alerta: esAlerta ? diaAlerta : null,
+    estado,
+    usuario_asignado_id: usuarioAsignadoId || null,
+    notas,
+    prioridad,
+    // Usar el campo correcto según el tipo de ubicación
+    cuarto_id: !esEspacio && ubicacionId ? parseInt(ubicacionId) : null,
+    espacio_comun_id: esEspacio && ubicacionId ? parseInt(ubicacionId) : null,
+    es_espacio: esEspacio,
+    ubicacion_id: ubicacionId ? parseInt(ubicacionId) : null,
+  };
+}
+
+/**
+ * Crea un servicio y lo asigna a una tarea
+ * @param {number} tareaId - ID de la tarea a la que asignar el servicio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ * @returns {Promise<Object|null>} Servicio creado o null si no había datos
+ */
+async function crearServicioParaTarea(tareaId, modalSuffix) {
+  const datos = obtenerDatosServicioEnTarea(modalSuffix);
+  if (!datos) return null;
+
+  // Validaciones
+  if (datos.tipo === 'rutina') {
+    if (!datos.hora) {
+      notificar('La hora es obligatoria para alertas', 'error');
+      return null;
+    }
+    if (!datos.dia_alerta) {
+      notificar('El día es obligatorio para alertas', 'error');
+      return null;
+    }
+  }
+
+  // Preparar payload
+  const payload = {
+    ...datos,
+    tarea_id: tareaId,
+    cuarto_id: null, // No tiene habitación asignada
+  };
+
+  console.log('📝 Creando servicio para tarea:', payload);
+
+  try {
+    const response = await fetch(`${API_URL}/mantenimientos`, {
+      method: 'POST',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Error ${response.status}`);
+    }
+
+    const servicioCreado = await response.json();
+    console.log('✅ Servicio creado:', servicioCreado);
+
+    notificar('Servicio creado y asignado a la tarea', 'success');
+
+    // Limpiar formulario
+    resetFormServicioEnTarea(modalSuffix);
+
+    return servicioCreado;
+  } catch (error) {
+    console.error('❌ Error al crear servicio:', error);
+    notificar(`Error al crear servicio: ${error.message}`, 'error');
+    return null;
+  }
+}
+
+/**
+ * Resetea el formulario de servicio en tarea
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+function resetFormServicioEnTarea(modalSuffix) {
+  const descripcion = document.getElementById(
+    `servicioTareaDescripcion${modalSuffix}`
+  );
+  const tipoToggle = document.getElementById(`tipoToggle${modalSuffix}`);
+  const hora = document.getElementById(`servicioTareaHora${modalSuffix}`);
+  const dia = document.getElementById(`servicioTareaDia${modalSuffix}`);
+  const estado = document.getElementById(`servicioTareaEstado${modalSuffix}`);
+  const asignado = document.getElementById(
+    `servicioTareaAsignado${modalSuffix}`
+  );
+  const notas = document.getElementById(`servicioTareaNotas${modalSuffix}`);
+  const camposAlerta = document.getElementById(`camposAlerta${modalSuffix}`);
+
+  // Reset valores
+  if (descripcion) descripcion.value = '';
+  if (tipoToggle) tipoToggle.checked = false;
+  if (hora) hora.value = '';
+  if (dia) dia.value = '';
+  if (estado) estado.value = 'pendiente';
+  if (asignado) asignado.value = '';
+  if (notas) notas.value = '';
+  if (camposAlerta) camposAlerta.style.display = 'none';
+
+  // Reset prioridad a "baja"
+  const prioridadBaja = document.querySelector(
+    `input[name="prioridadServicio${modalSuffix}"][value="baja"]`
+  );
+  if (prioridadBaja) prioridadBaja.checked = true;
+
+  // Colapsar la sección
+  const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+  const btn = document.getElementById(`btnToggleServicio${modalSuffix}`);
+  if (form) form.style.display = 'none';
+  if (btn) {
+    btn.classList.remove('activo');
+    btn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+  }
+}
+
+/**
+ * Crea un servicio desde el formulario interno (botón "Crear Servicio")
+ * Esta función se usa ANTES de que la tarea exista, guarda los datos temporalmente
+ * O si la tarea ya existe (modal editar), crea directamente el servicio
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+async function crearServicioDesdeFormInterno(modalSuffix) {
+  // Obtener tarea ID si estamos en modo edición
+  const tareaIdInput = document.getElementById('editarTareaId');
+  const tareaId = modalSuffix === 'Editar' && tareaIdInput ? tareaIdInput.value : null;
+
+  // Obtener datos del formulario
+  const datos = obtenerDatosServicioEnTarea(modalSuffix);
+
+  if (!datos || !datos.descripcion) {
+    notificar('Por favor ingresa una descripción para el servicio', 'warning');
+    const inputDesc = document.getElementById(`servicioTareaDescripcion${modalSuffix}`);
+    if (inputDesc) inputDesc.focus();
+    return;
+  }
+
+  // Validaciones para alertas
+  if (datos.tipo === 'rutina') {
+    if (!datos.hora) {
+      notificar('La hora es obligatoria para alertas', 'warning');
+      return;
+    }
+    if (!datos.dia_alerta) {
+      notificar('El día es obligatorio para alertas', 'warning');
+      return;
+    }
+  }
+
+  // Si estamos editando una tarea existente, crear el servicio directamente
+  if (tareaId) {
+    console.log('📝 Creando servicio para tarea existente:', tareaId);
+    const resultado = await crearServicioParaTarea(parseInt(tareaId), modalSuffix);
+    if (resultado) {
+      // Recargar lista de servicios asignados
+      if (typeof cargarServiciosParaEdicion === 'function') {
+        await cargarServiciosParaEdicion(parseInt(tareaId));
+      }
+    }
+  } else {
+    // Si es tarea nueva, mostrar mensaje de que se creará al guardar
+    notificar('El servicio se guardará cuando crees la tarea', 'info');
+    // Marcar visualmente que hay un servicio pendiente
+    const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+    if (form) {
+      form.style.borderColor = 'var(--verde-oliva)';
+      form.style.borderWidth = '2px';
+    }
+  }
+}
+
+/**
+ * Guarda el servicio inmediatamente desde el modal de tarea
+ * Crea el servicio vía API y refresca la lista de servicios existentes
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+async function guardarServicioEnModalTarea(modalSuffix) {
+  const btnGuardar = document.getElementById(`btnGuardarServicio${modalSuffix}`);
+
+  // Deshabilitar botón mientras se procesa
+  if (btnGuardar) {
+    btnGuardar.disabled = true;
+    btnGuardar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+  }
+
+  try {
+    // Obtener datos del formulario
+    const datos = obtenerDatosServicioEnTarea(modalSuffix);
+
+    if (!datos || !datos.descripcion) {
+      notificar('Por favor ingresa una descripción para el servicio', 'warning');
+      const inputDesc = document.getElementById(`servicioTareaDescripcion${modalSuffix}`);
+      if (inputDesc) inputDesc.focus();
+      return;
+    }
+
+    // Validaciones para alertas
+    if (datos.tipo === 'rutina') {
+      if (!datos.hora) {
+        notificar('La hora es obligatoria para alertas', 'warning');
+        return;
+      }
+      if (!datos.dia_alerta) {
+        notificar('El día es obligatorio para alertas', 'warning');
+        return;
+      }
+    }
+
+    // Validación de ubicación
+    if (!datos.ubicacion_id) {
+      notificar('Por favor selecciona una ubicación (habitación o espacio)', 'warning');
+      const selectCuarto = document.getElementById(`servicioTareaCuarto${modalSuffix}`);
+      if (selectCuarto) selectCuarto.focus();
+      return;
+    }
+
+    // Preparar payload según tipo de ubicación
+    const { es_espacio, ubicacion_id, ...datosBase } = datos;
+    const payload = {
+      ...datosBase,
+      tarea_id: null, // Se asignará cuando el usuario lo seleccione en la lista
+    };
+
+    // Endpoint correcto según tipo
+    const endpoint = es_espacio ? 'mantenimientos/espacios' : 'mantenimientos';
+
+    console.log(`📝 Creando servicio en ${es_espacio ? 'espacio' : 'habitación'}:`, payload);
+
+    const response = await fetch(`${API_URL}/${endpoint}`, {
+      method: 'POST',
+      headers: obtenerHeadersConAuth(),
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `Error ${response.status}`);
+    }
+
+    const servicioCreado = await response.json();
+    console.log('✅ Servicio creado:', servicioCreado);
+
+    notificar('¡Servicio creado y seleccionado!', 'success');
+
+    // Limpiar y colapsar formulario
+    resetFormServicioEnTarea(modalSuffix);
+
+    // Auto-check el checkbox de "agregar servicios existentes" para mostrar el nuevo servicio
+    const checkboxServicios = document.getElementById(`agregarServiciosCheck${modalSuffix}`);
+    if (checkboxServicios && !checkboxServicios.checked) {
+      checkboxServicios.checked = true;
+      // Disparar el evento change para que se muestre la lista
+      checkboxServicios.dispatchEvent(new Event('change'));
+    }
+
+    // Refrescar lista de servicios para que aparezca el nuevo
+    if (modalSuffix === 'Crear' && typeof cargarServiciosParaSeleccion === 'function') {
+      await cargarServiciosParaSeleccion();
+    } else if (modalSuffix === 'Editar') {
+      const tareaIdInput = document.getElementById('editarTareaId');
+      const tareaId = tareaIdInput ? parseInt(tareaIdInput.value) : null;
+      if (tareaId && typeof cargarServiciosParaEdicion === 'function') {
+        await cargarServiciosParaEdicion(tareaId);
+      }
+    }
+
+    // Auto-seleccionar el servicio recién creado en la lista
+    setTimeout(() => {
+      const servicioId = servicioCreado.id;
+      // IDs: modal Crear usa 'servicio_check_{id}', modal Editar usa 'servicio_editar_{id}'
+      const checkboxIdPrefix = modalSuffix === 'Crear' ? 'servicio_check_' : 'servicio_editar_';
+      const checkboxServicio = document.getElementById(`${checkboxIdPrefix}${servicioId}`);
+      if (checkboxServicio && !checkboxServicio.checked) {
+        checkboxServicio.checked = true;
+        // Añadir clase visual
+        const item = checkboxServicio.closest('.servicio-checkbox-item');
+        if (item) item.classList.add('servicio-asignado');
+        console.log(`✅ Servicio ${servicioId} auto-seleccionado`);
+      }
+    }, 150);
+
+  } catch (error) {
+    console.error('❌ Error al crear servicio:', error);
+    notificar(`Error al crear servicio: ${error.message}`, 'error');
+  } finally {
+    // Restaurar botón
+    if (btnGuardar) {
+      btnGuardar.disabled = false;
+      btnGuardar.innerHTML = '<i class="fas fa-check"></i> Guardar';
+    }
+  }
+}
+
+// Exponer funciones globalmente
+window.toggleFormServicioEnTarea = toggleFormServicioEnTarea;
+window.toggleTipoServicioEnTarea = toggleTipoServicioEnTarea;
+window.toggleTipoUbicacionServicio = toggleTipoUbicacionServicio;
+window.poblarSelectCuartosServicio = poblarSelectCuartosServicio;
+window.obtenerDatosServicioEnTarea = obtenerDatosServicioEnTarea;
+window.crearServicioParaTarea = crearServicioParaTarea;
+window.resetFormServicioEnTarea = resetFormServicioEnTarea;
+window.crearServicioDesdeFormInterno = crearServicioDesdeFormInterno;
+window.guardarServicioEnModalTarea = guardarServicioEnModalTarea;
+
 console.log('Módulo tareas-module.js cargado.');
+
