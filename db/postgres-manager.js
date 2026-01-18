@@ -600,9 +600,9 @@ class PostgresManager {
         porcentaje:
           estadisticas.total > 0
             ? (
-                ((estadisticas[estado] || 0) / estadisticas.total) *
-                100
-              ).toFixed(1)
+              ((estadisticas[estado] || 0) / estadisticas.total) *
+              100
+            ).toFixed(1)
             : 0,
       };
     });
@@ -1638,7 +1638,8 @@ class PostgresManager {
                        WHEN COUNT(si.id) > 0 THEN 
                            ROUND((COUNT(CASE WHEN si.realizado = true THEN 1 END)::numeric / COUNT(si.id)::numeric) * 100, 2)
                        ELSE 0
-                   END as progreso_porcentaje
+                   END as progreso_porcentaje,
+                   (SELECT fecha_programada FROM sabanas_items WHERE sabana_id = s.id LIMIT 1) as fecha_limite
             FROM sabanas s
             LEFT JOIN usuarios u ON s.usuario_creador_id = u.id
             LEFT JOIN sabanas_items si ON si.sabana_id = s.id
@@ -2193,7 +2194,7 @@ class PostgresManager {
         if (
           !cuarto.fecha_ultima_edicion ||
           new Date(row.fecha_ultima_edicion) >
-            new Date(cuarto.fecha_ultima_edicion)
+          new Date(cuarto.fecha_ultima_edicion)
         ) {
           cuarto.ultimo_editor = row.ultimo_editor;
           cuarto.fecha_ultima_edicion = row.fecha_ultima_edicion;
