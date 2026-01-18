@@ -171,7 +171,7 @@ function openIphoneGuide() {
             </div>
             <div class="modal-detalles-body iphone-guide-body">
                 <div class="iphone-guide-image-container">
-                    <img src="${IPHONE_GUIDE_URL}" alt="Guía de instalación en iPhone" class="iphone-guide-image">
+                    <img src="${IPHONE_GUIDE_URL}" alt="Guía de instalación en iPhone" class="iphone-guide-image" onclick="openIphoneGuideFullScreen()">
                 </div>
             </div>
         </div>
@@ -212,8 +212,192 @@ function cerrarIphoneGuideModal() {
   }
 }
 
+function openIphoneGuideFullScreen() {
+  let modal = document.getElementById('modalIphoneGuideFullScreen');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'modalIphoneGuideFullScreen';
+    modal.className = 'modal-detalles iphone-guide-fullscreen-modal';
+    document.body.appendChild(modal);
+  }
+
+  modal.innerHTML = `
+        <div class="modal-detalles-overlay" onclick="cerrarIphoneGuideFullScreen()"></div>
+        <div class="modal-detalles-contenido iphone-guide-fullscreen-content">
+            <div class="iphone-guide-fullscreen-header">
+                <button class="iphone-guide-fullscreen-back" onclick="cerrarIphoneGuideFullScreen()" aria-label="Volver">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <span>Guía de instalación en iPhone</span>
+            </div>
+            <div class="iphone-guide-fullscreen-body">
+                <img src="${IPHONE_GUIDE_URL}" alt="Guía de instalación en iPhone" class="iphone-guide-fullscreen-image">
+            </div>
+        </div>
+    `;
+
+  modal.style.display = 'flex';
+  document.body.classList.add('modal-open');
+
+  const fullscreenBody = modal.querySelector('.iphone-guide-fullscreen-body');
+  const resetDragStyles = () => {
+    fullscreenBody.style.transition =
+      'transform 180ms ease, opacity 180ms ease';
+    fullscreenBody.style.transform = 'translateY(0)';
+    fullscreenBody.style.opacity = '1';
+  };
+
+  if (modal._iphoneGuideDragHandlers) {
+    fullscreenBody.removeEventListener(
+      'pointerdown',
+      modal._iphoneGuideDragHandlers.onPointerDown
+    );
+    window.removeEventListener(
+      'pointermove',
+      modal._iphoneGuideDragHandlers.onPointerMove
+    );
+    window.removeEventListener(
+      'pointerup',
+      modal._iphoneGuideDragHandlers.onPointerUp
+    );
+    window.removeEventListener(
+      'pointercancel',
+      modal._iphoneGuideDragHandlers.onPointerUp
+    );
+  }
+
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let dragDeltaX = 0;
+  let dragDeltaY = 0;
+  let dragging = false;
+
+  const onPointerDown = (e) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragDeltaX = 0;
+    dragDeltaY = 0;
+    fullscreenBody.style.transition = 'none';
+    fullscreenBody.setPointerCapture?.(e.pointerId);
+  };
+
+  const onPointerMove = (e) => {
+    if (!dragging) return;
+    dragDeltaX = e.clientX - dragStartX;
+    dragDeltaY = e.clientY - dragStartY;
+
+    if (dragDeltaY >= 0 && Math.abs(dragDeltaY) >= Math.abs(dragDeltaX)) {
+      fullscreenBody.style.transform = `translateY(${dragDeltaY}px)`;
+      fullscreenBody.style.opacity = String(
+        Math.max(0.2, 1 - dragDeltaY / 400)
+      );
+      return;
+    }
+
+    fullscreenBody.style.transform = `translateX(${dragDeltaX}px)`;
+    fullscreenBody.style.opacity = String(
+      Math.max(0.2, 1 - Math.abs(dragDeltaX) / 400)
+    );
+  };
+
+  const onPointerUp = () => {
+    if (!dragging) return;
+    dragging = false;
+    if (dragDeltaY > 120 || Math.abs(dragDeltaX) > 120) {
+      cerrarIphoneGuideFullScreen();
+      return;
+    }
+    resetDragStyles();
+  };
+
+  fullscreenBody.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+  window.addEventListener('pointercancel', onPointerUp);
+
+  modal._iphoneGuideDragHandlers = {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+  };
+
+  resetDragStyles();
+
+  if (window.iphoneGuideFullScreenEscHandler) {
+    document.removeEventListener(
+      'keydown',
+      window.iphoneGuideFullScreenEscHandler,
+      true
+    );
+  }
+  window.iphoneGuideFullScreenEscHandler = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      cerrarIphoneGuideFullScreen();
+    }
+  };
+  document.addEventListener(
+    'keydown',
+    window.iphoneGuideFullScreenEscHandler,
+    true
+  );
+}
+
+function cerrarIphoneGuideFullScreen() {
+  const modal = document.getElementById('modalIphoneGuideFullScreen');
+  if (modal) {
+    modal.style.display = 'none';
+
+    if (modal._iphoneGuideDragHandlers) {
+      const fullscreenBody = modal.querySelector(
+        '.iphone-guide-fullscreen-body'
+      );
+      if (fullscreenBody) {
+        fullscreenBody.removeEventListener(
+          'pointerdown',
+          modal._iphoneGuideDragHandlers.onPointerDown
+        );
+      }
+      window.removeEventListener(
+        'pointermove',
+        modal._iphoneGuideDragHandlers.onPointerMove
+      );
+      window.removeEventListener(
+        'pointerup',
+        modal._iphoneGuideDragHandlers.onPointerUp
+      );
+      window.removeEventListener(
+        'pointercancel',
+        modal._iphoneGuideDragHandlers.onPointerUp
+      );
+      modal._iphoneGuideDragHandlers = null;
+    }
+  }
+
+  const modalVisible = Array.from(
+    document.querySelectorAll('.modal-detalles')
+  ).some((modalItem) => window.getComputedStyle(modalItem).display !== 'none');
+  if (!modalVisible) {
+    document.body.classList.remove('modal-open');
+  }
+
+  if (window.iphoneGuideFullScreenEscHandler) {
+    document.removeEventListener(
+      'keydown',
+      window.iphoneGuideFullScreenEscHandler,
+      true
+    );
+    window.iphoneGuideFullScreenEscHandler = null;
+  }
+}
+
 // Exponer funciones globalmente
 window.downloadPortable = downloadPortable;
 window.downloadInstaller = downloadInstaller;
 window.openIphoneGuide = openIphoneGuide;
 window.cerrarIphoneGuideModal = cerrarIphoneGuideModal;
+window.openIphoneGuideFullScreen = openIphoneGuideFullScreen;
+window.cerrarIphoneGuideFullScreen = cerrarIphoneGuideFullScreen;

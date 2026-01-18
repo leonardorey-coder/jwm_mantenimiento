@@ -707,6 +707,17 @@ function renderSabanaTable(items, archivada = false) {
         if (archivada) return;
         if (event.target.closest('input, textarea, button, select, label, a'))
           return;
+
+        // Detectar si el input de observaciones acaba de perder el foco
+        const inputJustBlurred = tr.dataset.inputJustBlurred === 'true';
+        if (inputJustBlurred) {
+          // Limpiar el flag y no contar este clic
+          tr.dataset.inputJustBlurred = 'false';
+          tbodyActual.dataset.pendingSabanaClick = '';
+          tr.classList.remove('sabana-pending');
+          return;
+        }
+
         const checkbox = tr.querySelector('input.checkbox-sabana');
         if (!checkbox || checkbox.checked) {
           tbodyActual.dataset.pendingSabanaClick = '';
@@ -738,7 +749,6 @@ function renderSabanaTable(items, archivada = false) {
       tr.innerHTML = `
                 <td data-label="Edificio">${item.edificio || 'Sin edificio'}</td>
                 <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
-                <td data-label="Límite">${fechaProgramada}</td>
                 <td data-label="Realizada">
                     ${item.fecha_realizado
           ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
@@ -776,6 +786,22 @@ function renderSabanaTable(items, archivada = false) {
                     </label>
                 </td>
             `;
+
+      // Agregar listeners al input de observaciones para manejar blur y focus
+      const inputObservaciones = tr.querySelector('.input-observaciones');
+      if (inputObservaciones) {
+        inputObservaciones.addEventListener('blur', () => {
+          tr.dataset.inputJustBlurred = 'true';
+          setTimeout(() => {
+            tr.dataset.inputJustBlurred = 'false';
+          }, 200);
+        });
+
+        inputObservaciones.addEventListener('focus', () => {
+          tr.classList.remove('sabana-pending');
+          tbodyActual.dataset.pendingSabanaClick = '';
+        });
+      }
 
       fragment.appendChild(tr);
     }
@@ -1044,6 +1070,26 @@ function createSabanaCard(item, archivada) {
     >${item.observaciones || ''}</textarea>
   `;
 
+  // Cuando el textarea pierde el foco, marcar que acaba de perder el foco
+  // El blur ocurre DESPUÉS del mousedown pero ANTES del click
+  const textareaEl = card.querySelector('.sabana-habitacion-observaciones');
+  if (textareaEl) {
+    textareaEl.addEventListener('blur', () => {
+      // Marcar que el textarea acaba de perder el foco
+      card.dataset.textareaJustBlurred = 'true';
+      // Limpiar el flag después de un breve momento (después del click)
+      setTimeout(() => {
+        card.dataset.textareaJustBlurred = 'false';
+      }, 200);
+    });
+
+    // Cuando el textarea recibe foco, limpiar el estado pending de esta card
+    textareaEl.addEventListener('focus', () => {
+      card.classList.remove('sabana-pending');
+    });
+  }
+
+
   return card;
 }
 
@@ -1063,6 +1109,7 @@ function handleCardClick(event, itemId, archivada) {
     `.sabana-habitacion-card[data-item-id="${itemId}"]`
   );
   const checkbox = card?.querySelector('.sabana-habitacion-checkbox');
+  const textarea = card?.querySelector('.sabana-habitacion-observaciones');
 
   if (!card || !checkbox || checkbox.checked) {
     // Si ya está checked, remover pending state
@@ -1071,6 +1118,21 @@ function handleCardClick(event, itemId, archivada) {
     }
     return;
   }
+
+  // Detectar si el textarea acaba de perder el foco
+  // Usamos el flag que se setea en el evento blur del textarea
+  const textareaJustBlurred = card.dataset.textareaJustBlurred === 'true';
+
+  // Si el textarea acaba de perder el foco, este clic es para salir del foco
+  // No debe contar como primer clic del doble-clic lento
+  if (textareaJustBlurred) {
+    // Remover el estado pending si existía
+    card.classList.remove('sabana-pending');
+    // Limpiar el flag
+    card.dataset.textareaJustBlurred = 'false';
+    return;
+  }
+
 
   // Verificar si ya está en estado pending
   const isPending = card.classList.contains('sabana-pending');
@@ -1215,6 +1277,25 @@ function renderSabanaColumns(items, archivada = false) {
               onchange="guardarObservacionSabana(${item.id}, this.value)"
             >${item.observaciones || ''}</textarea>
           `;
+
+
+          // Agregar listeners al textarea para manejar blur y focus
+          const textareaEl = card.querySelector('.sabana-habitacion-observaciones');
+          if (textareaEl) {
+            // Cuando el textarea pierde el foco, marcar que acaba de perder el foco
+            textareaEl.addEventListener('blur', () => {
+              card.dataset.textareaJustBlurred = 'true';
+              setTimeout(() => {
+                card.dataset.textareaJustBlurred = 'false';
+              }, 200);
+            });
+
+            // Cuando el textarea recibe foco, limpiar el estado pending
+            textareaEl.addEventListener('focus', () => {
+              card.classList.remove('sabana-pending');
+            });
+          }
+
 
           column.appendChild(card);
           indexByEdificio[edificio]++;
@@ -1430,7 +1511,8 @@ async function toggleRealizadoSabana(itemId, realizado) {
       if (checkbox) {
         const row = checkbox.closest('tr');
         if (row) {
-          const fechaRealizadoCell = row.cells[3];
+
+          const fechaRealizadoCell = row.cells[2];
           if (fechaRealizadoCell) {
             const fechaRealizado = data.item.fecha_realizado
               ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', {
@@ -1450,7 +1532,7 @@ async function toggleRealizadoSabana(itemId, realizado) {
           }
 
           if (data.item.responsable) {
-            const responsableCell = row.cells[4];
+            const responsableCell = row.cells[3];
             if (responsableCell) {
               responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
               responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
@@ -1460,7 +1542,7 @@ async function toggleRealizadoSabana(itemId, realizado) {
             }
             poblarPersonalSabana(currentSabanaItems);
           } else {
-            const responsableCell = row.cells[4];
+            const responsableCell = row.cells[3];
             if (responsableCell) {
               responsableCell.innerHTML = '<span style="color: #999;">-</span>';
               responsableCell.style.backgroundColor = 'rgba(76, 84, 76, 0.12)';
@@ -1550,12 +1632,12 @@ async function guardarObservacionSabana(itemId, observaciones) {
 
       // Actualizar UI en tabla (mobile)
       const inputObservacion = document.querySelector(
-        `input[data-item-id="${itemId}"]`
+        `input.input-observaciones[data-item-id="${itemId}"]`
       );
       if (inputObservacion) {
         const row = inputObservacion.closest('tr');
         if (row) {
-          const responsableCell = row.cells[4];
+          const responsableCell = row.cells[3];
           if (responsableCell) {
             if (data.item.responsable) {
               responsableCell.innerHTML = `<span class="responsable-nombre">${data.item.responsable}</span>`;
