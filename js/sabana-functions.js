@@ -287,41 +287,54 @@ function agregarPestanasArchivado(sabanaId, nombreSabana) {
   const header = document.querySelector('.filtros-bitacora-header');
   if (!header) return;
 
-  const tabsContainer = document.createElement('div');
-  tabsContainer.className = 'sabana-archive-tabs';
-  tabsContainer.id = 'sabanaArchiveTabs';
-
   // Escapar comillas simples en el nombre
   const nombreEscapado = nombreSabana.replace(/'/g, "\\'");
 
   const puedeDesarchivar = esAdminUsuarioActualSabana();
-  const actionButton = puedeDesarchivar
-    ? `
-    <button type="button" class="sabana-archive-tab sabana-archive-tab--action" onclick="desarchivarSabana(${sabanaId}, '${nombreEscapado}')" title="Desarchivar sábana">
-      <i class="fas fa-folder-open" aria-hidden="true"></i>
-      Desarchivar
-    </button>
-  `
-    : '';
 
-  tabsContainer.innerHTML = `
-    <span class="sabana-archive-tab sabana-archive-tab--status">
-      <i class="fas fa-folder" aria-hidden="true"></i>
-      Archivada
-    </span>
-    ${actionButton}
+  // Crear botón de "Archivada" (siempre visible)
+  const btnArchivada = document.createElement('button');
+  btnArchivada.type = 'button';
+  btnArchivada.className = 'sabana-id-tab is-visible';
+  btnArchivada.id = 'sabanaArchivadaTab';
+  btnArchivada.disabled = true;
+  btnArchivada.title = 'Sábana Archivada';
+  btnArchivada.innerHTML = `
+    <i class="fas fa-folder sabana-id-icon" aria-hidden="true"></i>
+    <span>Archivada</span>
   `;
 
-  header.appendChild(tabsContainer);
+  header.appendChild(btnArchivada);
+
+  // Crear botón de "Desarchivar" (solo si es admin)
+  if (puedeDesarchivar) {
+    const btnDesarchivar = document.createElement('button');
+    btnDesarchivar.type = 'button';
+    btnDesarchivar.className = 'sabana-id-tab is-visible';
+    btnDesarchivar.id = 'sabanaDesarchivarTab';
+    btnDesarchivar.title = 'Desarchivar Sábana';
+    btnDesarchivar.onclick = () => desarchivarSabana(sabanaId, nombreEscapado);
+    btnDesarchivar.innerHTML = `
+      <i class="fas fa-folder-open sabana-id-icon" aria-hidden="true"></i>
+      <span>Desarchivar</span>
+    `;
+
+    header.appendChild(btnDesarchivar);
+  }
 }
 
 /**
  * Remueve las pestañas de archivado del header
  */
 function removerPestanasArchivado() {
-  const existingTabs = document.getElementById('sabanaArchiveTabs');
-  if (existingTabs) {
-    existingTabs.remove();
+  const btnArchivada = document.getElementById('sabanaArchivadaTab');
+  if (btnArchivada) {
+    btnArchivada.remove();
+  }
+
+  const btnDesarchivar = document.getElementById('sabanaDesarchivarTab');
+  if (btnDesarchivar) {
+    btnDesarchivar.remove();
   }
 }
 

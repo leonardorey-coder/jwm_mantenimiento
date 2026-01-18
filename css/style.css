@@ -13276,12 +13276,7 @@ tr[data-lazy='true'] {
 }
 
 .sabana-id-tab .sabana-id-icon {
-  display: none;
   font-size: 0.9rem;
-}
-
-.sabana-id-tab.is-archived .sabana-id-icon {
-  display: inline-flex;
 }
 
 .sabana-id-tab:focus,
@@ -13292,7 +13287,36 @@ tr[data-lazy='true'] {
 
 .sabana-id-tab:hover {
   box-shadow: 6px 6px 0 var(--negro-carbon);
+}
+
+/* Posicionamiento y estilos específicos para cada botón tab */
+#sabanaIdTab {
+  left: 18px;
+  background: var(--color-advertencia);
+}
+
+#sabanaIdTab:hover {
   background: #ffd27a;
+}
+
+#sabanaArchivadaTab {
+  left: 132px;
+  background: var(--gris-grafito);
+  color: #ffffff;
+}
+
+#sabanaArchivadaTab:hover {
+  background: #5a5a5a;
+}
+
+#sabanaDesarchivarTab {
+  left: 260px;
+  background: var(--verde-oliva);
+  color: #ffffff;
+}
+
+#sabanaDesarchivarTab:hover {
+  background: #5a6a5a;
 }
 
 /* ========================================
