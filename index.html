@@ -1776,7 +1776,8 @@
         <button class="btn-modal-cancel" type="button" onclick="cerrarModalConfirmarEliminar()">
           Cancelar
         </button>
-        <button class="btn-modal-danger" type="button" onclick="abrirModalValidarEliminar()">
+        <button class="btn-modal-danger" type="button" onclick="abrirModalValidarEliminar()"
+          title="Continuar con la eliminación, aún no se eliminará nada">
           <i class="fas fa-arrow-right"></i> Continuar
         </button>
       </div>
@@ -1822,7 +1823,7 @@
                 " />
             <span class="input-eliminar-placeholder" id="placeholderConfirmarEliminar">eliminar</span>
           </div>
-          <small class="input-hint">Escribe exactamente: eliminar</small>
+          <small class="input-hint">Escribe exactamente: eliminar (Sensible a mayúsculas y minúsculas)</small>
         </div>
 
         <div class="form-group-modal">
@@ -1841,7 +1842,8 @@
                 " />
             <span class="input-eliminar-placeholder" id="placeholderNombreSabana"></span>
           </div>
-          <small class="input-hint" id="hintNombreSabana">Debe coincidir exactamente</small>
+          <small class="input-hint" id="hintNombreSabana">Debe coincidir exactamente (Sensible a mayúsculas y
+            minúsculas)</small>
         </div>
       </div>
       <div class="modal-eliminar-actions">

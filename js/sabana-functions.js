@@ -2537,7 +2537,7 @@ function validarCamposEliminar() {
       hintNombre.textContent = 'El nombre no coincide';
       hintNombre.style.color = '#F44336';
     } else {
-      hintNombre.textContent = 'Debe coincidir exactamente';
+      hintNombre.textContent = 'Debe coincidir exactamente (Sensible a mayúsculas y minúsculas)';
       hintNombre.style.color = '';
     }
   }
