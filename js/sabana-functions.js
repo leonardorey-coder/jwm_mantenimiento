@@ -105,8 +105,8 @@ function obtenerRolUsuarioActualSabana() {
   if (!userRole) {
     const storedUser = JSON.parse(
       localStorage.getItem('currentUser') ||
-        sessionStorage.getItem('currentUser') ||
-        'null'
+      sessionStorage.getItem('currentUser') ||
+      'null'
     );
     if (storedUser) {
       userRole = storedUser.role || storedUser.rol || storedUser.rol_nombre;
@@ -375,7 +375,7 @@ async function cambiarServicioActual(sabanaId) {
               <tr>
                 <th><i class="fas fa-building"></i> Edificio</th>
                 <th><i class="fas fa-door-closed"></i> Habitación</th>
-                <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+                <th><i class="fas fa-calendar"></i> Fecha Límite</th>
                 <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
                 <th><i class="fas fa-user"></i> Responsable</th>
                 <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
@@ -488,19 +488,34 @@ async function cambiarServicioActual(sabanaId) {
 
       if (sabana.archivada) {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-display">${sabana.nombre}</span></span>
+                    <span class="sabana-placeholder-title"><span class="sabana-nombre-display">${sabana.nombre}</span></span>
                 `;
         // Agregar pestañas de archivado al header
         agregarPestanasArchivado(sabana.id, sabana.nombre);
       } else {
         tituloEl.innerHTML = `
-                    <span class="sabana-placeholder-title">Sábana de<span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
+                    <span class="sabana-placeholder-title"><span class="sabana-nombre-editable" onclick="iniciarEdicionNombreSabana(${sabana.id}, '${sabana.nombre.replace(/'/g, "\\'")}')" title="Click para editar">${sabana.nombre}</span></span>
                 `;
         // Remover pestañas de archivado si existen
         removerPestanasArchivado();
       }
 
       configurarSabanaIdTab(sabanaIdHex, sabana.archivada);
+    }
+
+    // Mostrar fecha límite (tomando la fecha_programada del primer item)
+    const fechaLimiteContainer = document.getElementById('sabanaFechaLimiteInfo');
+    const fechaLimiteEl = document.getElementById('sabanaFechaLimite');
+    if (fechaLimiteContainer && fechaLimiteEl && sabana.items && sabana.items.length > 0) {
+      const fechaLimite = sabana.items[0]?.fecha_programada;
+      if (fechaLimite) {
+        fechaLimiteEl.textContent = formatFechaLocal(fechaLimite);
+        fechaLimiteContainer.style.display = 'block';
+      } else {
+        fechaLimiteContainer.style.display = 'none';
+      }
+    } else if (fechaLimiteContainer) {
+      fechaLimiteContainer.style.display = 'none';
     }
 
     const periodoEl = document.getElementById('periodoActual');
@@ -632,7 +647,7 @@ function renderSabanaTable(items, archivada = false) {
           <tr>
             <th><i class="fas fa-building"></i> Edificio</th>
             <th><i class="fas fa-door-closed"></i> Habitación</th>
-            <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+            <th><i class="fas fa-calendar"></i> Fecha Límite</th>
             <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
             <th><i class="fas fa-user"></i> Responsable</th>
             <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
@@ -710,20 +725,18 @@ function renderSabanaTable(items, archivada = false) {
       tr.innerHTML = `
                 <td data-label="Edificio">${item.edificio || 'Sin edificio'}</td>
                 <td data-label="Habitación"><strong>${item.habitacion}</strong></td>
-                <td data-label="Programada">${fechaProgramada}</td>
+                <td data-label="Límite">${fechaProgramada}</td>
                 <td data-label="Realizada">
-                    ${
-                      item.fecha_realizado
-                        ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
-                        : '<span style="color: #999;">-</span>'
-                    }
+                    ${item.fecha_realizado
+          ? `<span class="fecha-realizado">${formatFechaHora(item.fecha_realizado)}</span>`
+          : '<span style="color: #999;">-</span>'
+        }
                 </td>
                 <td data-label="Responsable">
-                    ${
-                      item.responsable_nombre || item.responsable
-                        ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
-                        : '<span style="color: #999;">-</span>'
-                    }
+                    ${item.responsable_nombre || item.responsable
+          ? `<span class="responsable-nombre">${item.responsable_nombre || item.responsable}</span>`
+          : '<span style="color: #999;">-</span>'
+        }
                 </td>
                 <td data-label="Observaciones">
                     <input 
@@ -973,7 +986,6 @@ function createSabanaCard(item, archivada) {
   const readonlyClass = archivada ? 'readonly' : '';
   const estadoClass = item.realizado ? 'realizada' : 'pendiente';
 
-  const fechaProgramada = formatFechaCorta(item.fecha_programada);
   const fechaRealizado = item.fecha_realizado
     ? formatFechaHora(item.fecha_realizado)
     : null;
@@ -996,25 +1008,19 @@ function createSabanaCard(item, archivada) {
         onchange="toggleRealizadoSabana(${item.id}, this.checked)"
       />
     </div>
-    <div class="sabana-habitacion-fecha">
-      <i class="fas fa-calendar"></i>
-      ${fechaProgramada}
-    </div>
-    ${
-      responsable
-        ? `<div class="sabana-habitacion-responsable">
+    ${responsable
+      ? `<div class="sabana-habitacion-responsable">
           <i class="fas fa-user"></i>
           ${responsable}
         </div>`
-        : ''
+      : ''
     }
-    ${
-      fechaRealizado
-        ? `<div class="sabana-habitacion-fecha-realizado">
+    ${fechaRealizado
+      ? `<div class="sabana-habitacion-fecha-realizado">
           <i class="fas fa-check"></i>
           ${fechaRealizado}
         </div>`
-        : ''
+      : ''
     }
     <textarea 
       class="sabana-habitacion-observaciones ${readonlyClass}" 
@@ -1152,7 +1158,6 @@ function renderSabanaColumns(items, archivada = false) {
           const readonlyClass = archivada ? 'readonly' : '';
           const estadoClass = item.realizado ? 'realizada' : 'pendiente';
 
-          const fechaProgramada = formatFechaCorta(item.fecha_programada);
           const fechaRealizado = item.fecha_realizado
             ? formatFechaHora(item.fecha_realizado)
             : null;
@@ -1175,25 +1180,19 @@ function renderSabanaColumns(items, archivada = false) {
                 onchange="toggleRealizadoSabana(${item.id}, this.checked)"
               />
             </div>
-            <div class="sabana-habitacion-fecha">
-              <i class="fas fa-calendar"></i>
-              ${fechaProgramada}
-            </div>
-            ${
-              responsable
-                ? `<div class="sabana-habitacion-responsable">
+            ${responsable
+              ? `<div class="sabana-habitacion-responsable">
                   <i class="fas fa-user"></i>
                   ${responsable}
                 </div>`
-                : ''
+              : ''
             }
-            ${
-              fechaRealizado
-                ? `<div class="sabana-habitacion-fecha-realizado">
+            ${fechaRealizado
+              ? `<div class="sabana-habitacion-fecha-realizado">
                   <i class="fas fa-check"></i>
                   ${fechaRealizado}
                 </div>`
-                : ''
+              : ''
             }
             <textarea 
               class="sabana-habitacion-observaciones ${readonlyClass}" 
@@ -1372,9 +1371,10 @@ async function toggleRealizadoSabana(itemId, realizado) {
           if (responsableDiv) {
             responsableDiv.innerHTML = `<i class="fas fa-user"></i> ${data.item.responsable}`;
           } else {
-            const fechaDiv = card.querySelector('.sabana-habitacion-fecha');
-            if (fechaDiv) {
-              fechaDiv.insertAdjacentHTML(
+            // Insertar después del div de número de habitación
+            const numeroDiv = card.querySelector('.sabana-habitacion-numero');
+            if (numeroDiv) {
+              numeroDiv.insertAdjacentHTML(
                 'afterend',
                 `<div class="sabana-habitacion-responsable"><i class="fas fa-user"></i> ${data.item.responsable}</div>`
               );
@@ -1421,9 +1421,9 @@ async function toggleRealizadoSabana(itemId, realizado) {
           if (fechaRealizadoCell) {
             const fechaRealizado = data.item.fecha_realizado
               ? new Date(data.item.fecha_realizado).toLocaleString('es-MX', {
-                  dateStyle: 'short',
-                  timeStyle: 'short',
-                })
+                dateStyle: 'short',
+                timeStyle: 'short',
+              })
               : null;
 
             fechaRealizadoCell.innerHTML = fechaRealizado
@@ -1520,9 +1520,10 @@ async function guardarObservacionSabana(itemId, observaciones) {
           if (responsableDiv) {
             responsableDiv.innerHTML = `<i class="fas fa-user"></i> ${data.item.responsable}`;
           } else {
-            const fechaDiv = card.querySelector('.sabana-habitacion-fecha');
-            if (fechaDiv) {
-              fechaDiv.insertAdjacentHTML(
+            // Insertar después del div de número de habitación
+            const numeroDiv = card.querySelector('.sabana-habitacion-numero');
+            if (numeroDiv) {
+              numeroDiv.insertAdjacentHTML(
                 'afterend',
                 `<div class="sabana-habitacion-responsable"><i class="fas fa-user"></i> ${data.item.responsable}</div>`
               );
@@ -1731,6 +1732,14 @@ async function abrirModalNuevaSabana() {
 
   modal.style.display = 'flex';
   lockBodyScroll();
+
+  // Auto-focus en el campo de nombre
+  setTimeout(() => {
+    const inputNombre = document.getElementById('inputNombreServicio');
+    if (inputNombre) {
+      inputNombre.focus();
+    }
+  }, 100);
 }
 
 async function cargarServiciosExistentes() {
@@ -1946,7 +1955,7 @@ async function confirmarNuevaSabana() {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-              (errorData.error || 'desconocido')
+            (errorData.error || 'desconocido')
           );
         }
 
@@ -2060,6 +2069,42 @@ async function verHistorialServicios() {
     return;
   }
 
+  // Mostrar modal inmediatamente con skeleton loading
+  listaContainer.innerHTML = `
+    <div class="historial-skeleton">
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-short"></div>
+        <div class="skeleton-line skeleton-medium"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-short"></div>
+        <div class="skeleton-line skeleton-medium"></div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-line skeleton-title"></div>
+        <div class="skeleton-line skeleton-short"></div>
+        <div class="skeleton-line skeleton-medium"></div>
+      </div>
+    </div>
+  `;
+
+  modal.style.display = 'flex';
+  lockBodyScroll();
+
+  if (!cerrarModalHistorialEscHandler) {
+    cerrarModalHistorialEscHandler = function (e) {
+      if (e.key === 'Escape') {
+        const modalVisible = document.getElementById('modalHistorialSabanas');
+        if (modalVisible && modalVisible.style.display === 'flex') {
+          cerrarModalHistorial();
+        }
+      }
+    };
+    document.addEventListener('keydown', cerrarModalHistorialEscHandler);
+  }
+
   try {
     console.log('📚 Cargando historial de sábanas archivadas...');
     const response = await fetchWithAuth(
@@ -2072,20 +2117,19 @@ async function verHistorialServicios() {
 
     const historial = await response.json();
     console.log('📚 Sábanas archivadas recibidas:', historial.length);
-    console.log('📦 Datos del historial:', historial);
 
     if (historial.length === 0) {
       listaContainer.innerHTML = `
-                <div class="historial-vacio">
-                    <i class="fas fa-archive"></i>
-                    <p>Aún no hay sábanas archivadas.</p>
-                </div>
-            `;
+        <div class="historial-vacio">
+          <i class="fas fa-archive"></i>
+          <p>Aún no hay sábanas archivadas.</p>
+        </div>
+      `;
     } else {
       const puedeDesarchivar = esAdminUsuarioActualSabana();
       listaContainer.innerHTML = historial
         .map((entry) => {
-          const fechaDisplay = formatFechaCorta(
+          const fechaArchivado = formatFechaCorta(
             entry.fecha_archivado || entry.fecha_creacion
           );
           const porcentaje = parseFloat(entry.progreso_porcentaje) || 0;
@@ -2097,50 +2141,45 @@ async function verHistorialServicios() {
             : '';
           const actionButton = puedeDesarchivar
             ? `<button class="historial-item-action" onclick="event.stopPropagation(); desarchivarSabana(${entry.id}, '${entry.nombre.replace(/'/g, "\\'")}');" title="Desarchivar sábana">
-                            <i class="fas fa-box-open"></i>
-                        </button>`
+                <i class="fas fa-box-open"></i>
+              </button>`
+            : '';
+
+          const fechaLimiteInfo = entry.fecha_limite
+            ? `<span class="historial-fecha-limite"><i class="fas fa-clock"></i> Límite: ${formatFechaCorta(entry.fecha_limite)}</span>`
             : '';
 
           return `
-                    <div class="historial-item">
-                        <div class="historial-item-content" onclick="cargarSabanaDesdeHistorial(${entry.id})">
-                            <div class="historial-item-header">
-                                 <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
-                                <span class="historial-fecha">${fechaDisplay}</span>
-                            </div>
-                            ${creadorInfo}
-                            ${notasInfo}
-                            <div class="historial-stats">
-                                <span class="stat">
-                                    <i class="fas fa-check-circle"></i> ${entry.items_completados || 0}/${entry.total_items || 0} completados
-                                </span>
-                                <span class="stat-progreso">${porcentaje.toFixed(0)}%</span>
-                            </div>
-                        </div>
-                        ${actionButton}
-                    </div>
-                `;
+            <div class="historial-item">
+              <div class="historial-item-content" onclick="cargarSabanaDesdeHistorial(${entry.id})">
+                <div class="historial-item-header">
+                  <h3>${Object.assign(document.createElement('div'), { textContent: entry.nombre }).innerHTML}</h3>
+                  <span class="historial-fecha">${fechaArchivado}</span>
+                </div>
+                ${creadorInfo}
+                ${fechaLimiteInfo}
+                ${notasInfo}
+                <div class="historial-stats">
+                  <span class="stat">
+                    <i class="fas fa-check-circle"></i> ${entry.items_completados || 0}/${entry.total_items || 0} completados
+                  </span>
+                  <span class="stat-progreso">${porcentaje.toFixed(0)}%</span>
+                </div>
+              </div>
+              ${actionButton}
+            </div>
+          `;
         })
         .join('');
     }
-
-    modal.style.display = 'flex';
-    lockBodyScroll();
-
-    if (!cerrarModalHistorialEscHandler) {
-      cerrarModalHistorialEscHandler = function (e) {
-        if (e.key === 'Escape') {
-          const modalVisible = document.getElementById('modalHistorialSabanas');
-          if (modalVisible && modalVisible.style.display === 'flex') {
-            cerrarModalHistorial();
-          }
-        }
-      };
-      document.addEventListener('keydown', cerrarModalHistorialEscHandler);
-    }
   } catch (error) {
     console.error('❌ Error cargando historial:', error);
-    electronSafeAlert('Error al cargar el historial');
+    listaContainer.innerHTML = `
+      <div class="historial-vacio historial-error">
+        <i class="fas fa-exclamation-triangle"></i>
+        <p>Error al cargar el historial.</p>
+      </div>
+    `;
   }
 }
 
@@ -2550,7 +2589,7 @@ async function confirmarEliminarSabana() {
             <tr>
               <th><i class="fas fa-building"></i> Edificio</th>
               <th><i class="fas fa-door-closed"></i> Habitación</th>
-              <th><i class="fas fa-calendar"></i> Fecha Programada</th>
+              <th><i class="fas fa-calendar"></i> Fecha Límite</th>
               <th><i class="fas fa-calendar-check"></i> Fecha Realizado</th>
               <th><i class="fas fa-user"></i> Responsable</th>
               <th style="text-align: center"><i class="fas fa-comment"></i> Observaciones</th>
@@ -2678,22 +2717,22 @@ async function exportarSabanaExcel() {
     console.log('📝 Generando CSV con', currentSabanaItems.length, 'items');
 
     let csv =
-      'Edificio,Habitación,Fecha Programada,Fecha Realizado,Responsable,Observaciones,Realizado\n';
+      'Edificio,Habitación,Fecha Límite,Fecha Realizado,Responsable,Observaciones,Realizado\n';
 
     currentSabanaItems.forEach((item, index) => {
       const fechaProgramada = item.fecha_programada
         ? new Date(item.fecha_programada).toLocaleDateString('es-MX', {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-          })
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        })
         : '-';
 
       const fechaRealizado = item.fecha_realizado
         ? new Date(item.fecha_realizado).toLocaleString('es-MX', {
-            dateStyle: 'short',
-            timeStyle: 'short',
-          })
+          dateStyle: 'short',
+          timeStyle: 'short',
+        })
         : '-';
 
       const responsable = item.responsable_nombre || item.responsable || '-';
@@ -2895,7 +2934,7 @@ async function crearNuevaSabanaPersonalizada(nombreServicio) {
           console.error('❌ Error archivando:', errorData);
           throw new Error(
             'Error al archivar sábana actual: ' +
-              (errorData.error || 'desconocido')
+            (errorData.error || 'desconocido')
           );
         }
 

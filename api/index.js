@@ -1875,20 +1875,34 @@ app.patch(
       const itemId = parseInt(req.params.id);
       const { observaciones, realizado } = req.body;
 
-      const updateData = {
-        observaciones,
-      };
+      const updateData = {};
 
-      // Si se actualizan observaciones, actualizar también el responsable
-      // Si observaciones tiene contenido, poner el responsable
-      // Si observaciones está vacío, limpiar el responsable
+      // Obtener el estado actual del item para saber si preservar el responsable
+      const currentItemResult = await postgresManager.pool.query(
+        'SELECT realizado, observaciones, responsable, usuario_responsable_id FROM sabanas_items WHERE id = $1',
+        [itemId]
+      );
+      const currentItem = currentItemResult.rows[0];
+
+      // Determinar los nuevos valores de realizado y observaciones
+      const newRealizado = realizado !== undefined ? realizado : currentItem?.realizado;
+      const newObservaciones = observaciones !== undefined ? observaciones : currentItem?.observaciones;
+      const hasObservaciones = newObservaciones && newObservaciones.trim() !== '';
+
+      // Si se actualizan observaciones
       if (observaciones !== undefined) {
+        updateData.observaciones = observaciones;
+        // Si tiene contenido, poner el responsable actual
         if (observaciones && observaciones.trim() !== '') {
           updateData.responsable = req.usuario?.nombre;
           updateData.usuario_responsable_id = req.usuario?.id;
         } else {
-          updateData.responsable = null;
-          updateData.usuario_responsable_id = null;
+          // Si se borra la observación, solo limpiar responsable si NO está marcado
+          if (!newRealizado) {
+            updateData.responsable = null;
+            updateData.usuario_responsable_id = null;
+          }
+          // Si está marcado, mantener el responsable existente (no hacer nada)
         }
       }
 
@@ -1896,17 +1910,21 @@ app.patch(
         updateData.realizado = realizado;
 
         if (realizado) {
-          // En producción (Neon), usar toISOString() para UTC explícito
-          // En local, usar new Date() porque PostgreSQL local usa hora local
+          // Marcar como realizado: poner fecha y responsable
           updateData.fecha_realizado = isLocal
             ? new Date()
             : new Date().toISOString();
           updateData.responsable = req.usuario?.nombre;
           updateData.usuario_responsable_id = req.usuario?.id;
         } else {
+          // Desmarcar: limpiar fecha
           updateData.fecha_realizado = null;
-          updateData.responsable = null;
-          updateData.usuario_responsable_id = null;
+          // Solo limpiar responsable si NO hay observaciones
+          if (!hasObservaciones) {
+            updateData.responsable = null;
+            updateData.usuario_responsable_id = null;
+          }
+          // Si hay observaciones, mantener el responsable existente
         }
       }
 
