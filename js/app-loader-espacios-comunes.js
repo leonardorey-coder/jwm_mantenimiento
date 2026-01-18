@@ -1171,10 +1171,26 @@ function renderizarServiciosEspacio(espacioId) {
   );
 
   // Mostrar/Ocultar botón editar según si hay servicios
-  if (btnEditar) {
-    if (serviciosEspacio.length > 0) {
+  if (serviciosEspacio.length > 0) {
+    if (btnEditar) {
       btnEditar.style.display = '';
     } else {
+      // Crear el botón si no existe (cuando se agrega el primer servicio)
+      const contenedorAcciones = contenedorServicios.closest('li')?.querySelector('.habitacion-acciones');
+      if (contenedorAcciones) {
+        const btnAgregar = contenedorAcciones.querySelector('.boton-principal');
+        if (btnAgregar) {
+          const nuevoBtn = document.createElement('button');
+          nuevoBtn.className = 'habitacion-boton boton-secundario';
+          nuevoBtn.id = `btn-editar-espacio-${espacioId}`;
+          nuevoBtn.onclick = () => toggleModoEdicionEspacio(espacioId);
+          nuevoBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+          contenedorAcciones.insertBefore(nuevoBtn, btnAgregar);
+        }
+      }
+    }
+  } else {
+    if (btnEditar) {
       if (!enModoEdicion) {
         btnEditar.style.display = 'none';
       } else {
@@ -1209,7 +1225,7 @@ async function guardarServicioEspacioInline(event, espacioId) {
   const usuarioAsignadoId = form.usuario_asignado_id.value || null;
   const notas = form.notas.value;
 
-  const tareaAsignadaId = form.tarea_asignada_id.value || null;
+  const tareaAsignadaId = form.tarea_asignada_id?.value || null;
 
   const data = {
     espacio_comun_id: espacioId,
@@ -1224,8 +1240,28 @@ async function guardarServicioEspacioInline(event, espacioId) {
   };
 
   if (tipo === 'rutina') {
-    data.hora = form.hora.value;
-    data.dia_alerta = form.dia_alerta.value;
+    const hora = form.hora.value;
+    const diaAlerta = form.dia_alerta.value;
+
+    if (!hora) {
+      if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La hora es obligatoria para alertas', 'warning');
+      if (btnGuardar) {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<i class="fas fa-check"></i> Guardar';
+      }
+      return;
+    }
+    if (!diaAlerta) {
+      if (window.mostrarAlertaBlur) window.mostrarAlertaBlur('La fecha es obligatoria para alertas', 'warning');
+      if (btnGuardar) {
+        btnGuardar.disabled = false;
+        btnGuardar.innerHTML = '<i class="fas fa-check"></i> Guardar';
+      }
+      return;
+    }
+
+    data.hora = hora;
+    data.dia_alerta = diaAlerta;
   }
 
   try {
