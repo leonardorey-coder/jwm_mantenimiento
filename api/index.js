@@ -914,6 +914,7 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
       usuario_asignado_id,
       notas,
       tarea_id,
+      tipo,
     } = req.body;
     const mantenimientoId = parseInt(id);
 
@@ -926,6 +927,7 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
       usuario_asignado_id,
       notas,
       tarea_id,
+      tipo,
     });
 
     if (postgresManager) {
@@ -1002,6 +1004,10 @@ app.put('/api/mantenimientos/:id', async (req, res) => {
       if (tarea_id !== undefined) {
         campos.push(`tarea_id = $${contador++}`);
         valores.push(tarea_id ? parseInt(tarea_id) : null);
+      }
+      if (tipo !== undefined) {
+        campos.push(`tipo = $${contador++}`);
+        valores.push(tipo);
       }
       if (fecha_finalizacion !== undefined) {
         campos.push(`fecha_finalizacion = $${contador++}`);

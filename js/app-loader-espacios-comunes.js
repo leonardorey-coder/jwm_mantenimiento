@@ -991,6 +991,7 @@ function mostrarFormularioInlineEspacio(espacioId) {
             </div>
             
             <!-- Botón de Crear Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
+            <!-- COMENTADO: Sección de tareas (opcional)
             <div class="tarea-asignada-selector-inline">
                 <label class="tarea-asignada-label-inline">
                     <i class="fas fa-tasks"></i> Asignar Tarea (Opcional)
@@ -999,12 +1000,12 @@ function mostrarFormularioInlineEspacio(espacioId) {
                 <button style="font-size: 0.7rem; display: flex; align-items: center; gap: 5px; flex-direction: row; flex-wrap: nowrap;" type="button" class="btn-inline btn-crear-tarea" onclick="abrirModalCrearTarea(${espacioId})">
                     <i class="fas fa-plus"></i> Crear
                 </button>
-                <!-- Se deberá deshabilitar si el input "tareaAsignadaInline-espacio-${espacioId}" tiene un valor y el option pasará a estar vacío-->
                     <select id="tareaAsignadaInline-espacio-${espacioId}" class="input-inline selector-tarea-servicio" name="tarea_asignada_id">
                         <option value="">Sin tarea</option>
                     </select>
                 </div>
             </div>
+            FIN COMENTADO: Sección de tareas -->
             
             <input type="hidden" name="tipo" value="normal">
             

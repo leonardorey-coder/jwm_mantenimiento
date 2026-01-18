@@ -4274,13 +4274,30 @@
 
     // Generar formulario de edición inline
     wrapper.innerHTML = `
-        <div class="servicio-form-inline ${esAlerta ? 'servicio-alerta' : ''}">
+        <div class="servicio-form-inline ${esAlerta ? 'servicio-alerta' : ''}" id="servicio-form-edit-${servicioId}">
             <div class="form-inline-header">
-                <span class="servicio-tipo-badge">
+                <span class="servicio-tipo-badge" id="tipo-badge-edit-${servicioId}">
                     <i class="fas ${esAlerta ? 'fa-bell' : 'fa-wrench'}"></i>
-                    ${tipoServicioTexto}
+                    <span id="tipo-texto-edit-${servicioId}">${tipoServicioTexto}</span>
                 </span>
+                
+                <!-- Switch para convertir avería en alerta (solo visible si no es alerta ya) -->
+                <div class="tipo-toggle-inline" style="margin-left: auto;">
+                    <label class="toggle-label">
+                        <input type="checkbox" 
+                                class="toggle-checkbox" 
+                                id="tipoToggleEdit-${servicioId}"
+                                ${esAlerta ? 'checked' : ''}
+                                onchange="toggleTipoServicioEdicion(${servicioId})">
+                        <span class="toggle-switch"></span>
+                        <span class="toggle-text">
+                            <span class="tipo-alerta">Alerta</span>
+                        </span>
+                    </label>
+                </div>
             </div>
+            
+            <input type="hidden" id="edit-tipo-${servicioId}" value="${esAlerta ? 'rutina' : 'normal'}">
             
             <div class="form-inline-field-group">
                 <label class="form-inline-label">
@@ -4295,31 +4312,26 @@
                 />
             </div>
             
-            ${
-              esAlerta
-                ? `
-                <div class="form-inline-field-group">
-                    <label class="form-inline-label">
-                        <i class="fas fa-calendar-alt"></i> Fecha y Hora
-                    </label>
-                    <div class="form-inline-row">
-                        <input 
-                            type="date" 
-                            class="input-edicion-inline input-small" 
-                            id="edit-dia-${servicioId}" 
-                            value="${diaAlertaFormatted}"
-                        />
-                        <input 
-                            type="time" 
-                            class="input-edicion-inline input-small" 
-                            id="edit-hora-${servicioId}" 
-                            value="${servicio.hora || ''}"
-                        />
-                    </div>
+            <!-- Campos de alerta (visibles si es alerta o se activa el toggle) -->
+            <div class="form-inline-field-group" id="campos-alerta-edit-${servicioId}" style="display: ${esAlerta ? 'block' : 'none'};">
+                <label class="form-inline-label">
+                    <i class="fas fa-calendar-alt"></i> Fecha y Hora
+                </label>
+                <div class="form-inline-row">
+                    <input 
+                        type="date" 
+                        class="input-edicion-inline input-small" 
+                        id="edit-dia-${servicioId}" 
+                        value="${diaAlertaFormatted}"
+                    />
+                    <input 
+                        type="time" 
+                        class="input-edicion-inline input-small" 
+                        id="edit-hora-${servicioId}" 
+                        value="${servicio.hora || ''}"
+                    />
                 </div>
-            `
-                : ''
-            }
+            </div>
             
             <div class="form-inline-field-group">
                 <label class="form-inline-label">
@@ -4379,6 +4391,7 @@
             </div>
 
                     <!-- Botón de editar Tarea (abre modal) y Selector de Tareas para asignar (opcional) -->
+            <!-- COMENTADO: Sección de tareas (opcional)
             <div class="tarea-asignada-selector-inline">
                 <label class="tarea-asignada-label-inline">
                     <i class="fas fa-tasks"></i> Asignar Tarea (Opcional)
@@ -4387,13 +4400,13 @@
                 <button style="font-size: 0.7rem; display: flex; align-items: center; gap: 5px; flex-direction: row; flex-wrap: nowrap;" type="button" class="btn-inline btn-crear-tarea" onclick="abrirModalCrearTarea(${id})">
                     <i class="fas fa-plus"></i> Crear
                 </button>
-                <!-- Se deberá seleccionar la tarea asignada si el servicio tiene una tarea asignada-->
                     <select class="input-inline" onpointerdown="if (window.cargarTareasEnSelector) cargarTareasEnSelector('tarea_asignada_edit-${servicioId}', ${servicio.tarea_id})" id="tarea_asignada_edit-${servicioId}" name="tarea_asignada_edit-${servicioId}">
                         <option value="">Sin tarea</option>
                         
                     </select>
                 </div>
-            </div>        
+            </div>
+            FIN COMENTADO: Sección de tareas -->        
             
             <div class="form-inline-acciones">
                 <button class="btn-form-inline btn-cancelar" onclick="cancelarEdicionServicio(${servicioId}, ${id}, ${esEspacio})">
@@ -4417,6 +4430,45 @@
           guardarEdicionServicio(servicioId, id, esEspacio);
         }
       });
+  };
+
+  /**
+   * Toggle tipo de servicio en formulario de edición inline
+   * Permite convertir una avería en alerta
+   */
+  window.toggleTipoServicioEdicion = function (servicioId) {
+    const checkbox = document.getElementById(`tipoToggleEdit-${servicioId}`);
+    const camposAlerta = document.getElementById(
+      `campos-alerta-edit-${servicioId}`
+    );
+    const inputTipo = document.getElementById(`edit-tipo-${servicioId}`);
+    const tipoBadge = document.getElementById(`tipo-badge-edit-${servicioId}`);
+    const tipoTexto = document.getElementById(`tipo-texto-edit-${servicioId}`);
+    const formInline = document.getElementById(
+      `servicio-form-edit-${servicioId}`
+    );
+
+    if (checkbox.checked) {
+      // Es alerta
+      camposAlerta.style.display = 'block';
+      inputTipo.value = 'rutina';
+      if (tipoBadge) {
+        tipoBadge.innerHTML = `<i class="fas fa-bell"></i> <span id="tipo-texto-edit-${servicioId}">Alerta</span>`;
+      }
+      if (formInline) {
+        formInline.classList.add('servicio-alerta');
+      }
+    } else {
+      // Es avería
+      camposAlerta.style.display = 'none';
+      inputTipo.value = 'normal';
+      if (tipoBadge) {
+        tipoBadge.innerHTML = `<i class="fas fa-wrench"></i> <span id="tipo-texto-edit-${servicioId}">Avería</span>`;
+      }
+      if (formInline) {
+        formInline.classList.remove('servicio-alerta');
+      }
+    }
   };
 
   /**
@@ -4459,7 +4511,10 @@
     const servicio = listaMantenimientos.find((m) => m.id === servicioId);
     if (!servicio) return;
 
-    const esAlerta = servicio.tipo === 'rutina';
+    // Leer el tipo desde el input hidden (puede haber cambiado con el toggle)
+    const tipoInput = document.getElementById(`edit-tipo-${servicioId}`);
+    const tipoActual = tipoInput ? tipoInput.value : servicio.tipo;
+    const esAlerta = tipoActual === 'rutina';
 
     // Obtener valores del formulario
     const descripcion = document
@@ -4477,6 +4532,7 @@
 
     const datosActualizados = {
       descripcion: descripcion,
+      tipo: tipoActual, // Incluir el tipo (puede haber cambiado de avería a alerta)
     };
 
     // Obtener prioridad (para todos los servicios)
