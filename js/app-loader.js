@@ -4152,7 +4152,7 @@
 
     if (enModoEdicion) {
       // Desactivar modo edición
-      contenedorEditarEstadoInline.style.display = 'none';
+      
       botonEditar.classList.remove('modo-edicion-activo');
       botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
 
@@ -4173,7 +4173,7 @@
       );
     } else {
       // Activar modo edición
-      contenedorEditarEstadoInline.style.display = 'block';
+      
       botonEditar.classList.add('modo-edicion-activo');
       botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
 
