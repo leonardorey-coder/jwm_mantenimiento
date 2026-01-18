@@ -12,6 +12,7 @@ const ESPACIOS_POR_PAGINA = 10;
 let espaciosComunesFiltradosActual = [];
 let paginaActualEspacios = 1;
 let totalPaginasEspacios = 1;
+let cerrarModoEdicionEspacioEscHandler = null; // Handler para salir del modo edición con ESC
 
 /**
  * Mostrar skeletons instantáneos al cambiar al tab de espacios
@@ -797,6 +798,12 @@ function toggleModoEdicionEspacio(espacioId) {
     botonEditar.classList.remove('modo-edicion-activo');
     botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
 
+    // Remover handler de ESC
+    if (cerrarModoEdicionEspacioEscHandler) {
+      document.removeEventListener('keydown', cerrarModoEdicionEspacioEscHandler);
+      cerrarModoEdicionEspacioEscHandler = null;
+    }
+
     // Habilitar el badge dropdown
     if (badgeDropdown) {
       badgeDropdown.style.pointerEvents = 'auto';
@@ -849,6 +856,28 @@ function toggleModoEdicionEspacio(espacioId) {
         pill.classList.toggle('activo', isActive);
         pill.disabled = isActive;
       });
+    }
+
+    // Agregar handler para salir con ESC
+    if (!cerrarModoEdicionEspacioEscHandler) {
+      cerrarModoEdicionEspacioEscHandler = function (e) {
+        if (e.key === 'Escape') {
+          // Verificar si hay un modal abierto - no cerrar modo edición si hay modal
+          const modalDetalles = document.getElementById('modalDetallesServicio');
+          if (modalDetalles && modalDetalles.style.display === 'flex') return;
+
+          // Buscar cualquier card de espacio con modo edición activo y cerrarlo
+          const btnActivo = document.querySelector('[id^="btn-editar-espacio-"].modo-edicion-activo');
+          if (btnActivo) {
+            const id = parseInt(btnActivo.id.replace('btn-editar-espacio-', ''), 10);
+            if (!Number.isNaN(id)) {
+              e.stopImmediatePropagation();
+              toggleModoEdicionEspacio(id);
+            }
+          }
+        }
+      };
+      document.addEventListener('keydown', cerrarModoEdicionEspacioEscHandler);
     }
   }
 }

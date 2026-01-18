@@ -3555,6 +3555,20 @@ function openChecklistDetailsModal(cuartoId) {
   // Guardar cuartoId en el modal para poder actualizarlo después
   modal.dataset.cuartoId = cuartoId;
 
+  // Agregar handler para cerrar con ESC (mismo patrón que modales de sábana)
+  if (!window._cerrarChecklistEscHandler) {
+    window._cerrarChecklistEscHandler = function (e) {
+      if (e.key === 'Escape') {
+        const modalVisible = document.getElementById('checklist-details-modal');
+        if (modalVisible && modalVisible.style.display === 'flex') {
+          e.stopImmediatePropagation();
+          closeChecklistDetailsModal();
+        }
+      }
+    };
+    document.addEventListener('keydown', window._cerrarChecklistEscHandler);
+  }
+
   // Agregar event listeners
   setTimeout(() => {
     const overlay = modal.querySelector('.modal-detalles-overlay');
@@ -3727,6 +3741,28 @@ function openChecklistDetailsModal(cuartoId) {
     cargarFotosChecklist(cuartoId);
   }, 0);
 }
+
+/**
+ * Cerrar modal de detalles de checklist
+ * Esta función es llamada por el handler de ESC key en app-loader.js
+ */
+function closeChecklistDetailsModal() {
+  const modal = document.getElementById('checklist-details-modal');
+
+  // Remover handler de ESC
+  if (window._cerrarChecklistEscHandler) {
+    document.removeEventListener('keydown', window._cerrarChecklistEscHandler);
+    window._cerrarChecklistEscHandler = null;
+  }
+
+  if (modal) {
+    modal.style.display = 'none';
+    document.body.classList.remove('modal-open');
+  }
+}
+
+// Exponer función globalmente para ESC key handler
+window.closeChecklistDetailsModal = closeChecklistDetailsModal;
 
 function getChecklistExportHeaders() {
   return ['Habitación', 'Edificio', 'Item', 'Categoría', 'Estado'];

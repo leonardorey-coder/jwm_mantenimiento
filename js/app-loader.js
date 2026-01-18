@@ -49,6 +49,8 @@
   let alertasEmitidas = new Set(); // Para evitar duplicados
   let diccNombresEspaciosPorId = {}; // Diccionario de nombres de espacios comunes por ID
   let eventosFiltrosConfigurados = false; // Para asegurarnos de enlazar filtros al menos una vez
+  let cerrarModalDetallesEscHandler = null; // Handler para cerrar modal de detalles con ESC
+  let cerrarModoEdicionEscHandler = null; // Handler para salir del modo edición con ESC
 
   /**
    * Helper para obtener headers con autenticación JWT
@@ -390,8 +392,8 @@
       if (!currentUser) {
         currentUser = JSON.parse(
           localStorage.getItem('currentUser') ||
-            sessionStorage.getItem('currentUser') ||
-            'null'
+          sessionStorage.getItem('currentUser') ||
+          'null'
         );
       }
 
@@ -574,9 +576,9 @@
       const nombresEspacios = await obtenerNombresEspaciosComunes();
       diccNombresEspaciosPorId = nombresEspacios
         ? nombresEspacios.reduce((acc, espacio) => {
-            acc[espacio.id] = espacio.nombre;
-            return acc;
-          }, {})
+          acc[espacio.id] = espacio.nombre;
+          return acc;
+        }, {})
         : {};
 
       // Validar respuestas principales
@@ -986,8 +988,8 @@
     // Intentar obtener usuario desde JWT primero
     const currentUser = JSON.parse(
       localStorage.getItem('currentUser') ||
-        sessionStorage.getItem('currentUser') ||
-        'null'
+      sessionStorage.getItem('currentUser') ||
+      'null'
     );
 
     let usuarioMostrar = null;
@@ -3132,26 +3134,24 @@
       if (servicio.dia_alerta || servicio.hora) {
         contenido += `
                 <div class="detalle-fecha-hora">
-                    ${
-                      servicio.dia_alerta
-                        ? `
+                    ${servicio.dia_alerta
+            ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-calendar-alt"></i> Día de Alerta</div>
                             <div class="detalle-valor">${formatearDiaAlerta(servicio.dia_alerta)}</div>
                         </div>
                     `
-                        : ''
-                    }
-                    ${
-                      servicio.hora
-                        ? `
+            : ''
+          }
+                    ${servicio.hora
+            ? `
                         <div class="detalle-item">
                             <div class="detalle-label"><i class="fas fa-clock"></i> Hora de Alerta</div>
                             <div class="detalle-valor">${formatearHora(servicio.hora)}</div>
                         </div>
                     `
-                        : ''
-                    }
+            : ''
+          }
                 </div>
             `;
       }
@@ -3197,6 +3197,20 @@
     body.innerHTML = contenido;
     modal.style.display = 'flex';
     lockBodyScroll();
+
+    // Agregar handler para cerrar con ESC (mismo patrón que modales de sábana)
+    if (!cerrarModalDetallesEscHandler) {
+      cerrarModalDetallesEscHandler = function (e) {
+        if (e.key === 'Escape') {
+          const modalVisible = document.getElementById('modalDetallesServicio');
+          if (modalVisible && modalVisible.style.display === 'flex') {
+            e.stopImmediatePropagation();
+            cerrarModalDetalles();
+          }
+        }
+      };
+      document.addEventListener('keydown', cerrarModalDetallesEscHandler);
+    }
 
     // Animar entrada
     setTimeout(() => {
@@ -3282,16 +3296,15 @@
                     </div>
                     <div class="detalle-valor-modal">
                         ${escapeHtml(servicio.descripcion)}
-                        ${
-                          servicio.dia_alerta || servicio.hora
-                            ? `
+                        ${servicio.dia_alerta || servicio.hora
+            ? `
                             <div style="font-size: 0.85rem; color: var(--texto-secundario); margin-top: 0.3rem;">
                                 ${servicio.dia_alerta ? formatearDiaAlerta(servicio.dia_alerta) : ''} 
                                 ${servicio.hora ? formatearHora(servicio.hora) : ''}
                             </div>
                         `
-                            : ''
-                        }
+            : ''
+          }
                     </div>
                     <i class="fas fa-chevron-right" style="color: var(--texto-secundario); font-size: 0.9rem;"></i>
                 </div>
@@ -3312,6 +3325,20 @@
     body.innerHTML = contenido;
     modal.style.display = 'flex';
     lockBodyScroll();
+
+    // Agregar handler para cerrar con ESC (mismo patrón que modales de sábana)
+    if (!cerrarModalDetallesEscHandler) {
+      cerrarModalDetallesEscHandler = function (e) {
+        if (e.key === 'Escape') {
+          const modalVisible = document.getElementById('modalDetallesServicio');
+          if (modalVisible && modalVisible.style.display === 'flex') {
+            e.stopImmediatePropagation();
+            cerrarModalDetalles();
+          }
+        }
+      };
+      document.addEventListener('keydown', cerrarModalDetallesEscHandler);
+    }
   };
 
   /**
@@ -3842,8 +3869,8 @@
       // Verificar que el servicio esté en el array antes de regenerar HTML
       const servicioEnArray = esEspacio
         ? window.appLoaderState?.mantenimientosEspacios?.find(
-            (m) => m.id == servicioId
-          )
+          (m) => m.id == servicioId
+        )
         : mantenimientos.find((m) => m.id == servicioId);
 
       if (servicioEnArray) {
@@ -3938,16 +3965,27 @@
    */
   window.cerrarModalDetalles = function () {
     const modal = document.getElementById('modalDetallesServicio');
+    if (!modal) return;
     const contenido = modal.querySelector('.modal-detalles-contenido');
 
+    // Remover handler de ESC
+    if (cerrarModalDetallesEscHandler) {
+      document.removeEventListener('keydown', cerrarModalDetallesEscHandler);
+      cerrarModalDetallesEscHandler = null;
+    }
+
     // Animar salida
-    contenido.style.opacity = '0';
-    contenido.style.transform = 'translateY(30px)';
+    if (contenido) {
+      contenido.style.opacity = '0';
+      contenido.style.transform = 'translateY(30px)';
+    }
 
     setTimeout(() => {
       modal.style.display = 'none';
-      contenido.style.opacity = '1';
-      contenido.style.transform = 'translateY(0)';
+      if (contenido) {
+        contenido.style.opacity = '1';
+        contenido.style.transform = 'translateY(0)';
+      }
       unlockBodyScrollIfNoModal();
     }, 200);
   };
@@ -4043,8 +4081,8 @@
       // Cerrar modal de detalles de checklist
       const modalChecklist = document.getElementById('checklist-details-modal');
       if (modalChecklist && modalChecklist.style.display !== 'none') {
-        if (typeof closeChecklistDetailsModal === 'function') {
-          closeChecklistDetailsModal();
+        if (typeof window.closeChecklistDetailsModal === 'function') {
+          window.closeChecklistDetailsModal();
         } else {
           modalChecklist.style.display = 'none';
           document.body.classList.remove('modal-open');
@@ -4152,9 +4190,15 @@
 
     if (enModoEdicion) {
       // Desactivar modo edición
-      
+
       botonEditar.classList.remove('modo-edicion-activo');
       botonEditar.innerHTML = '<i class="fas fa-edit"></i> Editar';
+
+      // Remover handler de ESC
+      if (cerrarModoEdicionEscHandler) {
+        document.removeEventListener('keydown', cerrarModoEdicionEscHandler);
+        cerrarModoEdicionEscHandler = null;
+      }
 
       // Habilitar el badge dropdown
       if (badgeDropdown) {
@@ -4173,7 +4217,7 @@
       );
     } else {
       // Activar modo edición
-      
+
       botonEditar.classList.add('modo-edicion-activo');
       botonEditar.innerHTML = '<i class="fas fa-check"></i> Listo';
 
@@ -4209,6 +4253,28 @@
         cuartoId,
         true
       );
+
+      // Agregar handler para salir con ESC
+      if (!cerrarModoEdicionEscHandler) {
+        cerrarModoEdicionEscHandler = function (e) {
+          if (e.key === 'Escape') {
+            // Verificar si hay un modal abierto - no cerrar modo edición si hay modal
+            const modalDetalles = document.getElementById('modalDetallesServicio');
+            if (modalDetalles && modalDetalles.style.display === 'flex') return;
+
+            // Buscar cualquier card con modo edición activo y cerrarlo
+            const btnActivo = document.querySelector('[id^="btn-editar-"].modo-edicion-activo:not([id^="btn-editar-espacio-"])');
+            if (btnActivo) {
+              const id = parseInt(btnActivo.id.replace('btn-editar-', ''), 10);
+              if (!Number.isNaN(id)) {
+                e.stopImmediatePropagation();
+                toggleModoEdicion(id);
+              }
+            }
+          }
+        };
+        document.addEventListener('keydown', cerrarModoEdicionEscHandler);
+      }
     }
   };
 
