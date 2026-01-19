@@ -4381,20 +4381,20 @@
             <!-- Campos de alerta (visibles si es alerta o se activa el toggle) -->
             <div class="form-inline-field-group" id="campos-alerta-edit-${servicioId}" style="display: ${esAlerta ? 'block' : 'none'};">
                 <label class="form-inline-label">
-                    <i class="fas fa-calendar-alt"></i> Fecha y Hora
+                    <i class="fas fa-calendar-alt"></i> Hora y Fecha
                 </label>
                 <div class="form-inline-row">
-                    <input 
-                        type="date" 
-                        class="input-edicion-inline input-small" 
-                        id="edit-dia-${servicioId}" 
-                        value="${diaAlertaFormatted}"
-                    />
                     <input 
                         type="time" 
                         class="input-edicion-inline input-small" 
                         id="edit-hora-${servicioId}" 
                         value="${servicio.hora || ''}"
+                    />
+                    <input 
+                        type="date" 
+                        class="input-edicion-inline input-small" 
+                        id="edit-dia-${servicioId}" 
+                        value="${diaAlertaFormatted}"
                     />
                 </div>
             </div>
