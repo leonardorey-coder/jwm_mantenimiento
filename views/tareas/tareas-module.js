@@ -6269,6 +6269,59 @@ async function guardarServicioEnModalTarea(modalSuffix) {
     const servicioCreado = await response.json();
     console.log('✅ Servicio creado:', servicioCreado);
 
+    // Agregar el servicio al array local de mantenimientos para que aparezca en la card
+    if (es_espacio) {
+      // Para espacios comunes
+      if (window.appLoaderState && window.appLoaderState.mantenimientosEspacios) {
+        window.appLoaderState.mantenimientosEspacios.push(servicioCreado);
+      }
+      // Actualizar la card de espacio
+      if (typeof window.renderizarServiciosEspacio === 'function') {
+        window.renderizarServiciosEspacio(ubicacion_id);
+      }
+    } else {
+      // Para habitaciones - agregar al array global de mantenimientos
+      if (window.appLoaderState && window.appLoaderState.mantenimientos) {
+        window.appLoaderState.mantenimientos.push(servicioCreado);
+      }
+      // También agregar a la variable local si existe
+      if (typeof mantenimientos !== 'undefined' && Array.isArray(mantenimientos)) {
+        mantenimientos.push(servicioCreado);
+      }
+      // Actualizar la card de habitación
+      const contenedorServicios = document.getElementById(`servicios-${ubicacion_id}`);
+      if (contenedorServicios && typeof window.generarServiciosHTML === 'function') {
+        const serviciosCuarto = (window.appLoaderState?.mantenimientos || []).filter(
+          (m) => m.cuarto_id === ubicacion_id
+        );
+        const btnEditar = document.getElementById(`btn-editar-${ubicacion_id}`);
+        const enModoEdicion = btnEditar && btnEditar.classList.contains('modo-edicion-activo');
+        contenedorServicios.innerHTML = window.generarServiciosHTML(
+          serviciosCuarto,
+          ubicacion_id,
+          enModoEdicion
+        );
+
+        // Mostrar botón editar si ahora hay servicios y no existía
+        if (!btnEditar && serviciosCuarto.length > 0) {
+          const contenedorAcciones = contenedorServicios.closest('li')?.querySelector('.habitacion-acciones');
+          if (contenedorAcciones) {
+            const btnAgregar = contenedorAcciones.querySelector('.boton-principal');
+            if (btnAgregar) {
+              const nuevoBtn = document.createElement('button');
+              nuevoBtn.className = 'habitacion-boton boton-secundario';
+              nuevoBtn.id = `btn-editar-${ubicacion_id}`;
+              nuevoBtn.onclick = () => window.toggleModoEdicion(ubicacion_id);
+              nuevoBtn.innerHTML = '<i class="fas fa-edit"></i> Editar';
+              contenedorAcciones.insertBefore(nuevoBtn, btnAgregar);
+            }
+          }
+        } else if (btnEditar) {
+          btnEditar.style.display = '';
+        }
+      }
+    }
+
     notificar('¡Servicio creado y seleccionado!', 'success');
 
     // Limpiar y colapsar formulario

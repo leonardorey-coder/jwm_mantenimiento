@@ -7027,6 +7027,10 @@ body.admin a.admin-only {
   transition: var(--transicion-rapida);
   font-size: 0.9rem;
   flex-shrink: 0;
+  /* Asegurar que el botón esté por encima del pseudo-elemento ::after del header
+     (que tiene z-index: 10 para el handle deslizante estilo iOS en móviles) */
+  position: relative;
+  z-index: 20;
 }
 
 .modal-detalles-cerrar:hover {
