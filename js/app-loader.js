@@ -2588,6 +2588,7 @@
 
   /**
    * Verificar alertas pendientes y emitir notificaciones
+   * UNIFICADO: Incluye tanto alertas de habitaciones como de espacios comunes
    */
   async function verificarYEmitirAlertas() {
     try {
@@ -2598,20 +2599,34 @@
 
       console.log(`🕒 Verificando alertas - ${fechaActual} ${horaActual}`);
 
+      // UNIFICADO: Combinar alertas de habitaciones y espacios comunes
+      const mantenimientosEspacios = window.appLoaderState?.mantenimientosEspacios || [];
+      const todasLasAlertas = [...mantenimientos, ...mantenimientosEspacios];
+
+      // Eliminar duplicados por ID (por si acaso)
+      const alertasUnicas = todasLasAlertas.reduce((acc, current) => {
+        const exists = acc.find(item => item.id === current.id);
+        if (!exists) {
+          acc.push(current);
+        }
+        return acc;
+      }, []);
+
       // Debug: mostrar todas las rutinas disponibles
-      const todasLasRutinas = mantenimientos.filter((m) => m.tipo === 'rutina');
+      const todasLasRutinas = alertasUnicas.filter((m) => m.tipo === 'rutina');
       console.log(
-        `📅 Total rutinas: ${todasLasRutinas.length}`,
+        `📅 Total rutinas (hab + espacios): ${todasLasRutinas.length}`,
         todasLasRutinas.map((r) => {
           const fechaAlerta = r.dia_alerta?.includes('T')
             ? r.dia_alerta.split('T')[0]
             : r.dia_alerta;
-          return `ID${r.id}(${fechaAlerta} ${r.hora})`;
+          const tipo = r.espacio_comun_id ? '🏢' : '🛏️';
+          return `${tipo}ID${r.id}(${fechaAlerta} ${r.hora})`;
         })
       );
 
       // Filtrar alertas que deben notificarse ahora
-      const alertasPorNotificar = mantenimientos.filter((m) => {
+      const alertasPorNotificar = alertasUnicas.filter((m) => {
         if (m.tipo !== 'rutina' || !m.dia_alerta || !m.hora) {
           return false;
         }
@@ -2636,8 +2651,9 @@
         const coincide = horaAlerta === horaActual;
 
         if (coincide) {
+          const tipo = m.espacio_comun_id ? '🏢 Espacio' : '🛏️ Habitación';
           console.log(
-            `✅ Alerta ID${m.id} coincide: ${fechaAlerta} ${horaAlerta} === ${fechaActual} ${horaActual}`
+            `✅ Alerta ${tipo} ID${m.id} coincide: ${fechaAlerta} ${horaAlerta} === ${fechaActual} ${horaActual}`
           );
         }
 
@@ -2650,20 +2666,85 @@
       for (const alerta of alertasPorNotificar) {
         await emitirNotificacionAlerta(alerta);
       }
+
+      // NUEVO: Verificar alertas pasadas que deberían haberse emitido
+      // (para transición automática de pendiente a del día)
+      await verificarAlertasPasadasSinEmitir(alertasUnicas, fechaActual, horaActual);
+
     } catch (error) {
       console.error('Error verificando alertas:', error);
     }
   }
 
   /**
+   * Verificar alertas pasadas que deberían haberse emitido
+   * Permite transición automática de "pendiente" a "del día" sin recargar
+   */
+  async function verificarAlertasPasadasSinEmitir(alertasUnicas, fechaActual, horaActual) {
+    try {
+      const alertasPasadas = alertasUnicas.filter((m) => {
+        if (m.tipo !== 'rutina' || !m.dia_alerta || !m.hora) return false;
+        if (m.alerta_emitida || alertasEmitidas.has(m.id)) return false;
+
+        const fechaAlerta = m.dia_alerta.includes('T')
+          ? m.dia_alerta.split('T')[0]
+          : m.dia_alerta;
+        const horaAlerta = m.hora.slice(0, 5);
+
+        // Verificar si la alerta ya pasó
+        const fechaPasada = fechaAlerta < fechaActual;
+        const mismaFechaHoraPasada = fechaAlerta === fechaActual && horaAlerta < horaActual;
+
+        return fechaPasada || mismaFechaHoraPasada;
+      });
+
+      if (alertasPasadas.length > 0) {
+        console.log(`⏰ Encontradas ${alertasPasadas.length} alertas pasadas sin emitir`);
+        for (const alerta of alertasPasadas) {
+          await emitirNotificacionAlerta(alerta);
+        }
+      }
+    } catch (error) {
+      console.error('Error verificando alertas pasadas:', error);
+    }
+  }
+
+  /**
    * Emitir notificación para una alerta específica
+   * MEJORADO: Actualiza UI de habitaciones Y espacios, con vibración móvil
    */
   async function emitirNotificacionAlerta(alerta) {
     try {
-      console.log(`🚨 Emitiendo alerta para:`, alerta);
+      const isEspacioComun = !!alerta.espacio_comun_id;
+      const tipoAlerta = isEspacioComun ? '🏢 Espacio' : '🛏️ Habitación';
+      console.log(`🚨 Emitiendo alerta ${tipoAlerta} para:`, alerta);
 
       // Marcar inmediatamente en memoria para evitar duplicados
       alertasEmitidas.add(alerta.id);
+
+      // Actualizar también el objeto en memoria
+      alerta.alerta_emitida = true;
+
+      // Actualizar en el array de mantenimientos según el tipo
+      if (isEspacioComun) {
+        const mantenimientosEspacios = window.appLoaderState?.mantenimientosEspacios || [];
+        const indexEspacio = mantenimientosEspacios.findIndex(m => m.id === alerta.id);
+        if (indexEspacio !== -1) {
+          mantenimientosEspacios[indexEspacio].alerta_emitida = true;
+        }
+        // Actualizar también en AppState
+        if (window.AppState?.mantenimientosEspacios) {
+          const idx = window.AppState.mantenimientosEspacios.findIndex(m => m.id === alerta.id);
+          if (idx !== -1) {
+            window.AppState.mantenimientosEspacios[idx].alerta_emitida = true;
+          }
+        }
+      } else {
+        const indexHab = mantenimientos.findIndex(m => m.id === alerta.id);
+        if (indexHab !== -1) {
+          mantenimientos[indexHab].alerta_emitida = true;
+        }
+      }
 
       // Marcar como emitida en la base de datos usando PATCH /emitir
       try {
@@ -2690,16 +2771,14 @@
       }
 
       // Obtener información de la ubicación (cuarto o espacio)
-      const isEspacioComun = !!alerta.espacio_comun_id;
       const ubicacionId = isEspacioComun
         ? alerta.espacio_comun_id
         : alerta.cuarto_id;
       let nombreUbicacion, edificio, nombreEdificio;
 
       if (isEspacioComun) {
-        const espacio = window.appLoaderState.espaciosComunes.find(
-          (e) => e.id === ubicacionId
-        );
+        const espacios = window.appLoaderState?.espaciosComunes || [];
+        const espacio = espacios.find((e) => e.id === ubicacionId);
         nombreUbicacion = espacio ? espacio.nombre : `Espacio ${ubicacionId}`;
         edificio = espacio
           ? edificios.find((e) => e.id === espacio.edificio_id)
@@ -2722,22 +2801,33 @@
       // Reproducir sonido (con manejo de restricciones)
       reproducirSonidoAlerta();
 
-      // Mostrar notificación del navegador
+      // Vibrar en dispositivos móviles
+      if ('vibrate' in navigator) {
+        navigator.vibrate([200, 100, 200]);
+      }
+
+      // Mostrar notificación del navegador/PWA
       mostrarNotificacionNavegador(titulo, mensaje, alerta);
 
-      // Actualizar inmediatamente la interfaz
-      mostrarAlertasEmitidas();
-      mostrarHistorialAlertas();
-
-      // Recargar datos después de un momento para reflejar cambios de BD
-      setTimeout(async () => {
-        await cargarDatos();
+      // ACTUALIZACIÓN INMEDIATA DE UI - Sin recargar página
+      // Actualizar paneles de habitaciones
+      if (typeof mostrarAlertasEmitidas === 'function') {
         mostrarAlertasEmitidas();
+      }
+      if (typeof mostrarHistorialAlertas === 'function') {
         mostrarHistorialAlertas();
-      }, 1000);
+      }
+      if (typeof mostrarAlertasYRecientes === 'function') {
+        mostrarAlertasYRecientes();
+      }
+
+      // Actualizar paneles de espacios comunes
+      if (window.cargarAlertasEspacios) {
+        window.cargarAlertasEspacios();
+      }
 
       console.log(
-        `✅ Alerta emitida correctamente para ${nombreCuarto} (ID: ${alerta.id})`
+        `✅ Alerta emitida correctamente para ${nombreUbicacion} (ID: ${alerta.id})`
       );
     } catch (error) {
       console.error('Error emitiendo notificación:', error);
@@ -2853,39 +2943,91 @@
 
   /**
    * Mostrar notificación del navegador
+   * MEJORADO: Usa Service Worker cuando está disponible, solicita permisos si no están definidos
    */
-  function mostrarNotificacionNavegador(titulo, mensaje, alerta) {
+  async function mostrarNotificacionNavegador(titulo, mensaje, alerta) {
     try {
-      if ('Notification' in window && Notification.permission === 'granted') {
+      // Verificar si el navegador soporta notificaciones
+      if (!('Notification' in window)) {
+        console.warn('Este navegador no soporta notificaciones');
+        mostrarNotificacionFallback(titulo, mensaje);
+        return;
+      }
+
+      // Si los permisos no están concedidos, intentar solicitarlos
+      if (Notification.permission === 'default') {
+        console.log('🔔 Solicitando permisos de notificación...');
+        const permission = await Notification.requestPermission();
+        console.log('🔔 Permiso otorgado:', permission);
+      }
+
+      if (Notification.permission === 'granted') {
+        // Intentar usar Service Worker para notificaciones persistentes (PWA)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          try {
+            const registration = await navigator.serviceWorker.ready;
+            await registration.showNotification(titulo, {
+              body: mensaje,
+              icon: 'icons/icon-192x192.png',
+              badge: 'icons/icon-192x192.png',
+              requireInteraction: true,
+              tag: `alerta-${alerta.id}`,
+              vibrate: [200, 100, 200],
+              data: {
+                alertaId: alerta.id,
+                isEspacioComun: !!alerta.espacio_comun_id,
+                ubicacionId: alerta.espacio_comun_id || alerta.cuarto_id
+              },
+              actions: [
+                { action: 'ver', title: 'Ver Alerta' },
+                { action: 'descartar', title: 'Descartar' }
+              ]
+            });
+            console.log('✅ Notificación mostrada via Service Worker');
+            return;
+          } catch (swError) {
+            console.warn('⚠️ Error usando Service Worker, usando fallback:', swError);
+          }
+        }
+
+        // Fallback: notificación del navegador normal
         const notification = new Notification(titulo, {
           body: mensaje,
           icon: 'icons/icon-192x192.png',
           badge: 'icons/icon-192x192.png',
           requireInteraction: true,
-          tag: `alerta-${alerta.id}`, // Para evitar duplicados
+          tag: `alerta-${alerta.id}`,
         });
 
         notification.onclick = function () {
           window.focus();
-          const isEspacioComun = !!alerta.espacio_comun_id;
-          const ubicacionId = isEspacioComun
-            ? alerta.espacio_comun_id
-            : alerta.cuarto_id;
-          //scrollToElement(ubicacionId, isEspacioComun);
           notification.close();
         };
 
-        // Auto-cerrar después de 10 segundos
+        // Auto-cerrar después de 15 segundos
         setTimeout(() => {
           notification.close();
-        }, 10000);
-      } else {
-        // Fallback: mostrar alert del navegador
-        electronSafeAlert(`${titulo}\n\n${mensaje}`);
+        }, 15000);
+
+      } else if (Notification.permission === 'denied') {
+        console.warn('⚠️ Notificaciones bloqueadas por el usuario');
+        mostrarNotificacionFallback(titulo, mensaje);
       }
     } catch (error) {
       console.warn('Error mostrando notificación del navegador:', error);
-      // Fallback final
+      mostrarNotificacionFallback(titulo, mensaje);
+    }
+  }
+
+  /**
+   * Mostrar notificación visual como fallback cuando las notificaciones del navegador no están disponibles
+   */
+  function mostrarNotificacionFallback(titulo, mensaje) {
+    // Usar mostrarAlertaBlur si está disponible
+    if (window.mostrarAlertaBlur) {
+      window.mostrarAlertaBlur(`${titulo}: ${mensaje}`, 'warning');
+    } else {
+      // Fallback final: alert del navegador
       electronSafeAlert(`${titulo}\n\n${mensaje}`);
     }
   }
