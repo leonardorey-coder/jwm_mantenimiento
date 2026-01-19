@@ -1144,6 +1144,76 @@ app.get('/api/alertas/pendientes', async (req, res) => {
   }
 });
 
+// Obtener alertas pendientes de hoy (habitaciones + espacios) - Para Service Worker
+app.get('/api/alertas/pendientes-hoy', async (req, res) => {
+  try {
+    console.log('📋 [SW] Obteniendo alertas pendientes de hoy (habitaciones + espacios)');
+
+    if (!postgresManager) {
+      console.warn('⚠️ postgresManager no disponible');
+      return res.json([]);
+    }
+
+    // Obtener fecha de hoy en formato YYYY-MM-DD
+    const hoy = new Date();
+    const fechaHoy = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+    // Query para alertas de habitaciones
+    const queryHabitaciones = `
+      SELECT m.*, 
+             c.numero as cuarto_nombre,
+             e.nombre as edificio_nombre,
+             NULL as espacio_nombre
+      FROM mantenimientos m
+      LEFT JOIN cuartos c ON m.cuarto_id = c.id
+      LEFT JOIN edificios e ON c.edificio_id = e.id
+      WHERE m.tipo = 'rutina'
+        AND m.cuarto_id IS NOT NULL
+        AND m.espacio_comun_id IS NULL
+        AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
+        AND m.estado IN ('pendiente', 'en_proceso')
+        AND (m.dia_alerta::date <= $1::date)
+      ORDER BY m.dia_alerta, m.hora
+    `;
+
+    // Query para alertas de espacios comunes
+    const queryEspacios = `
+      SELECT m.*, 
+             NULL as cuarto_nombre,
+             e.nombre as edificio_nombre,
+             ec.nombre as espacio_nombre
+      FROM mantenimientos m
+      LEFT JOIN espacios_comunes ec ON m.espacio_comun_id = ec.id
+      LEFT JOIN areas a ON ec.area_id = a.id
+      LEFT JOIN edificios e ON a.edificio_id = e.id
+      WHERE m.tipo = 'rutina'
+        AND m.espacio_comun_id IS NOT NULL
+        AND (m.alerta_emitida = FALSE OR m.alerta_emitida IS NULL)
+        AND m.estado IN ('pendiente', 'en_proceso')
+        AND (m.dia_alerta::date <= $1::date)
+      ORDER BY m.dia_alerta, m.hora
+    `;
+
+    const [habitacionesResult, espaciosResult] = await Promise.all([
+      postgresManager.pool.query(queryHabitaciones, [fechaHoy]),
+      postgresManager.pool.query(queryEspacios, [fechaHoy])
+    ]);
+
+    const todasAlertas = [...habitacionesResult.rows, ...espaciosResult.rows];
+
+    console.log(`✅ Alertas pendientes hoy: ${todasAlertas.length} (${habitacionesResult.rows.length} hab + ${espaciosResult.rows.length} espacios)`);
+
+    res.json(todasAlertas);
+
+  } catch (error) {
+    console.error('❌ Error obteniendo alertas pendientes hoy:', error);
+    res.status(500).json({
+      error: 'Error al obtener alertas pendientes',
+      details: error.message
+    });
+  }
+});
+
 // Marcar alerta como emitida
 app.patch('/api/mantenimientos/:id/emitir', async (req, res) => {
   try {

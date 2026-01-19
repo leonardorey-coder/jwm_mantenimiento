@@ -204,3 +204,169 @@ self.addEventListener('notificationclose', (event) => {
   console.log('🔔 [SW] Notificación cerrada');
 });
 
+// ========================================
+// PERIODIC BACKGROUND SYNC - Verificar alertas en segundo plano
+// ========================================
+
+/**
+ * Manejar sincronización periódica en segundo plano
+ * Se ejecuta incluso cuando la app está cerrada (solo Android/Chrome)
+ */
+self.addEventListener('periodicsync', (event) => {
+  console.log('🔄 [SW] Periodic sync ejecutándose:', event.tag);
+
+  if (event.tag === 'verificar-alertas') {
+    event.waitUntil(verificarAlertasEnBackground());
+  }
+});
+
+/**
+ * Manejar sincronización normal (cuando vuelve la conexión)
+ */
+self.addEventListener('sync', (event) => {
+  console.log('🔄 [SW] Background sync ejecutándose:', event.tag);
+
+  if (event.tag === 'verificar-alertas-sync') {
+    event.waitUntil(verificarAlertasEnBackground());
+  }
+});
+
+/**
+ * Verificar alertas pendientes desde el Service Worker
+ * Hace fetch a la API y muestra notificaciones para alertas que coincidan
+ */
+async function verificarAlertasEnBackground() {
+  try {
+    console.log('🔍 [SW] Verificando alertas en background...');
+
+    // Obtener la URL base desde los clientes
+    const clients = await self.clients.matchAll();
+    let apiBaseUrl = '';
+
+    if (clients.length > 0) {
+      const clientUrl = new URL(clients[0].url);
+      apiBaseUrl = clientUrl.origin;
+    } else {
+      // Fallback: usar la ubicación del SW
+      apiBaseUrl = self.location.origin;
+    }
+
+    // Obtener alertas pendientes de la API
+    const response = await fetch(`${apiBaseUrl}/api/alertas/pendientes-hoy`);
+
+    if (!response.ok) {
+      console.error('❌ [SW] Error obteniendo alertas:', response.status);
+      return;
+    }
+
+    const alertas = await response.json();
+    console.log(`📋 [SW] Alertas pendientes encontradas: ${alertas.length}`);
+
+    const ahora = new Date();
+    const horaActual = ahora.toTimeString().slice(0, 5);
+    const fechaActual = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}-${String(ahora.getDate()).padStart(2, '0')}`;
+
+    // Filtrar alertas que deberían emitirse ahora o ya pasaron
+    const alertasPorEmitir = alertas.filter(alerta => {
+      if (alerta.tipo !== 'rutina' || !alerta.dia_alerta || !alerta.hora) return false;
+      if (alerta.alerta_emitida) return false;
+
+      const fechaAlerta = alerta.dia_alerta.includes('T')
+        ? alerta.dia_alerta.split('T')[0]
+        : alerta.dia_alerta;
+      const horaAlerta = alerta.hora.slice(0, 5);
+
+      // Verificar si la fecha/hora ya pasó o coincide con ahora
+      const fechaPasada = fechaAlerta < fechaActual;
+      const mismaFecha = fechaAlerta === fechaActual;
+      const horaPasadaOMisma = horaAlerta <= horaActual;
+
+      return fechaPasada || (mismaFecha && horaPasadaOMisma);
+    });
+
+    console.log(`📢 [SW] Alertas por emitir: ${alertasPorEmitir.length}`);
+
+    // Mostrar notificación para cada alerta
+    for (const alerta of alertasPorEmitir) {
+      await mostrarNotificacionAlerta(alerta, apiBaseUrl);
+    }
+
+    // Notificar a los clientes abiertos para que actualicen su UI
+    await notificarClientesActualizar();
+
+  } catch (error) {
+    console.error('❌ [SW] Error en verificación background:', error);
+  }
+}
+
+/**
+ * Mostrar notificación para una alerta específica
+ */
+async function mostrarNotificacionAlerta(alerta, apiBaseUrl) {
+  try {
+    const isEspacioComun = !!alerta.espacio_comun_id;
+    const ubicacion = alerta.espacio_nombre || alerta.cuarto_nombre ||
+      (isEspacioComun ? `Espacio #${alerta.espacio_comun_id}` : `Cuarto #${alerta.cuarto_id}`);
+
+    const titulo = '🔔 Alerta de Mantenimiento';
+    const mensaje = `${ubicacion}\n${alerta.descripcion}`;
+
+    // Mostrar notificación
+    await self.registration.showNotification(titulo, {
+      body: mensaje,
+      icon: './icons/icon-192x192.png',
+      badge: './icons/icon-192x192.png',
+      tag: `alerta-${alerta.id}`,
+      requireInteraction: true,
+      vibrate: [200, 100, 200],
+      data: {
+        alertaId: alerta.id,
+        isEspacioComun: isEspacioComun
+      },
+      actions: [
+        { action: 'ver', title: 'Ver Alerta' },
+        { action: 'descartar', title: 'Descartar' }
+      ]
+    });
+
+    // Marcar como emitida en el servidor
+    try {
+      await fetch(`${apiBaseUrl}/api/mantenimientos/${alerta.id}/emitir`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      console.log(`✅ [SW] Alerta ${alerta.id} marcada como emitida`);
+    } catch (err) {
+      console.warn(`⚠️ [SW] No se pudo marcar alerta ${alerta.id}:`, err);
+    }
+
+  } catch (error) {
+    console.error('❌ [SW] Error mostrando notificación:', error);
+  }
+}
+
+/**
+ * Notificar a los clientes abiertos para que actualicen su UI
+ */
+async function notificarClientesActualizar() {
+  const allClients = await self.clients.matchAll({ includeUncontrolled: true });
+
+  for (const client of allClients) {
+    client.postMessage({
+      type: 'ALERTAS_ACTUALIZADAS',
+      timestamp: Date.now()
+    });
+  }
+}
+
+/**
+ * Manejar mensajes desde el cliente
+ */
+self.addEventListener('message', (event) => {
+  console.log('📨 [SW] Mensaje recibido:', event.data);
+
+  if (event.data && event.data.type === 'VERIFICAR_ALERTAS') {
+    verificarAlertasEnBackground();
+  }
+});
+

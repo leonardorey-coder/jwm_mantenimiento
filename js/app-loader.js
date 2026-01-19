@@ -2548,6 +2548,7 @@
 
   /**
    * Iniciar el sistema de notificaciones automáticas
+   * MEJORADO: Incluye Periodic Background Sync para PWA móvil
    */
   function iniciarSistemaNotificaciones() {
     console.log('🔔 Iniciando sistema de notificaciones automáticas');
@@ -2555,7 +2556,16 @@
     // Solicitar permisos de notificación
     solicitarPermisosNotificacion();
 
-    // Verificar alertas cada 30 segundos
+    // Registrar Periodic Background Sync para PWA (Android)
+    registrarPeriodicSync();
+
+    // Escuchar mensajes del Service Worker
+    escucharMensajesSW();
+
+    // Recargar datos cuando la app vuelve al primer plano (PWA móvil)
+    configurarVisibilityChange();
+
+    // Verificar alertas cada 30 segundos (cuando la app está activa)
     if (intervalosNotificaciones) {
       clearInterval(intervalosNotificaciones);
     }
@@ -2568,6 +2578,116 @@
     setTimeout(() => verificarYEmitirAlertas(), 2000);
 
     console.log('✅ Sistema de notificaciones iniciado');
+  }
+
+  /**
+   * Registrar Periodic Background Sync para verificar alertas en segundo plano
+   * Solo funciona en Chrome/Android, no en iOS
+   */
+  async function registrarPeriodicSync() {
+    try {
+      if (!('serviceWorker' in navigator)) {
+        console.log('⚠️ Service Worker no soportado');
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+
+      // Verificar si periodic sync está disponible
+      if ('periodicSync' in registration) {
+        // Verificar permiso
+        const status = await navigator.permissions.query({
+          name: 'periodic-background-sync',
+        });
+
+        if (status.state === 'granted') {
+          // Registrar sincronización periódica cada 15 minutos (mínimo permitido)
+          await registration.periodicSync.register('verificar-alertas', {
+            minInterval: 15 * 60 * 1000, // 15 minutos
+          });
+          console.log('✅ Periodic Background Sync registrado (cada 15 min)');
+        } else {
+          console.log('⚠️ Periodic Sync no tiene permisos:', status.state);
+        }
+      } else {
+        console.log('⚠️ Periodic Background Sync no soportado en este navegador');
+
+        // Fallback: registrar sync normal para cuando vuelva la conexión
+        if ('sync' in registration) {
+          await registration.sync.register('verificar-alertas-sync');
+          console.log('✅ Background Sync (fallback) registrado');
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Error registrando Periodic Sync:', error);
+    }
+  }
+
+  /**
+   * Escuchar mensajes del Service Worker
+   */
+  function escucharMensajesSW() {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', async (event) => {
+        console.log('📨 Mensaje del SW recibido:', event.data);
+
+        if (event.data && event.data.type === 'ALERTAS_ACTUALIZADAS') {
+          console.log('🔄 SW notificó actualización de alertas, recargando datos...');
+
+          // Recargar datos y actualizar UI
+          await cargarDatos();
+
+          // Actualizar paneles de alertas
+          if (typeof mostrarAlertasEmitidas === 'function') {
+            mostrarAlertasEmitidas();
+          }
+          if (typeof mostrarAlertasYRecientes === 'function') {
+            mostrarAlertasYRecientes();
+          }
+          if (window.cargarAlertasEspacios) {
+            window.cargarAlertasEspacios();
+          }
+        }
+      });
+    }
+  }
+
+  /**
+   * Configurar evento visibilitychange para recargar datos cuando la app vuelve
+   * Crítico para PWA móvil donde el JS se pausa en segundo plano
+   */
+  function configurarVisibilityChange() {
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('👁️ App volvió al primer plano, verificando alertas...');
+
+        // Recargar datos desde el servidor
+        await cargarDatos();
+
+        // Verificar alertas inmediatamente
+        await verificarYEmitirAlertas();
+
+        // Actualizar paneles de UI
+        if (typeof mostrarAlertasEmitidas === 'function') {
+          mostrarAlertasEmitidas();
+        }
+        if (typeof mostrarAlertasYRecientes === 'function') {
+          mostrarAlertasYRecientes();
+        }
+        if (window.cargarAlertasEspacios) {
+          window.cargarAlertasEspacios();
+        }
+
+        // También solicitar al SW que verifique
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'VERIFICAR_ALERTAS'
+          });
+        }
+      }
+    });
+
+    console.log('✅ Listener visibilitychange configurado');
   }
 
   /**
