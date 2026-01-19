@@ -819,6 +819,10 @@ function handleModalDragStart(e) {
   const header = e.target.closest('.modal-detalles-header');
   if (!header) return;
 
+  // IMPORTANTE: Si el click/touch es en el botón de cierre, NO interceptar
+  const closeButton = e.target.closest('.modal-detalles-cerrar');
+  if (closeButton) return;
+
   const modalContent = header.closest(
     '.modal-detalles-contenido, .checklist-details-content'
   );

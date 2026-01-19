@@ -6838,10 +6838,12 @@ body.admin a.admin-only {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 80px;
+    width: 60px;
     height: 20px;
     cursor: grab;
     z-index: 10;
+    /* No bloquear clics hacia elementos debajo (como el botón de cierre) */
+    pointer-events: none;
   }
 
   .modal-detalles-header:active::before {
@@ -7030,7 +7032,9 @@ body.admin a.admin-only {
   /* Asegurar que el botón esté por encima del pseudo-elemento ::after del header
      (que tiene z-index: 10 para el handle deslizante estilo iOS en móviles) */
   position: relative;
-  z-index: 20;
+  z-index: 50;
+  /* Mejorar responsividad táctil en móviles */
+  touch-action: manipulation;
 }
 
 .modal-detalles-cerrar:hover {
