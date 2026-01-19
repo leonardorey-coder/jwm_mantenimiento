@@ -271,9 +271,16 @@ function openIphoneGuideFullScreen() {
   let dragDeltaX = 0;
   let dragDeltaY = 0;
   let dragging = false;
+  const activePointers = new Set();
 
   const onPointerDown = (e) => {
     if (e.button !== undefined && e.button !== 0) return;
+    activePointers.add(e.pointerId);
+    if (activePointers.size > 1) {
+      dragging = false;
+      resetDragStyles();
+      return;
+    }
     dragging = true;
     dragStartX = e.clientX;
     dragStartY = e.clientY;
@@ -284,7 +291,7 @@ function openIphoneGuideFullScreen() {
   };
 
   const onPointerMove = (e) => {
-    if (!dragging) return;
+    if (!dragging || activePointers.size > 1) return;
     dragDeltaX = e.clientX - dragStartX;
     dragDeltaY = e.clientY - dragStartY;
 
@@ -302,8 +309,9 @@ function openIphoneGuideFullScreen() {
     );
   };
 
-  const onPointerUp = () => {
-    if (!dragging) return;
+  const onPointerUp = (e) => {
+    activePointers.delete(e.pointerId);
+    if (!dragging || activePointers.size > 0) return;
     dragging = false;
     if (dragDeltaY > 120 || Math.abs(dragDeltaX) > 120) {
       cerrarIphoneGuideFullScreen();
