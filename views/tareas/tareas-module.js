@@ -245,11 +245,31 @@ function abrirModalCrearTarea(cuartoId) {
   modal.setAttribute('aria-hidden', 'false');
   lockBodyScroll();
 
+  // Agregar listener para heredar responsable al servicio cuando cambie en la tarea
+  const selectResponsableTarea = document.getElementById('crearTareaResponsable');
+  if (selectResponsableTarea) {
+    // Remover listener previo si existe
+    selectResponsableTarea.removeEventListener('change', heredarResponsableServicioCrear);
+    selectResponsableTarea.addEventListener('change', heredarResponsableServicioCrear);
+  }
+
+  // Resetear el formulario de servicio embebido cuando se abre el modal
+  resetFormServicioEnTareaAlAbrir('Crear');
+
   // Foco en el primer campo
   setTimeout(() => {
     const primerInput = document.getElementById('crearTareaNombre');
     if (primerInput) primerInput.focus();
   }, 100);
+}
+
+// Función para heredar responsable cuando cambia en el modal Crear
+function heredarResponsableServicioCrear() {
+  const selectResponsableTarea = document.getElementById('crearTareaResponsable');
+  const selectServicioAsignado = document.getElementById('servicioTareaAsignadoCrear');
+  if (selectResponsableTarea && selectServicioAsignado) {
+    selectServicioAsignado.value = selectResponsableTarea.value;
+  }
 }
 
 // Variables para lazy loading de servicios
@@ -1188,9 +1208,29 @@ async function abrirModalEditarTarea(tareaId) {
     modal.style.display = 'flex';
     modal.setAttribute('aria-hidden', 'false');
     lockBodyScroll();
+
+    // Agregar listener para heredar responsable al servicio cuando cambie en la tarea
+    const selectResponsableTarea = document.getElementById('editarTareaResponsable');
+    if (selectResponsableTarea) {
+      // Remover listener previo si existe
+      selectResponsableTarea.removeEventListener('change', heredarResponsableServicioEditar);
+      selectResponsableTarea.addEventListener('change', heredarResponsableServicioEditar);
+    }
+
+    // Resetear el formulario de servicio embebido cuando se abre el modal
+    resetFormServicioEnTareaAlAbrir('Editar');
   } catch (error) {
     console.error('Error al abrir modal de edición:', error);
     mostrarNotificacion('No se pudieron cargar los datos de la tarea', 'error');
+  }
+}
+
+// Función para heredar responsable cuando cambia en el modal Editar
+function heredarResponsableServicioEditar() {
+  const selectResponsableTarea = document.getElementById('editarTareaResponsable');
+  const selectServicioAsignado = document.getElementById('servicioTareaAsignadoEditar');
+  if (selectResponsableTarea && selectServicioAsignado) {
+    selectServicioAsignado.value = selectResponsableTarea.value;
   }
 }
 
@@ -5810,6 +5850,15 @@ function toggleFormServicioEnTarea(modalSuffix) {
     const labelHab = document.getElementById(`ubicacionLabelHab${modalSuffix}`);
     if (labelHab) labelHab.classList.add('activo');
 
+    // Heredar responsable de la tarea cuando se expande el formulario
+    const responsableTareaId = modalSuffix === 'Crear'
+      ? document.getElementById('crearTareaResponsable')?.value
+      : document.getElementById('editarTareaResponsable')?.value;
+
+    if (responsableTareaId && selectUsuario) {
+      selectUsuario.value = responsableTareaId;
+    }
+
     // Focus en descripción
     setTimeout(() => {
       const inputDescripcion = document.getElementById(
@@ -5817,6 +5866,25 @@ function toggleFormServicioEnTarea(modalSuffix) {
       );
       if (inputDescripcion) inputDescripcion.focus();
     }, 100);
+
+    // Agregar listener de Enter para guardar servicio (solo para el form embebido)
+    if (!form.dataset.enterListenerAdded) {
+      form.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          // No hacer nada si es un textarea
+          if (e.target.tagName === 'TEXTAREA') return;
+
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Llamar a guardar servicio
+          if (typeof guardarServicioEnModalTarea === 'function') {
+            guardarServicioEnModalTarea(modalSuffix);
+          }
+        }
+      });
+      form.dataset.enterListenerAdded = 'true';
+    }
   }
 }
 
@@ -5873,6 +5941,15 @@ async function poblarSelectUsuariosServicio(modalSuffix) {
     });
 
     console.log(`👤 ${usuarios.length} usuarios cargados en selector de servicio`);
+
+    // Heredar responsable de la tarea después de poblar el select
+    const responsableTareaId = modalSuffix === 'Crear'
+      ? document.getElementById('crearTareaResponsable')?.value
+      : document.getElementById('editarTareaResponsable')?.value;
+
+    if (responsableTareaId) {
+      select.value = responsableTareaId;
+    }
   } catch (error) {
     console.error('Error al cargar usuarios para servicio:', error);
   }
@@ -6123,15 +6200,111 @@ function resetFormServicioEnTarea(modalSuffix) {
   if (hora) hora.value = '';
   if (dia) dia.value = '';
   if (estado) estado.value = 'pendiente';
-  if (asignado) asignado.value = '';
   if (notas) notas.value = '';
   if (camposAlerta) camposAlerta.style.display = 'none';
+
+  // Reset ubicación toggle a Habitación (false = habitación)
+  const ubicacionToggle = document.getElementById(`ubicacionTipo${modalSuffix}`);
+  const labelHab = document.getElementById(`ubicacionLabelHab${modalSuffix}`);
+  const labelEsp = document.getElementById(`ubicacionLabelEsp${modalSuffix}`);
+  if (ubicacionToggle) {
+    ubicacionToggle.checked = false;
+  }
+  if (labelHab) labelHab.classList.add('activo');
+  if (labelEsp) labelEsp.classList.remove('activo');
+
+  // Re-poblar select con habitaciones (ya que el toggle ahora está en "Habitación")
+  poblarSelectCuartosServicio(modalSuffix);
+
+  // Heredar responsable de la tarea si está seleccionado
+  const responsableTareaId = modalSuffix === 'Crear'
+    ? document.getElementById('crearTareaResponsable')?.value
+    : document.getElementById('editarTareaResponsable')?.value;
+
+  if (asignado) {
+    if (responsableTareaId) {
+      asignado.value = responsableTareaId;
+    } else {
+      asignado.value = '';
+    }
+  }
 
   // Reset prioridad a "baja"
   const prioridadBaja = document.querySelector(
     `input[name="prioridadServicio${modalSuffix}"][value="baja"]`
   );
   if (prioridadBaja) prioridadBaja.checked = true;
+
+  // Limpiar mensajes de error inline
+  const errorMessages = document.querySelectorAll(`#formServicioEnTarea${modalSuffix} .error-inline`);
+  errorMessages.forEach(msg => msg.remove());
+
+  // Colapsar la sección
+  const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+  const btn = document.getElementById(`btnToggleServicio${modalSuffix}`);
+  if (form) form.style.display = 'none';
+  if (btn) {
+    btn.classList.remove('activo');
+    btn.innerHTML = '<i class="fas fa-chevron-down"></i>';
+  }
+}
+
+/**
+ * Resetea el formulario de servicio cuando se abre el modal (sin colapsar)
+ * @param {string} modalSuffix - 'Crear' o 'Editar'
+ */
+function resetFormServicioEnTareaAlAbrir(modalSuffix) {
+  const descripcion = document.getElementById(
+    `servicioTareaDescripcion${modalSuffix}`
+  );
+  const tipoToggle = document.getElementById(`tipoToggle${modalSuffix}`);
+  const hora = document.getElementById(`servicioTareaHora${modalSuffix}`);
+  const dia = document.getElementById(`servicioTareaDia${modalSuffix}`);
+  const estado = document.getElementById(`servicioTareaEstado${modalSuffix}`);
+  const asignado = document.getElementById(
+    `servicioTareaAsignado${modalSuffix}`
+  );
+  const notas = document.getElementById(`servicioTareaNotas${modalSuffix}`);
+  const camposAlerta = document.getElementById(`camposAlerta${modalSuffix}`);
+
+  // Reset valores
+  if (descripcion) descripcion.value = '';
+  if (tipoToggle) tipoToggle.checked = false;
+  if (hora) hora.value = '';
+  if (dia) dia.value = '';
+  if (estado) estado.value = 'pendiente';
+  if (notas) notas.value = '';
+  if (camposAlerta) camposAlerta.style.display = 'none';
+
+  // Reset ubicación toggle a Habitación (false = habitación)
+  const ubicacionToggle = document.getElementById(`ubicacionTipo${modalSuffix}`);
+  const labelHab = document.getElementById(`ubicacionLabelHab${modalSuffix}`);
+  const labelEsp = document.getElementById(`ubicacionLabelEsp${modalSuffix}`);
+  if (ubicacionToggle) {
+    ubicacionToggle.checked = false;
+  }
+  if (labelHab) labelHab.classList.add('activo');
+  if (labelEsp) labelEsp.classList.remove('activo');
+
+  // Re-poblar select con habitaciones (ya que el toggle ahora está en "Habitación")
+  poblarSelectCuartosServicio(modalSuffix);
+
+  // Reset asignado a vacío (se hereda cuando el usuario seleccione responsable en tarea)
+  if (asignado) asignado.value = '';
+
+  // Reset prioridad a "baja"
+  const prioridadBaja = document.querySelector(
+    `input[name="prioridadServicio${modalSuffix}"][value="baja"]`
+  );
+  if (prioridadBaja) prioridadBaja.checked = true;
+
+  // Limpiar mensajes de error inline
+  const errorMessages = document.querySelectorAll(`#formServicioEnTarea${modalSuffix} .error-inline`);
+  errorMessages.forEach(msg => msg.remove());
+
+  // Limpiar bordes rojos
+  const inputs = document.querySelectorAll(`#formServicioEnTarea${modalSuffix} input, #formServicioEnTarea${modalSuffix} select, #formServicioEnTarea${modalSuffix} textarea`);
+  inputs.forEach(input => input.style.borderColor = '');
 
   // Colapsar la sección
   const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
@@ -6216,8 +6389,58 @@ async function guardarServicioEnModalTarea(modalSuffix) {
     // Obtener datos del formulario
     const datos = obtenerDatosServicioEnTarea(modalSuffix);
 
+    // Función helper para mostrar error inline
+    const mostrarErrorInline = (elementId, mensaje) => {
+      const element = document.getElementById(elementId);
+      if (!element) return;
+
+      // Buscar el contenedor padre correcto (para salir de flex rows)
+      let contenedor = element.parentNode;
+      // Si el padre es un flex row (contiene múltiples inputs), subir un nivel
+      if (contenedor.classList.contains('servicios-tarea-datetime-row') ||
+        contenedor.querySelectorAll('input, select').length > 1) {
+        contenedor = contenedor.parentNode;
+      }
+
+      // Remover error previo si existe en este contenedor
+      const errorPrevio = contenedor.querySelector('.error-inline');
+      if (errorPrevio) errorPrevio.remove();
+
+      // Crear mensaje de error
+      const errorDiv = document.createElement('div');
+      errorDiv.className = 'error-inline';
+      errorDiv.style.cssText = 'color: #e74c3c; font-size: 0.8rem; margin-top: 8px; display: flex; align-items: center; gap: 4px; width: 100%;';
+      errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${mensaje}`;
+
+      // Insertar después del elemento o su contenedor row
+      const insertAfter = element.parentNode.classList.contains('servicios-tarea-datetime-row') ||
+        element.parentNode.querySelectorAll('input, select').length > 1
+        ? element.parentNode : element;
+      insertAfter.insertAdjacentElement('afterend', errorDiv);
+      element.style.borderColor = '#e74c3c';
+
+      // Remover error cuando el usuario escriba
+      element.addEventListener('input', function handler() {
+        errorDiv.remove();
+        element.style.borderColor = '';
+        element.removeEventListener('input', handler);
+      }, { once: true });
+      element.addEventListener('change', function handler() {
+        errorDiv.remove();
+        element.style.borderColor = '';
+        element.removeEventListener('change', handler);
+      }, { once: true });
+    };
+
+    // Limpiar errores previos
+    const form = document.getElementById(`formServicioEnTarea${modalSuffix}`);
+    if (form) {
+      form.querySelectorAll('.error-inline').forEach(el => el.remove());
+      form.querySelectorAll('[style*="border-color"]').forEach(el => el.style.borderColor = '');
+    }
+
     if (!datos || !datos.descripcion) {
-      notificar('Por favor ingresa una descripción para el servicio', 'warning');
+      mostrarErrorInline(`servicioTareaDescripcion${modalSuffix}`, 'La descripción es obligatoria');
       const inputDesc = document.getElementById(`servicioTareaDescripcion${modalSuffix}`);
       if (inputDesc) inputDesc.focus();
       return;
@@ -6225,19 +6448,21 @@ async function guardarServicioEnModalTarea(modalSuffix) {
 
     // Validaciones para alertas
     if (datos.tipo === 'rutina') {
+      let tieneError = false;
       if (!datos.hora) {
-        notificar('La hora es obligatoria para alertas', 'warning');
-        return;
+        mostrarErrorInline(`servicioTareaHora${modalSuffix}`, 'La hora es obligatoria para alertas');
+        tieneError = true;
       }
       if (!datos.dia_alerta) {
-        notificar('El día es obligatorio para alertas', 'warning');
-        return;
+        mostrarErrorInline(`servicioTareaDia${modalSuffix}`, 'El día es obligatorio para alertas');
+        tieneError = true;
       }
+      if (tieneError) return;
     }
 
     // Validación de ubicación
     if (!datos.ubicacion_id) {
-      notificar('Por favor selecciona una ubicación (habitación o espacio)', 'warning');
+      mostrarErrorInline(`servicioTareaCuarto${modalSuffix}`, 'Selecciona una ubicación');
       const selectCuarto = document.getElementById(`servicioTareaCuarto${modalSuffix}`);
       if (selectCuarto) selectCuarto.focus();
       return;
@@ -6273,7 +6498,7 @@ async function guardarServicioEnModalTarea(modalSuffix) {
     if (es_espacio) {
       // Para espacios comunes
       if (window.appLoaderState && window.appLoaderState.mantenimientosEspacios) {
-        window.appLoaderState.mantenimientosEspacios.push(servicioCreado);
+        window.appLoaderState.mantenimientosEspacios.unshift(servicioCreado);
       }
       // Actualizar la card de espacio
       if (typeof window.renderizarServiciosEspacio === 'function') {
@@ -6282,11 +6507,11 @@ async function guardarServicioEnModalTarea(modalSuffix) {
     } else {
       // Para habitaciones - agregar al array global de mantenimientos
       if (window.appLoaderState && window.appLoaderState.mantenimientos) {
-        window.appLoaderState.mantenimientos.push(servicioCreado);
+        window.appLoaderState.mantenimientos.unshift(servicioCreado);
       }
       // También agregar a la variable local si existe
       if (typeof mantenimientos !== 'undefined' && Array.isArray(mantenimientos)) {
-        mantenimientos.push(servicioCreado);
+        mantenimientos.unshift(servicioCreado);
       }
       // Actualizar la card de habitación
       const contenedorServicios = document.getElementById(`servicios-${ubicacion_id}`);
