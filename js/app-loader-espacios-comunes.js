@@ -93,6 +93,11 @@ async function cargarEspaciosComunes() {
         window.poblarFiltroEdificiosEspacios();
       }
 
+      // Poblar filtro de áreas para espacios comunes
+      if (window.poblarFiltroAreasEspacios) {
+        window.poblarFiltroAreasEspacios();
+      }
+
       // Sincronizar filtros y mostrar
       sincronizarEspaciosFiltrados();
       mostrarEspaciosComunes();

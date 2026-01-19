@@ -401,7 +401,7 @@ class PostgresManager {
    */
   async getEdificios() {
     const result = await this.pool.query(
-      'SELECT * FROM edificios ORDER BY nombre'
+      'SELECT id, nombre, descripcion, codigo_sap, es_zona_general, activo, created_at, updated_at FROM edificios WHERE activo = true ORDER BY es_zona_general, nombre'
     );
     return result.rows;
   }

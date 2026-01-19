@@ -1113,6 +1113,7 @@ function setupSearchListeners() {
   const filtroEdificioEspacioSelect = document.getElementById(
     'filtroEdificioEspacio'
   );
+  const filtroAreaEspacioSelect = document.getElementById('filtroAreaEspacio');
   const filtroTipoSelect = document.getElementById('filtroTipoEspacio');
   const filtroPrioridadEspacioSelect = document.getElementById(
     'filtroPrioridadEspacio'
@@ -1125,11 +1126,15 @@ function setupSearchListeners() {
     buscarEspacioInput.addEventListener('input', filterEspaciosComunes);
   if (buscarServicioInput)
     buscarServicioInput.addEventListener('input', filterEspaciosComunes);
-  if (filtroEdificioEspacioSelect)
-    filtroEdificioEspacioSelect.addEventListener(
-      'change',
-      filterEspaciosComunes
-    );
+  if (filtroEdificioEspacioSelect) {
+    filtroEdificioEspacioSelect.addEventListener('change', function () {
+      // Actualizar áreas disponibles según edificio seleccionado
+      poblarFiltroAreasEspacios();
+      filterEspaciosComunes();
+    });
+  }
+  if (filtroAreaEspacioSelect)
+    filtroAreaEspacioSelect.addEventListener('change', filterEspaciosComunes);
   if (filtroTipoSelect)
     filtroTipoSelect.addEventListener('change', filterEspaciosComunes);
 
@@ -1212,6 +1217,8 @@ function filterEspaciosComunes() {
     document.getElementById('buscarServicioEspacio')?.value.toLowerCase() || '';
   const filtroEdificio =
     document.getElementById('filtroEdificioEspacio')?.value || '';
+  const filtroArea =
+    document.getElementById('filtroAreaEspacio')?.value || '';
   const tipoFiltro = document.getElementById('filtroTipoEspacio')?.value || '';
   const prioridadFiltro =
     document.getElementById('filtroPrioridadEspacio')?.value || '';
@@ -1229,6 +1236,10 @@ function filterEspaciosComunes() {
       !filtroEdificio ||
       espacio.edificio_id?.toString() === filtroEdificio ||
       espacio.edificio_nombre === filtroEdificio;
+    const coincideArea =
+      !filtroArea ||
+      espacio.area_id?.toString() === filtroArea ||
+      espacio.area_nombre === filtroArea;
     const coincideTipo = !tipoFiltro || espacio.tipo === tipoFiltro;
     const coincideEstado = !estadoFiltro || espacio.estado === estadoFiltro;
 
@@ -1262,6 +1273,7 @@ function filterEspaciosComunes() {
     return (
       coincideNombre &&
       coincideEdificio &&
+      coincideArea &&
       coincideTipo &&
       coincideEstado &&
       coincideServicio &&
@@ -2226,6 +2238,62 @@ function poblarFiltroEdificiosEspacios() {
 
 // Hacer la función disponible globalmente
 window.poblarFiltroEdificiosEspacios = poblarFiltroEdificiosEspacios;
+
+/**
+ * Poblar el select de filtro de áreas para espacios comunes
+ * Se actualiza dinámicamente cuando cambia el edificio seleccionado
+ */
+function poblarFiltroAreasEspacios() {
+  const select = document.getElementById('filtroAreaEspacio');
+  if (!select) return;
+
+  const filtroEdificio = document.getElementById('filtroEdificioEspacio')?.value || '';
+
+  // Limpiar opciones existentes
+  select.innerHTML = '<option value="">Todas las áreas</option>';
+
+  // Extraer áreas únicas de los espacios comunes
+  const espaciosComunes = AppState.espaciosComunes || [];
+  const areasMap = new Map();
+
+  espaciosComunes.forEach((espacio) => {
+    // Si hay un edificio seleccionado, solo mostrar áreas de ese edificio
+    if (filtroEdificio) {
+      const edificioMatch =
+        espacio.edificio_id?.toString() === filtroEdificio ||
+        espacio.edificio_nombre === filtroEdificio;
+      if (!edificioMatch) return;
+    }
+
+    if (espacio.area_id && espacio.area_nombre) {
+      areasMap.set(espacio.area_id, espacio.area_nombre);
+    }
+  });
+
+  const areas = Array.from(areasMap.entries()).map(([id, nombre]) => ({
+    id: parseInt(id),
+    nombre: nombre,
+  }));
+
+  // Agregar opciones ordenadas por nombre
+  areas
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    .forEach((area) => {
+      const option = document.createElement('option');
+      option.value = area.id.toString();
+      option.textContent = area.nombre;
+      select.appendChild(option);
+    });
+
+  console.log(
+    '📍 [APP.JS] Filtro de áreas (espacios) poblado:',
+    areas.length,
+    filtroEdificio ? `(filtrado por edificio ${filtroEdificio})` : '(todas)'
+  );
+}
+
+// Hacer la función disponible globalmente
+window.poblarFiltroAreasEspacios = poblarFiltroAreasEspacios;
 
 /**
  * Poblar el select de filtro de editores con usuarios de la BD

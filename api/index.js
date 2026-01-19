@@ -1315,11 +1315,17 @@ app.get('/api/espacios-comunes', async (req, res) => {
 
     if (postgresManager) {
       const query = `
-                SELECT ec.*, e.nombre as edificio_nombre
+                SELECT ec.*, 
+                       e.nombre as edificio_nombre,
+                       e.codigo_sap as edificio_codigo,
+                       e.es_zona_general,
+                       a.nombre as area_nombre,
+                       a.codigo_sap as area_codigo
                 FROM espacios_comunes ec
-                LEFT JOIN edificios e ON ec.edificio_id = e.id
+                LEFT JOIN areas a ON ec.area_id = a.id
+                LEFT JOIN edificios e ON a.edificio_id = e.id
                 WHERE ec.activo = true
-                ORDER BY e.nombre, ec.nombre
+                ORDER BY e.nombre, a.nombre, ec.nombre
             `;
       const result = await postgresManager.pool.query(query);
       console.log(
@@ -1490,9 +1496,14 @@ app.get('/api/espacios-comunes/:id', async (req, res) => {
   try {
     if (postgresManager) {
       const query = `
-                SELECT ec.*, e.nombre as edificio_nombre
+                SELECT ec.*, 
+                       e.nombre as edificio_nombre,
+                       e.codigo_sap as edificio_codigo,
+                       a.nombre as area_nombre,
+                       a.codigo_sap as area_codigo
                 FROM espacios_comunes ec
-                LEFT JOIN edificios e ON ec.edificio_id = e.id
+                LEFT JOIN areas a ON ec.area_id = a.id
+                LEFT JOIN edificios e ON a.edificio_id = e.id
                 WHERE ec.id = $1
             `;
       const result = await postgresManager.pool.query(query, [
@@ -1509,6 +1520,43 @@ app.get('/api/espacios-comunes/:id', async (req, res) => {
     console.error('Error al obtener espacio común:', error);
     res.status(500).json({
       error: 'Error al obtener espacio común',
+      details: error.message,
+    });
+  }
+});
+
+// Obtener áreas (nuevo endpoint)
+app.get('/api/areas', async (req, res) => {
+  try {
+    console.log('📥 GET /api/areas - iniciando...');
+    const { edificio_id } = req.query;
+
+    if (postgresManager) {
+      let query = `
+                SELECT a.*, e.nombre as edificio_nombre, e.codigo_sap as edificio_codigo
+                FROM areas a
+                LEFT JOIN edificios e ON a.edificio_id = e.id
+                WHERE a.activo = true
+            `;
+      const params = [];
+
+      if (edificio_id) {
+        query += ' AND a.edificio_id = $1';
+        params.push(parseInt(edificio_id));
+      }
+
+      query += ' ORDER BY e.nombre, a.nombre';
+
+      const result = await postgresManager.pool.query(query, params);
+      console.log(`✅ Áreas obtenidas: ${result.rows.length} registros`);
+      res.json(result.rows);
+    } else {
+      res.json([]);
+    }
+  } catch (error) {
+    console.error('❌ Error al obtener áreas:', error);
+    res.status(500).json({
+      error: 'Error al obtener áreas',
       details: error.message,
     });
   }
