@@ -2572,14 +2572,43 @@
 
   /**
    * Solicitar permisos de notificación del navegador
+   * MEJORADO: Solicita inmediatamente y muestra notificación blur explicativa
    */
   async function solicitarPermisosNotificacion() {
     try {
-      if ('Notification' in window) {
-        if (Notification.permission === 'default') {
-          const permission = await Notification.requestPermission();
-          console.log('Permisos de notificación:', permission);
+      if (!('Notification' in window)) {
+        console.warn('Este navegador no soporta notificaciones');
+        return;
+      }
+
+      if (Notification.permission === 'default') {
+        // Mostrar mensaje explicativo antes de solicitar
+        if (window.mostrarAlertaBlur) {
+          window.mostrarAlertaBlur(
+            '🔔 Para recibir alertas de mantenimiento, permite las notificaciones cuando el navegador lo solicite',
+            'info'
+          );
         }
+
+        // Solicitar permisos después de un breve delay para que el usuario vea el mensaje
+        setTimeout(async () => {
+          const permission = await Notification.requestPermission();
+          console.log('🔔 Permisos de notificación:', permission);
+
+          if (permission === 'granted') {
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur('✅ Notificaciones activadas correctamente', 'success');
+            }
+          } else if (permission === 'denied') {
+            if (window.mostrarAlertaBlur) {
+              window.mostrarAlertaBlur('⚠️ Notificaciones bloqueadas. Puedes habilitarlas desde la configuración del navegador.', 'warning');
+            }
+          }
+        }, 1500);
+      } else if (Notification.permission === 'granted') {
+        console.log('🔔 Notificaciones ya están habilitadas');
+      } else {
+        console.log('🔔 Notificaciones están bloqueadas');
       }
     } catch (error) {
       console.warn('Error solicitando permisos de notificación:', error);
@@ -2882,63 +2911,38 @@
 
   /**
    * Mostrar mensaje cuando el audio está bloqueado
+   * MEJORADO: Usa notificación blur en lugar de elemento custom
    */
   function mostrarMensajeAudioBloqueado() {
-    // Crear un elemento visual temporal para indicar que hay una alerta
-    const alertaBloqueada = document.createElement('div');
-    alertaBloqueada.innerHTML =
-      '🔊 ¡ALERTA DE MANTENIMIENTO! (Click para activar sonido)';
-    alertaBloqueada.style.cssText = `
-        position: fixed;
-        top: 70px;
-        right: 20px;
-        background: linear-gradient(135deg, #ff6b6b, #ff8e3c);
-        color: white;
-        padding: 15px 25px;
-        border-radius: 10px;
-        font-weight: bold;
-        z-index: 1001;
-        cursor: pointer;
-        box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);
-        animation: pulseAlert 1.5s infinite;
-        font-size: 14px;
-    `;
-
-    // Añadir animación CSS
-    if (!document.getElementById('alertAnimationCSS')) {
-      const style = document.createElement('style');
-      style.id = 'alertAnimationCSS';
-      style.textContent = `
-            @keyframes pulseAlert {
-                0% { transform: scale(1); opacity: 0.9; }
-                50% { transform: scale(1.05); opacity: 1; }
-                100% { transform: scale(1); opacity: 0.9; }
-            }
-        `;
-      document.head.appendChild(style);
+    // Usar notificación blur interactiva
+    if (window.mostrarAlertaBlur) {
+      window.mostrarAlertaBlur(
+        '🔊 ¡ALERTA DE MANTENIMIENTO! Haz clic en cualquier parte de la página para activar el sonido',
+        'warning'
+      );
     }
 
-    // Al hacer click, activar audio y cerrar mensaje
-    alertaBloqueada.addEventListener('click', () => {
+    // Agregar listener de un solo uso para activar audio con la primera interacción
+    const activarAudioConInteraccion = () => {
       const audio = new Audio('sounds/alert.mp3');
       audio.volume = 0.7;
       audio
         .play()
         .then(() => {
           console.log('🔊 Audio activado por interacción del usuario');
+          window.audioInteractionEnabled = true;
         })
-        .catch(console.warn);
-      alertaBloqueada.remove();
-    });
+        .catch((err) => {
+          console.warn('⚠️ No se pudo reproducir audio:', err);
+        });
 
-    document.body.appendChild(alertaBloqueada);
+      // Remover el listener después de la primera interacción
+      document.removeEventListener('click', activarAudioConInteraccion);
+      document.removeEventListener('touchstart', activarAudioConInteraccion);
+    };
 
-    // Auto-eliminar después de 8 segundos
-    setTimeout(() => {
-      if (alertaBloqueada.parentNode) {
-        alertaBloqueada.remove();
-      }
-    }, 8000);
+    document.addEventListener('click', activarAudioConInteraccion, { once: true });
+    document.addEventListener('touchstart', activarAudioConInteraccion, { once: true });
   }
 
   /**
