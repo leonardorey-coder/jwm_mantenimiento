@@ -1,0 +1,113 @@
+.espacios-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.espacios-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.espacios-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.espacios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+.espacio-card {
+  background: var(--bg-principal);
+  border-radius: var(--radio-lg);
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: var(--transicion-rapida);
+}
+
+.espacio-card:hover {
+  box-shadow: var(--sombra-media);
+}
+
+.espacio-card.estado-mantenimiento {
+  border-left: 3px solid var(--color-advertencia);
+}
+
+.espacio-card.estado-fuera_servicio {
+  border-left: 3px solid var(--color-peligro);
+}
+
+.espacio-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.espacio-header h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tipo-badge {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  background: var(--gris-claro);
+  border-radius: var(--radio-sm);
+  text-transform: uppercase;
+}
+
+.mantenimientos-count {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.625rem;
+  background: rgba(245, 158, 11, 0.1);
+  color: var(--color-advertencia);
+  border-radius: var(--radio-md);
+  font-size: 0.8125rem;
+}
+
+.btn-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.625rem;
+  background: var(--gris-claro);
+  border-radius: var(--radio-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--texto-secundario);
+  transition: var(--transicion-rapida);
+  margin-top: auto;
+}
+
+.btn-add:hover {
+  background: var(--negro-carbon);
+  color: white;
+}
+
+.espacios-count {
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--texto-secundario);
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .espacios-grid {
+    grid-template-columns: 1fr;
+  }
+}
